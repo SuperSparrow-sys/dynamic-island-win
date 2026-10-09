@@ -52,7 +52,7 @@ public static class Snapshots
 
             await Shot(island, vm, IslandMode.Idle, Path.Combine(dir, $"{name}-1-idle.png"), compact: false);
             await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-2-compact.png"), compact: true);
-            vm.Peek = new PeekItem
+            island.SetPeekForSnapshot(new PeekItem
             {
                 Image = vm.Clipboard.Items.FirstOrDefault(i => i.IsImage)?.Thumbnail,
                 Title = Loc.T("Peek.Screenshot"),
@@ -60,7 +60,7 @@ public static class Snapshots
                 Trailing = "1920×1080",
                 TrailingBrush = (Brush)Application.Current.FindResource("B.Text3"),
                 Seconds = 60,
-            };
+            });
             await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-3-peek.png"), compact: true);
             vm.Tab = 0;
             await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-4-home.png"), compact: true);

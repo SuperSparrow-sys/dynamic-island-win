@@ -60,7 +60,6 @@ public sealed partial class ClipboardService : ObservableObject
     private readonly uint _fmtExclude = Native.RegisterClipboardFormat("ExcludeClipboardContentFromMonitorProcessing");
     private readonly uint _fmtNoHistory = Native.RegisterClipboardFormat("CanIncludeInClipboardHistory");
     private readonly uint _fmtIgnore = Native.RegisterClipboardFormat("Clipboard Viewer Ignore");
-    private FileSystemWatcher? _watcher;
     private bool _suppressNext;
     private string? _lastText;
     private DispatcherTimer? _debounce;

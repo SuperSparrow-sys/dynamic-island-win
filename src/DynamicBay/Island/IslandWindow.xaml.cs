@@ -57,12 +57,21 @@ public partial class IslandWindow : Window
 
     public IslandMode Mode => _mode;
 
-    public IslandWindow(IslandViewModel vm)
+    private readonly string? _mirrorDevice;
+    private readonly PeekHolder _peek = new();
+
+    /// <summary>True for the extra islands shown on other monitors in mirror mode.</summary>
+    public bool IsMirror => _mirrorDevice is not null;
+    public string? MirrorDevice => _mirrorDevice;
+
+    public IslandWindow(IslandViewModel vm, string? mirrorDevice = null)
     {
         InitializeComponent();
         _vm = vm;
         _settings = vm.Settings;
+        _mirrorDevice = mirrorDevice;
         DataContext = vm;
+        PeekLayer.DataContext = _peek; // peeks are per window (each mirror runs its own timer)
 
         _w = _shapeAnim.Add(new Spring(200));
         _h = _shapeAnim.Add(new Spring(12));
@@ -169,13 +178,31 @@ public partial class IslandWindow : Window
 
     // ================= Placement =================
 
-    private static (Native.RECT work, Native.RECT bounds, double scale) Primary()
+    /// <summary>The monitor this island lives on: its mirror monitor, the remembered one, or the primary.</summary>
+    public MonitorInfo TargetMonitor()
     {
-        var mon = Native.MonitorFromPoint(new Native.POINT { X = 0, Y = 0 }, Native.MONITOR_DEFAULTTOPRIMARY);
-        var info = new Native.MONITORINFOEX { cbSize = Marshal.SizeOf<Native.MONITORINFOEX>() };
-        Native.GetMonitorInfo(mon, ref info);
-        Native.GetDpiForMonitor(mon, 0, out uint dpi, out _);
-        return (info.rcWork, info.rcMonitor, dpi / 96.0);
+        if (_mirrorDevice is not null) return Monitors.ByDevice(_mirrorDevice);
+        return _settings.Displays == DisplayMode.Single ? Monitors.ByDevice(_settings.Monitor) : Monitors.Primary();
+    }
+
+    private (Native.RECT work, Native.RECT bounds, double scale) Target()
+    {
+        var m = TargetMonitor();
+        return (m.Work, m.Bounds, m.Scale);
+    }
+
+    /// <summary>
+    /// Keeps the window inside its monitor so the invisible (but always-on-top) window never overlaps a neighbouring
+    /// display. The shape keeps its intended screen position via a compensating translation.
+    /// </summary>
+    private (int x, int y) ClampToMonitor(int x, int y, Native.RECT bounds, double s)
+    {
+        int w = (int)Math.Round(Width * s), h = (int)Math.Round(Height * s);
+        int cx = Math.Clamp(x, bounds.Left, Math.Max(bounds.Left, bounds.Right - w));
+        int cy = Math.Clamp(y, bounds.Top, Math.Max(bounds.Top, bounds.Bottom - h));
+        double k = s * U;
+        HitPad.RenderTransform = new TranslateTransform((x - cx) / k, (y - cy) / k);
+        return (cx, cy);
     }
 
     private double U => _settings.Scale <= 0 ? 1 : _settings.Scale;
@@ -189,7 +216,8 @@ public partial class IslandWindow : Window
     private void Place(bool animate)
     {
         if (_hwnd == IntPtr.Zero) return;
-        var (wa, _, s) = Primary();
+        if (_dragging) return; // WM_DPICHANGED while dragging across monitors
+        var (wa, bounds, s) = Target();
         bool vertical = _settings.Edge is IslandEdge.Left or IslandEdge.Right;
         if (vertical != _vertical || Width != WinSize(vertical).Width * U)
         {
@@ -205,6 +233,7 @@ public partial class IslandWindow : Window
         AlignShape();
 
         var (x, y) = WindowOrigin(wa, s);
+        (x, y) = ClampToMonitor(x, y, bounds, s);
         if (animate)
         {
             _x.Target = x;
@@ -223,6 +252,8 @@ public partial class IslandWindow : Window
 
     private static Size WinSize(bool vertical) => vertical ? WindowV : WindowH;
 
+    private static PxRect ToPx(Native.RECT r) => new(r.Left, r.Top, r.Right, r.Bottom);
+
     /// <summary>The panel is laid out at its final size so content never reflows while the shape morphs.</summary>
     private void SizeExpandedLayer()
     {
@@ -233,37 +264,10 @@ public partial class IslandWindow : Window
 
     private (int x, int y) WindowOrigin(Native.RECT wa, double s)
     {
-        double wpx = WinSize(_vertical).Width * U * s, hpx = WinSize(_vertical).Height * U * s;
-        double off = EdgeOffset * U * s, inset = _settings.Inset * s;
-        double x, y;
-        switch (_settings.Edge)
-        {
-            case IslandEdge.Top:
-            case IslandEdge.Bottom:
-            {
-                double ax = wa.Left + _settings.Along * wa.Width;
-                x = _settings.Align switch
-                {
-                    IslandAlign.Start => ax - off,
-                    IslandAlign.End => ax - wpx + off,
-                    _ => ax - wpx / 2,
-                };
-                y = _settings.Edge == IslandEdge.Top ? wa.Top + inset - off : wa.Bottom - inset - hpx + off;
-                break;
-            }
-            default:
-            {
-                double ay = wa.Top + _settings.Along * wa.Height;
-                y = _settings.Align switch
-                {
-                    IslandAlign.Start => ay - off,
-                    IslandAlign.End => ay - hpx + off,
-                    _ => ay - hpx / 2,
-                };
-                x = _settings.Edge == IslandEdge.Left ? wa.Left + inset - off : wa.Right - inset - wpx + off;
-                break;
-            }
-        }
+        var size = WinSize(_vertical);
+        var placement = new Placement(_settings.Edge, _settings.Align, _settings.Along, _settings.Inset);
+        var (x, y) = PlacementMath.WindowOrigin(placement, ToPx(wa),
+            size.Width * U * s, size.Height * U * s, EdgeOffset * U * s, s);
         return ((int)Math.Round(x), (int)Math.Round(y));
     }
 
@@ -301,7 +305,7 @@ public partial class IslandWindow : Window
         if (_hwnd == IntPtr.Zero) return;
         uint flags = Native.SWP_NOACTIVATE | Native.SWP_NOZORDER | Native.SWP_NOOWNERZORDER;
         if (!resize) flags |= Native.SWP_NOSIZE;
-        var (_, _, s) = Primary();
+        double s = _hwnd == IntPtr.Zero ? 1 : TargetMonitor().Scale;
         Native.SetWindowPos(_hwnd, IntPtr.Zero, x, y, (int)Math.Round(Width * s), (int)Math.Round(Height * s), flags);
     }
 
@@ -311,6 +315,7 @@ public partial class IslandWindow : Window
         _settings.Align = IslandAlign.Center;
         _settings.Along = 0.5;
         _settings.Inset = 8;
+        _settings.Monitor = "";
         _settings.SaveSoon();
         Place(animate: true);
     }
@@ -334,6 +339,11 @@ public partial class IslandWindow : Window
             case nameof(AppSettings.Inset):
                 if (!_dragging) Place(animate: true);
                 break;
+            case nameof(AppSettings.Monitor):
+            case nameof(AppSettings.Displays):
+                // Jumping between monitors (possibly with different DPI) is done without the glide.
+                if (!_dragging) Place(animate: false);
+                break;
             case nameof(AppSettings.Shadow): ShapeBg.Effect = _settings.Shadow ? Shadow : null; break;
             case nameof(AppSettings.Hidden): SetHidden(_settings.Hidden); break;
             case nameof(AppSettings.Idle):
@@ -346,7 +356,7 @@ public partial class IslandWindow : Window
     {
         if (_dropActive) return IslandMode.Drop;
         if (_expanded) return IslandMode.Expanded;
-        if (_vm.Peek is not null) return IslandMode.Peek;
+        if (_peek.Peek is not null) return IslandMode.Peek;
         if (_minimized) return IslandMode.Minimized;
         if (_vm.HasCompact) return IslandMode.Compact;
         return IslandMode.Idle;
@@ -475,7 +485,7 @@ public partial class IslandWindow : Window
         if (_expanded == expanded) return;
         _expanded = expanded;
         if (expanded) _peekTimer.Stop();
-        else if (_vm.Peek is not null) _peekTimer.Start();
+        else if (_peek.Peek is not null) _peekTimer.Start();
         if (!expanded) ExpandedLayerDevicesReset();
         Refresh();
     }
@@ -526,9 +536,9 @@ public partial class IslandWindow : Window
         if (_settings.DoNotDisturb && item.Priority < PeekPriority.High) return;
         if (_suppressed || _settings.Hidden) return;
         if (_expanded) return; // the expanded panel already shows the information
-        if (_vm.Peek is null)
+        if (_peek.Peek is null)
         {
-            _vm.Peek = item;
+            _peek.Peek = item;
             _peekTimer.Interval = TimeSpan.FromSeconds(item.Seconds);
             _peekTimer.Start();
             _minimized = false;
@@ -537,7 +547,7 @@ public partial class IslandWindow : Window
         }
         else
         {
-            if (item.Priority > _vm.Peek.Priority) { _peekQueue.Clear(); _vm.Peek = null; ShowPeek(item); return; }
+            if (item.Priority > _peek.Peek.Priority) { _peekQueue.Clear(); _peek.Peek = null; ShowPeek(item); return; }
             if (_peekQueue.Count < 4) _peekQueue.Enqueue(item);
         }
     }
@@ -545,14 +555,14 @@ public partial class IslandWindow : Window
     private void NextPeek()
     {
         _peekTimer.Stop();
-        if (HitPad.IsMouseOver && _vm.Peek is not null)
+        if (HitPad.IsMouseOver && _peek.Peek is not null)
         {
             // Keep it while the user is looking at / interacting with it.
             _peekTimer.Interval = TimeSpan.FromSeconds(1);
             _peekTimer.Start();
             return;
         }
-        _vm.Peek = null;
+        _peek.Peek = null;
         if (_peekQueue.Count > 0)
         {
             // Brief collapse between peeks reads as two distinct events.
@@ -566,9 +576,9 @@ public partial class IslandWindow : Window
 
     private void OnPeekClick(object sender, MouseButtonEventArgs e)
     {
-        if (_dragging || _vm.Peek is null) return;
-        var action = _vm.Peek.OnClick;
-        _vm.Peek = null;
+        if (_dragging || _peek.Peek is null) return;
+        var action = _peek.Peek.OnClick;
+        _peek.Peek = null;
         _peekTimer.Stop();
         if (action is not null) action();
         else SetExpanded(true);
@@ -628,8 +638,9 @@ public partial class IslandWindow : Window
             if (_expanded) { _expanded = false; }
             Refresh();
         }
-        var (wa, _, s) = Primary();
-        // Keep the shape on the primary monitor.
+        // Single mode: the island may travel to any monitor (the one under the cursor).
+        // Mirror mode: each island stays on its own monitor.
+        var wa = CanChangeMonitor ? Monitors.FromPoint(c.X, c.Y).Work : Target().work;
         int nx = _pressWindow.Left + dx, ny = _pressWindow.Top + dy;
         var shape = ShapeScreenRect(nx, ny);
         if (shape.Left < wa.Left) nx += wa.Left - shape.Left;
@@ -670,9 +681,14 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>Shape rectangle on screen (px) if the window were at (wx, wy).</summary>
+    private bool CanChangeMonitor => _mirrorDevice is null && _settings.Displays == DisplayMode.Single;
+
+    /// <summary>DPI scale the window currently renders at (changes when it crosses monitors).</summary>
+    private double WindowScale => VisualTreeHelper.GetDpi(this).DpiScaleX;
+
     private Native.RECT ShapeScreenRect(int wx, int wy)
     {
-        var (_, _, s) = Primary();
+        double s = WindowScale;
         var p = Shape.TransformToAncestor(this).Transform(new Point(0, 0));
         double w = Shape.ActualWidth * U, h = Shape.ActualHeight * U;
         return new Native.RECT
@@ -687,58 +703,31 @@ public partial class IslandWindow : Window
     private void FinishDrag()
     {
         _dragging = false;
-        var (wa, _, s) = Primary();
         var r = ShapeScreenRect((int)_x.Value, (int)_y.Value);
         var oldShapePos = (r.Left, r.Top);
+        var monitor = CanChangeMonitor ? Monitors.FromPoint((r.Left + r.Right) / 2, (r.Top + r.Bottom) / 2) : TargetMonitor();
+        var wa = monitor.Work;
+        double s = monitor.Scale;
+        bool monitorChanged = CanChangeMonitor && !string.Equals(monitor.Device, TargetMonitor().Device, StringComparison.OrdinalIgnoreCase);
 
-        double dTop = r.Top - wa.Top, dBottom = wa.Bottom - r.Bottom, dLeft = r.Left - wa.Left, dRight = wa.Right - r.Right;
-        double min = new[] { dTop, dBottom, dLeft, dRight }.Min();
-        IslandEdge edge = min == dTop ? IslandEdge.Top : min == dBottom ? IslandEdge.Bottom : min == dLeft ? IslandEdge.Left : IslandEdge.Right;
-        bool horizontalEdge = edge is IslandEdge.Top or IslandEdge.Bottom;
-        double snapPx = 70 * s;
+        var p = PlacementMath.FromDrop(new PxRect(r.Left, r.Top, r.Right, r.Bottom), ToPx(wa), s, _settings.MagneticSnap);
+        var edge = p.Edge;
 
-        IslandAlign align;
-        double anchor, along, inset = Math.Max(0, min) / s;
-        if (horizontalEdge)
-        {
-            double cx = (r.Left + r.Right) / 2.0, zone = wa.Width * 0.18;
-            if (cx - wa.Left < zone) { align = IslandAlign.Start; anchor = r.Left; }
-            else if (wa.Right - cx < zone) { align = IslandAlign.End; anchor = r.Right; }
-            else { align = IslandAlign.Center; anchor = cx; }
-            if (_settings.MagneticSnap)
-            {
-                double center = wa.Left + wa.Width / 2.0;
-                if (align == IslandAlign.Center && Math.Abs(anchor - center) < snapPx) anchor = center;
-                if (align == IslandAlign.Start && anchor - wa.Left < snapPx) anchor = wa.Left + 8 * s;
-                if (align == IslandAlign.End && wa.Right - anchor < snapPx) anchor = wa.Right - 8 * s;
-            }
-            along = (anchor - wa.Left) / wa.Width;
-        }
-        else
-        {
-            double cy = (r.Top + r.Bottom) / 2.0, zone = wa.Height * 0.18;
-            if (cy - wa.Top < zone) { align = IslandAlign.Start; anchor = r.Top; }
-            else if (wa.Bottom - cy < zone) { align = IslandAlign.End; anchor = r.Bottom; }
-            else { align = IslandAlign.Center; anchor = cy; }
-            if (_settings.MagneticSnap)
-            {
-                double center = wa.Top + wa.Height / 2.0;
-                if (align == IslandAlign.Center && Math.Abs(anchor - center) < snapPx) anchor = center;
-                if (align == IslandAlign.Start && anchor - wa.Top < snapPx) anchor = wa.Top + 8 * s;
-                if (align == IslandAlign.End && wa.Bottom - anchor < snapPx) anchor = wa.Bottom - 8 * s;
-            }
-            along = (anchor - wa.Top) / wa.Height;
-        }
-        if (_settings.MagneticSnap && inset < 44) inset = 8;
-
-        bool orientationChanges = (edge is IslandEdge.Left or IslandEdge.Right) != _vertical;
+        bool orientationChanges = p.IsVertical != _vertical;
         _settings.PropertyChanged -= OnSettingChanged;
-        _settings.Edge = edge;
-        _settings.Align = align;
-        _settings.Along = Math.Clamp(along, 0, 1);
-        _settings.Inset = inset;
+        _settings.Edge = p.Edge;
+        _settings.Align = p.Align;
+        _settings.Along = p.Along;
+        _settings.Inset = p.Inset;
+        if (CanChangeMonitor) _settings.Monitor = monitor.IsPrimary ? "" : monitor.Device;
         _settings.PropertyChanged += OnSettingChanged;
         _settings.SaveSoon();
+        if (monitorChanged)
+        {
+            // Different monitor (maybe different DPI): place directly instead of gliding across the seam.
+            Place(animate: false);
+            return;
+        }
 
         // Re-layout for the new edge, then glide from where the shape visually is to its new home.
         bool vertical = edge is IslandEdge.Left or IslandEdge.Right;
@@ -757,9 +746,11 @@ public partial class IslandWindow : Window
         UpdateLayout();
 
         var (tx, ty) = WindowOrigin(wa, s);
+        (tx, ty) = ClampToMonitor(tx, ty, monitor.Bounds, s);
+        UpdateLayout();
         // Start position that keeps the shape where the user let go.
-        var p = Shape.TransformToAncestor(this).Transform(new Point(0, 0));
-        int sx = (int)(oldShapePos.Left - p.X * s), sy = (int)(oldShapePos.Top - p.Y * s);
+        var offset = Shape.TransformToAncestor(this).Transform(new Point(0, 0));
+        int sx = (int)(oldShapePos.Left - offset.X * s), sy = (int)(oldShapePos.Top - offset.Y * s);
         MoveWindowPx(sx, sy, resize: true);
         _x.Snap(sx); _y.Snap(sy);
         _x.Target = tx; _y.Target = ty;
@@ -775,7 +766,7 @@ public partial class IslandWindow : Window
         if (hidden)
         {
             _expanded = false;
-            _vm.Peek = null;
+            _peek.Peek = null;
             FadeOut();
         }
         else if (!_suppressed) FadeIn();
@@ -845,27 +836,28 @@ public partial class IslandWindow : Window
         string cls = Native.ClassName(fg);
         if (cls is "WorkerW" or "Progman" or "Shell_TrayWnd") return false;
         // QUNS_BUSY (2), QUNS_RUNNING_D3D_FULL_SCREEN (3), QUNS_PRESENTATION_MODE (4)
-        if (Native.SHQueryUserNotificationState(out int state) == 0 && state is 2 or 3 or 4 && OnPrimary(fg)) return true;
+        if (Native.SHQueryUserNotificationState(out int state) == 0 && state is 2 or 3 or 4 && OnMyMonitor(fg)) return true;
         // Maximized windows also cover the monitor but keep their caption; real fullscreen windows don't.
         long style = Native.GetWindowLongPtr(fg, Native.GWL_STYLE).ToInt64();
         if ((style & Native.WS_CAPTION) == Native.WS_CAPTION) return false;
         if (!Native.GetWindowRect(fg, out var r)) return false;
-        var (_, bounds, _) = Primary();
+        var (_, bounds, _) = Target();
         return r.Left <= bounds.Left && r.Top <= bounds.Top && r.Right >= bounds.Right && r.Bottom >= bounds.Bottom;
     }
 
-    private static bool OnPrimary(IntPtr hwnd)
+    /// <summary>Fullscreen apps only hide the island on the monitor they actually cover.</summary>
+    private bool OnMyMonitor(IntPtr hwnd)
     {
-        var mon = Native.MonitorFromWindow(hwnd, Native.MONITOR_DEFAULTTONEAREST);
-        var info = new Native.MONITORINFOEX { cbSize = Marshal.SizeOf<Native.MONITORINFOEX>() };
-        Native.GetMonitorInfo(mon, ref info);
-        return (info.dwFlags & Native.MONITORINFOF_PRIMARY) != 0;
+        var mon = Monitors.Describe(Native.MonitorFromWindow(hwnd, Native.MONITOR_DEFAULTTONEAREST));
+        return string.Equals(mon.Device, TargetMonitor().Device, StringComparison.OrdinalIgnoreCase);
     }
 
     // ================= Design snapshots =================
 
     /// <summary>Forces a state for screenshot-based design review (DynamicBay.exe --snapshot).</summary>
     private bool _snapshotMode;
+
+    public void SetPeekForSnapshot(PeekItem item) => _peek.Peek = item;
 
     public void ForceState(IslandMode mode, bool vertical = false)
     {
@@ -874,7 +866,7 @@ public partial class IslandWindow : Window
         _expanded = mode == IslandMode.Expanded;
         _dropActive = mode == IslandMode.Drop;
         _minimized = mode == IslandMode.Minimized;
-        if (mode != IslandMode.Peek) _vm.Peek = null;
+        if (mode != IslandMode.Peek) _peek.Peek = null;
         _peekTimer.Stop();
         Refresh();
     }

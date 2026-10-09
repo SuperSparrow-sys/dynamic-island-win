@@ -9,6 +9,7 @@ using System;
 using System.Runtime.InteropServices;
 public static class Ui {
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+    [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr ctx);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] public static extern void mouse_event(uint f, int dx, int dy, uint d, IntPtr e);
     [DllImport("user32.dll")] public static extern int GetSystemMetrics(int i);
@@ -17,7 +18,7 @@ public static class Ui {
     [DllImport("gdi32.dll")] public static extern bool BitBlt(IntPtr d, int x, int y, int w, int h, IntPtr s, int sx, int sy, int rop);
 }
 "@
-[Ui]::SetProcessDPIAware() | Out-Null
+[Ui]::SetProcessDpiAwarenessContext([IntPtr]-4) | Out-Null # per-monitor v2: real pixels on every display
 $sw = [Ui]::GetSystemMetrics(0); $sh = [Ui]::GetSystemMetrics(1)
 
 function Grab($name, $x, $y, $w, $h) {

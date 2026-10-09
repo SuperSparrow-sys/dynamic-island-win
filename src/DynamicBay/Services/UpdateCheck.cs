@@ -11,7 +11,7 @@ public static class UpdateCheck
 {
     public const string Repo = "SuperSparrow-sys/dynamic-island-win";
 
-    public static async Task RunAsync(IslandWindow island)
+    public static async Task RunAsync(IslandManager island)
     {
         try
         {

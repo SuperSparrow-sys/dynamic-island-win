@@ -148,11 +148,26 @@
                             <StackPanel Margin="22,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Ankerpunkt wählen', En='Choose an anchor'}" />
                                 <TextBlock Style="{StaticResource ST.Desc}" Margin="0,4,0,0"
-                                           Text="{core:L De='Du kannst die Insel auch einfach mit der Maus ziehen. In der Nähe der Punkte rastet sie magnetisch ein. An den Seiten wird sie senkrecht und klappt zur Seite auf. Sie erscheint immer nur auf dem Hauptbildschirm.', En='You can also just drag the island with the mouse. It snaps magnetically near the points. On the sides it turns vertical and opens sideways. It always appears on the primary display only.'}" />
+                                           Text="{core:L De='Du kannst die Insel auch einfach mit der Maus ziehen. In der Nähe der Punkte rastet sie magnetisch ein. An den Seiten wird sie senkrecht und klappt zur Seite auf. Auf einen anderen Bildschirm ziehen funktioniert auch.', En='You can also just drag the island with the mouse. It snaps magnetically near the points. On the sides it turns vertical and opens sideways. Dragging it to another display works too.'}" />
                                 <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Margin="0,12,0,0" Click="ResetPosition_Click"
                                         Content="{core:L De='Position zurücksetzen', En='Reset position'}" />
                             </StackPanel>
                         </DockPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Bildschirme', En='Displays'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Anzeige bei mehreren Bildschirmen', En='With multiple displays'}"
+                                            ToolTip="{core:L De='Ein Bildschirm: Ziehe die Insel einfach auf einen anderen Bildschirm, sie merkt sich den Platz. Gespiegelt: eine Insel auf jedem Bildschirm mit denselben Inhalten.', En='One display: just drag the island to another display, it remembers the spot. Mirrored: one island on every display with the same content.'}">
+                                <Border Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Ein Bildschirm', En='One display'}" IsChecked="{Binding S.Displays, Converter={StaticResource EqBool}, ConverterParameter=Single}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Alle (gespiegelt)', En='All (mirrored)'}" IsChecked="{Binding S.Displays, Converter={StaticResource EqBool}, ConverterParameter=Mirror}" />
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
+                        </StackPanel>
                     </Border>
 
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Ebene', En='Layer'}" />

@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace DynamicBay.Core;
 
-internal static class Native
+public static class Native
 {
     public const int GWL_EXSTYLE = -20;
     public const int GWL_STYLE = -16;

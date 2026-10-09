@@ -16,9 +16,10 @@ public static class Grab {
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] public static extern int GetSystemMetrics(int i);
     [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+    [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr ctx);
 }
 "@
-[Grab]::SetProcessDPIAware() | Out-Null
+[Grab]::SetProcessDpiAwarenessContext([IntPtr]-4) | Out-Null # per-monitor v2: real pixels on every display
 $screenW = [Grab]::GetSystemMetrics(0)
 if ($X -lt 0) { $X = [int](($screenW - $W) / 2) }
 if ($MoveMouseX -ge 0) { [Grab]::SetCursorPos($MoveMouseX, $MoveMouseY) | Out-Null }

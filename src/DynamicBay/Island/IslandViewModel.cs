@@ -36,6 +36,12 @@ public sealed class PeekItem
     public bool HasProgress => Progress is not null;
 }
 
+/// <summary>Per-window holder for the peek currently shown (PeekView binds to Peek).</summary>
+public sealed partial class PeekHolder : ObservableObject
+{
+    [ObservableProperty] private PeekItem? _peek;
+}
+
 public sealed partial class IslandViewModel : ObservableObject
 {
     public AppSettings Settings { get; }
@@ -48,7 +54,6 @@ public sealed partial class IslandViewModel : ObservableObject
     public BatteryService Battery { get; }
     public SpotifyService Spotify { get; }
 
-    [ObservableProperty] private PeekItem? _peek;
     [ObservableProperty] private int _tab;           // 0 home, 1 tray, 2 notifications
     [ObservableProperty] private bool _isVertical;
     [ObservableProperty] private bool _isPinned;

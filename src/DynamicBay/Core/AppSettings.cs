@@ -11,6 +11,7 @@ public enum IslandAlign { Start, Center, End }
 public enum LayerMode { Floating, Desktop }
 public enum IdleStyle { Bar, Hidden }
 public enum AccentSource { Cover, Windows, Custom }
+public enum DisplayMode { Single, Mirror }
 
 /// <summary>All user settings. Flat on purpose: binds directly into the settings window and serializes as one JSON file.</summary>
 public sealed partial class AppSettings : ObservableObject
@@ -41,7 +42,9 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _hidden;
     public ObservableCollection<string> ExcludedApps { get; set; } = new();
 
-    // Placement (primary monitor only)
+    // Placement. Monitor = device name ("" = primary); used in Single mode only.
+    [ObservableProperty] private DisplayMode _displays = DisplayMode.Single;
+    [ObservableProperty] private string _monitor = "";
     [ObservableProperty] private IslandEdge _edge = IslandEdge.Top;
     [ObservableProperty] private IslandAlign _align = IslandAlign.Center;
     [ObservableProperty] private double _along = 0.5;

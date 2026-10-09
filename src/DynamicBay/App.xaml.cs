@@ -16,11 +16,12 @@ public partial class App : Application
     private static Mutex? _single;
     private MessageWindow? _msg;
     private TrayIcon? _tray;
-    private IslandWindow? _island;
+    private IslandManager? _islands;
     private IslandViewModel? _vm;
     private AppSettings _settings = new();
     private Settings.SettingsWindow? _settingsWindow;
     private const int HotkeyId = 0xB001;
+    private bool _snapshotMode;
 
     public static string Version => typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
 
@@ -28,6 +29,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
         string? snapshotDir = GetArg(e.Args, "--snapshot");
+        _snapshotMode = snapshotDir is not null;
 
         if (snapshotDir is null)
         {
@@ -64,13 +66,13 @@ public partial class App : Application
         var spotify = new SpotifyService(_settings);
 
         _vm = new IslandViewModel(_settings, media, clipboard, shelf, notifications, timer, calendar, battery, spotify);
-        _island = new IslandWindow(_vm);
+        _islands = new IslandManager(_vm);
         _vm.OpenSettingsRequested += ShowSettings;
 
         if (snapshotDir is not null)
         {
-            _island.Show();
-            try { await Snapshots.RunAsync(_island, _vm, _settings, snapshotDir); }
+            _islands.Main.Show();
+            try { await Snapshots.RunAsync(_islands.Main, _vm, _settings, snapshotDir); }
             catch (Exception ex) { Log.Error("Snapshot", ex); }
             Shutdown();
             return;
@@ -89,9 +91,9 @@ public partial class App : Application
 
         WirePeeks(media, clipboard, shelf, notifications, timer, calendar, battery, bluetooth);
 
-        _tray = new TrayIcon(_settings, ShowSettings, () => _island.SetHidden(!_settings.Hidden), _island.ResetPosition, Quit);
+        _tray = new TrayIcon(_settings, ShowSettings, _islands.ToggleHidden, _islands.ResetPosition, Quit);
 
-        if (!_settings.Hidden) _island.Show();
+        _islands.Show();
 
         // Services start after the window is up so the first frame isn't delayed.
         shelf.Load();
@@ -102,7 +104,7 @@ public partial class App : Application
         await media.InitAsync();
         await spotify.InitAsync();
         await notifications.StartAsync();
-        if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_island);
+        if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands);
     }
 
     private static string? GetArg(string[] args, string name)
@@ -116,7 +118,7 @@ public partial class App : Application
     private void WirePeeks(MediaService media, ClipboardService clipboard, ShelfService shelf, NotificationService notifications,
         TimerService timer, CalendarService calendar, BatteryService battery, BluetoothService bluetooth)
     {
-        var island = _island!;
+        var island = _islands!;
         Brush Res(string key) => (Brush)FindResource(key);
         Geometry Icon(string key) => (Geometry)FindResource(key);
         Brush Tint(string key, byte alpha = 0x33)
@@ -138,7 +140,7 @@ public partial class App : Application
                 Trailing = $"{item.PixelWidth}×{item.PixelHeight}",
                 TrailingBrush = Res("B.Text3"),
                 Seconds = 3.5,
-                OnClick = () => { _vm!.Tab = 1; island.SetExpanded(true); },
+                OnClick = () => { _vm!.Tab = 1; island.Expand(); },
             });
         };
 
@@ -157,7 +159,7 @@ public partial class App : Application
                 WaveformBrush = media.AccentBrush,
                 Seconds = 2.6,
                 Priority = PeekPriority.Low,
-                OnClick = () => { _vm!.Tab = 0; island.SetExpanded(true); },
+                OnClick = () => { _vm!.Tab = 0; island.Expand(); },
             });
         };
 
@@ -240,7 +242,7 @@ public partial class App : Application
             Title = Loc.German ? (count == 1 ? "1 Datei abgelegt" : $"{count} Dateien abgelegt") : (count == 1 ? "1 file added" : $"{count} files added"),
             Subtitle = Loc.T("Shelf.EmptyHint"),
             Seconds = 2.2,
-            OnClick = () => { _vm!.Tab = 1; island.SetExpanded(true); },
+            OnClick = () => { _vm!.Tab = 1; island.Expand(); },
         });
     }
 
@@ -267,12 +269,12 @@ public partial class App : Application
     {
         if (msg == Native.WM_HOTKEY && wParam.ToInt32() == HotkeyId)
         {
-            _island?.SetHidden(!_settings.Hidden);
+            _islands?.ToggleHidden();
             return true;
         }
         if ((uint)msg == ShowSettingsMessage)
         {
-            if (_settings.Hidden) _island?.SetHidden(false);
+            if (_settings.Hidden) _islands?.ToggleHidden();
             ShowSettings();
             return true;
         }
@@ -310,7 +312,8 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _settings.Save();
+        // Snapshot runs use throwaway settings; never overwrite the user's file with demo placements.
+        if (!_snapshotMode) _settings.Save();
         _tray?.Dispose();
         base.OnExit(e);
     }
