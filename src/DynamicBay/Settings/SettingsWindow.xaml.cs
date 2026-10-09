@@ -55,7 +55,7 @@ public partial class SettingsWindow : Window
         UpdatePreview();
         BuildWidgetRows();
         BuildScriptRows();
-        Action<string> scriptsUpdated = _ => Dispatcher.BeginInvoke(BuildScriptRows);
+        Action<string> scriptsUpdated = _ => Dispatcher.BeginInvoke(UpdateScriptStatus);
         vm.Scripts.Updated += scriptsUpdated;
         Closed += (_, _) => vm.Scripts.Updated -= scriptsUpdated;
         BuildCompactRows();
@@ -64,7 +64,7 @@ public partial class SettingsWindow : Window
         UpdateClaudeShareText();
         UpdateUpdateRow();
         UpdateCheck.PendingChanged += () => Dispatcher.BeginInvoke(UpdateUpdateRow);
-        vm.Calendar.StatusChanged += () => Dispatcher.BeginInvoke(BuildCalendarRows);
+        vm.Calendar.StatusChanged += () => Dispatcher.BeginInvoke(RefreshCalendarRows);
     }
 
     private void ApplyBackdrop()
@@ -126,11 +126,15 @@ public partial class SettingsWindow : Window
     private (string id, string icon, string de, string en, string descDe, string descEn)[] AllWidgetInfo() =>
         HomeWidgetInfo.Concat(_ctx.S.ScriptWidgets.Select(sc => (sc.HomeId, "Icon.Code", sc.Name, sc.Name, "Eigenes Skript-Widget", "Own script widget"))).ToArray();
 
+    // Rows by widget id, so switches and arrows can update them in place (no flicker, no jumping list).
+    private readonly Dictionary<string, (Border row, Button up, Button down)> _widgetRows = new();
+
     private void BuildWidgetRows()
     {
         var s = _ctx.S;
         var infos = AllWidgetInfo();
         WidgetRows.Children.Clear();
+        _widgetRows.Clear();
         // Enabled widgets first (in their order), then the rest.
         var ordered = s.HomeWidgets.Where(id => infos.Any(w => w.id == id))
             .Concat(infos.Select(w => w.id).Where(id => !s.HomeWidgets.Contains(id))).ToList();
@@ -147,24 +151,49 @@ public partial class SettingsWindow : Window
             {
                 if (sw.IsChecked == true && !s.HomeWidgets.Contains(id)) s.HomeWidgets.Add(id);
                 else if (sw.IsChecked != true) s.HomeWidgets.Remove(id);
-                BuildWidgetRows();
+                UpdateWidgetArrows();
             };
 
             var controls = new StackPanel { Orientation = Orientation.Horizontal };
-            controls.Children.Add(ArrowButton("Icon.ChevronUp", on && pos > 0, () => Move(id, -1)));
-            controls.Children.Add(ArrowButton("Icon.ChevronDown", on && pos >= 0 && pos < s.HomeWidgets.Count - 1, () => Move(id, +1)));
+            var up = ArrowButton("Icon.ChevronUp", on && pos > 0, () => Move(id, -1));
+            var down = ArrowButton("Icon.ChevronDown", on && pos >= 0 && pos < s.HomeWidgets.Count - 1, () => Move(id, +1));
+            controls.Children.Add(up);
+            controls.Children.Add(down);
             controls.Children.Add(new Border { Width = 12 });
             controls.Children.Add(sw);
 
-            WidgetRows.Children.Add(Row(info.icon, Loc.German ? info.de : info.en, Loc.German ? info.descDe : info.descEn, controls, i > 0));
+            var row = (Border)Row(info.icon, Loc.German ? info.de : info.en, Loc.German ? info.descDe : info.descEn, controls, i > 0);
+            _widgetRows[id] = (row, up, down);
+            WidgetRows.Children.Add(row);
+        }
+    }
+
+    private void UpdateWidgetArrows()
+    {
+        var list = _ctx.S.HomeWidgets;
+        foreach (var (id, (_, up, down)) in _widgetRows)
+        {
+            int pos = list.IndexOf(id);
+            up.IsEnabled = pos > 0;
+            down.IsEnabled = pos >= 0 && pos < list.Count - 1;
         }
     }
 
     // ---- script widgets ----
 
+    private readonly Dictionary<string, TextBlock> _scriptStatus = new();
+
+    /// <summary>A script ran: only its status line changes.</summary>
+    private void UpdateScriptStatus()
+    {
+        foreach (var sc in _ctx.S.ScriptWidgets)
+            if (_scriptStatus.TryGetValue(sc.Id, out var t)) SetDesc(t, _ctx.I.Scripts.StatusOf(sc));
+    }
+
     private void BuildScriptRows()
     {
         ScriptRows.Children.Clear();
+        _scriptStatus.Clear();
         var scripts = _ctx.S.ScriptWidgets.ToList();
         if (scripts.Count == 0)
         {
@@ -204,7 +233,8 @@ public partial class SettingsWindow : Window
             controls.Children.Add(IconButton("Icon.Refresh", Loc.German ? "Jetzt ausführen" : "Run now", () => _ctx.I.Scripts.RunNow(sc)));
             controls.Children.Add(IconButton("Icon.Trash", Loc.German ? "Entfernen" : "Remove", () => { _ctx.I.Scripts.Remove(sc); BuildScriptRows(); BuildWidgetRows(); }));
 
-            var row = Row("Icon.Code", sc.Name, _ctx.I.Scripts.StatusOf(sc), controls, i > 0);
+            var row = Row("Icon.Code", sc.Name, _ctx.I.Scripts.StatusOf(sc), controls, i > 0, out var status);
+            _scriptStatus[sc.Id] = status;
             ScriptRows.Children.Add(row);
         }
     }
@@ -255,7 +285,26 @@ public partial class SettingsWindow : Window
         int i = list.IndexOf(id), j = i + delta;
         if (i < 0 || j < 0 || j >= list.Count) return;
         list.Move(i, j);
-        BuildWidgetRows();
+        // Move just these two rows; everything else stays where it is.
+        var ia = WidgetRows.Children.IndexOf(_widgetRows[id].row);
+        var other = list[i];
+        if (_widgetRows.TryGetValue(other, out var o))
+        {
+            var ib = WidgetRows.Children.IndexOf(o.row);
+            if (ia >= 0 && ib >= 0)
+            {
+                int lo = Math.Min(ia, ib), hi = Math.Max(ia, ib);
+                var eLo = WidgetRows.Children[lo];
+                var eHi = WidgetRows.Children[hi];
+                WidgetRows.Children.RemoveAt(hi);
+                WidgetRows.Children.RemoveAt(lo);
+                WidgetRows.Children.Insert(lo, eHi);
+                WidgetRows.Children.Insert(hi, eLo);
+                for (int k = 0; k < WidgetRows.Children.Count; k++)
+                    if (WidgetRows.Children[k] is Border b) b.BorderThickness = new Thickness(0, k > 0 ? 1 : 0, 0, 0);
+            }
+        }
+        UpdateWidgetArrows();
     }
 
     private Button ArrowButton(string icon, bool enabled, Action click)
@@ -367,9 +416,28 @@ public partial class SettingsWindow : Window
 
     // ---- calendar accounts ----
 
+    private string _calRowsKey = "";
+    private readonly Dictionary<string, TextBlock> _calStatus = new();
+    private readonly Dictionary<string, List<FrameworkElement>> _calLines = new();
+
+    /// <summary>Which accounts and calendars the list shows; only a change here needs a rebuild.</summary>
+    private string CalendarRowsKey() => string.Join(";", _ctx.S.CalendarAccounts.Select(a =>
+        a.Id + ":" + string.Join(",", _ctx.I.Calendar.CalendarsOf(a).Select(c => c.Id))));
+
+    /// <summary>After a sync: new status texts in place; a new or missing account/calendar rebuilds the list.</summary>
+    private void RefreshCalendarRows()
+    {
+        if (CalendarRowsKey() != _calRowsKey) { BuildCalendarRows(); return; }
+        foreach (var a in _ctx.S.CalendarAccounts)
+            if (_calStatus.TryGetValue(a.Id, out var t)) SetDesc(t, _ctx.I.Calendar.StatusOf(a));
+    }
+
     private void BuildCalendarRows()
     {
         CalendarRows.Children.Clear();
+        _calStatus.Clear();
+        _calLines.Clear();
+        _calRowsKey = CalendarRowsKey();
         int i = 0;
         foreach (var a in _ctx.S.CalendarAccounts)
         {
@@ -379,7 +447,12 @@ public partial class SettingsWindow : Window
             string status = _ctx.I.Calendar.StatusOf(a);
             var controls = new StackPanel { Orientation = Orientation.Horizontal };
             var sw = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = a.Enabled, Margin = new Thickness(0, 0, 10, 0) };
-            sw.Click += (_, _) => { account.Enabled = sw.IsChecked == true; SaveAccounts(); };
+            sw.Click += (_, _) =>
+            {
+                account.Enabled = sw.IsChecked == true;
+                if (_calLines.TryGetValue(account.Id, out var lines)) foreach (var l in lines) l.Opacity = account.Enabled ? 1 : 0.5;
+                SaveAccounts();
+            };
             controls.Children.Add(sw);
             var remove = new Button { Style = (Style)FindResource("S.Button"), Padding = new Thickness(8, 4, 8, 4),
                 Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.Trash"), Width = 13, Height = 13 } };
@@ -391,8 +464,10 @@ public partial class SettingsWindow : Window
             };
             controls.Children.Add(remove);
             string label = $"{a.Name}  ·  {kind}" + (a.Kind == CalendarKind.ICloud ? $"  ·  {a.User}" : "");
-            var row = Row(icon, label, status.Length > 0 ? status : null, controls, i++ > 0);
+            var row = Row(icon, label, status.Length > 0 ? status : null, controls, i++ > 0, out var statusText);
             ((Border)row).Padding = new Thickness(0, 8, 0, 8);
+            _calStatus[a.Id] = statusText;
+            _calLines[a.Id] = new();
             CalendarRows.Children.Add(row);
 
             // The account's calendars, each with its own switch (e.g. to hide some of many Google calendars)
@@ -414,6 +489,7 @@ public partial class SettingsWindow : Window
                 DockPanel.SetDock(dot, Dock.Left);
                 line.Children.Add(dot);
                 line.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Base"), Text = c.Name, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                _calLines[a.Id].Add(line);
                 CalendarRows.Children.Add(line);
             }
         }
@@ -422,14 +498,8 @@ public partial class SettingsWindow : Window
                 Text = Loc.German ? "Noch kein Kalender verbunden." : "No calendar connected yet." });
     }
 
-    /// <summary>Accounts are plain objects; re-adding forces change notification + save + refresh.</summary>
-    private void SaveAccounts()
-    {
-        var list = _ctx.S.CalendarAccounts.ToList();
-        _ctx.S.CalendarAccounts.Clear();
-        foreach (var a in list) _ctx.S.CalendarAccounts.Add(a);
-        _ctx.S.SaveSoon();
-    }
+    /// <summary>An account changed in place: save and sync, the list itself stays as it is.</summary>
+    private void SaveAccounts() => _ctx.S.CalendarAccountsChanged();
 
     private void ShowCalForm(FrameworkElement form)
     {
@@ -580,7 +650,16 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private FrameworkElement Row(string icon, string label, string? desc, FrameworkElement control, bool divider)
+    private FrameworkElement Row(string icon, string label, string? desc, FrameworkElement control, bool divider) =>
+        Row(icon, label, desc, control, divider, out _);
+
+    private static void SetDesc(TextBlock t, string? text)
+    {
+        t.Text = text ?? "";
+        t.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private FrameworkElement Row(string icon, string label, string? desc, FrameworkElement control, bool divider, out TextBlock descText)
     {
         var dock = new DockPanel();
         DockPanel.SetDock(control, Dock.Right);
@@ -591,7 +670,9 @@ public partial class SettingsWindow : Window
         dock.Children.Add(ic);
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         text.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Label"), Text = label });
-        if (desc is not null) text.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Desc"), Text = desc });
+        descText = new TextBlock { Style = (Style)FindResource("ST.Desc") };
+        SetDesc(descText, desc);
+        text.Children.Add(descText);
         dock.Children.Add(text);
         return new Border
         {

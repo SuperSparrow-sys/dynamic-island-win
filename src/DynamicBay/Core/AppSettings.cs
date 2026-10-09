@@ -118,6 +118,9 @@ public sealed partial class AppSettings : ObservableObject
         }
     }
 
+    /// <summary>An account changed in place (on/off, hidden calendars): refresh the calendars and save - without rebuilding the list.</summary>
+    public void CalendarAccountsChanged() { OnPropertyChanged(nameof(CalendarAccounts)); SaveSoon(); }
+
     /// <summary>A script widget changed in place (size, Mini): tell the island and save.</summary>
     public void ScriptWidgetsChanged() { OnPropertyChanged(nameof(ScriptWidgets)); SaveSoon(); }
 
