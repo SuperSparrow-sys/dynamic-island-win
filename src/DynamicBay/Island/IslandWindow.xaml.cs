@@ -87,7 +87,7 @@ public partial class IslandWindow : Window
         _layerAnim.Updated += ApplyLayers;
 
         _peekTimer.Tick += (_, _) => NextPeek();
-        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !_dragging && !ShowsQuestion) SetExpanded(true); };
+        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !_dragging && !ShowsQuestion && !_hoverBlocked) SetExpanded(true); };
         _collapseTimer.Tick += (_, _) => { _collapseTimer.Stop(); TryCollapse(); };
         _dropLeaveTimer.Tick += (_, _) => { _dropLeaveTimer.Stop(); _dropActive = false; Refresh(); };
         _watchdog.Tick += (_, _) => Watchdog();
@@ -107,6 +107,9 @@ public partial class IslandWindow : Window
         PeekLayer.Answered += yes =>
         {
             var item = _peek.Peek;
+            // The cursor is still on the island; a Windows prompt (UAC, setup) may follow - do not open the panel
+            // until the mouse has left once.
+            _hoverBlocked = true;
             DismissPeek();
             if (yes) item?.Action?.Invoke();
         };
@@ -560,6 +563,7 @@ public partial class IslandWindow : Window
     public void Toggle() { if (!ShowsQuestion) SetExpanded(!_expanded); }
 
     private bool ShowsQuestion => _peek.Peek?.HasActions == true;
+    private bool _hoverBlocked;
 
     private void OnHoverEnter(object sender, MouseEventArgs e)
     {
@@ -567,7 +571,7 @@ public partial class IslandWindow : Window
         _lastActivity = DateTime.Now;
         if (_minimized) { _minimized = false; Refresh(); }
         // While a question (buttons) is shown, hovering must not open the panel - the buttons must stay reachable.
-        if (_settings.ExpandOnHover && !_expanded && !_dragging && !ShowsQuestion && Mouse.LeftButton != MouseButtonState.Pressed)
+        if (_settings.ExpandOnHover && !_expanded && !_dragging && !ShowsQuestion && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
         {
             _hoverTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(0, _settings.HoverDelayMs));
             _hoverTimer.Start();
@@ -577,6 +581,7 @@ public partial class IslandWindow : Window
     private void OnHoverLeave(object sender, MouseEventArgs e)
     {
         _hoverTimer.Stop();
+        if (!HitPad.IsMouseOver) _hoverBlocked = false;
         _lastActivity = DateTime.Now;
         ScheduleCollapseIfAway();
     }
@@ -702,7 +707,7 @@ public partial class IslandWindow : Window
 
     private void OnPress(object sender, MouseButtonEventArgs e)
     {
-        if (e.Handled) return;
+        if (e.Handled || _dragOut) return;
         _pressed = true;
         _dragging = false;
         _pressCursor = Native.CursorPos();
@@ -713,6 +718,7 @@ public partial class IslandWindow : Window
     private void OnPressMove(object sender, MouseEventArgs e)
     {
         if (!_pressed || e.LeftButton != MouseButtonState.Pressed) return;
+        if (_dragOut) { _pressed = false; return; }
         var c = Native.CursorPos();
         int dx = c.X - _pressCursor.X, dy = c.Y - _pressCursor.Y;
         if (!_dragging)

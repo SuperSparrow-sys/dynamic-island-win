@@ -123,8 +123,10 @@
                 <Button Style="{StaticResource Btn.Icon}" Command="{Binding OpenSettingsCommand}" ToolTip="{core:T Action.Settings}">
                     <c:Icon Data="{StaticResource Icon.Settings}" Width="15" Height="15" Foreground="{StaticResource B.Text2}" />
                 </Button>
-                <!-- Hide; with Alt held it becomes the (hidden) quit button -->
-                <Button Style="{StaticResource Btn.Icon}" Command="{Binding HideCommand}"
+                <!-- Hide; with Alt held it becomes the (hidden) quit button.
+                     Corner button: its centre sits 34 px from the top and from the side (12 inset + half the 44 px bar),
+                     so it is centred in the panel corner like the first tab on the other side. -->
+                <Button Style="{StaticResource Btn.Icon}" Command="{Binding HideCommand}" Margin="0,0,7,0"
                         ToolTip="{Binding AltHeld, Converter={StaticResource HideQuitTip}}">
                     <Grid>
                         <c:Icon Data="{StaticResource Icon.EyeOff}" Width="15" Height="15" Foreground="{StaticResource B.Text2}"

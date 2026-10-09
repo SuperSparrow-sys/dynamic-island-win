@@ -12,7 +12,7 @@
     <ApplicationIcon>Assets\DynamicBay.ico</ApplicationIcon>
     <AssemblyName>DynamicBay</AssemblyName>
     <RootNamespace>DynamicBay</RootNamespace>
-    <Version>1.0.7</Version>
+    <Version>1.0.8</Version>
     <Product>DynamicBay</Product>
     <Company>SuperSparrow</Company>
     <Copyright>MIT License</Copyright>
@@ -38,6 +38,8 @@
     <Resource Include="Assets\DynamicBay.png" />
     <EmbeddedResource Include="Assets\AppIcons.json.gz" LogicalName="DynamicBay.Assets.AppIcons.json.gz" />
     <Content Include="Assets\Fonts\Inter-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Logos of the identity (sparse) package: Windows loads them from the install folder (taskbar, settings). -->
+    <Content Include="Assets\Package\*.png" Link="Assets\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

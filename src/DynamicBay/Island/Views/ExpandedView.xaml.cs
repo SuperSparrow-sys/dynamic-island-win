@@ -48,6 +48,7 @@ public partial class ExpandedView : UserControl
             EnsureVisibleTab();
         };
         IsVisibleChanged += (_, _) => Vm?.System.SetActive(IsVisible && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
+        HomeScroll.IsVisibleChanged += (_, _) => Dispatcher.BeginInvoke(FitHomeToViewport, System.Windows.Threading.DispatcherPriority.Loaded);
         SetVertical(false);
     }
 
@@ -137,11 +138,16 @@ public partial class ExpandedView : UserControl
     {
         // When the content overflows, a thin scroll bar appears along the edge: leave room for it.
         const double bar = 9;
+        // Not laid out yet (panel closed, other tab): measuring now would pin the grid to 0 px and leave the page
+        // empty. SizeChanged / IsVisibleChanged run this again once the page is visible.
+        if (HomeScroll.ActualWidth < 1 || HomeScroll.ActualHeight < 1) return;
         bool overflow = _vertical ? MinContentHeight() > HomeScroll.ActualHeight + 1 : MinContentWidth() > HomeScroll.ActualWidth + 1;
+        // No fixed size across the scroll direction: the scroll viewer already limits it to the visible area.
+        HomeGrid.Width = double.NaN;
+        HomeGrid.Height = double.NaN;
         HomeGrid.MinWidth = _vertical ? 0 : HomeScroll.ActualWidth;
         HomeGrid.MinHeight = _vertical ? HomeScroll.ActualHeight : 0;
-        HomeGrid.Height = _vertical ? double.NaN : Math.Max(0, HomeScroll.ActualHeight - (overflow ? bar : 0));
-        HomeGrid.Width = _vertical ? Math.Max(0, HomeScroll.ActualWidth - (overflow ? bar : 0)) : double.NaN;
+        HomeGrid.Margin = !overflow ? new Thickness(0) : _vertical ? new Thickness(0, 0, bar, 0) : new Thickness(0, 0, 0, bar);
     }
 
     private double MinContentWidth() =>
@@ -248,6 +254,7 @@ public partial class ExpandedView : UserControl
     {
         _dragStart = e.GetPosition(this);
         _dragging = false;
+        e.Handled = true; // the item may be dragged out - the island itself must not move
         if (e.ClickCount == 2 && ((FrameworkElement)sender).DataContext is ShelfItem item)
         {
             Vm?.Shelf.Open(item);
@@ -274,6 +281,7 @@ public partial class ExpandedView : UserControl
     {
         _dragStart = e.GetPosition(this);
         _dragging = false;
+        e.Handled = true; // the item may be dragged out - the island itself must not move
     }
 
     private void ClipItem_MouseMove(object sender, MouseEventArgs e)
@@ -381,7 +389,9 @@ public partial class ExpandedView : UserControl
         while (d is not null)
         {
             if (d is T t) return t;
-            d = System.Windows.Media.VisualTreeHelper.GetParent(d);
+            d = d is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
+                ? System.Windows.Media.VisualTreeHelper.GetParent(d)
+                : LogicalTreeHelper.GetParent(d);
         }
         return null;
     }

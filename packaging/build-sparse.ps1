@@ -25,16 +25,8 @@ New-Item -ItemType Directory -Force "$stage\Assets" | Out-Null
 $v = ($Version.Split('-')[0] + ".0.0.0").Split('.')[0..3] -join '.'
 (Get-Content "$PSScriptRoot\AppxManifest.xml" -Raw).Replace("__VERSION__", $v) | Set-Content "$stage\AppxManifest.xml" -Encoding utf8
 
-# Logos rendered from the app icon
-Add-Type -AssemblyName System.Drawing
-$src = [System.Drawing.Image]::FromFile((Resolve-Path "$PSScriptRoot\..\src\DynamicBay\Assets\DynamicBay.png"))
-foreach ($asset in @(@("StoreLogo.png", 50), @("Square150x150Logo.png", 150), @("Square44x44Logo.png", 44))) {
-    $bmp = New-Object System.Drawing.Bitmap $asset[1], $asset[1]
-    $g = [System.Drawing.Graphics]::FromImage($bmp); $g.InterpolationMode = "HighQualityBicubic"
-    $g.DrawImage($src, 0, 0, $asset[1], $asset[1]); $g.Dispose()
-    $bmp.Save("$stage\Assets\$($asset[0])", [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()
-}
-$src.Dispose()
+# Logos (the same files ship in the install folder, where Windows reads them for the sparse package)
+Copy-Item "$PSScriptRoot\..\src\DynamicBay\Assets\Package\*.png" "$stage\Assets\"
 
 $msix = Join-Path $Out "DynamicBay.msix"
 & $makeappx pack /d $stage /p $msix /nv /o | Out-Null
