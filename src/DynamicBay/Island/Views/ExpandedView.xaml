@@ -59,14 +59,14 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="12,10,12,12">
+    <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <!-- ===== Top bar ===== -->
-        <DockPanel x:Name="TopBar" Height="30" LastChildFill="False" Background="Transparent">
+        <DockPanel x:Name="TopBar" Height="44" LastChildFill="False" Background="Transparent">
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                 <RadioButton Style="{StaticResource Tab.Segment}" GroupName="tabs"
                              IsChecked="{Binding Tab, Converter={StaticResource EqBool}, ConverterParameter=0}">
@@ -100,7 +100,8 @@
                 <StackPanel Orientation="Horizontal" Margin="0,0,8,0" VerticalAlignment="Center"
                             Visibility="{Binding Battery.HasBattery, Converter={StaticResource Vis}}">
                     <TextBlock Style="{StaticResource T.Numeric}" FontSize="11.5" Foreground="{StaticResource B.Text2}"
-                               Text="{Binding Battery.Percent, StringFormat={}{0} %}" VerticalAlignment="Center" />
+                               Text="{Binding Battery.Percent, StringFormat={}{0} %}" VerticalAlignment="Center"
+                               Visibility="{Binding IsVertical, Converter={StaticResource NotVis}}" />
                     <c:Icon Margin="5,0,0,0" Width="18" Height="18" StrokeWidth="1.8"
                             Data="{Binding Battery.IsPluggedIn, Converter={StaticResource BatteryGlyph}}"
                             Foreground="{Binding Battery.IsPluggedIn, Converter={StaticResource OnBrush}}" />
@@ -128,7 +129,7 @@
         </DockPanel>
 
         <!-- ===== Pages ===== -->
-        <Grid Grid.Row="1" Margin="0,10,0,0">
+        <Grid Grid.Row="1" Margin="0,12,0,0">
 
             <!-- Home: media, calendar, timer -->
             <!-- Nook page scrolls when the chosen widgets need more room than the island has -->

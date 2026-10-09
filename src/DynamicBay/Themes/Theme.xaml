@@ -206,7 +206,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
-                    <Border x:Name="Bg" Background="Transparent" CornerRadius="9" Padding="10,5">
+                    <!-- Radius 20 = panel corner 32 minus its 12 px inset (concentric, same as the cards); 44 px tall so it stays a rounded bar, not a capsule -->
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="20" Padding="15,0" MinHeight="44">
                         <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                     </Border>
                     <ControlTemplate.Triggers>

@@ -20,8 +20,8 @@ public partial class IslandWindow : Window
     private const double EdgeOffset = 34;
     private static readonly Size WindowH = new(790, 360);
     private static readonly Size WindowV = new(480, 560);
-    private static readonly Size ExpandedH = new(660, 244);
-    private static readonly Size ExpandedV = new(384, 452);
+    private static readonly Size ExpandedH = new(660, 264);
+    private static readonly Size ExpandedV = new(384, 472);
 
     private readonly IslandViewModel _vm;
     private readonly AppSettings _settings;
