@@ -9,6 +9,12 @@
         <c:BoolToVis x:Key="Vis" />
         <c:BoolToVis x:Key="NotVis" Invert="True" />
         <c:BoolToVis x:Key="VisHidden" KeepSpace="True" />
+        <c:DeviceKindIcon x:Key="KindIcon" />
+        <c:BatteryRing x:Key="BatteryValue" />
+        <c:BatteryRing x:Key="BatteryBrush" Mode="brush" />
+        <c:BatteryRing x:Key="BatteryText" Mode="text" />
+        <c:BatteryRing x:Key="PercentRing" />
+        <c:BatteryRing x:Key="PercentBrush" Mode="brush" />
         <c:EqualsToVis x:Key="EqVis" />
         <c:EqualsToBool x:Key="EqBool" />
         <c:RatioConverter x:Key="Ratio" />
@@ -482,6 +488,48 @@
 
             <!-- Optional widgets (shown when enabled in settings; laid out in code) -->
             <Grid x:Name="ExtraCards" Visibility="Collapsed">
+                <!-- Devices: this PC and connected Bluetooth devices with their battery, like the iPhone battery widget -->
+                <Border x:Name="DevicesCard" Style="{StaticResource Card}" Padding="12,10">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource T.Section}" Text="{core:L De='Geräte', En='Devices'}" />
+                        <Viewbox StretchDirection="DownOnly" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,8,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- this PC -->
+                                <StackPanel Width="60" Visibility="{Binding Battery.HasBattery, Converter={StaticResource Vis}}">
+                                    <Grid Width="46" Height="46">
+                                        <c:ProgressRing Thickness="4" Value="{Binding Battery.Percent, Converter={StaticResource PercentRing}}"
+                                                        RingBrush="{Binding Battery.Percent, Converter={StaticResource PercentBrush}}" />
+                                        <c:Icon Data="{StaticResource Icon.Laptop}" Width="18" Height="18" Foreground="{StaticResource B.Text}" />
+                                    </Grid>
+                                    <TextBlock Style="{StaticResource T.Numeric}" FontSize="11.5" Margin="0,5,0,0" HorizontalAlignment="Center"
+                                               Text="{Binding Battery.Percent, StringFormat={}{0} %}" />
+                                    <TextBlock Style="{StaticResource T.Caption}" FontSize="9.5" HorizontalAlignment="Center" Text="{core:L De='Dieser PC', En='This PC'}" />
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding Bluetooth.Devices}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type s:BluetoothDeviceInfo}">
+                                            <StackPanel Width="60" ToolTip="{Binding Name}">
+                                                <Grid Width="46" Height="46">
+                                                    <c:ProgressRing Thickness="4" Value="{Binding Battery, Converter={StaticResource BatteryValue}}"
+                                                                    RingBrush="{Binding Battery, Converter={StaticResource BatteryBrush}}" />
+                                                    <c:Icon Data="{Binding Kind, Converter={StaticResource KindIcon}}" Width="18" Height="18" Foreground="{StaticResource B.Text}" />
+                                                </Grid>
+                                                <TextBlock Style="{StaticResource T.Numeric}" FontSize="11.5" Margin="0,5,0,0" HorizontalAlignment="Center"
+                                                           Text="{Binding Battery, Converter={StaticResource BatteryText}}" />
+                                                <TextBlock Style="{StaticResource T.Caption}" FontSize="9.5" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                                           MaxWidth="56" Text="{Binding Name}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Viewbox>
+                    </DockPanel>
+                </Border>
+
                 <!-- Clock -->
                 <Border x:Name="ClockCard" Style="{StaticResource Card}" Padding="10">
                     <!-- Scales down in narrow slots instead of clipping the digits -->

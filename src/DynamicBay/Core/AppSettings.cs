@@ -14,8 +14,8 @@ public enum IdleStyle { Bar, Clock, Hidden }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic";
-    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude };
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices };
     public const string Battery = "battery";
     public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic };
     /// <summary>Home widget ids of user scripts: "script:{id}".</summary>
@@ -151,6 +151,12 @@ public sealed partial class AppSettings : ObservableObject
             var projects = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "projects");
             if (ClaudeEnabled && Directory.Exists(projects) && !HomeWidgets.Contains(Widgets.Claude)) HomeWidgets.Add(Widgets.Claude);
             SettingsVersion = 4;
+        }
+        // v5: new "Geräte" widget (battery of this PC and Bluetooth devices) - shown once, can be switched off.
+        if (SettingsVersion < 5)
+        {
+            if (BluetoothEnabled && !HomeWidgets.Contains(Widgets.Devices)) HomeWidgets.Add(Widgets.Devices);
+            SettingsVersion = 5;
         }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });

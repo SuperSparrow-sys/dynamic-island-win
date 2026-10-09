@@ -95,7 +95,7 @@ public partial class App : Application
         var bluetooth = new BluetoothService();
         var spotify = new SpotifyService(_settings);
 
-        _vm = new IslandViewModel(_settings, media, clipboard, shelf, notifications, timer, calendar, battery, spotify);
+        _vm = new IslandViewModel(_settings, media, clipboard, shelf, notifications, timer, calendar, battery, spotify) { Bluetooth = bluetooth };
         _islands = new IslandManager(_vm);
         _vm.OpenSettingsRequested += ShowSettings;
         _vm.QuitRequested += Quit;
@@ -239,12 +239,30 @@ public partial class App : Application
             });
         };
 
+        // Keyboard, mouse or headphones running low (once per device and day)
+        bluetooth.BatteryLow += dev =>
+        {
+            if (!_settings.BluetoothEnabled) return;
+            island.ShowPeek(new PeekItem
+            {
+                Icon = Icon(dev.Kind switch { DeviceKind.Keyboard => "Icon.Keyboard", DeviceKind.Mouse => "Icon.Mouse", DeviceKind.Speaker => "Icon.Speaker", DeviceKind.Phone => "Icon.Phone", _ => "Icon.Headphones" }),
+                IconBrush = Res("B.Red"),
+                IconBackground = Tint("B.Red", 0x26),
+                Title = dev.Name,
+                Subtitle = Loc.German ? "Akku fast leer" : "Battery low",
+                Trailing = dev.Battery is int b ? $"{b} %" : null,
+                TrailingBrush = Res("B.Red"),
+                Progress = dev.Battery is int b2 ? b2 / 100.0 : null,
+                Priority = PeekPriority.High,
+                Seconds = 5,
+            });
+        };
         bluetooth.DeviceChanged += (dev, connected) =>
         {
             if (!_settings.BluetoothEnabled) return;
             island.ShowPeek(new PeekItem
             {
-                Icon = Icon(dev.IsAudio ? "Icon.Headphones" : "Icon.Bluetooth"),
+                Icon = Icon(dev.Kind switch { DeviceKind.Speaker => "Icon.Speaker", DeviceKind.Headphones => "Icon.Headphones", DeviceKind.Phone => "Icon.Phone", _ => "Icon.Bluetooth" }),
                 IconBrush = Res(connected ? "B.Blue" : "B.Text2"),
                 IconBackground = Tint(connected ? "B.Blue" : "B.Text", 0x26),
                 Title = dev.Name,

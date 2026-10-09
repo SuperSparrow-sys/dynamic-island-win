@@ -5,6 +5,38 @@ using System.Windows.Media;
 
 namespace DynamicBay.Controls;
 
+/// <summary>Device type -> its symbol.</summary>
+public sealed class DeviceKindIcon : IValueConverter
+{
+    public object? Convert(object value, Type t, object p, CultureInfo c) => Application.Current.TryFindResource(value switch
+    {
+        DynamicBay.Services.DeviceKind.Headphones => "Icon.Headphones",
+        DynamicBay.Services.DeviceKind.Speaker => "Icon.Speaker",
+        DynamicBay.Services.DeviceKind.Keyboard => "Icon.Keyboard",
+        DynamicBay.Services.DeviceKind.Mouse => "Icon.Mouse",
+        DynamicBay.Services.DeviceKind.Phone => "Icon.Phone",
+        _ => "Icon.Bluetooth",
+    });
+    public object ConvertBack(object value, Type t, object p, CultureInfo c) => Binding.DoNothing;
+}
+
+/// <summary>Battery percent (int or null) -> ring value 0..1, colour (green, orange under 20 %, red under 10 %) or label.</summary>
+public sealed class BatteryRing : IValueConverter
+{
+    public string Mode { get; set; } = "value";
+    public object Convert(object value, Type t, object p, CultureInfo c)
+    {
+        int? pct = value as int?;
+        return Mode switch
+        {
+            "brush" => Application.Current.TryFindResource(pct is null ? "B.Text3" : pct < 10 ? "B.Red" : pct < 20 ? "B.Orange" : "B.Green")!,
+            "text" => pct is null ? "–" : $"{pct} %",
+            _ => pct is null ? 0.0 : pct.Value / 100.0,
+        };
+    }
+    public object ConvertBack(object value, Type t, object p, CultureInfo c) => Binding.DoNothing;
+}
+
 /// <summary>Readable app name for an entry of "hide while these apps are active".</summary>
 public sealed class ExcludedLabel : IValueConverter
 {

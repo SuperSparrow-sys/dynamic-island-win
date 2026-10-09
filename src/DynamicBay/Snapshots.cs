@@ -28,6 +28,24 @@ public static class Snapshots
             ("bottom", IslandEdge.Bottom, IslandAlign.Center, 0.5),
             ("topright", IslandEdge.Top, IslandAlign.End, 1),
         };
+        // Devices widget with the real Bluetooth devices: DYNAMICBAY_SNAPSHOT_DEVICES=1
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_DEVICES") == "1")
+        {
+            vm.Bluetooth?.Start();
+            settings.HomeWidgets.Clear();
+            foreach (var w in new[] { Widgets.Devices, Widgets.Media, Widgets.Calendar }) settings.HomeWidgets.Add(w);
+            await Task.Delay(5000);
+            foreach (var (name, edge, align, along) in placements.Where(p => p.name is "top" or "left"))
+            {
+                settings.Edge = edge; settings.Align = align; settings.Inset = 8; settings.Along = along;
+                await Task.Delay(900);
+                vm.Tab = 0;
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-devices.png"), compact: false);
+            }
+            Log.Info("Devices snapshot: " + string.Join(", ", vm.Bluetooth?.Devices.Select(d => $"{d.Name}={d.Kind}/{d.Battery}") ?? Array.Empty<string>()));
+            return;
+        }
+
         // Script widgets: DYNAMICBAY_SNAPSHOT_SCRIPT=<file.js> - the script as large and small card and as Mini line.
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_SCRIPT") is { Length: > 0 } scriptFile && Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") != "settings")
         {

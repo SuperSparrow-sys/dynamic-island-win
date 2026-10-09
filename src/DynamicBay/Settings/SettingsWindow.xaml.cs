@@ -107,6 +107,7 @@ public partial class SettingsWindow : Window
         (Widgets.System, "Icon.Sliders", "System", "System", "CPU- und Speicherauslastung", "CPU and memory load"),
         (Widgets.Shortcuts, "Icon.AppWindow", "Schnellstart", "Launcher", "Angepinnte Apps und Ordner", "Pinned apps and folders"),
         (Widgets.Claude, "Icon.Sparkles", "Claude", "Claude", "Deine Sitzungen und ob Claude gerade arbeitet", "Your sessions and whether Claude is working"),
+        (Widgets.Devices, "Icon.Bluetooth", "Geräte", "Devices", "Akkustand von PC, Kopfhörern, Tastatur und Maus", "Battery of this PC, headphones, keyboard and mouse"),
         (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
     };
 

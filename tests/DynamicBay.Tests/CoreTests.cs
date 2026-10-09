@@ -323,3 +323,23 @@ public class ClaudeNotificationTests
         Assert.False(claude.AnyWaiting);
     }
 }
+
+public class DevicesWidgetTests
+{
+    [Fact]
+    public void Migration_adds_the_devices_widget_once()
+    {
+        var s = new AppSettings { SettingsVersion = 4 };
+        s.Migrate();
+        Assert.Contains(Widgets.Devices, s.HomeWidgets);
+        s.HomeWidgets.Remove(Widgets.Devices);   // user switched it off
+        s.Migrate();
+        Assert.DoesNotContain(Widgets.Devices, s.HomeWidgets);
+    }
+
+    [Theory]
+    [InlineData(null, "–")]
+    [InlineData(5, "5 %")]
+    public void Battery_label(int? pct, string expected) =>
+        Assert.Equal(expected, new DynamicBay.Controls.BatteryRing { Mode = "text" }.Convert(pct!, typeof(string), null!, System.Globalization.CultureInfo.InvariantCulture));
+}
