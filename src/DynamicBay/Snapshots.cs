@@ -28,6 +28,20 @@ public static class Snapshots
             ("bottom", IslandEdge.Bottom, IslandAlign.Center, 0.5),
             ("topright", IslandEdge.Top, IslandAlign.End, 1),
         };
+        // Leak check: DYNAMICBAY_SNAPSHOT=leak - opens and closes the settings window five times; memory must not grow.
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "leak")
+        {
+            static long Live() { GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect(); return GC.GetTotalMemory(true) / 1048576; }
+            var w0 = new Settings.SettingsWindow(settings, vm); w0.Show(); await Task.Delay(800); w0.Close(); await Task.Delay(500);
+            long before = Live();
+            for (int i = 0; i < 5; i++)
+            {
+                var w = new Settings.SettingsWindow(settings, vm);
+                w.Show(); await Task.Delay(800); w.Close(); await Task.Delay(500);
+            }
+            Log.Info($"LEAK settings window x5: {before} MB -> {Live()} MB managed");
+            return;
+        }
         // CPU per state: DYNAMICBAY_SNAPSHOT=perf - measures this process in each island state for 15 s.
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "perf")
         {
