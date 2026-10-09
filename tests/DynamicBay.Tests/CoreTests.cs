@@ -125,7 +125,7 @@ public class SettingsTests
     [Fact]
     public void Old_single_ics_url_is_migrated_to_an_account()
     {
-        var s = new AppSettings { CalendarIcsUrl = "https://example.com/cal.ics" };
+        var s = new AppSettings { CalendarIcsUrl = "https://example.com/cal.ics", MediaPeekOnTrackChange = true };
         s.Migrate();
         Assert.Equal("", s.CalendarIcsUrl);
         Assert.Equal("https://example.com/cal.ics", s.CalendarAccounts.Single().Url);
@@ -234,4 +234,19 @@ public class UpdateTests
 
     [Fact]
     public void Rejects_garbage_tags() => Assert.False(UpdateCheck.TryParse("latest", out _));
+}
+
+public class MigrationTests
+{
+    [Fact]
+    public void Old_settings_turn_the_track_change_peek_off_once()
+    {
+        var s = new AppSettings { MediaPeekOnTrackChange = true, SettingsVersion = 0 };
+        s.Migrate();
+        Assert.False(s.MediaPeekOnTrackChange);
+        Assert.Equal(2, s.SettingsVersion);
+        s.MediaPeekOnTrackChange = true; // the user's own choice afterwards is kept
+        s.Migrate();
+        Assert.True(s.MediaPeekOnTrackChange);
+    }
 }

@@ -74,7 +74,6 @@ public sealed partial class CalendarService : ObservableObject
 
     public void Start()
     {
-        _settings.Migrate();
         _refresh.Tick += async (_, _) => await RefreshAsync();
         _minute.Tick += (_, _) => Recompute();
         _refresh.Start();

@@ -101,6 +101,8 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>Older versions stored one ICS URL; turn it into an account.</summary>
     public void Migrate()
     {
+        // v2: track-change peek became opt-in (users found the island growing on every song distracting).
+        if (SettingsVersion < 2) { MediaPeekOnTrackChange = false; SettingsVersion = 2; }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });
         CalendarIcsUrl = "";
@@ -137,7 +139,8 @@ public sealed partial class AppSettings : ObservableObject
 
     // Media
     [ObservableProperty] private bool _mediaEnabled = true;
-    [ObservableProperty] private bool _mediaPeekOnTrackChange = true;
+    [ObservableProperty] private bool _mediaPeekOnTrackChange; // off: the island stays small on song changes (like the iPhone)
+    public int SettingsVersion { get; set; }
     [ObservableProperty] private string _spotifyClientId = "";
 
     // Clipboard / screenshots

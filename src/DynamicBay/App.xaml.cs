@@ -70,6 +70,7 @@ public partial class App : Application
         TaskScheduler.UnobservedTaskException += (_, ex) => { Log.Error("Task", ex.Exception); ex.SetObserved(); };
 
         _settings = snapshotDir is null ? AppSettings.Load() : new AppSettings { Hidden = false };
+        if (snapshotDir is null) { _settings.Migrate(); _settings.Save(); }
         Loc.Init(_settings.Language);
         Log.Info($"DynamicBay {Version} starting (identity: {SparsePackage.HasIdentity})");
 
