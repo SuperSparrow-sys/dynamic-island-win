@@ -260,21 +260,24 @@
                                     <Grid x:Name="Timeline" Height="16" Background="Transparent" Cursor="Hand"
                                           MouseLeftButtonDown="Timeline_MouseDown" MouseMove="Timeline_MouseMove" MouseLeftButtonUp="Timeline_MouseUp">
                                         <Border x:Name="TimelineTrack" Height="4" CornerRadius="3" Background="{StaticResource B.Fill3}" VerticalAlignment="Center" />
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
-                                            <Border x:Name="TimelineFill" Height="4" CornerRadius="3" Background="{StaticResource B.Text}" VerticalAlignment="Center">
-                                                <Border.Width>
+                                        <!-- Fill and knob sit on a Canvas: it asks for no size, so the bar can never make the card wider.
+                                             (Before, the knob poking out of the full bar widened the card, which lengthened the bar - an endless layout loop.) -->
+                                        <Canvas ClipToBounds="False">
+                                            <Grid Height="16">
+                                                <Grid.Width>
                                                     <MultiBinding Converter="{StaticResource Ratio}">
                                                         <Binding Path="Media.PositionSeconds" />
                                                         <Binding Path="Media.DurationSeconds" />
                                                         <Binding Path="ActualWidth" ElementName="Timeline" />
                                                     </MultiBinding>
-                                                </Border.Width>
-                                            </Border>
-                                            <Border x:Name="TimelineKnob" Width="12" Height="12" CornerRadius="6" Margin="-6,0,0,0" Background="{StaticResource B.Text}"
-                                                    VerticalAlignment="Center" Opacity="0">
-                                                <Border.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.5" /></Border.Effect>
-                                            </Border>
-                                        </StackPanel>
+                                                </Grid.Width>
+                                                <Border x:Name="TimelineFill" Height="4" CornerRadius="3" Background="{StaticResource B.Text}" VerticalAlignment="Center" />
+                                                <Border x:Name="TimelineKnob" Width="12" Height="12" CornerRadius="6" Margin="0,0,-6,0" Background="{StaticResource B.Text}"
+                                                        HorizontalAlignment="Right" VerticalAlignment="Center" Opacity="0">
+                                                    <Border.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.5" /></Border.Effect>
+                                                </Border>
+                                            </Grid>
+                                        </Canvas>
                                         <Grid.Triggers>
                                             <EventTrigger RoutedEvent="MouseEnter">
                                                 <BeginStoryboard>

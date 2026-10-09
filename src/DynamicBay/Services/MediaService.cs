@@ -364,7 +364,15 @@ public sealed partial class MediaService : ObservableObject
     // 2) An image that shows up for different titles is the app icon, not a cover, and is ignored from then on.
 
     private readonly Dictionary<string, HashSet<string>> _artTitles = new();
-    private readonly HashSet<string> _placeholderArt = new();
+    // Learned app icons are kept across restarts, so the first track after a start does not show the browser icon.
+    private static string PlaceholderFile => System.IO.Path.Combine(Core.AppSettings.Folder, "media-placeholders.txt");
+    private readonly HashSet<string> _placeholderArt = LoadPlaceholders();
+
+    private static HashSet<string> LoadPlaceholders()
+    {
+        try { return System.IO.File.Exists(PlaceholderFile) ? System.IO.File.ReadAllLines(PlaceholderFile).Where(l => l.Length > 0).ToHashSet() : new(); }
+        catch { return new(); }
+    }
     private byte[]? _pendingArt;
     private string _pendingArtTitle = "";
     private string _coverTitle = "";
@@ -375,7 +383,11 @@ public sealed partial class MediaService : ObservableObject
         string hash = Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(bytes));
         if (!_artTitles.TryGetValue(hash, out var titles)) _artTitles[hash] = titles = new HashSet<string>();
         titles.Add(title);
-        if (titles.Count > 1 && _placeholderArt.Add(hash)) Log.Info("Media: ignoring app icon used as artwork");
+        if (titles.Count > 1 && _placeholderArt.Add(hash))
+        {
+            Log.Info("Media: ignoring app icon used as artwork");
+            try { System.IO.File.AppendAllLines(PlaceholderFile, new[] { hash }); } catch { }
+        }
         if (_placeholderArt.Contains(hash)) { ScheduleMediaRetry(); return; } // keep the old cover, real art follows
 
         _pendingArt = bytes;
