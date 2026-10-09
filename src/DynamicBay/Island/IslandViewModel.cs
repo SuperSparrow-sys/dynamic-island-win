@@ -33,6 +33,8 @@ public sealed class PeekItem
     public Action? Action { get; init; }
     public string? DismissText { get; init; }
     public bool HasActions => ActionText is not null;
+    /// <summary>Set while the message waits for a hidden island (fullscreen app).</summary>
+    public DateTime? Queued { get; set; }
     public bool HasTrailingInfo => !HasActions;
     public Brush WaveformBrush { get; init; } = Brushes.White;
     public bool HasImage => Image is not null;

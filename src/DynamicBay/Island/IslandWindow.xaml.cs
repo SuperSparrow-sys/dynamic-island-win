@@ -607,7 +607,13 @@ public partial class IslandWindow : Window
     public void ShowPeek(PeekItem item)
     {
         if (_settings.DoNotDisturb && item.Priority < PeekPriority.High) return;
-        if (_suppressed || _settings.Hidden) return;
+        if (_settings.Hidden) return;
+        if (_suppressed)
+        {
+            // Hidden for a fullscreen app: keep the message and show it when the island comes back.
+            if (_peekQueue.Count < 4) { item.Queued = DateTime.Now; _peekQueue.Enqueue(item); }
+            return;
+        }
         if (_expanded)
         {
             // Questions must not get lost while the panel is open: show them once it closes.
@@ -650,6 +656,14 @@ public partial class IslandWindow : Window
             return;
         }
         Refresh();
+    }
+
+    /// <summary>After a fullscreen app: show what arrived meanwhile (drop stale messages, keep questions).</summary>
+    private void ShowQueuedPeeks()
+    {
+        var pending = _peekQueue.Where(p => p.HasActions || p.Queued is null || (DateTime.Now - p.Queued.Value).TotalSeconds < 60).ToList();
+        _peekQueue.Clear();
+        foreach (var p in pending) ShowPeek(p);
     }
 
     /// <summary>Closes the current peek and continues with the next queued one.</summary>
@@ -898,7 +912,7 @@ public partial class IslandWindow : Window
             Log.Info($"Island {(suppress ? "suppressed" : "restored")} (foreground: {Native.ProcessName(fg)} / {Native.ClassName(fg)})");
             _suppressed = suppress;
             if (suppress) FadeOut();
-            else if (!_settings.Hidden) FadeIn();
+            else if (!_settings.Hidden) { FadeIn(); ShowQueuedPeeks(); }
         }
 
         // Desktop layer: float above the desktop itself (Win+D) but below every app window.
@@ -928,6 +942,9 @@ public partial class IslandWindow : Window
         if (fg == IntPtr.Zero || fg == _hwnd || IsOwnWindow(fg)) return false;
         string cls = Native.ClassName(fg);
         if (cls is "WorkerW" or "Progman" or "Shell_TrayWnd") return false;
+        // Short-lived system overlays cover the screen but are no fullscreen apps: the screenshot overlay
+        // (Win+Shift+S / Print), Start, search, Alt+Tab. Hiding for them would swallow the screenshot message.
+        if (IsTransientOverlay(fg, cls)) return false;
         // QUNS_BUSY (2), QUNS_RUNNING_D3D_FULL_SCREEN (3), QUNS_PRESENTATION_MODE (4)
         if (Native.SHQueryUserNotificationState(out int state) == 0 && state is 2 or 3 or 4 && OnMyMonitor(fg)) return true;
         // Maximized windows also cover the monitor but keep their caption; real fullscreen windows don't.
@@ -936,6 +953,15 @@ public partial class IslandWindow : Window
         if (!Native.GetWindowRect(fg, out var r)) return false;
         var (_, bounds, _) = Target();
         return r.Left <= bounds.Left && r.Top <= bounds.Top && r.Right >= bounds.Right && r.Bottom >= bounds.Bottom;
+    }
+
+    private static bool IsTransientOverlay(IntPtr hwnd, string cls)
+    {
+        if (cls is "XamlExplorerHostIslandWindow" or "ForegroundStaging" or "MultitaskingViewFrame") return true;
+        var name = Native.ProcessName(hwnd);
+        return name is not null && (name.Equals("SnippingTool", StringComparison.OrdinalIgnoreCase)
+                                    || name.Equals("ScreenClippingHost", StringComparison.OrdinalIgnoreCase)
+                                    || name.Equals("ScreenSketch", StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>Fullscreen apps only hide the island on the monitor they actually cover.</summary>

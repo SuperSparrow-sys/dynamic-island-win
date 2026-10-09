@@ -23,6 +23,8 @@ public sealed partial class ClipItem : ObservableObject
     public int PixelWidth { get; set; }
     public int PixelHeight { get; set; }
     public bool IsScreenshot { get; set; }
+    /// <summary>The screenshot file Windows saved in the Screenshots folder (deleted together with the item).</summary>
+    public string? SavedPath { get; set; }
     public string? SourceApp { get; set; }
     public DateTime Created { get; set; } = DateTime.Now;
     [ObservableProperty] private bool _pinned;
@@ -181,6 +183,7 @@ public sealed partial class ClipboardService : ObservableObject
             PixelHeight = img.PixelHeight,
         };
         item.ImagePath = existingPath ?? Path.Combine(_folder, item.Id + ".png");
+        item.SavedPath = existingPath;
         if (existingPath is null) ImageTools.SavePng(img, item.ImagePath);
         item.Thumbnail = MakeThumb(img);
         Insert(item);
@@ -288,7 +291,12 @@ public sealed partial class ClipboardService : ObservableObject
         // Snipping Tool auto-saves into this folder too: attach the file to the clipboard item instead of duplicating.
         var dup = Items.FirstOrDefault(i => i.IsImage && (DateTime.Now - i.Created).TotalSeconds < 6 &&
                                             i.PixelWidth == img.PixelWidth && i.PixelHeight == img.PixelHeight);
-        if (dup is not null) return;
+        if (dup is not null)
+        {
+            dup.SavedPath ??= path;
+            SaveIndexSoon();
+            return;
+        }
         AddImage(img, true, "Screenshots", path);
     }
 
@@ -324,7 +332,27 @@ public sealed partial class ClipboardService : ObservableObject
         if (item is null) return;
         Items.Remove(item);
         DeleteFile(item);
+        DeleteSavedScreenshot(item);
         SaveIndexSoon();
+    }
+
+    /// <summary>
+    /// Deleting a screenshot in the island also removes the file Windows saved for it - without asking, into the
+    /// recycle bin (so a slip can still be undone). Only files inside a screenshot folder are touched.
+    /// </summary>
+    private static void DeleteSavedScreenshot(ClipItem item)
+    {
+        var path = item.SavedPath;
+        if (path is null || !File.Exists(path)) return;
+        var dir = Path.GetDirectoryName(Path.GetFullPath(path))?.TrimEnd((char)92);
+        if (dir is null || !ScreenshotFolders().Any(d => string.Equals(d, dir, StringComparison.OrdinalIgnoreCase))) return;
+        try
+        {
+            Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(path,
+                Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            Log.Info($"Deleted screenshot file {Path.GetFileName(path)}");
+        }
+        catch (Exception ex) { Log.Error("ScreenshotDelete", ex); }
     }
 
     [RelayCommand]
