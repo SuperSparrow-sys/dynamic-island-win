@@ -76,15 +76,11 @@
             <StackPanel x:Name="ClaudeH" Orientation="Horizontal">
                 <c:Icon Data="{StaticResource Icon.Sparkles}" Width="13" Height="13" StrokeWidth="2.2" Foreground="#FFD97757" RenderTransformOrigin="0.5,0.5">
                     <c:Icon.RenderTransform><RotateTransform /></c:Icon.RenderTransform>
-                    <c:Icon.Triggers>
-                        <EventTrigger RoutedEvent="Loaded">
-                            <BeginStoryboard>
-                                <Storyboard RepeatBehavior="Forever">
-                                    <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" From="0" To="360" Duration="0:0:4" />
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </c:Icon.Triggers>
+                    <c:Loop.Storyboard>
+                        <Storyboard RepeatBehavior="Forever">
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" From="0" To="360" Duration="0:0:4" />
+                        </Storyboard>
+                    </c:Loop.Storyboard>
                 </c:Icon>
                 <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Title}" FontSize="12" Foreground="#FFE8A98F" MaxWidth="120"
                            Text="{Binding Claude.WorkingText}" VerticalAlignment="Center" />

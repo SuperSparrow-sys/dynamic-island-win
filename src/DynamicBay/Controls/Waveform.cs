@@ -77,7 +77,7 @@ public sealed class Waveform : FrameworkElement
         var t = ((RenderingEventArgs)e).RenderingTime;
         if (_last == TimeSpan.Zero) { _last = t; return; }
         double dt = Math.Min((t - _last).TotalSeconds, 0.05);
-        if (dt <= 0) return;
+        if (dt < 1.0 / 32) return; // 30 frames per second are enough for the bars
         _last = t;
 
         _retarget -= dt;

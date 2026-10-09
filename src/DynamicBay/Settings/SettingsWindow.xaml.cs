@@ -92,8 +92,12 @@ public partial class SettingsWindow : Window
     private void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_ctx is null || Nav.SelectedIndex < 0) return;
+        var sw = Stopwatch.StartNew();
         _ctx.Page = NavToPage[Nav.SelectedIndex];
         PageScroll.ScrollToTop();
+        // Slow pages show up in the log (time until the page is laid out and rendered).
+        int page = _ctx.Page;
+        Dispatcher.BeginInvoke(() => { if (sw.ElapsedMilliseconds > 150) Log.Info($"Settings page {page} took {sw.ElapsedMilliseconds} ms"); }, System.Windows.Threading.DispatcherPriority.ContextIdle);
     }
 
     // ---- widgets & modules ----

@@ -473,6 +473,8 @@
                                                Visibility="{Binding I.Spotify.Status, Converter={StaticResource Vis}}" />
                                 </StackPanel>
                             </DockPanel>
+                            <!-- Setup steps only until Spotify is connected (otherwise the page gets very long) -->
+                            <StackPanel Visibility="{Binding I.Spotify.IsConnected, Converter={StaticResource NotVis}}">
 
                             <Border Height="1" Background="{DynamicResource S.Divider}" Margin="0,16" />
 
@@ -494,6 +496,7 @@
                                 <TextBlock Style="{StaticResource ST.Base}" FontSize="12.5" Margin="0,0,0,6"><Run FontWeight="SemiBold">3.</Run> <Run Text="{core:L De='Kopiere die Client ID aus den App-Einstellungen hierher:', En='Copy the Client ID from the app settings here:'}" /></TextBlock>
                                 <TextBox Style="{StaticResource S.TextBox}" Margin="18,0,0,10" Text="{Binding S.SpotifyClientId, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Style="{StaticResource ST.Base}" FontSize="12.5"><Run FontWeight="SemiBold">4.</Run> <Run Text="{core:L De='Klicke oben auf Verbinden und bestätige im Browser.', En='Click Connect above and confirm in the browser.'}" /></TextBlock>
+                            </StackPanel>
                             </StackPanel>
                         </StackPanel>
                     </Border>

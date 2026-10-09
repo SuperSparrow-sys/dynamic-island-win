@@ -348,8 +348,13 @@ public partial class IslandWindow : Window
     {
         if (_hwnd == IntPtr.Zero) return;
         uint flags = Native.SWP_NOACTIVATE | Native.SWP_NOZORDER | Native.SWP_NOOWNERZORDER;
-        if (!resize) flags |= Native.SWP_NOSIZE;
-        double s = _hwnd == IntPtr.Zero ? 1 : TargetMonitor().Scale;
+        if (!resize)
+        {
+            // Called every frame while moving: no monitor lookup, the size stays as it is.
+            Native.SetWindowPos(_hwnd, IntPtr.Zero, x, y, 0, 0, flags | Native.SWP_NOSIZE);
+            return;
+        }
+        double s = TargetMonitor().Scale;
         Native.SetWindowPos(_hwnd, IntPtr.Zero, x, y, (int)Math.Round(Width * s), (int)Math.Round(Height * s), flags);
     }
 

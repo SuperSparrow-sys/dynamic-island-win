@@ -67,7 +67,18 @@ public sealed partial class AudioService : ObservableObject
 
     // ---------- mute (Core Audio) ----------
 
+    // The default devices rarely change: polling every half second reuses them and asks Windows again every 5 s.
+    private readonly Dictionary<(EDataFlow, ERole), (IAudioEndpointVolume? ep, DateTime at)> _endpoints = new();
+
     private IAudioEndpointVolume? Endpoint(EDataFlow flow, ERole role)
+    {
+        if (_endpoints.TryGetValue((flow, role), out var cached) && DateTime.UtcNow - cached.at < TimeSpan.FromSeconds(5)) return cached.ep;
+        var ep = FreshEndpoint(flow, role);
+        _endpoints[(flow, role)] = (ep, DateTime.UtcNow);
+        return ep;
+    }
+
+    private IAudioEndpointVolume? FreshEndpoint(EDataFlow flow, ERole role)
     {
         try
         {

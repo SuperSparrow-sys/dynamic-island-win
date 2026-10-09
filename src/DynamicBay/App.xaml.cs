@@ -73,6 +73,9 @@ public partial class App : Application
         if (snapshotDir is null) { _settings.Migrate(); _settings.Save(); }
         Loc.Init(_settings.Language);
         Log.Info($"DynamicBay {Version} starting (identity: {SparsePackage.HasIdentity})");
+        // Start-up cost before our code runs (runtime, assemblies) and UI stalls from here on.
+        using (var me = System.Diagnostics.Process.GetCurrentProcess()) Log.Info($"Runtime start took {(DateTime.Now - me.StartTime).TotalMilliseconds:0} ms");
+        UiStallMonitor.Start(Dispatcher);
 
         // First start after installation: register the identity package, then restart once to run with it.
         if (snapshotDir is null && await SparsePackage.EnsureRegisteredAsync(_settings))
@@ -447,10 +450,12 @@ public partial class App : Application
             _settingsWindow.Activate();
             return;
         }
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         _settingsWindow = new Settings.SettingsWindow(_settings, _vm!);
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
+        _settingsWindow.Dispatcher.BeginInvoke(() => Log.Info($"Settings window open in {sw.ElapsedMilliseconds} ms"), System.Windows.Threading.DispatcherPriority.ContextIdle);
     }
 
     private void Quit()
