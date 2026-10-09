@@ -109,6 +109,10 @@ public static class Snapshots
                 });
                 await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-13-mic-question.png"), compact: false);
                 vm.Audio.LoadDemo(micInUse: false, app: "", micMuted: false, speakerMuted: false);
+                vm.Tab = 0;
+                vm.AltHeld = true; // hidden quit button revealed
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-14-alt-quit.png"), compact: true);
+                vm.AltHeld = false;
 
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.Media, Widgets.Claude, Widgets.Calendar, Widgets.Timer, Widgets.Shortcuts, Widgets.Clock }) settings.HomeWidgets.Add(w);

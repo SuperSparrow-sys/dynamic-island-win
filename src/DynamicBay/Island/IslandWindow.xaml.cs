@@ -527,10 +527,24 @@ public partial class IslandWindow : Window
 
     // ================= Expand / collapse =================
 
+    // While the panel is open, holding Alt reveals the hidden quit button (the island never has keyboard focus,
+    // so the key state is polled).
+    private readonly DispatcherTimer _altPoll = new() { Interval = TimeSpan.FromMilliseconds(80) };
+
+    private void PollAlt(object? sender, EventArgs e)
+    {
+        if (_snapshotMode) return; // snapshots set AltHeld themselves
+        bool alt = Native.IsAltDown && HitPad.IsMouseOver;
+        if (alt != _vm.AltHeld) _vm.AltHeld = alt;
+    }
+
     public void SetExpanded(bool expanded)
     {
         if (_expanded == expanded) return;
         _expanded = expanded;
+        _altPoll.Tick -= PollAlt;
+        if (expanded) { _altPoll.Tick += PollAlt; _altPoll.Start(); }
+        else { _altPoll.Stop(); _vm.AltHeld = false; }
         if (expanded) _peekTimer.Stop();
         else if (_peek.Peek is not null) _peekTimer.Start();
         if (!expanded && _peek.Peek is null && _peekQueue.Count > 0)

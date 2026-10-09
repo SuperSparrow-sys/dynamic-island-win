@@ -17,6 +17,7 @@
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
         <c:BoolPick x:Key="OnBrush" True="{StaticResource B.Green}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="PinBrush" True="{StaticResource B.Blue}" False="{StaticResource B.Text2}" />
+        <c:BoolPick x:Key="HideQuitTip" True="{core:L De='DynamicBay beenden', En='Quit DynamicBay'}" False="{core:L De='Ausblenden (mit Alt: Beenden)', En='Hide (with Alt: quit)'}" />
         <c:BoolPick x:Key="MicBrush" True="{StaticResource B.Orange}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="TodayBg" True="{StaticResource B.Red}" False="Transparent" />
         <c:BoolPick x:Key="TodayFg" True="{StaticResource B.Text}" False="{StaticResource B.Text2}" />
@@ -122,8 +123,15 @@
                 <Button Style="{StaticResource Btn.Icon}" Command="{Binding OpenSettingsCommand}" ToolTip="{core:T Action.Settings}">
                     <c:Icon Data="{StaticResource Icon.Settings}" Width="15" Height="15" Foreground="{StaticResource B.Text2}" />
                 </Button>
-                <Button Style="{StaticResource Btn.Icon}" Command="{Binding HideCommand}" ToolTip="{core:T Action.Hide}">
-                    <c:Icon Data="{StaticResource Icon.EyeOff}" Width="15" Height="15" Foreground="{StaticResource B.Text2}" />
+                <!-- Hide; with Alt held it becomes the (hidden) quit button -->
+                <Button Style="{StaticResource Btn.Icon}" Command="{Binding HideCommand}"
+                        ToolTip="{Binding AltHeld, Converter={StaticResource HideQuitTip}}">
+                    <Grid>
+                        <c:Icon Data="{StaticResource Icon.EyeOff}" Width="15" Height="15" Foreground="{StaticResource B.Text2}"
+                                Visibility="{Binding AltHeld, Converter={StaticResource NotVis}}" />
+                        <c:Icon Data="{StaticResource Icon.Power}" Width="15" Height="15" Foreground="{StaticResource B.Red}" StrokeWidth="2.3"
+                                Visibility="{Binding AltHeld, Converter={StaticResource Vis}}" />
+                    </Grid>
                 </Button>
             </StackPanel>
         </DockPanel>

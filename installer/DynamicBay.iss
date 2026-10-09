@@ -102,6 +102,20 @@ begin
     Result := MsgBox(CustomMessage('CloseApp'), mbConfirmation, MB_OKCANCEL) = IDOK;
 end;
 
+// Auto-update (silent, /UPDATE): start the new version again as the logged-in user.
+// Setup runs elevated; launching through explorer.exe hands the start to the (non-elevated) desktop shell.
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  Code: Integer;
+begin
+  if (CurStep = ssPostInstall) and IsUpdate then
+  begin
+    Log('Update finished - restarting DynamicBay');
+    if not Exec(ExpandConstant('{win}\explorer.exe'), AddQuotes(ExpandConstant('{app}\DynamicBay.exe')), '', SW_SHOWNORMAL, ewNoWait, Code) then
+      Log('Restart via explorer failed: ' + IntToStr(Code));
+  end;
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usPostUninstall then

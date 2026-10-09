@@ -98,6 +98,7 @@ public partial class App : Application
         _vm = new IslandViewModel(_settings, media, clipboard, shelf, notifications, timer, calendar, battery, spotify);
         _islands = new IslandManager(_vm);
         _vm.OpenSettingsRequested += ShowSettings;
+        _vm.QuitRequested += Quit;
 
         if (snapshotDir is not null)
         {

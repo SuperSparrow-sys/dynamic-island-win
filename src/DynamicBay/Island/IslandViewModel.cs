@@ -83,6 +83,10 @@ public sealed partial class IslandViewModel : ObservableObject
 
     public event Action? OpenSettingsRequested;
     public event Action? HideRequested;
+    public event Action? QuitRequested;
+
+    /// <summary>Alt held while the panel is open: the hide button turns into a hidden quit button (like Option on the Mac).</summary>
+    [ObservableProperty] private bool _altHeld;
     public event Action? CompactChanged;
 
     public IslandViewModel(AppSettings settings, MediaService media, ClipboardService clipboard, ShelfService shelf,
@@ -130,7 +134,8 @@ public sealed partial class IslandViewModel : ObservableObject
     }
 
     [RelayCommand] private void OpenSettings() => OpenSettingsRequested?.Invoke();
-    [RelayCommand] private void Hide() => HideRequested?.Invoke();
+    [RelayCommand] private void Hide() { if (AltHeld) QuitRequested?.Invoke(); else HideRequested?.Invoke(); }
+    [RelayCommand] private void Quit() => QuitRequested?.Invoke();
     [RelayCommand] private void TogglePin() => IsPinned = !IsPinned;
     [RelayCommand] private void SelectTab(object? index) => Tab = Convert.ToInt32(index);
 }

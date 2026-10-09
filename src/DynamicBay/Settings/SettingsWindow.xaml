@@ -752,6 +752,11 @@
                                             ToolTip="{core:L De='Hilfreich bei der Fehlersuche, siehe docs/TROUBLESHOOTING.md.', En='Useful for troubleshooting, see docs/TROUBLESHOOTING.md.'}">
                                 <Button Style="{StaticResource S.Button}" Click="OpenDataFolder_Click" Content="{core:L De='Ordner öffnen', En='Open folder'}" />
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='DynamicBay beenden', En='Quit DynamicBay'}"
+                                            ToolTip="{core:L De='Auch in der Insel: Alt gedrückt halten, dann wird der Ausblenden-Knopf zum Beenden-Knopf.', En='Also in the island: hold Alt and the hide button turns into a quit button.'}">
+                                <Button Style="{StaticResource S.Button}" Command="{Binding I.QuitCommand}" Foreground="{DynamicResource S.Red}"
+                                        Content="{core:L De='Beenden', En='Quit'}" />
+                            </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Danksagungen', En='Credits'}"
                                             ToolTip="{core:L De='Icons: Lucide (ISC). Schrift: Inter (SIL Open Font License). Inspiriert von NotchNook und der Dynamic Island.', En='Icons: Lucide (ISC). Font: Inter (SIL Open Font License). Inspired by NotchNook and the Dynamic Island.'}" />
                         </StackPanel>

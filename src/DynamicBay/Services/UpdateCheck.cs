@@ -73,6 +73,30 @@ public static class UpdateCheck
         });
     }
 
+    /// <summary>
+    /// Safety net for the restart after an update: a hidden, non-elevated PowerShell waits for the setup to finish and
+    /// starts DynamicBay again unless the installer already did (a second start would only open the settings window).
+    /// </summary>
+    private static void StartRelaunchWatcher(int setupPid)
+    {
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (exe is null) return;
+            var script =
+                $"$t=0; while ((Get-Process -Id {setupPid} -ErrorAction SilentlyContinue) -and $t -lt 900) {{ Start-Sleep 1; $t++ }}; " +
+                "Start-Sleep 4; " +
+                $"if (-not (Get-Process DynamicBay -ErrorAction SilentlyContinue)) {{ Start-Process -FilePath '{exe.Replace("'", "''")}' }}";
+            var encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
+            Process.Start(new ProcessStartInfo("powershell.exe", $"-NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand {encoded}")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+        }
+        catch (Exception ex) { Log.Error("Update.Relaunch", ex); }
+    }
+
     /// <summary>Downloads, verifies and launches the installer - only ever called after the user said yes.</summary>
     public static async Task InstallAsync()
     {
@@ -90,12 +114,14 @@ public static class UpdateCheck
             var setup = await DownloadAsync(release);
             try
             {
-                Process.Start(new ProcessStartInfo(setup, "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE /TASKS=notifications")
+                var setupLog = Path.Combine(Path.GetDirectoryName(setup)!, "setup.log");
+                var proc = Process.Start(new ProcessStartInfo(setup, $"/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE /TASKS=notifications /LOG=\"{setupLog}\"")
                 {
                     UseShellExecute = true,
                     Verb = "runas", // Windows confirmation: the app is installed for all users
                 });
                 Log.Info($"Installing update {release.Tag}");
+                if (proc is not null) StartRelaunchWatcher(proc.Id);
                 _shutdown?.Invoke(); // the installer waits for this process, then starts the new version
             }
             catch (Win32Exception)
