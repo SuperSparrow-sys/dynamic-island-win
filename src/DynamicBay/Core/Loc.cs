@@ -99,6 +99,16 @@ public static class Loc
         ["Cal.AllDay"] = ("Ganztägig", "All day"),
 
         ["Update.Available"] = ("Update verfügbar", "Update available"),
+        ["Update.Question"] = ("Update {0} verfügbar", "Update {0} available"),
+        ["Update.QuestionHint"] = ("Jetzt installieren?", "Install now?"),
+        ["Update.Install"] = ("Installieren", "Install"),
+        ["Update.Later"] = ("Später", "Later"),
+        ["Update.Downloading"] = ("Update {0} wird geladen", "Downloading update {0}"),
+        ["Update.InstallingHint"] = ("Danach kurz bestätigen – DynamicBay startet neu", "Confirm once – DynamicBay restarts"),
+        ["Update.Cancelled"] = ("Update abgebrochen", "Update cancelled"),
+        ["Update.CancelledHint"] = ("Jederzeit über das Tray-Menü nachholen", "Install any time from the tray menu"),
+        ["Update.Failed"] = ("Update fehlgeschlagen", "Update failed"),
+        ["Tray.Update"] = ("Update {0} installieren", "Install update {0}"),
         ["Update.Hint"] = ("Version {0} · klicken zum Herunterladen", "Version {0} · click to download"),
 
         ["Tray.Show"] = ("Insel einblenden", "Show island"),

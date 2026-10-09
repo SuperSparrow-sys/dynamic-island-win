@@ -103,6 +103,12 @@ public partial class IslandWindow : Window
         HitPad.DragLeave += (_, _) => _dropLeaveTimer.Start();
         HitPad.Drop += OnDrop;
         PeekLayer.MouseLeftButtonUp += OnPeekClick;
+        PeekLayer.Answered += yes =>
+        {
+            var item = _peek.Peek;
+            DismissPeek();
+            if (yes) item?.Action?.Invoke();
+        };
 
         ExpandedLayer.DragOutActive += active => { _dragOut = active; if (!active) ScheduleCollapseIfAway(); };
         ExpandedLayer.CopiedFeedback += _ => { };
@@ -486,7 +492,11 @@ public partial class IslandWindow : Window
         _expanded = expanded;
         if (expanded) _peekTimer.Stop();
         else if (_peek.Peek is not null) _peekTimer.Start();
-        if (!expanded) ExpandedLayerDevicesReset();
+        if (!expanded && _peek.Peek is null && _peekQueue.Count > 0)
+        {
+            var queued = _peekQueue.Dequeue();
+            Dispatcher.BeginInvoke(async () => { await Task.Delay(300); ShowPeek(queued); });
+        }
         Refresh();
     }
 
@@ -535,7 +545,12 @@ public partial class IslandWindow : Window
     {
         if (_settings.DoNotDisturb && item.Priority < PeekPriority.High) return;
         if (_suppressed || _settings.Hidden) return;
-        if (_expanded) return; // the expanded panel already shows the information
+        if (_expanded)
+        {
+            // Questions must not get lost while the panel is open: show them once it closes.
+            if (item.HasActions && _peekQueue.Count < 4) _peekQueue.Enqueue(item);
+            return;
+        }
         if (_peek.Peek is null)
         {
             _peek.Peek = item;
@@ -574,9 +589,23 @@ public partial class IslandWindow : Window
         Refresh();
     }
 
+    /// <summary>Closes the current peek and continues with the next queued one.</summary>
+    public void DismissPeek()
+    {
+        _peekTimer.Stop();
+        _peek.Peek = null;
+        if (_peekQueue.Count > 0)
+        {
+            var next = _peekQueue.Dequeue();
+            Dispatcher.BeginInvoke(async () => { await Task.Delay(260); ShowPeek(next); });
+        }
+        Refresh();
+    }
+
     private void OnPeekClick(object sender, MouseButtonEventArgs e)
     {
         if (_dragging || _peek.Peek is null) return;
+        if (_peek.Peek.HasActions) return; // questions are answered with their buttons only
         var action = _peek.Peek.OnClick;
         _peek.Peek = null;
         _peekTimer.Stop();

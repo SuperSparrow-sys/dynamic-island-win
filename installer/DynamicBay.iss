@@ -35,8 +35,7 @@ UninstallDisplayName=DynamicBay
 WizardStyle=modern
 Compression=lzma2/ultra64
 SolidCompression=yes
-; Closes a running DynamicBay before updating/uninstalling.
-AppMutex=DynamicBay.SingleInstance
+; A running DynamicBay is closed via Restart Manager; during auto-update (/UPDATE) setup waits for it to exit.
 CloseApplications=yes
 RestartApplications=no
 LicenseFile=..\LICENSE
@@ -53,7 +52,9 @@ english.TaskDesktop=Create a desktop shortcut
 german.DeleteData=Sollen auch deine Einstellungen, die Zwischenablage-Historie und die Dateiablage gelöscht werden?
 english.DeleteData=Also delete your settings, clipboard history and shelf?
 german.LaunchApp=DynamicBay jetzt starten
+german.CloseApp=DynamicBay läuft noch. Bitte über das Tray-Symbol beenden und dann OK klicken.
 english.LaunchApp=Launch DynamicBay now
+english.CloseApp=DynamicBay is still running. Please quit it from the tray icon, then click OK.
 
 [Tasks]
 Name: "notifications"; Description: "{cm:TaskNotifications}"
@@ -80,6 +81,27 @@ Filename: "{app}\DynamicBay.exe"; Parameters: "--uninstall"; Flags: runhidden wa
 Filename: "{sys}\certutil.exe"; Parameters: "-delstore TrustedPeople ""DynamicBay Open Source"""; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayCert"
 
 [Code]
+function IsUpdate: Boolean;
+begin
+  Result := Pos('/UPDATE', UpperCase(GetCmdTail)) > 0;
+end;
+
+function InitializeSetup: Boolean;
+var
+  i: Integer;
+begin
+  Result := True;
+  // Auto-update: DynamicBay launched this setup and is shutting down - give it a moment to exit.
+  i := 0;
+  while CheckForMutexes('DynamicBay.SingleInstance') and (i < 40) do
+  begin
+    Sleep(250);
+    i := i + 1;
+  end;
+  if CheckForMutexes('DynamicBay.SingleInstance') and not WizardSilent then
+    Result := MsgBox(CustomMessage('CloseApp'), mbConfirmation, MB_OKCANCEL) = IDOK;
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usPostUninstall then

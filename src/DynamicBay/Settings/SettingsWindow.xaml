@@ -89,6 +89,15 @@
                                             ToolTip="{core:L De='Prüft beim Start auf GitHub, ob eine neue Version verfügbar ist.', En='Checks GitHub for a new version at startup.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.CheckForUpdates}" />
                             </ContentControl>
+                            <ContentControl x:Name="UpdateRow" Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="Update"
+                                            ToolTip="{core:L De='Installiert wird nur, wenn du zustimmst. DynamicBay startet danach von selbst neu.', En='Only installed when you agree. DynamicBay restarts on its own.'}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="UpdateStatus" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <Button x:Name="CheckUpdateButton" Style="{StaticResource S.Button}" Click="CheckUpdate_Click" Margin="0,0,8,0"
+                                            Content="{core:L De='Jetzt suchen', En='Check now'}" />
+                                    <Button x:Name="UpdateButton" Style="{StaticResource S.AccentButton}" Click="InstallUpdate_Click" Visibility="Collapsed" />
+                                </StackPanel>
+                            </ContentControl>
                         </StackPanel>
                     </Border>
                 </StackPanel>

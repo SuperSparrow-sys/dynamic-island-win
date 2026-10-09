@@ -44,6 +44,7 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private string _toggleHotkey = "Ctrl+Alt+I";
     [ObservableProperty] private bool _checkForUpdates = true;
 
+
     // Appearance
     [ObservableProperty] private double _scale = 1.0;
     [ObservableProperty] private AccentSource _accent = AccentSource.Cover;

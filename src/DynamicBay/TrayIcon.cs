@@ -11,7 +11,8 @@ public sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _icon;
     private readonly AppSettings _settings;
-    private readonly ToolStripMenuItem _toggle, _dnd;
+    private readonly ToolStripMenuItem _toggle, _dnd, _update;
+    private readonly ToolStripSeparator _updateSep = new();
 
     public TrayIcon(AppSettings settings, Action openSettings, Action toggleHidden, Action resetPosition, Action quit)
     {
@@ -26,6 +27,10 @@ public sealed class TrayIcon : IDisposable
         };
         _toggle = new ToolStripMenuItem("", null, (_, _) => toggleHidden());
         _dnd = new ToolStripMenuItem(Loc.T("Tray.DND"), null, (_, _) => _settings.DoNotDisturb = !_settings.DoNotDisturb);
+        _update = new ToolStripMenuItem("", null, (_, _) => _ = Services.UpdateCheck.InstallAsync()) { Visible = false };
+        menu.Items.Add(_update);
+        _updateSep.Visible = false;
+        menu.Items.Add(_updateSep);
         menu.Items.Add(_toggle);
         menu.Items.Add(_dnd);
         menu.Items.Add(new ToolStripMenuItem(Loc.T("Tray.Reset"), null, (_, _) => resetPosition()));
@@ -54,6 +59,9 @@ public sealed class TrayIcon : IDisposable
     {
         _toggle.Text = Loc.T(_settings.Hidden ? "Tray.Show" : "Tray.Hide");
         _dnd.Checked = _settings.DoNotDisturb;
+        var pending = Services.UpdateCheck.Pending;
+        _update.Visible = _updateSep.Visible = pending is not null;
+        if (pending is not null) _update.Text = Loc.F("Tray.Update", pending.Version.ToString(3));
     }
 
     private static Icon LoadIcon()

@@ -217,3 +217,21 @@ public class LocalizationTests
         }
     }
 }
+
+public class UpdateTests
+{
+    [Theory]
+    [InlineData("v1.0.1", "1.0.0", true)]
+    [InlineData("v1.0.0", "1.0.0", false)]
+    [InlineData("v1.0.0-beta.1", "1.0.0", false)]
+    [InlineData("v2.0.0", "1.9.9", true)]
+    [InlineData("v1.0.0", "1.0.1", false)]
+    public void Detects_newer_versions(string tag, string current, bool newer)
+    {
+        Assert.True(UpdateCheck.TryParse(tag, out var v));
+        Assert.Equal(newer, UpdateCheck.IsNewer(v, current));
+    }
+
+    [Fact]
+    public void Rejects_garbage_tags() => Assert.False(UpdateCheck.TryParse("latest", out _));
+}

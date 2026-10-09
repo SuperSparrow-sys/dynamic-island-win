@@ -28,6 +28,12 @@ public sealed class PeekItem
     public Action? OnClick { get; init; }
     public object? DragPayload { get; init; }
     public bool ShowWaveform { get; init; }
+    /// <summary>Optional question with two buttons (e.g. "Installieren" / "Später").</summary>
+    public string? ActionText { get; init; }
+    public Action? Action { get; init; }
+    public string? DismissText { get; init; }
+    public bool HasActions => ActionText is not null;
+    public bool HasTrailingInfo => !HasActions;
     public Brush WaveformBrush { get; init; } = Brushes.White;
     public bool HasImage => Image is not null;
     public bool HasIcon => Image is null && Icon is not null;

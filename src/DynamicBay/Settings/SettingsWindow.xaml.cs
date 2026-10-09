@@ -54,6 +54,8 @@ public partial class SettingsWindow : Window
         BuildCalendarRows();
         BuildBannerRows();
         UpdateClaudeShareText();
+        UpdateUpdateRow();
+        UpdateCheck.PendingChanged += () => Dispatcher.BeginInvoke(UpdateUpdateRow);
         vm.Calendar.StatusChanged += () => Dispatcher.BeginInvoke(BuildCalendarRows);
     }
 
@@ -164,6 +166,29 @@ public partial class SettingsWindow : Window
         };
         b.Click += (_, _) => click();
         return b;
+    }
+
+    // ---- update ----
+
+    private void UpdateUpdateRow()
+    {
+        var p = UpdateCheck.Pending;
+        UpdateStatus.Text = p is null
+            ? (Loc.German ? $"Version {App.Version} ist aktuell" : $"Version {App.Version} is up to date")
+            : (Loc.German ? $"Version {p.Version.ToString(3)} verfügbar" : $"Version {p.Version.ToString(3)} available");
+        UpdateButton.Content = Loc.T("Update.Install");
+        UpdateButton.Visibility = p is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private async void InstallUpdate_Click(object sender, RoutedEventArgs e) => await UpdateCheck.InstallAsync();
+
+    private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        CheckUpdateButton.IsEnabled = false;
+        UpdateStatus.Text = Loc.German ? "Suche nach Updates…" : "Checking for updates…";
+        try { await UpdateCheck.CheckNowAsync(); UpdateUpdateRow(); }
+        catch { UpdateStatus.Text = Loc.German ? "GitHub nicht erreichbar" : "GitHub not reachable"; }
+        finally { CheckUpdateButton.IsEnabled = true; }
     }
 
     // ---- claude ----

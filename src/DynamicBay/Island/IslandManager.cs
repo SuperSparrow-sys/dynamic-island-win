@@ -69,6 +69,8 @@ public sealed class IslandManager
 
     public void ShowPeek(PeekItem item)
     {
+        // Questions (with buttons) appear once, on the main island; plain peeks on every island.
+        if (item.HasActions) { Main.ShowPeek(item); return; }
         foreach (var w in All) w.ShowPeek(item);
     }
 

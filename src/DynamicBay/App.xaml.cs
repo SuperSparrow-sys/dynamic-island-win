@@ -138,7 +138,7 @@ public partial class App : Application
         _vm.Claude.SetEnabled(_settings.ClaudeEnabled);
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) _vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
         await notifications.StartAsync();
-        if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands);
+        if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands, Quit);
     }
 
     private static string? GetArg(string[] args, string name)
