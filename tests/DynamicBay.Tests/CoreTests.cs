@@ -301,3 +301,25 @@ public class CalendarDayTests
         Assert.True(party.IsOn(Day.AddDays(1)));
     }
 }
+
+public class ClaudeNotificationTests
+{
+    [Theory]
+    [InlineData("Claude", "Claude_pzs8sxrjxfjjc!Claude", "Claude braucht deine Eingabe", "Darf ich die Datei ändern?", true)]
+    [InlineData("Google Chrome", "Chrome", "Claude hat eine Frage", "Remote Control · DynamicBay", true)]
+    [InlineData("Claude", null, "Aufgabe fertig", "Claude ist fertig", false)]
+    [InlineData("Claude", null, "Task completed", "", false)]
+    [InlineData("WhatsApp", "5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App", "Lena", "Kommst du?", false)]
+    public void Recognises_questions_from_claude(string app, string? appId, string title, string body, bool expected) =>
+        Assert.Equal(expected, ClaudeService.NeedsAnswer(app, appId, title, body));
+
+    [Fact]
+    public void Remote_question_shows_waiting_until_answered()
+    {
+        var claude = new ClaudeService(new AppSettings());
+        claude.RemoteAsked(42);
+        Assert.True(claude.AnyWaiting);
+        claude.RemoteAnswered(42);
+        Assert.False(claude.AnyWaiting);
+    }
+}

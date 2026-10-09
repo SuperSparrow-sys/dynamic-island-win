@@ -30,10 +30,19 @@ public sealed partial class ClockService : ObservableObject
         _tick.Start();
     }
 
+    /// <summary>Next tick right after the next second (with seconds) or minute (without) - no busy 250 ms polling.</summary>
+    private void ScheduleNext(DateTime now)
+    {
+        var next = _settings.ClockSeconds ? now.AddSeconds(1) : now.AddMinutes(1);
+        next = _settings.ClockSeconds ? next.AddMilliseconds(-next.Millisecond) : next.AddSeconds(-next.Second).AddMilliseconds(-next.Millisecond);
+        _tick.Interval = (next - now) + TimeSpan.FromMilliseconds(15);
+    }
+
     private void Update()
     {
         var now = DateTime.Now;
-        var culture = Loc.German ? new CultureInfo("de-DE") : new CultureInfo("en-US");
+        var culture = CultureInfo.GetCultureInfo(Loc.German ? "de-DE" : "en-US"); // cached, read-only
+        ScheduleNext(now);
         Time = _settings.Clock24h ? now.ToString("HH:mm") : now.ToString("h:mm");
         AmPm = _settings.Clock24h ? "" : now.ToString("tt", CultureInfo.InvariantCulture);
         Seconds = _settings.ClockSeconds ? now.ToString(":ss") : "";

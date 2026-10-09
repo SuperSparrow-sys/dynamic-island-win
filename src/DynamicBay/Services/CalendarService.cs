@@ -74,6 +74,7 @@ public sealed partial class CalendarService : ObservableObject
     private List<CalendarEvent> _all = new();
     private readonly HashSet<string> _announced = new();
     private readonly Dictionary<string, string> _status = new();
+    private readonly Dictionary<string, (DateTime at, List<CalDavClient.RemoteCalendar> calendars)> _discovered = new();
 
     public ObservableCollection<CalendarEvent> Upcoming { get; } = new();
     public ObservableCollection<DayCell> Week { get; } = new();
@@ -105,7 +106,7 @@ public sealed partial class CalendarService : ObservableObject
         _minute.Start();
         _settings.PropertyChanged += async (_, e) =>
         {
-            if (e.PropertyName is nameof(AppSettings.CalendarAccounts) or nameof(AppSettings.CalendarEnabled)) await RefreshAsync();
+            if (e.PropertyName is nameof(AppSettings.CalendarAccounts) or nameof(AppSettings.CalendarEnabled)) { _discovered.Clear(); await RefreshAsync(); }
         };
         BuildWeek();
         _ = RefreshAsync();
@@ -139,11 +140,12 @@ public sealed partial class CalendarService : ObservableObject
         var day = SelectedDate;
         var now = DateTime.Now;
         var events = _all.Where(e => e.IsOn(day)).ToList();
-        DayAllDay.Clear();
-        foreach (var e in events.Where(e => e.AllDay)) DayAllDay.Add(e);
-        DayEvents.Clear();
+        var allDay = events.Where(e => e.AllDay).ToList();
         // Today: what is still ahead; other days: the whole day.
-        foreach (var e in events.Where(e => !e.AllDay && (day != DateTime.Today || e.End > now))) DayEvents.Add(e);
+        var timed = events.Where(e => !e.AllDay && (day != DateTime.Today || e.End > now)).ToList();
+        // Recompute runs every 30 s: only rebuild the lists (and the card) when they really changed.
+        if (!allDay.SequenceEqual(DayAllDay)) { DayAllDay.Clear(); foreach (var e in allDay) DayAllDay.Add(e); }
+        if (!timed.SequenceEqual(DayEvents)) { DayEvents.Clear(); foreach (var e in timed) DayEvents.Add(e); }
         DayIsEmpty = DayAllDay.Count == 0 && DayEvents.Count == 0;
         DayEmptyText = !IsConfigured ? Loc.T("Cal.Setup")
             : day == DateTime.Today ? Loc.T("Cal.NoEvents")
@@ -161,11 +163,13 @@ public sealed partial class CalendarService : ObservableObject
         var from = DateTime.Today.AddDays(-2);
         var to = DateTime.Today.AddDays(5);
         var merged = new List<CalendarEvent>();
-        foreach (var a in accounts)
+        // All accounts at the same time (each one is a few web requests).
+        var fetches = accounts.Select(a => (a, task: FetchAsync(a, from, to))).ToList();
+        foreach (var (a, task) in fetches)
         {
             try
             {
-                var events = await FetchAsync(a, from, to);
+                var events = await task;
                 foreach (var ev in events) ev.AccountId = a.Id;
                 merged.AddRange(events);
                 _status[a.Id] = Loc.German ? $"OK · {events.Count} Termine diese Woche" : $"OK · {events.Count} events this week";
@@ -194,12 +198,15 @@ public sealed partial class CalendarService : ObservableObject
             }
             case CalendarKind.ICloud:
             {
-                var client = new CalDavClient(string.IsNullOrWhiteSpace(a.Url) ? "https://caldav.icloud.com/" : a.Url, a.User,
+                using var client = new CalDavClient(string.IsNullOrWhiteSpace(a.Url) ? "https://caldav.icloud.com/" : a.Url, a.User,
                     SecretStore.Get($"cal:{a.Id}:password") ?? "");
+                // The calendar list rarely changes: discover it every 6 hours, not on every refresh.
+                if (!_discovered.TryGetValue(a.Id, out var known) || DateTime.Now - known.at > TimeSpan.FromHours(6))
+                    _discovered[a.Id] = known = (DateTime.Now, await client.DiscoverAsync());
+                var blobs = await Task.WhenAll(known.calendars.Select(async cal => (cal, items: await client.FetchAsync(cal.Url, from, to))));
                 var list = new List<CalendarEvent>();
-                foreach (var cal in await client.DiscoverAsync())
-                    foreach (var blob in await client.FetchAsync(cal.Url, from, to))
-                        list.AddRange(Parse(blob, from, to, cal.Color));
+                foreach (var (cal, items) in blobs)
+                    foreach (var blob in items) list.AddRange(Parse(blob, from, to, cal.Color));
                 return list;
             }
             case CalendarKind.Google:

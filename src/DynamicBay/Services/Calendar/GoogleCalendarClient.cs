@@ -87,21 +87,34 @@ public sealed class GoogleCalendarClient
         });
     }
 
+    private static readonly HttpClient Api = new() { BaseAddress = new Uri("https://www.googleapis.com/calendar/v3/"), Timeout = TimeSpan.FromSeconds(20) };
+
+    /// <summary>One shared HttpClient (no new connection pool per refresh); the token goes on each request.</summary>
+    private async Task<string> GetAsync(string path)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, path);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+        using var resp = await Api.SendAsync(req);
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadAsStringAsync();
+    }
+
     public async Task<List<CalendarEvent>> FetchAsync(DateTime from, DateTime to)
     {
         await EnsureTokenAsync();
-        using var http = new HttpClient { BaseAddress = new Uri("https://www.googleapis.com/calendar/v3/") };
-        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
-        var list = JsonNode.Parse(await http.GetStringAsync("users/me/calendarList?minAccessRole=reader"));
+        var list = JsonNode.Parse(await GetAsync("users/me/calendarList?minAccessRole=reader"));
         var events = new List<CalendarEvent>();
-        foreach (var cal in list?["items"]?.AsArray() ?? new JsonArray())
+        var calendars = (list?["items"]?.AsArray() ?? new JsonArray()).Where(c => c is not null && c["selected"]?.GetValue<bool>() != false).ToList();
+        // All calendars at once instead of one after another.
+        var pages = await Task.WhenAll(calendars.Select(async cal =>
         {
-            if (cal?["selected"]?.GetValue<bool>() == false) continue;
             string id = Uri.EscapeDataString(cal!["id"]!.ToString());
             string url = $"calendars/{id}/events?singleEvents=true&orderBy=startTime&maxResults=50" +
                          $"&timeMin={Uri.EscapeDataString(from.ToUniversalTime().ToString("o"))}&timeMax={Uri.EscapeDataString(to.ToUniversalTime().ToString("o"))}";
-            JsonNode? data;
-            try { data = JsonNode.Parse(await http.GetStringAsync(url)); } catch { continue; }
+            try { return (cal, data: JsonNode.Parse(await GetAsync(url))); } catch { return (cal, data: (JsonNode?)null); }
+        }));
+        foreach (var (cal, data) in pages)
+        {
             foreach (var ev in data?["items"]?.AsArray() ?? new JsonArray())
             {
                 if (ev?["status"]?.ToString() == "cancelled") continue;

@@ -238,11 +238,45 @@ public sealed partial class ClaudeService : ObservableObject
         return result;
     }
 
+    // ---------- questions from other machines (Remote Control) ----------
+
+    /// <summary>Open questions that only arrived as a Windows notification (no local hook), with arrival time.</summary>
+    private readonly Dictionary<uint, DateTime> _remoteAsks = new();
+
+    /// <summary>
+    /// Does a notification mean "Claude needs you"? It must come from Claude (the app, or claude.ai in a browser) and
+    /// must not just report that a task is finished.
+    /// </summary>
+    public static bool NeedsAnswer(string app, string? appId, string title, string body)
+    {
+        bool fromClaude = app.Contains("Claude", StringComparison.OrdinalIgnoreCase) || (appId?.Contains("claude", StringComparison.OrdinalIgnoreCase) ?? false)
+                          || title.Contains("Claude", StringComparison.OrdinalIgnoreCase);
+        if (!fromClaude) return false;
+        var text = title + " " + body;
+        string[] done = { "fertig", "abgeschlossen", "erledigt", "finished", "completed", "is done", "done" };
+        return !done.Any(d => text.Contains(d, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>A Claude notification asks for input (e.g. a Remote Control session on another PC): show "waiting".</summary>
+    public void RemoteAsked(uint notificationId)
+    {
+        _remoteAsks[notificationId] = DateTime.Now;
+        UpdateSummary();
+    }
+
+    /// <summary>Opened or dismissed in Windows: the question is handled.</summary>
+    public void RemoteAnswered(uint notificationId)
+    {
+        if (_remoteAsks.Remove(notificationId)) UpdateSummary();
+    }
+
     private void UpdateSummary()
     {
+        // Questions nobody reacted to fade after 30 minutes.
+        foreach (var old in _remoteAsks.Where(r => DateTime.Now - r.Value > TimeSpan.FromMinutes(30)).Select(r => r.Key).ToList()) _remoteAsks.Remove(old);
         var working = Sessions.Where(s => s.State == ClaudeState.Working).ToList();
         AnyWorking = working.Count > 0;
-        AnyWaiting = Sessions.Any(s => s.State == ClaudeState.Waiting);
+        AnyWaiting = Sessions.Any(s => s.State == ClaudeState.Waiting) || _remoteAsks.Count > 0;
         WorkingText = AnyWaiting ? (Loc.German ? "wartet" : "waiting")
             : working.Count > 1 ? (Loc.German ? $"{working.Count} aktiv" : $"{working.Count} active")
             : working.Count == 1 ? working[0].Project : "";

@@ -256,6 +256,13 @@ public partial class App : Application
             });
         };
 
+        // Claude asks something (also from a Remote Control session on another PC, which only shows up as a notification):
+        // the compact island shows the waiting Claude symbol until the notification is opened or dismissed.
+        notifications.Arrived += n =>
+        {
+            if (_settings.ClaudeEnabled && ClaudeService.NeedsAnswer(n.App, n.AppId, n.Title, n.Body)) _vm!.Claude.RemoteAsked(n.Id);
+        };
+        notifications.Removed += n => _vm?.Claude.RemoteAnswered(n.Id);
         notifications.Arrived += n => island.ShowPeek(new PeekItem
         {
             Image = n.Logo,
@@ -263,7 +270,7 @@ public partial class App : Application
             Title = string.Equals(n.Title, n.App, StringComparison.OrdinalIgnoreCase) ? n.App : $"{n.Title}",
             Subtitle = _settings.NotificationShowBody ? FirstLine(n.Body, n.App) : n.App,
             Seconds = Math.Clamp(_settings.NotificationSeconds, 2, 15),
-            OnClick = () => notifications.Open(n),
+            OnClick = () => { _vm?.Claude.RemoteAnswered(n.Id); notifications.Open(n); },
         });
 
         timer.Finished += mode =>

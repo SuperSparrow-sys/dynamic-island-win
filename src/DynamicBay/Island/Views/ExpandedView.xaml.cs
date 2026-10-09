@@ -47,7 +47,11 @@ public partial class ExpandedView : UserControl
             LayoutHome();
             EnsureVisibleTab();
         };
-        IsVisibleChanged += (_, _) => Vm?.System.SetActive(IsVisible && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
+        IsVisibleChanged += (_, _) =>
+        {
+            Vm?.System.SetActive(IsVisible && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
+            Vm?.Spotify.SetPanelOpen(IsVisible);
+        };
         HomeScroll.IsVisibleChanged += (_, _) => Dispatcher.BeginInvoke(FitHomeToViewport, System.Windows.Threading.DispatcherPriority.Loaded);
         SetVertical(false);
     }

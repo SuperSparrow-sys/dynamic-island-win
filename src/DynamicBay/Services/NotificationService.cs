@@ -63,6 +63,8 @@ public sealed partial class NotificationService : ObservableObject
     [ObservableProperty] private bool _isEmpty = true;
 
     public event Action<NotificationItem>? Arrived;
+    /// <summary>The user dismissed it in Windows (or it expired).</summary>
+    public event Action<NotificationItem>? Removed;
 
     public NotificationService(AppSettings settings)
     {
@@ -105,7 +107,8 @@ public sealed partial class NotificationService : ObservableObject
 
         var current = new HashSet<uint>(list.Select(n => n.Id));
         // Drop entries the user dismissed in Windows.
-        foreach (var gone in Items.Where(i => !current.Contains(i.Id)).ToList()) Items.Remove(gone);
+        foreach (var gone in Items.Where(i => !current.Contains(i.Id)).ToList()) { Items.Remove(gone); Removed?.Invoke(gone); }
+        if (_seen.Count > 2000) _seen.IntersectWith(current); // only ids still in the notification center matter
 
         foreach (var n in list.OrderBy(n => n.CreationTime))
         {
@@ -114,6 +117,7 @@ public sealed partial class NotificationService : ObservableObject
             if (item is null) continue;
             if (_settings.MutedApps.Contains(item.App)) continue;
             Items.Insert(0, item);
+            if (_primed) Log.Info($"Notification from {item.App} ({item.AppId})");
             if (_primed && _settings.NotificationsEnabled && !_settings.DoNotDisturb) Arrived?.Invoke(item);
         }
         while (Items.Count > 30) Items.RemoveAt(Items.Count - 1);

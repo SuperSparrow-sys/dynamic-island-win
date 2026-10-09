@@ -10,7 +10,7 @@ namespace DynamicBay.Services.Calendars;
 /// Minimal CalDAV reader (RFC 4791): discovers the user's calendars and fetches events in a time range.
 /// Used for iCloud (caldav.icloud.com, Apple ID + app-specific password) but works with any CalDAV server.
 /// </summary>
-public sealed class CalDavClient
+public sealed class CalDavClient : IDisposable
 {
     private static readonly XNamespace D = "DAV:";
     private static readonly XNamespace C = "urn:ietf:params:xml:ns:caldav";
@@ -29,6 +29,8 @@ public sealed class CalDavClient
             Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{password}")));
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("DynamicBay/" + App.Version);
     }
+
+    public void Dispose() => _http.Dispose();
 
     private async Task<XDocument> SendAsync(string method, Uri url, string body, int depth)
     {

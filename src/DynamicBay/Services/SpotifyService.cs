@@ -71,6 +71,26 @@ public sealed partial class SpotifyService : ObservableObject
         _poll.Tick += async (_, _) => await PollAsync();
     }
 
+    private bool _panelOpen;
+
+    /// <summary>
+    /// Player state (like, device, shuffle) is only shown in the open panel, so the Web API is only asked while it is
+    /// open (every 3 s) - not around the clock in the background.
+    /// </summary>
+    public void SetPanelOpen(bool open)
+    {
+        if (_panelOpen == open) return;
+        _panelOpen = open;
+        UpdatePolling();
+        if (open && IsConnected) _ = PollAsync();
+    }
+
+    private void UpdatePolling()
+    {
+        if (IsConnected && _panelOpen) _poll.Start();
+        else _poll.Stop();
+    }
+
     public async Task InitAsync()
     {
         LoadTokens();
@@ -79,7 +99,7 @@ public sealed partial class SpotifyService : ObservableObject
         {
             IsConnected = true;
             await LoadProfileAsync();
-            _poll.Start();
+            UpdatePolling();
         }
     }
 
@@ -133,7 +153,7 @@ public sealed partial class SpotifyService : ObservableObject
             IsConnected = true;
             Status = "";
             await LoadProfileAsync();
-            _poll.Start();
+            UpdatePolling();
             await PollAsync();
         }
         catch (Exception ex)
