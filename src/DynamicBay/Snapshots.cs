@@ -76,6 +76,9 @@ public static class Snapshots
             vm.Spotify.IsConnected = true; // shows like + device buttons next to the transport
             vm.Tab = 0;
             await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-4-home.png"), compact: true);
+            vm.Calendar.SelectDayCommand.Execute(vm.Calendar.Week.First(d => d.Date == DateTime.Today.AddDays(1)));
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-4b-calendar-tomorrow.png"), compact: true);
+            vm.Calendar.SelectDayCommand.Execute(vm.Calendar.Week.First(d => d.IsToday));
             if (name is "top" or "left")
             {
                 vm.Tab = 1;

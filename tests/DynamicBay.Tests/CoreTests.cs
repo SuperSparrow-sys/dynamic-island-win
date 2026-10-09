@@ -277,3 +277,27 @@ public class ExcludedAppsTests
         Assert.False(read);
     }
 }
+
+public class CalendarDayTests
+{
+    private static readonly DateTime Day = new(2026, 10, 9);
+
+    [Fact]
+    public void All_day_event_belongs_to_its_day_only()
+    {
+        var ev = new CalendarEvent { Start = Day, End = Day.AddDays(1), AllDay = true };
+        Assert.True(ev.IsOn(Day));
+        Assert.False(ev.IsOn(Day.AddDays(1)));
+        Assert.False(ev.IsOn(Day.AddDays(-1)));
+    }
+
+    [Fact]
+    public void Multi_day_and_overnight_events_show_on_every_day_they_touch()
+    {
+        var trip = new CalendarEvent { Start = Day, End = Day.AddDays(3), AllDay = true };
+        Assert.True(trip.IsOn(Day.AddDays(2)));
+        var party = new CalendarEvent { Start = Day.AddHours(22), End = Day.AddDays(1).AddHours(2) };
+        Assert.True(party.IsOn(Day));
+        Assert.True(party.IsOn(Day.AddDays(1)));
+    }
+}

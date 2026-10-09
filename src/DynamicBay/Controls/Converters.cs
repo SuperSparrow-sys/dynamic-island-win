@@ -15,6 +15,8 @@ public sealed class ExcludedLabel : IValueConverter
 public sealed class BoolToVis : IValueConverter
 {
     public bool Invert { get; set; }
+    /// <summary>Hidden instead of Collapsed: keeps the space (e.g. event dots under the week days).</summary>
+    public bool KeepSpace { get; set; }
     public object Convert(object value, Type t, object p, CultureInfo c)
     {
         bool b = value switch
@@ -25,7 +27,7 @@ public sealed class BoolToVis : IValueConverter
             null => false,
             _ => true,
         };
-        return b ^ Invert ? Visibility.Visible : Visibility.Collapsed;
+        return b ^ Invert ? Visibility.Visible : KeepSpace ? Visibility.Hidden : Visibility.Collapsed;
     }
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotSupportedException();
 }

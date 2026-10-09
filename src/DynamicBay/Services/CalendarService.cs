@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using DynamicBay.Core;
 using DynamicBay.Services.Calendars;
 using Ical.Net;
@@ -20,6 +21,19 @@ public sealed class CalendarEvent
     public string AccountId { get; set; } = "";
     public string TimeText => AllDay ? Loc.T("Cal.AllDay") : $"{Start:HH:mm} – {End:HH:mm}";
     public Brush Brush => TryBrush(Color) ?? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0x45, 0x3A));
+    /// <summary>Tinted background for all-day events.</summary>
+    public Brush SoftBrush
+    {
+        get
+        {
+            var c = Brush is SolidColorBrush sb ? sb.Color : Colors.Red;
+            var b = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0x40, c.R, c.G, c.B));
+            b.Freeze();
+            return b;
+        }
+    }
+    /// <summary>Does the event touch this day? (all-day events end at midnight of the next day)</summary>
+    public bool IsOn(DateTime day) => Start < day.AddDays(1) && (End > day || (End == Start && Start.Date == day));
 
     private static Brush? TryBrush(string? hex)
     {
@@ -35,11 +49,16 @@ public sealed class CalendarEvent
     }
 }
 
-public sealed class DayCell
+public sealed partial class DayCell : ObservableObject
 {
     public string Weekday { get; init; } = "";
     public int Day { get; init; }
+    public DateTime Date { get; init; }
     public bool IsToday { get; init; }
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ShowRing))] private bool _isSelected;
+    /// <summary>Ring for a chosen day other than today (today is already red).</summary>
+    public bool ShowRing => IsSelected && !IsToday;
+    [ObservableProperty] private bool _hasEvents;
 }
 
 /// <summary>
@@ -58,6 +77,12 @@ public sealed partial class CalendarService : ObservableObject
 
     public ObservableCollection<CalendarEvent> Upcoming { get; } = new();
     public ObservableCollection<DayCell> Week { get; } = new();
+    /// <summary>The day tapped in the week strip (today by default): its all-day and timed events.</summary>
+    public ObservableCollection<CalendarEvent> DayAllDay { get; } = new();
+    public ObservableCollection<CalendarEvent> DayEvents { get; } = new();
+    [ObservableProperty] private DateTime _selectedDate = DateTime.Today;
+    [ObservableProperty] private bool _dayIsEmpty = true;
+    [ObservableProperty] private string _dayEmptyText = "";
     [ObservableProperty] private CalendarEvent? _next;
     [ObservableProperty] private bool _isConfigured;
     [ObservableProperty] private bool _isSoon;
@@ -96,8 +121,34 @@ public sealed partial class CalendarService : ObservableObject
         for (int i = -2; i <= 4; i++)
         {
             var d = today.AddDays(i);
-            Week.Add(new DayCell { Weekday = d.ToString("ddd", culture)[..2].ToUpperInvariant(), Day = d.Day, IsToday = i == 0 });
+            Week.Add(new DayCell { Weekday = d.ToString("ddd", culture)[..2].ToUpperInvariant(), Day = d.Day, Date = d, IsToday = i == 0, IsSelected = d == SelectedDate });
         }
+    }
+
+    [RelayCommand]
+    private void SelectDay(DayCell? day)
+    {
+        if (day is null) return;
+        SelectedDate = day.Date;
+        foreach (var d in Week) d.IsSelected = d.Date == day.Date;
+        FillDay();
+    }
+
+    private void FillDay()
+    {
+        var day = SelectedDate;
+        var now = DateTime.Now;
+        var events = _all.Where(e => e.IsOn(day)).ToList();
+        DayAllDay.Clear();
+        foreach (var e in events.Where(e => e.AllDay)) DayAllDay.Add(e);
+        DayEvents.Clear();
+        // Today: what is still ahead; other days: the whole day.
+        foreach (var e in events.Where(e => !e.AllDay && (day != DateTime.Today || e.End > now))) DayEvents.Add(e);
+        DayIsEmpty = DayAllDay.Count == 0 && DayEvents.Count == 0;
+        DayEmptyText = !IsConfigured ? Loc.T("Cal.Setup")
+            : day == DateTime.Today ? Loc.T("Cal.NoEvents")
+            : (Loc.German ? "Keine Termine" : "No events");
+        foreach (var d in Week) d.HasEvents = _all.Any(e => e.IsOn(d.Date));
     }
 
     public async Task RefreshAsync()
@@ -106,8 +157,9 @@ public sealed partial class CalendarService : ObservableObject
         IsConfigured = accounts.Count > 0;
         if (!IsConfigured || !_settings.CalendarEnabled) { _all.Clear(); Recompute(); return; }
 
-        var from = DateTime.Today;
-        var to = from.AddDays(2);
+        // The whole week strip (two days back, four ahead), so every day can be tapped.
+        var from = DateTime.Today.AddDays(-2);
+        var to = DateTime.Today.AddDays(5);
         var merged = new List<CalendarEvent>();
         foreach (var a in accounts)
         {
@@ -116,7 +168,7 @@ public sealed partial class CalendarService : ObservableObject
                 var events = await FetchAsync(a, from, to);
                 foreach (var ev in events) ev.AccountId = a.Id;
                 merged.AddRange(events);
-                _status[a.Id] = Loc.German ? $"OK · {events.Count} Termine in 48 h" : $"OK · {events.Count} events in 48 h";
+                _status[a.Id] = Loc.German ? $"OK · {events.Count} Termine diese Woche" : $"OK · {events.Count} events this week";
             }
             catch (Exception ex)
             {
@@ -183,7 +235,12 @@ public sealed partial class CalendarService : ObservableObject
 
     private void Recompute()
     {
-        if (DateTime.Today.Day != Week.FirstOrDefault(w => w.IsToday)?.Day) BuildWeek();
+        if (DateTime.Today.Day != Week.FirstOrDefault(w => w.IsToday)?.Day)
+        {
+            SelectedDate = DateTime.Today; // new day: start from today again
+            BuildWeek();
+        }
+        FillDay();
         var now = DateTime.Now;
         var today = _all.Where(e => e.End > now && e.Start.Date <= DateTime.Today).Take(6).ToList();
         Upcoming.Clear();
@@ -209,6 +266,8 @@ public sealed partial class CalendarService : ObservableObject
         {
             new CalendarEvent { Title = "Design Review", Start = DateTime.Now.AddMinutes(8), End = DateTime.Now.AddMinutes(38) },
             new CalendarEvent { Title = "Lunch mit Lena", Start = t.AddHours(13), End = t.AddHours(14), Color = "#0A84FF" },
+            new CalendarEvent { Title = "Geburtstag Mia", Start = t, End = t.AddDays(1), AllDay = true, Color = "#BF5AF2" },
+            new CalendarEvent { Title = "Zahnarzt", Start = t.AddDays(1).AddHours(9), End = t.AddDays(1).AddHours(10), Color = "#30D158" },
         };
         IsConfigured = true;
         Recompute();

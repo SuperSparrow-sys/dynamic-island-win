@@ -8,6 +8,7 @@
     <UserControl.Resources>
         <c:BoolToVis x:Key="Vis" />
         <c:BoolToVis x:Key="NotVis" Invert="True" />
+        <c:BoolToVis x:Key="VisHidden" KeepSpace="True" />
         <c:EqualsToVis x:Key="EqVis" />
         <c:EqualsToBool x:Key="EqBool" />
         <c:RatioConverter x:Key="Ratio" />
@@ -371,35 +372,61 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type s:DayCell}">
-                                    <StackPanel HorizontalAlignment="Center" Width="23">
+                                    <!-- Tap a day to see its events; the chosen day gets a ring, today stays red; a dot marks days with events -->
+                                    <StackPanel HorizontalAlignment="Center" Width="23" Background="Transparent" Cursor="Hand">
+                                        <StackPanel.InputBindings>
+                                            <MouseBinding Gesture="LeftClick" CommandParameter="{Binding}"
+                                                          Command="{Binding DataContext.Calendar.SelectDayCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                        </StackPanel.InputBindings>
                                         <TextBlock Style="{StaticResource T.Section}" FontSize="8.5" HorizontalAlignment="Center" Text="{Binding Weekday}" />
-                                        <Border Width="20" Height="20" CornerRadius="10" Margin="0,3,0,0" Background="{Binding IsToday, Converter={StaticResource TodayBg}}">
+                                        <Grid Width="20" Height="20" Margin="0,3,0,0">
+                                            <Border CornerRadius="10" Background="{Binding IsToday, Converter={StaticResource TodayBg}}" />
+                                            <Border CornerRadius="10" BorderThickness="1.5" BorderBrush="{StaticResource B.Text}"
+                                                    Visibility="{Binding ShowRing, Converter={StaticResource Vis}}" />
                                             <TextBlock Style="{StaticResource T.Numeric}" FontSize="10.5" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                        Foreground="{Binding IsToday, Converter={StaticResource TodayFg}}" Text="{Binding Day}" />
-                                        </Border>
+                                        </Grid>
+                                        <Border Width="3" Height="3" CornerRadius="1.5" Margin="0,2,0,0" Background="{StaticResource B.Text3}"
+                                                Visibility="{Binding HasEvents, Converter={StaticResource VisHidden}}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         </Viewbox>
 
-                        <Grid Margin="0,10,0,0">
-                            <!-- Next event -->
-                            <StackPanel VerticalAlignment="Top" Visibility="{Binding Calendar.Next, Converter={StaticResource Vis}}">
-                                <DockPanel>
-                                    <Border Width="3" CornerRadius="1.5" Background="{Binding Calendar.Next.Brush}" Margin="0,1,8,1" />
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource T.Title}" FontSize="12" Text="{Binding Calendar.Next.Title}" />
-                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" Margin="0,1,0,0" Text="{Binding Calendar.Next.TimeText}" />
-                                    </StackPanel>
-                                </DockPanel>
-                            </StackPanel>
-                            <StackPanel VerticalAlignment="Center" Visibility="{Binding Calendar.Next, Converter={StaticResource NotVis}}">
+                        <Grid Margin="0,8,0,0">
+                            <!-- Events of the chosen day: all-day ones on top, then the timed ones (scrolls when there are many) -->
+                            <DockPanel Visibility="{Binding Calendar.DayIsEmpty, Converter={StaticResource NotVis}}">
+                                <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Calendar.DayAllDay}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type s:CalendarEvent}">
+                                            <Border CornerRadius="6" Background="{Binding SoftBrush}" Padding="7,3" Margin="0,0,0,4">
+                                                <TextBlock Style="{StaticResource T.Title}" FontSize="11" Foreground="{StaticResource B.Text}"
+                                                           TextTrimming="CharacterEllipsis" Text="{Binding Title}" />
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" Margin="0,2,0,0">
+                                    <ItemsControl ItemsSource="{Binding Calendar.DayEvents}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type s:CalendarEvent}">
+                                                <DockPanel Margin="0,0,0,7">
+                                                    <Border Width="3" CornerRadius="1.5" Background="{Binding Brush}" Margin="0,1,8,1" />
+                                                    <StackPanel>
+                                                        <TextBlock Style="{StaticResource T.Title}" FontSize="12" TextTrimming="CharacterEllipsis" Text="{Binding Title}" />
+                                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" Margin="0,1,0,0" Text="{Binding TimeText}" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                            <StackPanel VerticalAlignment="Center" Visibility="{Binding Calendar.DayIsEmpty, Converter={StaticResource Vis}}">
                                 <c:Icon Data="{StaticResource Icon.Calendar}" Width="16" Height="16" Foreground="{StaticResource B.Text3}" HorizontalAlignment="Center" />
                                 <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center"
-                                           Text="{core:T Cal.NoEvents}" Visibility="{Binding Calendar.IsConfigured, Converter={StaticResource Vis}}" />
-                                <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" Margin="0,5,0,0" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center"
-                                           Text="{core:T Cal.Setup}" Visibility="{Binding Calendar.IsConfigured, Converter={StaticResource NotVis}}" />
+                                           Text="{Binding Calendar.DayEmptyText}" />
                             </StackPanel>
                         </Grid>
                     </DockPanel>
