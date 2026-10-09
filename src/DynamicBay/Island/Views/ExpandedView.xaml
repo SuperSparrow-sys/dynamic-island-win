@@ -284,7 +284,7 @@
                             <!-- Next event -->
                             <StackPanel VerticalAlignment="Top" Visibility="{Binding Calendar.Next, Converter={StaticResource Vis}}">
                                 <DockPanel>
-                                    <Border Width="3" CornerRadius="1.5" Background="{StaticResource B.Red}" Margin="0,1,8,1" />
+                                    <Border Width="3" CornerRadius="1.5" Background="{Binding Calendar.Next.Brush}" Margin="0,1,8,1" />
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource T.Title}" FontSize="12" Text="{Binding Calendar.Next.Title}" />
                                         <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" Margin="0,1,0,0" Text="{Binding Calendar.Next.TimeText}" />
@@ -312,13 +312,13 @@
                                 <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:T Timer.Title}" />
                             </StackPanel>
                             <UniformGrid Columns="2" Rows="2" Margin="0,10,0,0" VerticalAlignment="Center">
-                                <Button Style="{StaticResource Btn.Pill}" Margin="0,0,3,3" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
+                                <Button Style="{StaticResource Btn.Chip}" Margin="0,0,3,3" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
                                     <Button.CommandParameter><sys:Double>1</sys:Double></Button.CommandParameter>1 min</Button>
-                                <Button Style="{StaticResource Btn.Pill}" Margin="3,0,0,3" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
+                                <Button Style="{StaticResource Btn.Chip}" Margin="3,0,0,3" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
                                     <Button.CommandParameter><sys:Double>5</sys:Double></Button.CommandParameter>5 min</Button>
-                                <Button Style="{StaticResource Btn.Pill}" Margin="0,3,3,0" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
+                                <Button Style="{StaticResource Btn.Chip}" Margin="0,3,3,0" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
                                     <Button.CommandParameter><sys:Double>10</sys:Double></Button.CommandParameter>10 min</Button>
-                                <Button Style="{StaticResource Btn.Pill}" Margin="3,3,0,0" Padding="0,7" Height="32" Background="#33FF9F0A" Foreground="{StaticResource B.Orange}"
+                                <Button Style="{StaticResource Btn.Chip}" Margin="3,3,0,0" Padding="0,7" Height="32" Background="#33FF9F0A" Foreground="{StaticResource B.Orange}"
                                         Command="{Binding Timer.StartFocusCommand}" Content="{core:T Timer.Pomodoro}" />
                             </UniformGrid>
                         </DockPanel>
@@ -393,6 +393,44 @@
                             </StackPanel>
                         </UniformGrid>
                         </Viewbox>
+                    </DockPanel>
+                </Border>
+
+                <!-- Messenger: latest chat messages mirrored from Windows notifications -->
+                <Border x:Name="MessengerCard" Style="{StaticResource Card}" Padding="10">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource T.Title}" Text="{core:L De='Nachrichten', En='Messages'}" />
+                        <Grid Margin="0,6,0,0">
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                       Text="{core:L De='Keine neuen Nachrichten', En='No new messages'}"
+                                       Visibility="{Binding Notifications.Messages.Count, Converter={StaticResource NotVis}}" />
+                            <ItemsControl ItemsSource="{Binding Notifications.Messages}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type s:NotificationItem}">
+                                        <Grid Margin="0,0,0,6" Background="Transparent" Cursor="Hand">
+                                            <Grid.InputBindings>
+                                                <MouseBinding Gesture="LeftClick" CommandParameter="{Binding}"
+                                                              Command="{Binding DataContext.Notifications.OpenCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                            </Grid.InputBindings>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="24" Height="24" CornerRadius="7" Background="{StaticResource B.Fill2}" VerticalAlignment="Top">
+                                                <Image Source="{Binding Logo}" Width="16" Height="16" />
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Section}" FontWeight="Medium" Text="{Binding TimeText}" />
+                                                    <TextBlock Style="{StaticResource T.Title}" FontSize="11.5" Text="{Binding Title}" />
+                                                </DockPanel>
+                                                <TextBlock Style="{StaticResource T.Body}" FontSize="11" Text="{Binding Body}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
                     </DockPanel>
                 </Border>
 

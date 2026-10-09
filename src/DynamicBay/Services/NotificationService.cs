@@ -41,6 +41,23 @@ public sealed partial class NotificationService : ObservableObject
     private bool _primed;
 
     public ObservableCollection<NotificationItem> Items { get; } = new();
+
+    /// <summary>Latest chat messages (WhatsApp, Telegram, Signal, Discord, Teams, ...) for the messenger widget.</summary>
+    public ObservableCollection<NotificationItem> Messages { get; } = new();
+
+    private static readonly string[] MessengerApps =
+        { "whatsapp", "telegram", "signal", "discord", "teams", "messenger", "slack", "threema", "skype", "element", "instagram" };
+
+    public static bool IsMessenger(NotificationItem n) =>
+        MessengerApps.Any(m => n.App.Contains(m, StringComparison.OrdinalIgnoreCase) || n.AppId.Contains(m, StringComparison.OrdinalIgnoreCase));
+
+    private void SyncMessages()
+    {
+        var latest = Items.Where(IsMessenger).Take(4).ToList();
+        if (latest.Select(m => m.Id).SequenceEqual(Messages.Select(m => m.Id))) return;
+        Messages.Clear();
+        foreach (var m in latest) Messages.Add(m);
+    }
     [ObservableProperty] private NotificationAccess _access = NotificationAccess.Unknown;
     [ObservableProperty] private int _count;
     [ObservableProperty] private bool _isEmpty = true;
@@ -50,7 +67,7 @@ public sealed partial class NotificationService : ObservableObject
     public NotificationService(AppSettings settings)
     {
         _settings = settings;
-        Items.CollectionChanged += (_, _) => { Count = Items.Count; IsEmpty = Items.Count == 0; };
+        Items.CollectionChanged += (_, _) => { Count = Items.Count; IsEmpty = Items.Count == 0; SyncMessages(); };
     }
 
     public async Task StartAsync()

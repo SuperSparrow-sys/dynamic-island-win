@@ -173,6 +173,28 @@
         </Setter>
     </Style>
 
+    <!-- Chip: rounded rectangle (concentric with cards: 20 - 10 padding = 10) -->
+    <Style x:Key="Btn.Chip" TargetType="Button" BasedOn="{StaticResource Btn.Pill}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Opacity" Value="0.85" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Trigger.EnterActions><BeginStoryboard Storyboard="{StaticResource SB.Press}" /></Trigger.EnterActions>
+                            <Trigger.ExitActions><BeginStoryboard Storyboard="{StaticResource SB.Release}" /></Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Segmented tab (RadioButton). Content = StackPanel(icon + text) -->
     <Style x:Key="Tab.Segment" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{StaticResource B.Text2}" />

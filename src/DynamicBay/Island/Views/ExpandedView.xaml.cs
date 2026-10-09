@@ -20,7 +20,7 @@ public partial class ExpandedView : UserControl
     {
         InitializeComponent();
         // The optional cards live in the home grid too; they're shown/positioned by LayoutHome.
-        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard })
+        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard })
         {
             ExtraCards.Children.Remove(card);
             HomeGrid.Children.Add(card);
@@ -33,6 +33,7 @@ public partial class ExpandedView : UserControl
             [Core.Widgets.Timer] = TimerCard,
             [Core.Widgets.System] = SystemCard,
             [Core.Widgets.Shortcuts] = ShortcutsCard,
+            [Core.Widgets.Messenger] = MessengerCard,
         };
         DataContextChanged += (_, _) =>
         {
@@ -70,7 +71,7 @@ public partial class ExpandedView : UserControl
         HomeGrid.RowDefinitions.Clear();
         if (enabled.Count == 0) return;
 
-        static double Weight(string id) => id switch { "media" => 2.15, "shortcuts" => 1.3, _ => 1 };
+        static double Weight(string id) => id switch { "media" => 2.15, "messenger" => 1.6, "shortcuts" => 1.3, _ => 1 };
 
         if (!_vertical)
         {

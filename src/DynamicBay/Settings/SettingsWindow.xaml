@@ -505,6 +505,23 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Windows-Banner unterdrücken', En='Suppress Windows banners'}" />
+                    <Border Style="{StaticResource S.Card}" Padding="16,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,10">
+                                <CheckBox DockPanel.Dock="Right" Style="{StaticResource S.Switch}" IsChecked="{Binding S.SuppressBanners}" VerticalAlignment="Center" />
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Nur in der Insel anzeigen, solange DynamicBay läuft', En='Show only in the island while DynamicBay runs'}" />
+                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Für diese Apps erscheint unten rechts kein Windows-Banner mehr. Beim Beenden stellt DynamicBay deine Windows-Einstellung wieder her.', En='These apps no longer show a Windows banner in the corner. DynamicBay restores your Windows setting when it exits.'}" />
+                                </StackPanel>
+                            </DockPanel>
+                            <StackPanel x:Name="BannerRows" />
+                            <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Click="AddBannerApp_Click">
+                                <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='App hinzufügen', En='Add app'}" /></StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Stummgeschaltete Apps', En='Muted apps'}" />
                     <Border Style="{StaticResource S.Card}" Padding="16,12">
                         <StackPanel>
@@ -585,14 +602,73 @@
                                     <Slider Style="{StaticResource S.Slider}" Minimum="1" Maximum="30" Value="{Binding S.CalendarPeekMinutes}" TickFrequency="1" IsSnapToTickEnabled="True" />
                                 </StackPanel>
                             </ContentControl>
-                            <Border BorderBrush="{DynamicResource S.Divider}" BorderThickness="0,1,0,0" Padding="16,12">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Kalender-Link (ICS)', En='Calendar link (ICS)'}" />
-                                    <TextBlock Style="{StaticResource ST.Desc}" Margin="0,2,0,8"
-                                               Text="{core:L De='Outlook: Einstellungen, Kalender, Freigegebene Kalender, Kalender veröffentlichen, ICS-Link kopieren. Google: Kalendereinstellungen, Privatadresse im iCal-Format.', En='Outlook: Settings, Calendar, Shared calendars, Publish a calendar, copy the ICS link. Google: calendar settings, Secret address in iCal format.'}" />
-                                    <TextBox Style="{StaticResource S.TextBox}" Text="{Binding S.CalendarIcsUrl, UpdateSourceTrigger=LostFocus}" />
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Kalender-Konten', En='Calendar accounts'}" />
+                    <Border Style="{StaticResource S.Card}" Padding="16,12">
+                        <StackPanel>
+                            <StackPanel x:Name="CalendarRows" />
+                            <WrapPanel Margin="0,4,0,0">
+                                <Button Style="{StaticResource S.Button}" Margin="0,0,8,6" Click="AddICloud_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Cloud}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='iCloud verbinden', En='Connect iCloud'}" /></StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource S.Button}" Margin="0,0,8,6" Click="AddGoogle_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.User}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Google verbinden', En='Connect Google'}" /></StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource S.Button}" Margin="0,0,8,6" Click="AddIcs_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Link}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='ICS-Link (Outlook u. a.)', En='ICS link (Outlook etc.)'}" /></StackPanel>
+                                </Button>
+                            </WrapPanel>
+
+                            <!-- iCloud form -->
+                            <StackPanel x:Name="ICloudForm" Visibility="Collapsed" Margin="0,10,0,0">
+                                <Border Height="1" Background="{DynamicResource S.Divider}" Margin="0,0,0,12" />
+                                <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='iCloud-Kalender', En='iCloud calendar'}" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Margin="0,2,0,8" Text="{core:L De='Apple verlangt ein app-spezifisches Passwort, nicht dein normales Apple-ID-Passwort. Erstelle es auf appleid.apple.com unter Anmeldung und Sicherheit, App-spezifische Passwörter.', En='Apple requires an app-specific password, not your normal Apple ID password. Create it at appleid.apple.com under Sign-In and Security, App-Specific Passwords.'}" />
+                                <Button Style="{StaticResource S.Link}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="OpenAppleId_Click" Content="appleid.apple.com" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Apple-ID (E-Mail)', En='Apple ID (email)'}" />
+                                <TextBox x:Name="ICloudUser" Style="{StaticResource S.TextBox}" Margin="0,2,0,8" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='App-spezifisches Passwort', En='App-specific password'}" />
+                                <PasswordBox x:Name="ICloudPassword" Margin="0,2,0,10" Padding="8,5" FontFamily="Consolas" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource S.AccentButton}" Click="SaveICloud_Click" Content="{core:L De='Verbinden und testen', En='Connect and test'}" />
+                                    <Button Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="CloseCalForms_Click" Content="{core:L De='Abbrechen', En='Cancel'}" />
                                 </StackPanel>
-                            </Border>
+                                <TextBlock x:Name="ICloudStatus" Style="{StaticResource ST.Desc}" Margin="0,8,0,0" />
+                            </StackPanel>
+
+                            <!-- Google form -->
+                            <StackPanel x:Name="GoogleForm" Visibility="Collapsed" Margin="0,10,0,0">
+                                <Border Height="1" Background="{DynamicResource S.Divider}" Margin="0,0,0,12" />
+                                <TextBlock Style="{StaticResource ST.Label}" Text="Google Kalender" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Margin="0,2,0,8" Text="{core:L De='Einmalig: In der Google Cloud Console ein Projekt anlegen, die Google Calendar API aktivieren, den OAuth-Zustimmungsbildschirm einrichten (extern, dich selbst als Testnutzer) und unter Anmeldedaten eine OAuth-Client-ID vom Typ Desktop-App erstellen. Client-ID und Clientschlüssel hier eintragen.', En='Once: in the Google Cloud Console create a project, enable the Google Calendar API, set up the OAuth consent screen (external, yourself as test user) and create an OAuth client ID of type Desktop app under Credentials. Enter client ID and secret here.'}" />
+                                <Button Style="{StaticResource S.Link}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="OpenGoogleConsole_Click" Content="console.cloud.google.com" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="Client-ID" />
+                                <TextBox x:Name="GoogleClientId" Style="{StaticResource S.TextBox}" Margin="0,2,0,8" FontFamily="Consolas" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Clientschlüssel', En='Client secret'}" />
+                                <PasswordBox x:Name="GoogleSecret" Margin="0,2,0,10" Padding="8,5" FontFamily="Consolas" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource S.AccentButton}" Click="SaveGoogle_Click" Content="{core:L De='Mit Google anmelden', En='Sign in with Google'}" />
+                                    <Button Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="CloseCalForms_Click" Content="{core:L De='Abbrechen', En='Cancel'}" />
+                                </StackPanel>
+                                <TextBlock x:Name="GoogleStatus" Style="{StaticResource ST.Desc}" Margin="0,8,0,0" />
+                            </StackPanel>
+
+                            <!-- ICS form -->
+                            <StackPanel x:Name="IcsForm" Visibility="Collapsed" Margin="0,10,0,0">
+                                <Border Height="1" Background="{DynamicResource S.Divider}" Margin="0,0,0,12" />
+                                <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Kalender-Link (ICS)', En='Calendar link (ICS)'}" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Margin="0,2,0,8" Text="{core:L De='Outlook: Einstellungen, Kalender, Freigegebene Kalender, Kalender veröffentlichen, ICS-Link kopieren. Google ohne Anmeldung: Kalendereinstellungen, Privatadresse im iCal-Format. iCloud ohne Anmeldung: Kalender teilen, Öffentlicher Kalender.', En='Outlook: Settings, Calendar, Shared calendars, Publish a calendar, copy the ICS link. Google without login: calendar settings, Secret address in iCal format. iCloud without login: share calendar, Public calendar.'}" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="Name" />
+                                <TextBox x:Name="IcsName" Style="{StaticResource S.TextBox}" Margin="0,2,0,8" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="Link" />
+                                <TextBox x:Name="IcsUrl" Style="{StaticResource S.TextBox}" Margin="0,2,0,10" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource S.AccentButton}" Click="SaveIcs_Click" Content="{core:L De='Hinzufügen und testen', En='Add and test'}" />
+                                    <Button Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="CloseCalForms_Click" Content="{core:L De='Abbrechen', En='Cancel'}" />
+                                </StackPanel>
+                                <TextBlock x:Name="IcsStatus" Style="{StaticResource ST.Desc}" Margin="0,8,0,0" />
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>

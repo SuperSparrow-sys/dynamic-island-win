@@ -28,6 +28,14 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        // Maintenance commands used by the installer/uninstaller.
+        if (e.Args.Contains("--restore-banners"))
+        {
+            BannerSuppressor.RestoreAll();
+            Shutdown();
+            return;
+        }
+
         string? snapshotDir = GetArg(e.Args, "--snapshot");
         _snapshotMode = snapshotDir is not null;
 
@@ -86,8 +94,11 @@ public partial class App : Application
             _settings.SaveSoon();
             if (ev.PropertyName == nameof(AppSettings.ToggleHotkey)) RegisterHotkey();
             if (ev.PropertyName == nameof(AppSettings.StartWithWindows)) Autostart.Apply(_settings.StartWithWindows);
+            if (ev.PropertyName is nameof(AppSettings.SuppressBanners) or nameof(AppSettings.SuppressBannerApps) or nameof(AppSettings.Hidden))
+                BannerSuppressor.Apply(_settings);
         };
         Autostart.Apply(_settings.StartWithWindows);
+        BannerSuppressor.Apply(_settings);
 
         WirePeeks(media, clipboard, shelf, notifications, timer, calendar, battery, bluetooth);
 
@@ -313,7 +324,11 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         // Snapshot runs use throwaway settings; never overwrite the user's file with demo placements.
-        if (!_snapshotMode) _settings.Save();
+        if (!_snapshotMode)
+        {
+            _settings.Save();
+            BannerSuppressor.RestoreAll(); // Windows banners come back as soon as DynamicBay isn't running
+        }
         _tray?.Dispose();
         base.OnExit(e);
     }

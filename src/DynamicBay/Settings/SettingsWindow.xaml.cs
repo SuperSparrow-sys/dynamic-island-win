@@ -51,6 +51,9 @@ public partial class SettingsWindow : Window
         UpdatePreview();
         BuildWidgetRows();
         BuildCompactRows();
+        BuildCalendarRows();
+        BuildBannerRows();
+        vm.Calendar.StatusChanged += () => Dispatcher.BeginInvoke(BuildCalendarRows);
     }
 
     private void ApplyBackdrop()
@@ -92,6 +95,7 @@ public partial class SettingsWindow : Window
         (Widgets.Timer, "Icon.Timer", "Timer", "Timer", "Timer und Fokus-Sitzungen", "Timers and focus sessions"),
         (Widgets.System, "Icon.Sliders", "System", "System", "CPU- und Speicherauslastung", "CPU and memory load"),
         (Widgets.Shortcuts, "Icon.AppWindow", "Schnellstart", "Launcher", "Angepinnte Apps und Ordner", "Pinned apps and folders"),
+        (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
     };
 
     private static (string id, string icon, string de, string en)[] CompactInfo => new[]
@@ -157,6 +161,167 @@ public partial class SettingsWindow : Window
         };
         b.Click += (_, _) => click();
         return b;
+    }
+
+    // ---- banner suppression ----
+
+    private void BuildBannerRows()
+    {
+        BannerRows.Children.Clear();
+        foreach (var id in _ctx.S.SuppressBannerApps)
+        {
+            var app = id;
+            var remove = new Button { Style = (Style)FindResource("S.Button"), Padding = new Thickness(8, 4, 8, 4),
+                Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.Close"), Width = 12, Height = 12 } };
+            remove.Click += (_, _) => { _ctx.S.SuppressBannerApps.Remove(app); BuildBannerRows(); };
+            var dock = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
+            DockPanel.SetDock(remove, Dock.Right);
+            dock.Children.Add(remove);
+            var tile = new ContentPresenter
+            {
+                Content = ShortcutsService.Create(@"shell:AppsFolder\" + app, AppIconStyle.Mono),
+                ContentTemplate = (DataTemplate)FindResource("AppTile"),
+                Margin = new Thickness(0, 0, 12, 0),
+                LayoutTransform = new System.Windows.Media.ScaleTransform(0.75, 0.75),
+            };
+            DockPanel.SetDock(tile, Dock.Left);
+            dock.Children.Add(tile);
+            dock.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Base"), VerticalAlignment = VerticalAlignment.Center, Text = BannerSuppressor.NameOf(app) });
+            BannerRows.Children.Add(dock);
+        }
+    }
+
+    private void AddBannerApp_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu { PlacementTarget = (UIElement)sender };
+        // Apps that recently sent notifications, plus common candidates that are installed.
+        var ids = _ctx.I.Notifications.Items.Select(n => n.AppId).Where(id => id.Length > 0).ToList();
+        ids.Add(BannerSuppressor.SnippingTool);
+        foreach (var known in new[] { "WhatsApp", "Discord", "Microsoft Teams", "Outlook", "Telegram", "Signal", "Claude", "Spotify" })
+        {
+            var app = InstalledApps.All().FirstOrDefault(a => a.Name.StartsWith(known, StringComparison.OrdinalIgnoreCase));
+            if (app is not null) ids.Add(app.LaunchPath.Replace(@"shell:AppsFolder\", ""));
+        }
+        foreach (var id in ids.Distinct(StringComparer.OrdinalIgnoreCase).Where(id => !_ctx.S.SuppressBannerApps.Contains(id)))
+        {
+            var item = new MenuItem { Header = BannerSuppressor.NameOf(id) };
+            string appId = id;
+            item.Click += (_, _) => { _ctx.S.SuppressBannerApps.Add(appId); BuildBannerRows(); };
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
+    }
+
+    // ---- calendar accounts ----
+
+    private void BuildCalendarRows()
+    {
+        CalendarRows.Children.Clear();
+        int i = 0;
+        foreach (var a in _ctx.S.CalendarAccounts)
+        {
+            var account = a;
+            string kind = a.Kind switch { CalendarKind.ICloud => "iCloud", CalendarKind.Google => "Google", _ => "ICS" };
+            string icon = a.Kind switch { CalendarKind.ICloud => "Icon.Cloud", CalendarKind.Google => "Icon.User", _ => "Icon.Link" };
+            string status = _ctx.I.Calendar.StatusOf(a);
+            var controls = new StackPanel { Orientation = Orientation.Horizontal };
+            var sw = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = a.Enabled, Margin = new Thickness(0, 0, 10, 0) };
+            sw.Click += (_, _) => { account.Enabled = sw.IsChecked == true; SaveAccounts(); };
+            controls.Children.Add(sw);
+            var remove = new Button { Style = (Style)FindResource("S.Button"), Padding = new Thickness(8, 4, 8, 4),
+                Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.Trash"), Width = 13, Height = 13 } };
+            remove.Click += (_, _) =>
+            {
+                foreach (var k in new[] { "password", "secret", "refresh" }) SecretStore.Set($"cal:{account.Id}:{k}", null);
+                _ctx.S.CalendarAccounts.Remove(account);
+                BuildCalendarRows();
+            };
+            controls.Children.Add(remove);
+            string label = $"{a.Name}  ·  {kind}" + (a.Kind == CalendarKind.ICloud ? $"  ·  {a.User}" : "");
+            var row = Row(icon, label, status.Length > 0 ? status : null, controls, i++ > 0);
+            ((Border)row).Padding = new Thickness(0, 8, 0, 8);
+            CalendarRows.Children.Add(row);
+        }
+        if (_ctx.S.CalendarAccounts.Count == 0)
+            CalendarRows.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Desc"), Margin = new Thickness(0, 0, 0, 8),
+                Text = Loc.German ? "Noch kein Kalender verbunden." : "No calendar connected yet." });
+    }
+
+    /// <summary>Accounts are plain objects; re-adding forces change notification + save + refresh.</summary>
+    private void SaveAccounts()
+    {
+        var list = _ctx.S.CalendarAccounts.ToList();
+        _ctx.S.CalendarAccounts.Clear();
+        foreach (var a in list) _ctx.S.CalendarAccounts.Add(a);
+        _ctx.S.SaveSoon();
+    }
+
+    private void ShowCalForm(FrameworkElement form)
+    {
+        ICloudForm.Visibility = GoogleForm.Visibility = IcsForm.Visibility = Visibility.Collapsed;
+        form.Visibility = Visibility.Visible;
+        form.BringIntoView();
+    }
+
+    private void AddICloud_Click(object sender, RoutedEventArgs e) => ShowCalForm(ICloudForm);
+    private void AddGoogle_Click(object sender, RoutedEventArgs e) => ShowCalForm(GoogleForm);
+    private void AddIcs_Click(object sender, RoutedEventArgs e) => ShowCalForm(IcsForm);
+    private void CloseCalForms_Click(object sender, RoutedEventArgs e) =>
+        ICloudForm.Visibility = GoogleForm.Visibility = IcsForm.Visibility = Visibility.Collapsed;
+    private void OpenAppleId_Click(object sender, RoutedEventArgs e) => Open("https://appleid.apple.com/account/manage");
+    private void OpenGoogleConsole_Click(object sender, RoutedEventArgs e) => Open("https://console.cloud.google.com/apis/library/calendar-json.googleapis.com");
+
+    /// <summary>Tests the account before saving it, so users get immediate feedback.</summary>
+    private async Task<bool> TestAndAddAsync(CalendarAccount account, TextBlock status)
+    {
+        status.Text = Loc.German ? "Verbinde…" : "Connecting…";
+        try
+        {
+            var events = await _ctx.I.Calendar.FetchAsync(account, DateTime.Today, DateTime.Today.AddDays(7));
+            _ctx.S.CalendarAccounts.Add(account);
+            status.Text = Loc.German ? $"Verbunden. {events.Count} Termine in den nächsten 7 Tagen gefunden." : $"Connected. Found {events.Count} events in the next 7 days.";
+            BuildCalendarRows();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            status.Text = (Loc.German ? "Fehlgeschlagen: " : "Failed: ") + ex.Message;
+            return false;
+        }
+    }
+
+    private async void SaveICloud_Click(object sender, RoutedEventArgs e)
+    {
+        var account = new CalendarAccount { Kind = CalendarKind.ICloud, Name = "iCloud", User = ICloudUser.Text.Trim(), Url = "https://caldav.icloud.com/" };
+        SecretStore.Set($"cal:{account.Id}:password", ICloudPassword.Password.Trim());
+        if (await TestAndAddAsync(account, ICloudStatus)) { ICloudPassword.Clear(); }
+        else SecretStore.Set($"cal:{account.Id}:password", null);
+    }
+
+    private async void SaveGoogle_Click(object sender, RoutedEventArgs e)
+    {
+        var account = new CalendarAccount { Kind = CalendarKind.Google, Name = "Google", User = GoogleClientId.Text.Trim() };
+        try
+        {
+            GoogleStatus.Text = Loc.German ? "Bitte im Browser anmelden…" : "Please sign in in the browser…";
+            var client = new Services.Calendars.GoogleCalendarClient(account.User, GoogleSecret.Password, null);
+            await client.SignInAsync();
+            SecretStore.Set($"cal:{account.Id}:secret", GoogleSecret.Password.Trim());
+            SecretStore.Set($"cal:{account.Id}:refresh", client.RefreshToken);
+            if (!await TestAndAddAsync(account, GoogleStatus))
+                foreach (var k in new[] { "secret", "refresh" }) SecretStore.Set($"cal:{account.Id}:{k}", null);
+        }
+        catch (Exception ex) { GoogleStatus.Text = (Loc.German ? "Fehlgeschlagen: " : "Failed: ") + ex.Message; }
+    }
+
+    private async void SaveIcs_Click(object sender, RoutedEventArgs e)
+    {
+        var account = new CalendarAccount
+        {
+            Kind = CalendarKind.Ics, Url = IcsUrl.Text.Trim(),
+            Name = string.IsNullOrWhiteSpace(IcsName.Text) ? (Loc.German ? "Kalender" : "Calendar") : IcsName.Text.Trim(),
+        };
+        if (await TestAndAddAsync(account, IcsStatus)) { IcsUrl.Clear(); IcsName.Clear(); }
     }
 
     // ---- launcher apps ----
