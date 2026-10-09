@@ -62,7 +62,11 @@ public sealed partial class IslandViewModel : ObservableObject
     [ObservableProperty] private bool _showTimer;
     [ObservableProperty] private bool _showCalendar;
     [ObservableProperty] private bool _showBatteryLow;
+    [ObservableProperty] private bool _showClock;
     [ObservableProperty] private bool _hasCompact;
+    public ClockService Clock { get; }
+    public SystemService System { get; }
+    public ShortcutsService Shortcuts { get; }
 
     public event Action? OpenSettingsRequested;
     public event Action? HideRequested;
@@ -74,6 +78,9 @@ public sealed partial class IslandViewModel : ObservableObject
     {
         Settings = settings; Media = media; Clipboard = clipboard; Shelf = shelf; Notifications = notifications;
         Timer = timer; Calendar = calendar; Battery = battery; Spotify = spotify;
+        Clock = new ClockService(settings);
+        System = new SystemService();
+        Shortcuts = new ShortcutsService(settings);
 
         PropertyChangedEventHandler recompute = (_, _) => RecomputeCompact();
         Media.PropertyChanged += recompute;
@@ -86,13 +93,18 @@ public sealed partial class IslandViewModel : ObservableObject
 
     private void RecomputeCompact()
     {
-        bool media = Settings.MediaEnabled && Media.HasSession && Media.IsPlaying;
-        bool timer = Settings.TimerEnabled && Timer.IsActive;
-        bool cal = Settings.CalendarEnabled && Calendar.IsSoon;
-        bool low = Settings.BatteryEnabled && Battery.IsLow;
-        bool any = media || timer || cal || low;
-        bool changed = media != ShowMedia || timer != ShowTimer || cal != ShowCalendar || low != ShowBatteryLow || any != HasCompact;
-        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; HasCompact = any;
+        var s = Settings;
+        bool media = s.MediaEnabled && s.HasCompact(Widgets.Media) && Media.HasSession && Media.IsPlaying;
+        bool timer = s.TimerEnabled && s.HasCompact(Widgets.Timer) && Timer.IsActive;
+        bool cal = s.CalendarEnabled && s.HasCompact(Widgets.Calendar) && Calendar.IsSoon;
+        bool low = s.BatteryEnabled && s.HasCompact(Widgets.Battery) && Battery.IsLow;
+        bool activities = media || timer || cal || low;
+        // The clock shows either as a permanent segment, or as the idle face when nothing else is going on.
+        bool clock = s.HasCompact(Widgets.Clock) || (s.Idle == IdleStyle.Clock && !activities);
+        bool any = activities || clock;
+        bool changed = media != ShowMedia || timer != ShowTimer || cal != ShowCalendar || low != ShowBatteryLow
+                       || clock != ShowClock || any != HasCompact;
+        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; HasCompact = any;
         if (changed) CompactChanged?.Invoke();
     }
 

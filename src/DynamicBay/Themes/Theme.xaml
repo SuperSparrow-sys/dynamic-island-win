@@ -114,6 +114,27 @@
         </Setter>
     </Style>
 
+    <!-- Launcher tile button: no hover plate (the tile itself reacts), springy press -->
+    <Style x:Key="Btn.Tile" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="RenderTransformOrigin" Value="0.5,0.5" />
+        <Setter Property="RenderTransform"><Setter.Value><ScaleTransform /></Setter.Value></Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" /></Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Trigger.EnterActions><BeginStoryboard Storyboard="{StaticResource SB.Press}" /></Trigger.EnterActions>
+                            <Trigger.ExitActions><BeginStoryboard Storyboard="{StaticResource SB.Release}" /></Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Media transport buttons: no hover plate, just a soft glow on press like iOS -->
     <Style x:Key="Btn.Media" TargetType="Button" BasedOn="{StaticResource Btn.Icon}">
         <Setter Property="Width" Value="36" />
@@ -261,5 +282,67 @@
 
     <Style TargetType="c:Icon">
         <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+    </Style>
+
+    <!-- Uniform app tile for the launcher (glyph on a squircle, or the original icon inside one). DataContext: ShortcutItem -->
+    <c:BoolToVis x:Key="Theme.Vis" />
+    <DataTemplate x:Key="AppTile">
+        <Grid Width="38" Height="38">
+            <Border CornerRadius="10" Background="{Binding TileBackground}" BorderBrush="#14FFFFFF" BorderThickness="0.75" />
+            <Border x:Name="Lift" CornerRadius="10" Background="#14FFFFFF" Opacity="0" />
+            <c:Icon x:Name="Glyph" Data="{Binding Glyph}" Filled="{Binding GlyphFilled}" StrokeWidth="2" Width="19" Height="19" Foreground="{Binding GlyphBrush}"
+                    Visibility="{Binding ShowGlyph, Converter={StaticResource Theme.Vis}}" />
+            <Image x:Name="Img" Source="{Binding Icon}" Width="24" Height="24" RenderOptions.BitmapScalingMode="HighQuality"
+                   Visibility="{Binding ShowIcon, Converter={StaticResource Theme.Vis}}" />
+        </Grid>
+        <DataTemplate.Triggers>
+            <!-- Hover: the tile lifts slightly and the mark brightens -->
+            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                <Setter TargetName="Lift" Property="Opacity" Value="1" />
+                <Setter TargetName="Glyph" Property="Foreground" Value="#FFF2F2F7" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- Dark rounded menu used by the island (e.g. "Save to ...") -->
+    <Style x:Key="Island.Menu" TargetType="ContextMenu">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.UI}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="HasDropShadow" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="#F21C1C1E" CornerRadius="12" BorderBrush="{StaticResource B.Hairline}" BorderThickness="1" Padding="5" Margin="0,0,10,10">
+                        <Border.Effect><DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.45" Direction="270" /></Border.Effect>
+                        <StackPanel IsItemsHost="True" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="Island.MenuItem" TargetType="MenuItem">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bg" CornerRadius="7" Padding="9,6" Background="Transparent">
+                        <StackPanel Orientation="Horizontal">
+                            <ContentPresenter ContentSource="Icon" Width="16" Height="16" Margin="0,0,9,0" VerticalAlignment="Center" />
+                            <ContentPresenter ContentSource="Header" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </StackPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{StaticResource B.Blue}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 </ResourceDictionary>

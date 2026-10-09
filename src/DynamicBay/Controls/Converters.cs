@@ -23,6 +23,12 @@ public sealed class BoolToVis : IValueConverter
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotSupportedException();
 }
 
+public sealed class Percent01 : IValueConverter
+{
+    public object Convert(object value, Type t, object p, CultureInfo c) => value is double d ? d / 100.0 : 0.0;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => throw new NotSupportedException();
+}
+
 public sealed class InverseBool : IValueConverter
 {
     public object Convert(object value, Type t, object p, CultureInfo c) => value is not true;

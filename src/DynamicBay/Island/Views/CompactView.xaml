@@ -47,6 +47,18 @@
             </StackPanel>
         </Grid>
 
+        <!-- Clock -->
+        <Grid Visibility="{Binding ShowClock, Converter={StaticResource Vis}}">
+            <StackPanel x:Name="ClockH" Orientation="Horizontal">
+                <TextBlock Style="{StaticResource T.Numeric}" FontSize="12.5" Text="{Binding Clock.Time}" VerticalAlignment="Center" />
+                <TextBlock Style="{StaticResource T.Numeric}" FontSize="12.5" Foreground="{StaticResource B.Text2}" Text="{Binding Clock.Seconds}" VerticalAlignment="Center" />
+                <TextBlock Style="{StaticResource T.Base}" FontSize="9.5" FontWeight="SemiBold" Margin="3,1,0,0" Foreground="{StaticResource B.Text2}" Text="{Binding Clock.AmPm}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel x:Name="ClockV" Visibility="Collapsed">
+                <TextBlock Style="{StaticResource T.Numeric}" FontSize="10" HorizontalAlignment="Center" Text="{Binding Clock.Time}" />
+            </StackPanel>
+        </Grid>
+
         <!-- Battery low -->
         <Grid Visibility="{Binding ShowBatteryLow, Converter={StaticResource Vis}}">
             <StackPanel x:Name="BatH" Orientation="Horizontal">

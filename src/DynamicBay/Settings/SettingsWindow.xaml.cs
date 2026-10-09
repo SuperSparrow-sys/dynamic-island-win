@@ -49,6 +49,8 @@ public partial class SettingsWindow : Window
             if (e.PropertyName is nameof(AppSettings.Edge) or nameof(AppSettings.Align) or nameof(AppSettings.Along)) UpdatePreview();
         };
         UpdatePreview();
+        BuildWidgetRows();
+        BuildCompactRows();
     }
 
     private void ApplyBackdrop()
@@ -68,13 +70,181 @@ public partial class SettingsWindow : Window
         }
     }
 
-    public void ShowPage(int index) => Nav.SelectedIndex = index;
+    // Sidebar position -> page id ("Widgets und Module" is page 11 but sits second in the sidebar).
+    private static readonly int[] NavToPage = { 0, 1, 11, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+    public void ShowPage(int page) => Nav.SelectedIndex = Array.IndexOf(NavToPage, page);
 
     private void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_ctx is null) return;
-        _ctx.Page = Nav.SelectedIndex;
+        if (_ctx is null || Nav.SelectedIndex < 0) return;
+        _ctx.Page = NavToPage[Nav.SelectedIndex];
         PageScroll.ScrollToTop();
+    }
+
+    // ---- widgets & modules ----
+
+    private static (string id, string icon, string de, string en, string descDe, string descEn)[] HomeWidgetInfo => new[]
+    {
+        (Widgets.Media, "Icon.Music", "Medien", "Media", "Cover, Titel und Steuerung", "Artwork, title and controls"),
+        (Widgets.Clock, "Icon.Clock", "Uhr", "Clock", "Große Uhrzeit mit Datum", "Large time with date"),
+        (Widgets.Calendar, "Icon.Calendar", "Kalender", "Calendar", "Woche und nächster Termin", "Week and next event"),
+        (Widgets.Timer, "Icon.Timer", "Timer", "Timer", "Timer und Fokus-Sitzungen", "Timers and focus sessions"),
+        (Widgets.System, "Icon.Sliders", "System", "System", "CPU- und Speicherauslastung", "CPU and memory load"),
+        (Widgets.Shortcuts, "Icon.AppWindow", "Schnellstart", "Launcher", "Angepinnte Apps und Ordner", "Pinned apps and folders"),
+    };
+
+    private static (string id, string icon, string de, string en)[] CompactInfo => new[]
+    {
+        (Widgets.Media, "Icon.Music", "Musik (während der Wiedergabe)", "Music (while playing)"),
+        (Widgets.Timer, "Icon.Timer", "Laufender Timer", "Running timer"),
+        (Widgets.Calendar, "Icon.Calendar", "Termin beginnt bald", "Event starting soon"),
+        (Widgets.Battery, "Icon.BatteryLow", "Akku schwach", "Low battery"),
+        (Widgets.Clock, "Icon.Clock", "Uhrzeit (immer)", "Time (always)"),
+    };
+
+    private void BuildWidgetRows()
+    {
+        var s = _ctx.S;
+        WidgetRows.Children.Clear();
+        // Enabled widgets first (in their order), then the rest.
+        var ordered = s.HomeWidgets.Where(id => HomeWidgetInfo.Any(w => w.id == id))
+            .Concat(HomeWidgetInfo.Select(w => w.id).Where(id => !s.HomeWidgets.Contains(id))).ToList();
+        for (int i = 0; i < ordered.Count; i++)
+        {
+            var info = HomeWidgetInfo.First(w => w.id == ordered[i]);
+            bool on = s.HomeWidgets.Contains(info.id);
+            int pos = s.HomeWidgets.IndexOf(info.id);
+
+            var sw = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = on, VerticalAlignment = VerticalAlignment.Center };
+            sw.IsEnabled = on || s.HomeWidgets.Count < 4;
+            string id = info.id;
+            sw.Click += (_, _) =>
+            {
+                if (sw.IsChecked == true && !s.HomeWidgets.Contains(id)) s.HomeWidgets.Add(id);
+                else if (sw.IsChecked != true) s.HomeWidgets.Remove(id);
+                BuildWidgetRows();
+            };
+
+            var controls = new StackPanel { Orientation = Orientation.Horizontal };
+            controls.Children.Add(ArrowButton("Icon.ChevronUp", on && pos > 0, () => Move(id, -1)));
+            controls.Children.Add(ArrowButton("Icon.ChevronDown", on && pos >= 0 && pos < s.HomeWidgets.Count - 1, () => Move(id, +1)));
+            controls.Children.Add(new Border { Width = 12 });
+            controls.Children.Add(sw);
+
+            WidgetRows.Children.Add(Row(info.icon, Loc.German ? info.de : info.en, Loc.German ? info.descDe : info.descEn, controls, i > 0));
+        }
+    }
+
+    private void Move(string id, int delta)
+    {
+        var list = _ctx.S.HomeWidgets;
+        int i = list.IndexOf(id), j = i + delta;
+        if (i < 0 || j < 0 || j >= list.Count) return;
+        list.Move(i, j);
+        BuildWidgetRows();
+    }
+
+    private Button ArrowButton(string icon, bool enabled, Action click)
+    {
+        var b = new Button
+        {
+            Style = (Style)FindResource("S.Button"),
+            Padding = new Thickness(6, 4, 6, 4),
+            Margin = new Thickness(4, 0, 0, 0),
+            IsEnabled = enabled,
+            Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Width = 13, Height = 13 },
+        };
+        b.Click += (_, _) => click();
+        return b;
+    }
+
+    // ---- launcher apps ----
+
+    private void PickInstalledApps_Click(object sender, RoutedEventArgs e)
+    {
+        Mouse.OverrideCursor = Cursors.Wait;
+        List<InstalledApp> apps;
+        try { apps = InstalledApps.All(refresh: true); }
+        finally { Mouse.OverrideCursor = null; }
+        ApplyPick(apps, Loc.German ? "Apps auswählen" : "Choose apps",
+            Loc.German ? "Alle installierten Apps, wie im Startmenü." : "All installed apps, like in the Start menu.");
+    }
+
+    private void PickFromFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Loc.German ? "Ordner mit Verknüpfungen wählen" : "Choose a folder with shortcuts" };
+        if (dlg.ShowDialog(this) != true) return;
+        var apps = InstalledApps.FromFolder(dlg.FolderName);
+        ApplyPick(apps, System.IO.Path.GetFileName(dlg.FolderName), dlg.FolderName);
+    }
+
+    /// <summary>Checked items are added, unchecked ones (from this list) removed; everything else stays.</summary>
+    private void ApplyPick(List<InstalledApp> source, string heading, string hint)
+    {
+        var picker = new AppPickerWindow(source, _ctx.S.Shortcuts, heading, hint) { Owner = this };
+        if (picker.ShowDialog() != true) return;
+        var chosen = new HashSet<string>(picker.Selected, StringComparer.OrdinalIgnoreCase);
+        foreach (var app in source)
+        {
+            var existing = _ctx.S.Shortcuts.FirstOrDefault(s => string.Equals(s, app.LaunchPath, StringComparison.OrdinalIgnoreCase));
+            if (chosen.Contains(app.LaunchPath) && existing is null && _ctx.S.Shortcuts.Count < ShortcutsService.MaxItems)
+                _ctx.S.Shortcuts.Add(app.LaunchPath);
+            else if (!chosen.Contains(app.LaunchPath) && existing is not null)
+                _ctx.S.Shortcuts.Remove(existing);
+        }
+        // Picking apps implies wanting to see them.
+        if (_ctx.S.Shortcuts.Count > 0 && !_ctx.S.HomeWidgets.Contains(Widgets.Shortcuts) && _ctx.S.HomeWidgets.Count < 4)
+        {
+            _ctx.S.HomeWidgets.Add(Widgets.Shortcuts);
+            BuildWidgetRows();
+        }
+    }
+
+    private void RemoveShortcut_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).Tag is ShortcutItem item) _ctx.I.Shortcuts.Remove(item);
+    }
+
+    private void BuildCompactRows()
+    {
+        var s = _ctx.S;
+        CompactRows.Children.Clear();
+        int i = 0;
+        foreach (var info in CompactInfo)
+        {
+            var sw = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = s.CompactItems.Contains(info.id) };
+            string id = info.id;
+            sw.Click += (_, _) =>
+            {
+                if (sw.IsChecked == true && !s.CompactItems.Contains(id)) s.CompactItems.Add(id);
+                else if (sw.IsChecked != true) s.CompactItems.Remove(id);
+            };
+            CompactRows.Children.Add(Row(info.icon, Loc.German ? info.de : info.en, null, sw, i++ > 0));
+        }
+    }
+
+    private FrameworkElement Row(string icon, string label, string? desc, FrameworkElement control, bool divider)
+    {
+        var dock = new DockPanel();
+        DockPanel.SetDock(control, Dock.Right);
+        control.VerticalAlignment = VerticalAlignment.Center;
+        dock.Children.Add(control);
+        var ic = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Width = 18, Height = 18, Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center };
+        DockPanel.SetDock(ic, Dock.Left);
+        dock.Children.Add(ic);
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Label"), Text = label });
+        if (desc is not null) text.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Desc"), Text = desc });
+        dock.Children.Add(text);
+        return new Border
+        {
+            Padding = new Thickness(16, 11, 16, 11),
+            MinHeight = 56,
+            BorderBrush = (System.Windows.Media.Brush)FindResource("S.Divider"),
+            BorderThickness = new Thickness(0, divider ? 1 : 0, 0, 0),
+            Child = dock,
+        };
     }
 
     // ---- general ----

@@ -62,6 +62,10 @@ public static class Loc
         ["Peek.Screenshot"] = ("Screenshot aufgenommen", "Screenshot captured"),
         ["Peek.ScreenshotHint"] = ("In der Zwischenablage · ziehen zum Teilen", "On the clipboard · drag to share"),
 
+        ["Cloud.SaveTo"] = ("In Cloud speichern", "Save to cloud"),
+        ["Cloud.Saved"] = ("In {0} gespeichert", "Saved to {0}"),
+        ["Cloud.None"] = ("Kein Cloud-Ordner gefunden", "No cloud folder found"),
+
         ["Notif.Empty"] = ("Keine Mitteilungen", "No notifications"),
         ["Notif.Unavailable"] = ("Mitteilungen anderer Apps sind nicht verfügbar", "Notifications from other apps are unavailable"),
         ["Notif.UnavailableHint"] = ("Installiere DynamicBay über das Setup, um sie zu aktivieren", "Install DynamicBay with the setup to enable them"),

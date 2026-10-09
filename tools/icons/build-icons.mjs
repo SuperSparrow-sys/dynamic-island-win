@@ -30,6 +30,9 @@ const ICONS = {
   "square-dashed-mouse-pointer": "Snip", "file-text": "FileText", "folder-open": "FolderOpen",
   "brain": "Focus", "minus": "Minus", "laptop": "Laptop", "smartphone": "Phone", "speaker": "Speaker",
   "download": "Download", "layers": "Layers", "languages": "Languages", "github": "Github", "mouse-pointer-2": "Pointer",
+  "cloud-upload": "CloudUpload", "cloud": "Cloud", "link": "Link", "key-round": "Key", "calendar-plus": "CalendarPlus", "user-round": "User", "mail": "Mail",
+  "calculator": "Calculator", "notebook-pen": "Notepad", "square-terminal": "Terminal", "camera": "Camera", "globe": "Globe",
+  "images": "Photos", "paintbrush": "Paint", "gamepad-2": "Game", "map": "Map", "store": "Store", "shield-check": "Shield", "cog": "Cog",
   "magnet": "Magnet", "maximize": "Fullscreen", "app-window-mac": "Window", "lock": "Lock", "flask-conical": "Lab",
 };
 

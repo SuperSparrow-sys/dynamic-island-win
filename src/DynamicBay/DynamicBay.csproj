@@ -36,6 +36,7 @@
     <Resource Include="Assets\Fonts\*.ttf" />
     <Resource Include="Assets\DynamicBay.ico" />
     <Resource Include="Assets\DynamicBay.png" />
+    <EmbeddedResource Include="Assets\AppIcons.json.gz" LogicalName="DynamicBay.Assets.AppIcons.json.gz" />
     <Content Include="Assets\Fonts\Inter-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

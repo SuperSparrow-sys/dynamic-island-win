@@ -34,6 +34,7 @@ public sealed partial class MediaService : ObservableObject
     [ObservableProperty] private Brush _accentBrush = new SolidColorBrush(Color.FromRgb(0x30, 0xD1, 0x58));
     [ObservableProperty] private string _sourceApp = "";
     [ObservableProperty] private bool _isSpotify;
+    [ObservableProperty] private bool _isAppleMusic;
     [ObservableProperty] private double _positionSeconds;
     [ObservableProperty] private double _durationSeconds;
     [ObservableProperty] private string _positionText = "0:00";
@@ -109,6 +110,7 @@ public sealed partial class MediaService : ObservableObject
             Log.Info($"Media session: {_session.SourceAppUserModelId}");
         SourceApp = FriendlyName(_session.SourceAppUserModelId);
         IsSpotify = IsSpotifyId(_session.SourceAppUserModelId);
+        IsAppleMusic = IsAppleMusicId(_session.SourceAppUserModelId);
         _ = RefreshMediaAsync();
         RefreshPlayback();
         RefreshTimeline();
@@ -120,11 +122,35 @@ public sealed partial class MediaService : ObservableObject
         catch { return false; }
     }
 
-    private static bool IsSpotifyId(string? id) => id?.Contains("spotify", StringComparison.OrdinalIgnoreCase) == true;
+    private static readonly Dictionary<string, string> AppNames = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Start-menu name for a media session's app id (resolves browser web apps like Spotify in Chrome).</summary>
+    private static string? InstalledName(string? id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        lock (AppNames)
+        {
+            if (AppNames.TryGetValue(id, out var cached)) return cached;
+            var name = InstalledApps.All().FirstOrDefault(a => a.LaunchPath.EndsWith("\\" + id, StringComparison.OrdinalIgnoreCase))?.Name;
+            if (name is not null) name = name.Replace(" (Web-App)", "");
+            AppNames[id] = name ?? "";
+            return name;
+        }
+    }
+
+    private static bool IsSpotifyId(string? id) =>
+        id?.Contains("spotify", StringComparison.OrdinalIgnoreCase) == true ||
+        InstalledName(id)?.Contains("Spotify", StringComparison.OrdinalIgnoreCase) == true;
+
+    public static bool IsAppleMusicId(string? id) =>
+        id?.Contains("AppleMusic", StringComparison.OrdinalIgnoreCase) == true ||
+        InstalledName(id)?.Equals("Apple Music", StringComparison.OrdinalIgnoreCase) == true;
 
     private static string FriendlyName(string id)
     {
         if (IsSpotifyId(id)) return "Spotify";
+        if (IsAppleMusicId(id)) return "Apple Music";
+        if (InstalledName(id) is { Length: > 0 } installed) return installed;
         if (id.Contains("chrome", StringComparison.OrdinalIgnoreCase)) return "Chrome";
         if (id.Contains("msedge", StringComparison.OrdinalIgnoreCase)) return "Edge";
         if (id.Contains("firefox", StringComparison.OrdinalIgnoreCase)) return "Firefox";

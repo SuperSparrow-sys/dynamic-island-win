@@ -11,6 +11,7 @@
         <c:EqualsToVis x:Key="EqVis" />
         <c:EqualsToBool x:Key="EqBool" />
         <c:RatioConverter x:Key="Ratio" />
+        <c:Percent01 x:Key="Percent01" />
         <c:BoolPick x:Key="PlayPauseGlyph" True="{StaticResource Glyph.Pause}" False="{StaticResource Glyph.Play}" />
         <c:BoolPick x:Key="LikeBrush" True="{StaticResource B.Pink}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
@@ -74,6 +75,7 @@
                     </StackPanel>
                 </RadioButton>
                 <RadioButton Style="{StaticResource Tab.Segment}" GroupName="tabs" Margin="2,0,0,0"
+                             Visibility="{Binding Settings.ShowTrayTab, Converter={StaticResource Vis}}"
                              IsChecked="{Binding Tab, Converter={StaticResource EqBool}, ConverterParameter=1}">
                     <StackPanel Orientation="Horizontal">
                         <c:Icon Data="{StaticResource Icon.Inbox}" Width="14" Height="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
@@ -81,6 +83,7 @@
                     </StackPanel>
                 </RadioButton>
                 <RadioButton Style="{StaticResource Tab.Segment}" GroupName="tabs" Margin="2,0,0,0"
+                             Visibility="{Binding Settings.ShowNotificationsTab, Converter={StaticResource Vis}}"
                              IsChecked="{Binding Tab, Converter={StaticResource EqBool}, ConverterParameter=2}">
                     <StackPanel Orientation="Horizontal">
                         <c:Icon Data="{StaticResource Icon.Bell}" Width="14" Height="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
@@ -150,6 +153,17 @@
                                 <Border Width="22" Height="22" CornerRadius="11" Background="Black" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                         Margin="0,0,-5,-5" Visibility="{Binding Media.IsSpotify, Converter={StaticResource Vis}}">
                                     <c:Icon Data="{StaticResource Glyph.Spotify}" Filled="True" Width="17" Height="17" Foreground="{StaticResource B.Spotify}" />
+                                </Border>
+                                <!-- Apple Music: generic music note on the service's pink-red gradient (no Apple logo) -->
+                                <Border Width="22" Height="22" CornerRadius="7" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                        Margin="0,0,-5,-5" BorderBrush="Black" BorderThickness="1.5" Visibility="{Binding Media.IsAppleMusic, Converter={StaticResource Vis}}">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#FFFC5C7D" Offset="0" />
+                                            <GradientStop Color="#FFFA233B" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <c:Icon Data="{StaticResource Glyph.Music}" Filled="True" Width="12" Height="12" Foreground="White" />
                                 </Border>
                             </Grid>
 
@@ -335,6 +349,80 @@
                 </Border>
             </Grid>
 
+            <!-- Optional widgets (shown when enabled in settings; laid out in code) -->
+            <Grid x:Name="ExtraCards" Visibility="Collapsed">
+                <!-- Clock -->
+                <Border x:Name="ClockCard" Style="{StaticResource Card}" Padding="10">
+                    <!-- Scales down in narrow slots instead of clipping the digits -->
+                    <Viewbox StretchDirection="DownOnly">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <TextBlock Style="{StaticResource T.Caption}" HorizontalAlignment="Center" Foreground="{StaticResource B.Orange}" Text="{Binding Clock.Weekday}" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,0">
+                            <TextBlock Style="{StaticResource T.Numeric}" FontSize="38" FontWeight="Bold" Text="{Binding Clock.Time}" />
+                            <TextBlock Style="{StaticResource T.Numeric}" FontSize="18" Foreground="{StaticResource B.Text2}" Margin="1,0,0,6"
+                                       VerticalAlignment="Bottom" Text="{Binding Clock.Seconds}" />
+                            <TextBlock Style="{StaticResource T.Base}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource B.Text2}" Margin="4,0,0,8"
+                                       VerticalAlignment="Bottom" Text="{Binding Clock.AmPm}" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource T.Caption}" HorizontalAlignment="Center" Text="{Binding Clock.Date}" />
+                    </StackPanel>
+                    </Viewbox>
+                </Border>
+
+                <!-- System -->
+                <Border x:Name="SystemCard" Style="{StaticResource Card}" Padding="10">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource T.Title}" Text="{core:L De='System', En='System'}" />
+                        <Viewbox StretchDirection="DownOnly" Margin="0,6,0,0">
+                        <UniformGrid Columns="2" VerticalAlignment="Center">
+                            <StackPanel HorizontalAlignment="Center" Margin="6,0">
+                                <Grid Width="52" Height="52">
+                                    <c:ProgressRing Thickness="4.5" RingBrush="{StaticResource B.Blue}" Value="{Binding System.Cpu, Converter={StaticResource Percent01}}" />
+                                    <TextBlock Style="{StaticResource T.Numeric}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Text="{Binding System.Cpu, StringFormat={}{0:0}%}" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource T.Section}" HorizontalAlignment="Center" Margin="0,5,0,0" Text="CPU" />
+                            </StackPanel>
+                            <StackPanel HorizontalAlignment="Center" Margin="6,0">
+                                <Grid Width="52" Height="52">
+                                    <c:ProgressRing Thickness="4.5" RingBrush="{StaticResource B.Green}" Value="{Binding System.Memory, Converter={StaticResource Percent01}}" />
+                                    <TextBlock Style="{StaticResource T.Numeric}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Text="{Binding System.Memory, StringFormat={}{0:0}%}" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource T.Section}" HorizontalAlignment="Center" Margin="0,5,0,0" Text="RAM" />
+                            </StackPanel>
+                        </UniformGrid>
+                        </Viewbox>
+                    </DockPanel>
+                </Border>
+
+                <!-- Shortcuts (pinned apps / folders) -->
+                <Border x:Name="ShortcutsCard" Style="{StaticResource Card}" Padding="10" AllowDrop="True" Drop="Shortcuts_Drop">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource T.Title}" Text="{core:L De='Schnellstart', En='Launcher'}" />
+                        <Grid Margin="0,6,0,0">
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                       Text="{core:L De='Apps oder Ordner hierher ziehen', En='Drag apps or folders here'}"
+                                       Visibility="{Binding Shortcuts.Items.Count, Converter={StaticResource NotVis}}" />
+                            <ItemsControl ItemsSource="{Binding Shortcuts.Items}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><c:FitGrid MaxCell="46" /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type s:ShortcutItem}">
+                                        <Viewbox Stretch="Uniform"><Button Style="{StaticResource Btn.Tile}" Width="44" Height="44" ToolTip="{Binding Name}"
+                                                Command="{Binding DataContext.Shortcuts.LaunchCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}">
+                                            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource AppTile}" />
+                                        </Button></Viewbox>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
             <!-- Tray: shelf + clipboard -->
             <Grid x:Name="TrayGrid" Visibility="{Binding Tab, Converter={StaticResource EqVis}, ConverterParameter=1}">
 
@@ -376,6 +464,11 @@
                                                     <TextBlock Style="{StaticResource T.Base}" FontSize="10" Margin="0,4,0,0" TextAlignment="Center"
                                                                TextWrapping="Wrap" MaxHeight="26" Text="{Binding Name}" />
                                                 </StackPanel>
+                                                <Button x:Name="Cloud" Style="{StaticResource TileButton}" Width="18" Height="18" Margin="2,2,0,0"
+                                                        HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Hidden" Click="CloudSave_Click"
+                                                        ToolTip="{core:T Cloud.SaveTo}">
+                                                    <c:Icon Data="{StaticResource Icon.CloudUpload}" Width="10" Height="10" />
+                                                </Button>
                                                 <Button x:Name="Remove" Style="{StaticResource TileButton}" Width="18" Height="18" Margin="0,2,2,0"
                                                         HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Hidden"
                                                         Command="{Binding DataContext.Shelf.RemoveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
@@ -387,6 +480,7 @@
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter TargetName="Hover" Property="Background" Value="{StaticResource B.Fill}" />
                                                     <Setter TargetName="Remove" Property="Visibility" Value="Visible" />
+                                                    <Setter TargetName="Cloud" Property="Visibility" Value="Visible" />
                                                 </Trigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>
@@ -438,6 +532,9 @@
                                                 </Border>
                                                 <!-- hover actions -->
                                                 <StackPanel x:Name="Actions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,5" Visibility="Hidden">
+                                                    <Button Style="{StaticResource TileButton}" ToolTip="{core:T Cloud.SaveTo}" Click="CloudSave_Click">
+                                                        <c:Icon Data="{StaticResource Icon.CloudUpload}" Width="11" Height="11" />
+                                                    </Button>
                                                     <Button Style="{StaticResource TileButton}" ToolTip="{core:T Clip.Pin}"
                                                             Command="{Binding DataContext.Clipboard.TogglePinCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
                                                         <c:Icon Data="{StaticResource Icon.Pin}" Width="11" Height="11" />
@@ -471,6 +568,15 @@
                     </DockPanel>
                 </Border>
             </Grid>
+
+            <!-- Inline confirmation (e.g. "Saved to iCloud Drive") -->
+            <Border x:Name="Toast" Panel.ZIndex="10" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,8"
+                    Background="#F22C2C2E" CornerRadius="14" Padding="12,6" Opacity="0" IsHitTestVisible="False">
+                <StackPanel Orientation="Horizontal">
+                    <c:Icon Data="{StaticResource Icon.Check}" Width="13" Height="13" Foreground="{StaticResource B.Green}" StrokeWidth="2.6" />
+                    <TextBlock x:Name="ToastText" Style="{StaticResource T.Base}" FontWeight="SemiBold" Margin="7,0,0,0" />
+                </StackPanel>
+            </Border>
 
             <!-- Notifications -->
             <Grid Visibility="{Binding Tab, Converter={StaticResource EqVis}, ConverterParameter=2}">

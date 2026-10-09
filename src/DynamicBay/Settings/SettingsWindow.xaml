@@ -44,6 +44,7 @@
                      SelectionChanged="Nav_SelectionChanged">
                 <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Settings}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Allgemein', En='General'}" /></StackPanel>
                 <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Palette}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Darstellung', En='Appearance'}" /></StackPanel>
+                <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Modules}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Widgets und Module', En='Widgets and modules'}" /></StackPanel>
                 <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Move}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Position und Ebene', En='Position and layer'}" /></StackPanel>
                 <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.EyeOff}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Verhalten und Verstecken', En='Behavior and hiding'}" /></StackPanel>
                 <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Music}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Medien und Spotify', En='Media and Spotify'}" /></StackPanel>
@@ -115,6 +116,7 @@
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Flacher Strich', En='Flat bar'}" IsChecked="{Binding S.Idle, Converter={StaticResource EqBool}, ConverterParameter=Bar}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Uhrzeit', En='Clock'}" IsChecked="{Binding S.Idle, Converter={StaticResource EqBool}, ConverterParameter=Clock}" />
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Fast unsichtbar', En='Nearly hidden'}" IsChecked="{Binding S.Idle, Converter={StaticResource EqBool}, ConverterParameter=Hidden}" />
                                     </StackPanel>
                                 </Border>
@@ -122,6 +124,88 @@
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Schatten', En='Shadow'}"
                                             ToolTip="{core:L De='Weicher Schatten unter der Insel.', En='Soft shadow under the island.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.Shadow}" />
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- 11 Widgets and modules (listed second in the sidebar) -->
+                <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=11}">
+                    <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Widgets und Module', En='Widgets and modules'}" />
+                    <TextBlock Style="{StaticResource ST.Group}" Margin="4,0,0,8" Text="{core:L De='Widgets im aufgeklappten Panel', En='Widgets in the expanded panel'}" />
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" Text="{core:L De='Bis zu vier gleichzeitig. Mit den Pfeilen änderst du die Reihenfolge.', En='Up to four at a time. Use the arrows to change the order.'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel x:Name="WidgetRows" />
+                    </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Schnellstart-Apps', En='Launcher apps'}" />
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" Text="{core:L De='Nur die Apps, die du hier auswählst, erscheinen im Schnellstart-Widget. Auch Store-Apps wie WhatsApp oder Discord.', En='Only the apps you pick here appear in the launcher widget. Store apps like WhatsApp or Discord work too.'}" />
+                    <Border Style="{StaticResource S.Card}" Padding="16,12">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <Border DockPanel.Dock="Right" Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Schlicht', En='Clean'}" IsChecked="{Binding S.AppIcons, Converter={StaticResource EqBool}, ConverterParameter=Mono}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Farbig', En='Colour'}" IsChecked="{Binding S.AppIcons, Converter={StaticResource EqBool}, ConverterParameter=Color}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Dunkel', En='Dark'}" IsChecked="{Binding S.AppIcons, Converter={StaticResource EqBool}, ConverterParameter=Dark}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Original', En='Original'}" IsChecked="{Binding S.AppIcons, Converter={StaticResource EqBool}, ConverterParameter=Original}" />
+                                    </StackPanel>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Symbolstil', En='Icon style'}" />
+                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Einheitliche Kacheln im Insel-Design (Symbole: Simple Icons)', En='Uniform tiles in the island style (icons: Simple Icons)'}" />
+                                </StackPanel>
+                            </DockPanel>
+                            <ItemsControl ItemsSource="{Binding I.Shortcuts.Items}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Padding="8,4" Click="RemoveShortcut_Click" Tag="{Binding}">
+                                                <c:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
+                                            </Button>
+                                            <ContentPresenter DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource AppTile}" Margin="0,0,12,0" />
+                                            <TextBlock Style="{StaticResource ST.Base}" VerticalAlignment="Center" Text="{Binding Name}" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource S.AccentButton}" Click="PickInstalledApps_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" Foreground="White" /><TextBlock Margin="6,0,0,0" Text="{core:L De='App hinzufügen', En='Add app'}" /></StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="PickFromFolder_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.FolderOpen}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Aus Ordner wählen', En='Pick from folder'}" /></StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='In der kompakten Insel', En='In the compact island'}" />
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" Text="{core:L De='Was nebeneinander in der Insel erscheinen darf, solange es aktiv ist.', En='What may appear side by side in the island while it is active.'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel x:Name="CompactRows" />
+                    </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Uhr', En='Clock'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='24-Stunden-Format', En='24-hour time'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.Clock24h}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Sekunden anzeigen', En='Show seconds'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.ClockSeconds}" />
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Tabs', En='Tabs'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Ablage (Dateien und Zwischenablage)', En='Tray (files and clipboard)'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.ShowTrayTab}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Mitteilungen', En='Notifications'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.ShowNotificationsTab}" />
                             </ContentControl>
                         </StackPanel>
                     </Border>

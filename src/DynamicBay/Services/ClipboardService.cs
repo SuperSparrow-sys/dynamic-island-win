@@ -231,10 +231,9 @@ public sealed partial class ClipboardService : ObservableObject
         var dirs = new List<string>();
         if (KnownFolder(new Guid("b7bede81-df94-4682-a7d8-57a52620b86f")) is { } known) dirs.Add(known);
         dirs.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Screenshots"));
-        foreach (var env in new[] { "OneDrive", "OneDriveConsumer", "OneDriveCommercial" })
+        // Every OneDrive account (personal + work) can have its own screenshot folder.
+        foreach (var root in CloudTargets.Detect().Where(t => t.Kind == "onedrive").Select(t => t.Root))
         {
-            var root = Environment.GetEnvironmentVariable(env);
-            if (string.IsNullOrEmpty(root)) continue;
             foreach (var pics in new[] { "Pictures", "Bilder" })
             {
                 dirs.Add(Path.Combine(root, pics, "Screenshots"));

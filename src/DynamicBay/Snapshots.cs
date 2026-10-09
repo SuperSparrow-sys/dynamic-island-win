@@ -32,7 +32,7 @@ public static class Snapshots
         {
             var win = new Settings.SettingsWindow(settings, vm);
             win.Show();
-            for (int page = 0; page <= 10; page++)
+            for (int page = 0; page <= 11; page++)
             {
                 win.ShowPage(page);
                 await Task.Delay(700);
@@ -71,6 +71,29 @@ public static class Snapshots
                 vm.Tab = 2;
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-6-notifications.png"), compact: true);
                 await Shot(island, vm, IslandMode.Drop, Path.Combine(dir, $"{name}-7-drop.png"), compact: true);
+
+                // Customized layout: different widgets and the clock as a live activity.
+                var saved = settings.HomeWidgets.ToList();
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.Clock, Widgets.Media, Widgets.System, Widgets.Shortcuts }) settings.HomeWidgets.Add(w);
+                settings.Shortcuts.Clear();
+                var installed = InstalledApps.All();
+                foreach (var want in new[] { "WhatsApp", "Discord", "Google Chrome", "Obsidian", "Rechner", "Calculator", "Spotify", "Zotero", "Opera-Browser" })
+                {
+                    var app = installed.FirstOrDefault(a => a.Name.Equals(want, StringComparison.OrdinalIgnoreCase));
+                    if (app is not null && settings.Shortcuts.Count < 8) settings.Shortcuts.Add(app.LaunchPath);
+                }
+                settings.CompactItems.Add(Widgets.Clock);
+                vm.Tab = 0;
+                settings.AppIcons = AppIconStyle.Mono;
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8-widgets.png"), compact: true);
+                settings.AppIcons = AppIconStyle.Dark;
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8b-widgets-dark.png"), compact: true);
+                settings.AppIcons = AppIconStyle.Mono;
+                await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-9-compact-clock.png"), compact: true);
+                settings.CompactItems.Remove(Widgets.Clock);
+                settings.HomeWidgets.Clear();
+                foreach (var w in saved) settings.HomeWidgets.Add(w);
             }
         }
     }

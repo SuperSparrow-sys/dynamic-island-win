@@ -9,9 +9,19 @@ namespace DynamicBay.Core;
 public enum IslandEdge { Top, Bottom, Left, Right }
 public enum IslandAlign { Start, Center, End }
 public enum LayerMode { Floating, Desktop }
-public enum IdleStyle { Bar, Hidden }
+public enum IdleStyle { Bar, Clock, Hidden }
+
+/// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
+public static class Widgets
+{
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts };
+    public const string Battery = "battery";
+    public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock };
+}
 public enum AccentSource { Cover, Windows, Custom }
 public enum DisplayMode { Single, Mirror }
+public enum AppIconStyle { Mono, Dark, Color, Original }
 
 /// <summary>All user settings. Flat on purpose: binds directly into the settings window and serializes as one JSON file.</summary>
 public sealed partial class AppSettings : ObservableObject
@@ -29,6 +39,37 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private double _animationSpeed = 1.0;
     [ObservableProperty] private bool _shadow = true;
     [ObservableProperty] private IdleStyle _idle = IdleStyle.Bar;
+
+    // Customizable layout
+    private ObservableCollection<string> _homeWidgets = new() { Widgets.Media, Widgets.Calendar, Widgets.Timer };
+    private ObservableCollection<string> _compactItems = new() { Widgets.Media, Widgets.Timer, Widgets.Calendar, Widgets.Battery };
+    private ObservableCollection<string> _shortcuts = new();
+
+    public ObservableCollection<string> HomeWidgets { get => _homeWidgets; set => Hook(ref _homeWidgets, value, nameof(HomeWidgets)); }
+    public ObservableCollection<string> CompactItems { get => _compactItems; set => Hook(ref _compactItems, value, nameof(CompactItems)); }
+    public ObservableCollection<string> Shortcuts { get => _shortcuts; set => Hook(ref _shortcuts, value, nameof(Shortcuts)); }
+
+    public AppSettings()
+    {
+        _homeWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HomeWidgets));
+        _compactItems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CompactItems));
+        _shortcuts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Shortcuts));
+    }
+
+    /// <summary>Collections raise PropertyChanged for their own name on every change, so listeners and autosave see edits.</summary>
+    private void Hook(ref ObservableCollection<string> field, ObservableCollection<string> value, string name)
+    {
+        field = value ?? new();
+        field.CollectionChanged += (_, _) => OnPropertyChanged(name);
+        OnPropertyChanged(name);
+    }
+
+    public bool HasCompact(string id) => CompactItems.Contains(id);
+    [ObservableProperty] private bool _showTrayTab = true;
+    [ObservableProperty] private bool _showNotificationsTab = true;
+    [ObservableProperty] private bool _clock24h = true;
+    [ObservableProperty] private bool _clockSeconds;
+    [ObservableProperty] private AppIconStyle _appIcons = AppIconStyle.Mono;
 
     // Layer and visibility
     [ObservableProperty] private LayerMode _layer = LayerMode.Floating;
