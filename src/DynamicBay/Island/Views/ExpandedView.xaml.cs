@@ -40,13 +40,8 @@ public partial class ExpandedView : UserControl
         DataContextChanged += (_, _) =>
         {
             if (Vm is null) return;
-            Vm.Settings.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled) or nameof(Core.AppSettings.ScriptWidgets)
-                    or nameof(Core.AppSettings.MediaEnabled) or nameof(Core.AppSettings.TimerEnabled) or nameof(Core.AppSettings.CalendarEnabled)) LayoutHome();
-                if (e.PropertyName is nameof(Core.AppSettings.ShelfEnabled)) SetVertical(_vertical);
-                if (e.PropertyName is nameof(Core.AppSettings.ShowTrayTab) or nameof(Core.AppSettings.ShowNotificationsTab)) EnsureVisibleTab();
-            };
+            _settings = Vm.Settings;
+            _settings.PropertyChanged += OnSettingsChanged;
             LayoutHome();
             EnsureVisibleTab();
         };
@@ -54,9 +49,27 @@ public partial class ExpandedView : UserControl
         {
             Vm?.System.SetActive(IsVisible && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
             Vm?.Spotify.SetPanelOpen(IsVisible);
+            Vm?.Media.SetPanelOpen(IsVisible);
         };
         HomeScroll.IsVisibleChanged += (_, _) => Dispatcher.BeginInvoke(FitHomeToViewport, System.Windows.Threading.DispatcherPriority.Loaded);
         SetVertical(false);
+    }
+
+    private Core.AppSettings? _settings;
+
+    private void OnSettingsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled) or nameof(Core.AppSettings.ScriptWidgets)
+            or nameof(Core.AppSettings.MediaEnabled) or nameof(Core.AppSettings.TimerEnabled) or nameof(Core.AppSettings.CalendarEnabled)) LayoutHome();
+        if (e.PropertyName is nameof(Core.AppSettings.ShelfEnabled)) SetVertical(_vertical);
+        if (e.PropertyName is nameof(Core.AppSettings.ShowTrayTab) or nameof(Core.AppSettings.ShowNotificationsTab)) EnsureVisibleTab();
+    }
+
+    /// <summary>The window closed (mirror island removed): let go of the settings so the view can be freed.</summary>
+    public void Detach()
+    {
+        if (_settings is not null) _settings.PropertyChanged -= OnSettingsChanged;
+        _settings = null;
     }
 
     private IslandViewModel? Vm => DataContext as IslandViewModel;

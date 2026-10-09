@@ -121,9 +121,9 @@ public partial class IslandWindow : Window
         // Deferred: bindings (visibility, texts) must update before the compact content is measured.
         _vm.CompactChanged += RefreshSoon;
         // Texts inside live activities can change width (Claude project name, "in 8 Min." -> "in 12 Min."): re-measure.
-        _vm.Claude.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ClaudeService.WorkingText)) RefreshSoon(); };
-        _vm.Calendar.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(CalendarService.SoonText)) RefreshSoon(); };
-        _vm.HideRequested += () => SetHidden(true);
+        _vm.Claude.PropertyChanged += OnClaudeChanged;
+        _vm.Calendar.PropertyChanged += OnCalendarChanged;
+        _vm.HideRequested += OnHideRequested;
         _vm.PropertyChanged += OnVmChanged;
         _settings.PropertyChanged += OnSettingChanged;
 
@@ -994,10 +994,23 @@ public partial class IslandWindow : Window
     private bool _closed;
 
     /// <summary>A closed window (mirror removed, app exit) must not react to settings anymore: Show() would throw.</summary>
+    private void OnClaudeChanged(object? sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(ClaudeService.WorkingText)) RefreshSoon(); }
+    private void OnCalendarChanged(object? sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(CalendarService.SoonText)) RefreshSoon(); }
+    private void OnHideRequested() => SetHidden(true);
+
     protected override void OnClosed(EventArgs e)
     {
         _closed = true;
+        // Unhook from the long-lived view model, otherwise a removed mirror island would stay in memory forever.
         _settings.PropertyChanged -= OnSettingChanged;
+        _vm.CompactChanged -= RefreshSoon;
+        _vm.Claude.PropertyChanged -= OnClaudeChanged;
+        _vm.Calendar.PropertyChanged -= OnCalendarChanged;
+        _vm.HideRequested -= OnHideRequested;
+        _vm.PropertyChanged -= OnVmChanged;
+        ExpandedLayer.Detach();
+        _watchdog.Stop(); _altPoll.Stop();
+        _shapeAnim.Updated -= ApplyShape;
         _peekTimer.Stop(); _hoverTimer.Stop(); _collapseTimer.Stop();
         base.OnClosed(e);
     }

@@ -79,6 +79,8 @@ public sealed partial class ClaudeService : ObservableObject
         else
         {
             _scan.Stop();
+            _watcher?.Dispose();
+            _watcher = null;
             _listener?.Close();
             _listener = null;
             Sessions.Clear();
@@ -96,11 +98,46 @@ public sealed partial class ClaudeService : ObservableObject
         _scan.Tick -= OnScanTick;
         _scan.Tick += OnScanTick;
         _scan.Start();
+        WatchTranscripts();
         Scan();
         StartListener();
     }
 
-    private void OnScanTick(object? sender, EventArgs e) => Scan();
+    // Transcripts are only searched when one changed (file watcher), while a session works or waits (its state
+    // depends on the time since the last write), with a synced folder, or once a minute as a safety net.
+    private FileSystemWatcher? _watcher;
+    private volatile bool _dirty = true;
+    private DateTime _lastScan;
+
+    private void WatchTranscripts()
+    {
+        try
+        {
+            var root = Path.Combine(ClaudeDir, "projects");
+            if (!Directory.Exists(root)) return;
+            _watcher = new FileSystemWatcher(root, "*.jsonl")
+            {
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+            };
+            FileSystemEventHandler mark = (_, _) => _dirty = true;
+            _watcher.Changed += mark;
+            _watcher.Created += mark;
+            _watcher.Deleted += mark;
+            _watcher.Renamed += (_, _) => _dirty = true;
+            _watcher.Error += (_, _) => _dirty = true;
+            _watcher.EnableRaisingEvents = true;
+        }
+        catch (Exception ex) { Log.Error("ClaudeWatch", ex); _watcher = null; }
+    }
+
+    private void OnScanTick(object? sender, EventArgs e)
+    {
+        bool busy = Sessions.Any(x => x.State != ClaudeState.Idle || x.ActiveAgents > 0);
+        bool shared = !string.IsNullOrWhiteSpace(_settings.ClaudeShareFolder);
+        if (_watcher is not null && !_dirty && !busy && !shared && DateTime.UtcNow - _lastScan < TimeSpan.FromMinutes(1)) return;
+        Scan();
+    }
 
     // ---------- sessions from transcripts ----------
 
@@ -113,6 +150,8 @@ public sealed partial class ClaudeService : ObservableObject
     {
         if (_scanning) return;
         _scanning = true;
+        _dirty = false;
+        _lastScan = DateTime.UtcNow;
         try
         {
             var known = Sessions.Where(x => x.IsLocal).ToDictionary(x => x.Id, x => x.Updated);

@@ -259,7 +259,7 @@ public sealed partial class MediaService : ObservableObject
             if (!playing && IsPlaying && InHold) { ScheduleRecheck(_holdUntil - DateTime.UtcNow); return; }
             IsPlaying = playing;
             CanSkip = info.Controls.IsNextEnabled;
-            if (IsPlaying) _tick.Start(); else _tick.Stop();
+            UpdateTick();
             RefreshTimeline();
         }
         catch { }
@@ -281,6 +281,25 @@ public sealed partial class MediaService : ObservableObject
             UpdateInterpolatedPosition();
         }
         catch { }
+    }
+
+    private bool _panelOpen;
+
+    /// <summary>
+    /// The position is only shown in the open panel: while it is closed the 250 ms tick stops, so the hidden panel is not
+    /// re-measured four times a second. Opening updates it right away (before the first visible frame).
+    /// </summary>
+    public void SetPanelOpen(bool open)
+    {
+        if (_panelOpen == open) return;
+        _panelOpen = open;
+        if (open) UpdateInterpolatedPosition();
+        UpdateTick();
+    }
+
+    private void UpdateTick()
+    {
+        if (IsPlaying && _panelOpen) _tick.Start(); else _tick.Stop();
     }
 
     private void UpdateInterpolatedPosition()

@@ -48,10 +48,11 @@ public partial class SettingsWindow : Window
             ApplyBackdrop();
             Core.TaskbarIdentity.Apply(new System.Windows.Interop.WindowInteropHelper(this).Handle, Core.TaskbarIdentity.SettingsAppId, "DynamicBay");
         };
-        settings.PropertyChanged += (_, e) =>
+        System.ComponentModel.PropertyChangedEventHandler placementChanged = (_, e) =>
         {
             if (e.PropertyName is nameof(AppSettings.Edge) or nameof(AppSettings.Align) or nameof(AppSettings.Along)) UpdatePreview();
         };
+        settings.PropertyChanged += placementChanged;
         UpdatePreview();
         BuildWidgetRows();
         BuildScriptRows();
@@ -63,8 +64,17 @@ public partial class SettingsWindow : Window
         BuildBannerRows();
         UpdateClaudeShareText();
         UpdateUpdateRow();
-        UpdateCheck.PendingChanged += () => Dispatcher.BeginInvoke(UpdateUpdateRow);
-        vm.Calendar.StatusChanged += () => Dispatcher.BeginInvoke(RefreshCalendarRows);
+        Action updateChanged = () => Dispatcher.BeginInvoke(UpdateUpdateRow);
+        Action calendarChanged = () => Dispatcher.BeginInvoke(RefreshCalendarRows);
+        UpdateCheck.PendingChanged += updateChanged;
+        vm.Calendar.StatusChanged += calendarChanged;
+        // Long-lived objects must not keep a closed window (and its whole page tree) alive.
+        Closed += (_, _) =>
+        {
+            settings.PropertyChanged -= placementChanged;
+            UpdateCheck.PendingChanged -= updateChanged;
+            vm.Calendar.StatusChanged -= calendarChanged;
+        };
     }
 
     private void ApplyBackdrop()
