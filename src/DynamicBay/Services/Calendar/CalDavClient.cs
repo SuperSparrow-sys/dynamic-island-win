@@ -32,14 +32,28 @@ public sealed class CalDavClient : IDisposable
 
     public void Dispose() => _http.Dispose();
 
+    /// <summary>
+    /// iCloud answers 503/429 when it is busy or gets too many requests at once: wait (as long as the server asks,
+    /// at most 10 s) and try again, twice.
+    /// </summary>
     private async Task<XDocument> SendAsync(string method, Uri url, string body, int depth)
     {
-        var req = new HttpRequestMessage(new HttpMethod(method), url)
+        HttpResponseMessage res;
+        for (int attempt = 0; ; attempt++)
         {
-            Content = new StringContent(body, Encoding.UTF8, "application/xml"),
-        };
-        req.Headers.Add("Depth", depth.ToString());
-        var res = await _http.SendAsync(req);
+            var req = new HttpRequestMessage(new HttpMethod(method), url)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/xml"),
+            };
+            req.Headers.Add("Depth", depth.ToString());
+            res = await _http.SendAsync(req);
+            bool busy = res.StatusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests;
+            if (!busy || attempt >= 2) break;
+            var wait = res.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(attempt == 0 ? 2 : 5);
+            await Task.Delay(wait > TimeSpan.FromSeconds(10) ? TimeSpan.FromSeconds(10) : wait);
+        }
+        if (res.StatusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests)
+            throw new HttpRequestException(Core.Loc.German ? $"iCloud ist gerade überlastet ({(int)res.StatusCode}), neuer Versuch beim nächsten Abgleich" : $"iCloud is busy right now ({(int)res.StatusCode}), retrying at the next sync");
         if (res.StatusCode == HttpStatusCode.Unauthorized)
             throw new UnauthorizedAccessException(Core.Loc.German ? "Anmeldung abgelehnt (Apple-ID oder app-spezifisches Passwort falsch)" : "Login rejected (wrong Apple ID or app-specific password)");
         if ((int)res.StatusCode >= 400) throw new HttpRequestException($"{method} {url} -> {(int)res.StatusCode}");

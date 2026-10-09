@@ -82,7 +82,8 @@ public sealed partial class CalendarService : ObservableObject
     private List<CalendarEvent> _all = new();
     private readonly HashSet<string> _announced = new();
     private readonly Dictionary<string, string> _status = new();
-    private readonly Dictionary<string, (DateTime at, List<CalDavClient.RemoteCalendar> calendars)> _discovered = new();
+    /// <summary>CalDAV calendar lists per account, with the server/user they were found for (a new login rediscovers).</summary>
+    private readonly Dictionary<string, (DateTime at, string login, List<CalDavClient.RemoteCalendar> calendars)> _discovered = new();
 
     public ObservableCollection<CalendarEvent> Upcoming { get; } = new();
     public ObservableCollection<DayCell> Week { get; } = new();
@@ -114,7 +115,7 @@ public sealed partial class CalendarService : ObservableObject
         _minute.Start();
         _settings.PropertyChanged += async (_, e) =>
         {
-            if (e.PropertyName is nameof(AppSettings.CalendarAccounts) or nameof(AppSettings.CalendarEnabled)) { _discovered.Clear(); await RefreshAsync(); }
+            if (e.PropertyName is nameof(AppSettings.CalendarAccounts) or nameof(AppSettings.CalendarEnabled)) await RefreshAsync();
         };
         BuildWeek();
         _ = RefreshAsync();
@@ -223,12 +224,24 @@ public sealed partial class CalendarService : ObservableObject
                 using var client = new CalDavClient(string.IsNullOrWhiteSpace(a.Url) ? "https://caldav.icloud.com/" : a.Url, a.User,
                     SecretStore.Get($"cal:{a.Id}:password") ?? "");
                 // The calendar list rarely changes: discover it every 6 hours, not on every refresh.
-                if (!_discovered.TryGetValue(a.Id, out var known) || DateTime.Now - known.at > TimeSpan.FromHours(6))
-                    _discovered[a.Id] = known = (DateTime.Now, await client.DiscoverAsync());
+                string login = a.Url + "|" + a.User;
+                bool have = _discovered.TryGetValue(a.Id, out var known) && known.login == login;
+                if (!have || DateTime.Now - known.at > TimeSpan.FromHours(6))
+                {
+                    try { _discovered[a.Id] = known = (DateTime.Now, login, await client.DiscoverAsync()); }
+                    catch when (have) { /* server busy: keep using the calendars we already know */ }
+                }
                 _calendarsOf[a.Id] = known.calendars.Select(c => new CalendarInfo(c.Url.ToString(), c.Name, c.Color)).ToList();
                 // Switched-off calendars are not even fetched.
                 var shown = known.calendars.Where(c => !a.Hidden.Contains(c.Url.ToString()));
-                var blobs = await Task.WhenAll(shown.Select(async cal => (cal, items: await client.FetchAsync(cal.Url, from, to))));
+                // At most three requests at once - iCloud throttles bursts.
+                using var gate = new SemaphoreSlim(3);
+                var blobs = await Task.WhenAll(shown.Select(async cal =>
+                {
+                    await gate.WaitAsync();
+                    try { return (cal, items: await client.FetchAsync(cal.Url, from, to)); }
+                    finally { gate.Release(); }
+                }));
                 var list = new List<CalendarEvent>();
                 foreach (var (cal, items) in blobs)
                     foreach (var blob in items) list.AddRange(Parse(blob, from, to, cal.Color));
