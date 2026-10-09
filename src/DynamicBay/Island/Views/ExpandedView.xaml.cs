@@ -79,7 +79,8 @@ public partial class ExpandedView : UserControl
             HomeGrid.RowDefinitions.Add(new RowDefinition());
             for (int i = 0; i < enabled.Count; i++)
             {
-                HomeGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Weight(enabled[i]), GridUnitType.Star) });
+                // Stars share the width; minimum widths make the page scroll sideways when there are many widgets.
+                HomeGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Weight(enabled[i]), GridUnitType.Star), MinWidth = MinWidthOf(enabled[i]) });
                 var card = _widgets[enabled[i]];
                 Grid.SetRow(card, 0);
                 Grid.SetColumn(card, i);
@@ -93,6 +94,7 @@ public partial class ExpandedView : UserControl
             HomeGrid.ColumnDefinitions.Add(new ColumnDefinition());
             // Rows: wide widgets take a full row; small ones pair up, and an unpaired one spans the row.
             var rows = new List<double>();
+            var minRows = new List<double>();
             int row = 0;
             for (int i = 0; i < enabled.Count; row++)
             {
@@ -100,11 +102,13 @@ public partial class ExpandedView : UserControl
                 bool wide = IsWide(id);
                 bool pair = !wide && i + 1 < enabled.Count && !IsWide(enabled[i + 1]);
                 rows.Add(id == "media" ? 1.25 : 1);
+                minRows.Add(id == "media" ? 170 : IsWide(id) ? 150 : 135);
                 Place(_widgets[id], row, 0, pair ? 1 : 2);
                 if (pair) Place(_widgets[enabled[i + 1]], row, 1, 1);
                 i += pair ? 2 : 1;
             }
-            foreach (var h in rows) HomeGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(h, GridUnitType.Star) });
+            for (int r = 0; r < rows.Count; r++)
+                HomeGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(rows[r], GridUnitType.Star), MinHeight = minRows[r] });
             foreach (var id in enabled)
             {
                 var card = _widgets[id];
@@ -114,9 +118,47 @@ public partial class ExpandedView : UserControl
             }
         }
         Vm?.System.SetActive(IsVisible && enabled.Contains(Core.Widgets.System));
+        FitHomeToViewport();
     }
 
     private static bool IsWide(string id) => id is "media" or "messenger" or "claude";
+
+    private static double MinWidthOf(string id) => id switch
+    {
+        "media" => 300, "messenger" or "claude" => 230, "shortcuts" => 170, "calendar" => 160, _ => 150,
+    };
+
+    // ---- Nook scrolling ----
+
+    private void HomeScroll_SizeChanged(object sender, SizeChangedEventArgs e) => FitHomeToViewport();
+
+    /// <summary>The grid is at least as big as the visible area, so few widgets still fill it (stars) and many scroll.</summary>
+    private void FitHomeToViewport()
+    {
+        // When the content overflows, a thin scroll bar appears along the edge: leave room for it.
+        const double bar = 9;
+        bool overflow = _vertical ? MinContentHeight() > HomeScroll.ActualHeight + 1 : MinContentWidth() > HomeScroll.ActualWidth + 1;
+        HomeGrid.MinWidth = _vertical ? 0 : HomeScroll.ActualWidth;
+        HomeGrid.MinHeight = _vertical ? HomeScroll.ActualHeight : 0;
+        HomeGrid.Height = _vertical ? double.NaN : Math.Max(0, HomeScroll.ActualHeight - (overflow ? bar : 0));
+        HomeGrid.Width = _vertical ? Math.Max(0, HomeScroll.ActualWidth - (overflow ? bar : 0)) : double.NaN;
+    }
+
+    private double MinContentWidth() =>
+        HomeGrid.ColumnDefinitions.Sum(c => c.MinWidth) + Math.Max(0, HomeGrid.ColumnDefinitions.Count - 1) * 8;
+
+    private double MinContentHeight() =>
+        HomeGrid.RowDefinitions.Sum(r => r.MinHeight) + Math.Max(0, HomeGrid.RowDefinitions.Count - 1) * 8;
+
+    private void HomeScroll_Wheel(object sender, MouseWheelEventArgs e)
+    {
+        // Inner lists (Claude sessions, messages) scroll themselves; only take the wheel when they can not.
+        if (e.OriginalSource is DependencyObject d && FindParent<ScrollViewer>(d) is { } inner && inner != HomeScroll
+            && inner.ScrollableHeight > 0) return;
+        if (_vertical) HomeScroll.ScrollToVerticalOffset(HomeScroll.VerticalOffset - e.Delta * 0.6);
+        else HomeScroll.ScrollToHorizontalOffset(HomeScroll.HorizontalOffset - e.Delta * 0.6);
+        e.Handled = true;
+    }
 
     private static void Place(Border card, int row, int col, int span)
     {
@@ -129,6 +171,9 @@ public partial class ExpandedView : UserControl
     public void SetVertical(bool vertical)
     {
         _vertical = vertical;
+        HomeScroll.HorizontalScrollBarVisibility = vertical ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
+        HomeScroll.VerticalScrollBarVisibility = vertical ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
+        FitHomeToViewport();
         LayoutHome();
 
         Layout(TrayGrid, vertical,

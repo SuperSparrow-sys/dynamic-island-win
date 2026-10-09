@@ -142,7 +142,7 @@
                 <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=11}">
                     <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Widgets und Module', En='Widgets and modules'}" />
                     <TextBlock Style="{StaticResource ST.Group}" Margin="4,0,0,8" Text="{core:L De='Widgets im aufgeklappten Panel', En='Widgets in the expanded panel'}" />
-                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" Text="{core:L De='Bis zu vier gleichzeitig. Mit den Pfeilen änderst du die Reihenfolge.', En='Up to four at a time. Use the arrows to change the order.'}" />
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" Text="{core:L De='Mit den Pfeilen änderst du die Reihenfolge. Passt nicht alles hinein, wird die Nook-Seite scrollbar.', En='Use the arrows to change the order. If they do not fit, the Nook page scrolls.'}" />
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel x:Name="WidgetRows" />
                     </Border>
@@ -211,6 +211,26 @@
                                     <TextBlock x:Name="ClaudeShareText" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" Margin="0,0,10,0" MaxWidth="220" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                     <Button Style="{StaticResource S.Button}" Click="PickClaudeShare_Click" Content="{core:L De='Ordner wählen', En='Choose folder'}" />
                                 </StackPanel>
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="Audio" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Mikrofon, Kamera und Ton anzeigen', En='Show microphone, camera and sound'}"
+                                            ToolTip="{core:L De='Oranger Punkt, wenn eine App das Mikrofon nutzt, grüne Kamera bei Videoaufnahme, Lautsprecher-Symbol bei Ton aus.', En='Orange dot while an app uses the microphone, green camera while recording video, speaker icon when sound is off.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioEnabled}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.AudioEnabled}"
+                                            Tag="{core:L De='Bei Aufnahme-Start Stummschalten anbieten', En='Offer mute when a recording starts'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AskMuteOnMicStart}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.AudioEnabled}"
+                                            Tag="{core:L De='Tastenkürzel Mikrofon stumm', En='Mute microphone shortcut'}"
+                                            ToolTip="{core:L De='Klicke in das Feld und drücke die gewünschte Kombination.', En='Click the field and press the key combination.'}">
+                                <TextBox Style="{StaticResource S.TextBox}" Width="160" IsReadOnly="True" TextAlignment="Center"
+                                         Text="{Binding S.MicMuteHotkey, Mode=OneWay}" PreviewKeyDown="MicHotkeyBox_PreviewKeyDown" />
                             </ContentControl>
                         </StackPanel>
                     </Border>

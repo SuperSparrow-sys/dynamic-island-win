@@ -114,7 +114,8 @@ public partial class App : Application
         _settings.PropertyChanged += (_, ev) =>
         {
             _settings.SaveSoon();
-            if (ev.PropertyName == nameof(AppSettings.ToggleHotkey)) RegisterHotkey();
+            if (ev.PropertyName is nameof(AppSettings.ToggleHotkey) or nameof(AppSettings.MicMuteHotkey) or nameof(AppSettings.AudioEnabled)) RegisterHotkey();
+            if (ev.PropertyName == nameof(AppSettings.AudioEnabled) && _settings.AudioEnabled) _vm?.Audio.Start();
             if (ev.PropertyName == nameof(AppSettings.StartWithWindows)) Autostart.Apply(_settings.StartWithWindows);
             if (ev.PropertyName is nameof(AppSettings.SuppressBanners) or nameof(AppSettings.SuppressBannerApps) or nameof(AppSettings.Hidden))
                 BannerSuppressor.Apply(_settings);
@@ -142,6 +143,7 @@ public partial class App : Application
         shelf.Load();
         await Next();
         battery.Start();
+        if (_settings.AudioEnabled) _vm.Audio.Start();
         bluetooth.Start();
         calendar.Start();
         await Next();
@@ -286,6 +288,35 @@ public partial class App : Application
             Trailing = calendar.SoonText, TrailingBrush = Res("B.Red"), Seconds = 5,
         });
 
+        // Microphone: ask once when a recording starts, confirm every mute change.
+        _vm!.Audio.MicStarted += app =>
+        {
+            if (!_settings.AudioEnabled || !_settings.AskMuteOnMicStart || _vm.Audio.MicMuted) return;
+            island.ShowPeek(new PeekItem
+            {
+                Icon = Icon("Icon.Mic"), IconBrush = Res("B.Orange"), IconBackground = Tint("B.Orange", 0x2E),
+                Title = Loc.German ? "Mikrofon aktiv" : "Microphone in use",
+                Subtitle = app,
+                ActionText = Loc.German ? "Stumm" : "Mute",
+                DismissText = "OK",
+                Action = () => _vm.Audio.SetMicMute(true),
+                Seconds = 8,
+            });
+        };
+        _vm.Audio.MicMuteChanged += muted =>
+        {
+            if (!_settings.AudioEnabled) return;
+            island.ShowPeek(new PeekItem
+            {
+                Icon = Icon(muted ? "Icon.MicOff" : "Icon.Mic"),
+                IconBrush = Res(muted ? "B.Red" : "B.Green"), IconBackground = Tint(muted ? "B.Red" : "B.Green", 0x2E),
+                Title = muted ? (Loc.German ? "Mikrofon stumm" : "Microphone muted") : (Loc.German ? "Mikrofon an" : "Microphone on"),
+                Subtitle = _settings.MicMuteHotkey,
+                Priority = PeekPriority.High,
+                Seconds = 1.8,
+            });
+        };
+
         var claudeTint = new SolidColorBrush(Color.FromArgb(0x33, 0xD9, 0x77, 0x57));
         var claudeColor = new SolidColorBrush(Color.FromRgb(0xD9, 0x77, 0x57));
         claudeTint.Freeze(); claudeColor.Freeze();
@@ -332,7 +363,14 @@ public partial class App : Application
         if (Hotkey.TryParse(_settings.ToggleHotkey, out uint mods, out uint vk))
             if (!Native.RegisterHotKey(_msg.Handle, HotkeyId, mods | Native.MOD_NOREPEAT, vk))
                 Log.Info($"Hotkey {_settings.ToggleHotkey} is already in use");
+
+        Native.UnregisterHotKey(_msg.Handle, MicHotkeyId);
+        if (_settings.AudioEnabled && Hotkey.TryParse(_settings.MicMuteHotkey, out uint mm, out uint mvk))
+            if (!Native.RegisterHotKey(_msg.Handle, MicHotkeyId, mm | Native.MOD_NOREPEAT, mvk))
+                Log.Info($"Hotkey {_settings.MicMuteHotkey} is already in use");
     }
+
+    private const int MicHotkeyId = 0xB002;
 
     private static readonly uint ShowSettingsMessage = Native.RegisterWindowMessage("DynamicBay.ShowSettings");
 
@@ -341,6 +379,11 @@ public partial class App : Application
         if (msg == Native.WM_HOTKEY && wParam.ToInt32() == HotkeyId)
         {
             _islands?.ToggleHidden();
+            return true;
+        }
+        if (msg == Native.WM_HOTKEY && wParam.ToInt32() == MicHotkeyId)
+        {
+            _vm?.Audio.ToggleMicMute();
             return true;
         }
         if ((uint)msg == ShowSettingsMessage)

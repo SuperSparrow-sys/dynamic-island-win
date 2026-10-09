@@ -74,6 +74,11 @@ public sealed partial class IslandViewModel : ObservableObject
     public SystemService System { get; }
     public ShortcutsService Shortcuts { get; }
     public ClaudeService Claude { get; }
+    public AudioService Audio { get; }
+    [ObservableProperty] private bool _showMuted;
+    [ObservableProperty] private bool _showMic;
+    [ObservableProperty] private bool _showCamera;
+    [ObservableProperty] private bool _showStatus;
     [ObservableProperty] private bool _showClaude;
 
     public event Action? OpenSettingsRequested;
@@ -90,6 +95,7 @@ public sealed partial class IslandViewModel : ObservableObject
         System = new SystemService();
         Shortcuts = new ShortcutsService(settings);
         Claude = new ClaudeService(settings);
+        Audio = new AudioService(settings);
 
         PropertyChangedEventHandler recompute = (_, _) => RecomputeCompact();
         Media.PropertyChanged += recompute;
@@ -97,6 +103,7 @@ public sealed partial class IslandViewModel : ObservableObject
         Calendar.PropertyChanged += recompute;
         Battery.PropertyChanged += recompute;
         Claude.PropertyChanged += recompute;
+        Audio.PropertyChanged += recompute;
         Settings.PropertyChanged += recompute;
         RecomputeCompact();
     }
@@ -109,13 +116,16 @@ public sealed partial class IslandViewModel : ObservableObject
         bool cal = s.CalendarEnabled && s.HasCompact(Widgets.Calendar) && Calendar.IsSoon;
         bool low = s.BatteryEnabled && s.HasCompact(Widgets.Battery) && Battery.IsLow;
         bool claude = s.ClaudeEnabled && s.HasCompact(Widgets.Claude) && (Claude.AnyWorking || Claude.AnyWaiting);
-        bool activities = media || timer || cal || low || claude;
+        bool muted = s.AudioEnabled && s.HasCompact(Widgets.Muted) && Audio.SpeakerMuted;
+        bool mic = s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.MicInUse;
+        bool cam = s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.CameraInUse;
+        bool activities = media || timer || cal || low || claude || muted || mic || cam;
         // The clock shows either as a permanent segment, or as the idle face when nothing else is going on.
         bool clock = s.HasCompact(Widgets.Clock) || (s.Idle == IdleStyle.Clock && !activities);
         bool any = activities || clock;
         bool changed = media != ShowMedia || timer != ShowTimer || cal != ShowCalendar || low != ShowBatteryLow
-                       || clock != ShowClock || claude != ShowClaude || any != HasCompact;
-        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; ShowClaude = claude; HasCompact = any;
+                       || clock != ShowClock || claude != ShowClaude || muted != ShowMuted || mic != ShowMic || cam != ShowCamera || any != HasCompact;
+        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; ShowClaude = claude; ShowMuted = muted; ShowMic = mic; ShowCamera = cam; ShowStatus = mic || cam || muted; HasCompact = any;
         if (changed) CompactChanged?.Invoke();
     }
 

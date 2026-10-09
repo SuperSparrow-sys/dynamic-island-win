@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -57,7 +57,7 @@ public static class Snapshots
                 Image = vm.Clipboard.Items.FirstOrDefault(i => i.IsImage)?.Thumbnail,
                 Title = Loc.T("Peek.Screenshot"),
                 Subtitle = Loc.T("Peek.ScreenshotHint"),
-                Trailing = "1920×1080",
+                Trailing = "1920Ã—1080",
                 TrailingBrush = (Brush)Application.Current.FindResource("B.Text3"),
                 Seconds = 60,
             });
@@ -92,8 +92,26 @@ public static class Snapshots
                 settings.AppIcons = AppIconStyle.Mono;
                 await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-9-compact-clock.png"), compact: true);
 
+                // Audio: real readings first (logged), then demo states for the images.
+                vm.Audio.Start();
+                await Task.Delay(700);
+                Log.Info($"Audio check: speakerMuted={vm.Audio.SpeakerMuted} volume={vm.Audio.Volume} micMuted={vm.Audio.MicMuted} micInUse={vm.Audio.MicInUse} '{vm.Audio.MicApp}' camera={vm.Audio.CameraInUse}");
+                vm.Audio.LoadDemo(micInUse: true, app: "Teams", micMuted: false, speakerMuted: true);
+                await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-11-mic.png"), compact: false);
+                vm.Audio.LoadDemo(micInUse: true, app: "Teams", micMuted: true, speakerMuted: false);
+                await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-12-mic-muted.png"), compact: false);
+                island.SetPeekForSnapshot(new PeekItem
+                {
+                    Icon = (Geometry)Application.Current.FindResource("Icon.Mic"),
+                    IconBrush = (Brush)Application.Current.FindResource("B.Orange"),
+                    IconBackground = new SolidColorBrush(Color.FromArgb(0x2E, 0xFF, 0x9F, 0x0A)),
+                    Title = "Mikrofon aktiv", Subtitle = "Teams", ActionText = "Stumm", DismissText = "OK", Seconds = 60,
+                });
+                await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-13-mic-question.png"), compact: false);
+                vm.Audio.LoadDemo(micInUse: false, app: "", micMuted: false, speakerMuted: false);
+
                 settings.HomeWidgets.Clear();
-                foreach (var w in new[] { Widgets.Claude, Widgets.Media, Widgets.Shortcuts }) settings.HomeWidgets.Add(w);
+                foreach (var w in new[] { Widgets.Media, Widgets.Claude, Widgets.Calendar, Widgets.Timer, Widgets.Shortcuts, Widgets.Clock }) settings.HomeWidgets.Add(w);
                 vm.Claude.Start();
                 await Task.Delay(800);
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-10-claude.png"), compact: true);
@@ -173,11 +191,11 @@ public static class Snapshots
         var shot = DemoScreenshot();
         vm.Clipboard.AddDemo(new ClipItem { Kind = ClipKind.Image, IsScreenshot = true, Thumbnail = shot, PixelWidth = 1920, PixelHeight = 1080 });
         vm.Clipboard.AddDemo(new ClipItem { Kind = ClipKind.Text, Text = "https://github.com/SuperSparrow-sys/dynamic-island-win", Created = DateTime.Now.AddMinutes(-3) });
-        vm.Clipboard.AddDemo(new ClipItem { Kind = ClipKind.Text, Text = "Treffen am Freitag um 14 Uhr im Studio, bitte Entwürfe mitbringen.", Created = DateTime.Now.AddMinutes(-12), Pinned = true });
+        vm.Clipboard.AddDemo(new ClipItem { Kind = ClipKind.Text, Text = "Treffen am Freitag um 14 Uhr im Studio, bitte EntwÃ¼rfe mitbringen.", Created = DateTime.Now.AddMinutes(-12), Pinned = true });
 
         var demoDir = Path.Combine(Path.GetTempPath(), "DynamicBayDemo");
         Directory.CreateDirectory(demoDir);
-        foreach (var name in new[] { "Präsentation.pptx", "Rechnung_Oktober.pdf", "Notizen.txt" })
+        foreach (var name in new[] { "PrÃ¤sentation.pptx", "Rechnung_Oktober.pdf", "Notizen.txt" })
         {
             var p = Path.Combine(demoDir, name);
             if (!File.Exists(p)) File.WriteAllText(p, "");
@@ -186,7 +204,7 @@ public static class Snapshots
 
         vm.Notifications.Access = NotificationAccess.Allowed;
         vm.Notifications.AddDemo(new NotificationItem { App = "WhatsApp", Title = "Lena", Body = "Bist du heute Abend dabei?", Time = DateTime.Now });
-        vm.Notifications.AddDemo(new NotificationItem { App = "Outlook", Title = "Design Review", Body = "Beginnt in 10 Minuten · Raum 2", Time = DateTime.Now.AddMinutes(-4) });
+        vm.Notifications.AddDemo(new NotificationItem { App = "Outlook", Title = "Design Review", Body = "Beginnt in 10 Minuten Â· Raum 2", Time = DateTime.Now.AddMinutes(-4) });
     }
 
     private static BitmapSource DemoCover()
@@ -223,3 +241,4 @@ public static class Snapshots
         return rtb;
     }
 }
+

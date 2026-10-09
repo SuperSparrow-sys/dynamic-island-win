@@ -1,7 +1,8 @@
 <UserControl x:Class="DynamicBay.Island.Views.CompactView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:c="clr-namespace:DynamicBay.Controls">
+             xmlns:c="clr-namespace:DynamicBay.Controls"
+             xmlns:core="clr-namespace:DynamicBay.Core">
     <UserControl.Resources>
         <c:BoolToVis x:Key="Vis" />
         <c:BoolToVis x:Key="NotVis" Invert="True" />
@@ -9,6 +10,28 @@
 
     <!-- Live activities side by side in one island -->
     <c:SegmentStack x:Name="Stack" Spacing="22" Margin="14,0">
+
+        <!-- Status symbols in front: microphone in use (orange) / muted (red), camera in use (green), sound off -->
+        <Grid Visibility="{Binding ShowStatus, Converter={StaticResource Vis}}">
+            <StackPanel x:Name="StatusH" Orientation="Horizontal" Margin="0,0,-6,0">
+                <Grid Visibility="{Binding ShowMic, Converter={StaticResource Vis}}" Margin="0,0,6,0" ToolTip="{Binding Audio.MicApp}">
+                    <c:Icon Data="{StaticResource Icon.Mic}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Orange}"
+                            Visibility="{Binding Audio.MicMuted, Converter={StaticResource NotVis}}" />
+                    <c:Icon Data="{StaticResource Icon.MicOff}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Red}"
+                            Visibility="{Binding Audio.MicMuted, Converter={StaticResource Vis}}" />
+                </Grid>
+                <c:Icon Data="{StaticResource Icon.Video}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Green}" Margin="0,0,6,0"
+                        Visibility="{Binding ShowCamera, Converter={StaticResource Vis}}" />
+                <c:Icon Data="{StaticResource Icon.VolumeOff}" Width="14" Height="14" StrokeWidth="2.2" Foreground="{StaticResource B.Text2}" Margin="0,0,6,0"
+                        Visibility="{Binding ShowMuted, Converter={StaticResource Vis}}" />
+            </StackPanel>
+            <StackPanel x:Name="StatusV" Visibility="Collapsed">
+                <c:Icon Data="{StaticResource Icon.Mic}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Orange}" Margin="0,0,0,6"
+                        Visibility="{Binding ShowMic, Converter={StaticResource Vis}}" />
+                <c:Icon Data="{StaticResource Icon.VolumeOff}" Width="14" Height="14" StrokeWidth="2.2" Foreground="{StaticResource B.Text2}" Margin="0,0,0,6"
+                        Visibility="{Binding ShowMuted, Converter={StaticResource Vis}}" />
+            </StackPanel>
+        </Grid>
 
         <!-- Music -->
         <Grid x:Name="MediaSeg" Visibility="{Binding ShowMedia, Converter={StaticResource Vis}}">

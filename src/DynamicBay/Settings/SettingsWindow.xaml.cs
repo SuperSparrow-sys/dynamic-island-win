@@ -110,6 +110,8 @@ public partial class SettingsWindow : Window
         (Widgets.Battery, "Icon.BatteryLow", "Akku schwach", "Low battery"),
         (Widgets.Clock, "Icon.Clock", "Uhrzeit (immer)", "Time (always)"),
         (Widgets.Claude, "Icon.Sparkles", "Claude arbeitet oder wartet", "Claude working or waiting"),
+        (Widgets.Mic, "Icon.Mic", "Mikrofon oder Kamera aktiv", "Microphone or camera in use"),
+        (Widgets.Muted, "Icon.VolumeOff", "Ton aus", "Sound off"),
     };
 
     private void BuildWidgetRows()
@@ -126,7 +128,7 @@ public partial class SettingsWindow : Window
             int pos = s.HomeWidgets.IndexOf(info.id);
 
             var sw = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = on, VerticalAlignment = VerticalAlignment.Center };
-            sw.IsEnabled = on || s.HomeWidgets.Count < 4;
+            sw.IsEnabled = true; // no limit: the Nook page scrolls when widgets need more room
             string id = info.id;
             sw.Click += (_, _) =>
             {
@@ -408,7 +410,7 @@ public partial class SettingsWindow : Window
                 _ctx.S.Shortcuts.Remove(existing);
         }
         // Picking apps implies wanting to see them.
-        if (_ctx.S.Shortcuts.Count > 0 && !_ctx.S.HomeWidgets.Contains(Widgets.Shortcuts) && _ctx.S.HomeWidgets.Count < 4)
+        if (_ctx.S.Shortcuts.Count > 0 && !_ctx.S.HomeWidgets.Contains(Widgets.Shortcuts))
         {
             _ctx.S.HomeWidgets.Add(Widgets.Shortcuts);
             BuildWidgetRows();
@@ -472,6 +474,16 @@ public partial class SettingsWindow : Window
         var mods = Keyboard.Modifiers;
         if (mods == ModifierKeys.None) return; // require at least one modifier
         _ctx.S.ToggleHotkey = Hotkey.Format(mods, key);
+        Keyboard.ClearFocus();
+    }
+
+    private void MicHotkeyBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        e.Handled = true;
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin) return;
+        if (Keyboard.Modifiers == ModifierKeys.None) return;
+        _ctx.S.MicMuteHotkey = Hotkey.Format(Keyboard.Modifiers, key);
         Keyboard.ClearFocus();
     }
 

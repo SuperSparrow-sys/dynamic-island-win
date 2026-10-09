@@ -33,6 +33,7 @@ const ICONS = {
   "cloud-upload": "CloudUpload", "cloud": "Cloud", "link": "Link", "key-round": "Key", "calendar-plus": "CalendarPlus", "user-round": "User", "mail": "Mail",
   "calculator": "Calculator", "notebook-pen": "Notepad", "square-terminal": "Terminal", "camera": "Camera", "globe": "Globe",
   "images": "Photos", "paintbrush": "Paint", "gamepad-2": "Game", "map": "Map", "store": "Store", "shield-check": "Shield", "cog": "Cog",
+  "mic": "Mic", "mic-off": "MicOff", "volume-x": "VolumeOff",
   "magnet": "Magnet", "maximize": "Fullscreen", "app-window-mac": "Window", "lock": "Lock", "flask-conical": "Lab",
 };
 

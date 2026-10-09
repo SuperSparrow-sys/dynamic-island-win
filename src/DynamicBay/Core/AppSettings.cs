@@ -14,10 +14,10 @@ public enum IdleStyle { Bar, Clock, Hidden }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude";
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic";
     public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude };
     public const string Battery = "battery";
-    public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude };
+    public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic };
 }
 public enum AccentSource { Cover, Windows, Custom }
 public enum DisplayMode { Single, Mirror }
@@ -55,7 +55,7 @@ public sealed partial class AppSettings : ObservableObject
 
     // Customizable layout
     private ObservableCollection<string> _homeWidgets = new() { Widgets.Media, Widgets.Calendar, Widgets.Timer };
-    private ObservableCollection<string> _compactItems = new() { Widgets.Media, Widgets.Timer, Widgets.Calendar, Widgets.Battery, Widgets.Claude };
+    private ObservableCollection<string> _compactItems = new() { Widgets.Mic, Widgets.Media, Widgets.Timer, Widgets.Calendar, Widgets.Battery, Widgets.Claude, Widgets.Muted };
     private ObservableCollection<string> _shortcuts = new();
 
     public ObservableCollection<string> HomeWidgets { get => _homeWidgets; set => Hook(ref _homeWidgets, value, nameof(HomeWidgets)); }
@@ -103,6 +103,20 @@ public sealed partial class AppSettings : ObservableObject
     {
         // v2: track-change peek became opt-in (users found the island growing on every song distracting).
         if (SettingsVersion < 2) { MediaPeekOnTrackChange = false; SettingsVersion = 2; }
+        // v3: audio live activities (mic in use first, muted speaker last)
+        if (SettingsVersion < 3)
+        {
+            if (!CompactItems.Contains(Widgets.Mic)) CompactItems.Insert(0, Widgets.Mic);
+            if (!CompactItems.Contains(Widgets.Muted)) CompactItems.Add(Widgets.Muted);
+            SettingsVersion = 3;
+        }
+        // v4: the Nook page scrolls now - users of Claude Code get the Claude widget once.
+        if (SettingsVersion < 4)
+        {
+            var projects = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "projects");
+            if (ClaudeEnabled && Directory.Exists(projects) && !HomeWidgets.Contains(Widgets.Claude)) HomeWidgets.Add(Widgets.Claude);
+            SettingsVersion = 4;
+        }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });
         CalendarIcsUrl = "";
@@ -113,6 +127,11 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _clockSeconds;
     [ObservableProperty] private AppIconStyle _appIcons = AppIconStyle.Mono;
     [ObservableProperty] private bool _claudeEnabled = true;
+
+    // Audio: muted speaker, microphone/camera in use, mic mute
+    [ObservableProperty] private bool _audioEnabled = true;
+    [ObservableProperty] private bool _askMuteOnMicStart = true;
+    [ObservableProperty] private string _micMuteHotkey = "Ctrl+Alt+M";
     [ObservableProperty] private string _claudeShareFolder = "";
     [ObservableProperty] private string _sparseAttemptedVersion = "";
 

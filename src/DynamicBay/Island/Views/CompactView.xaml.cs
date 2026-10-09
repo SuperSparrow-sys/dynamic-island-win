@@ -14,7 +14,7 @@ public partial class CompactView : UserControl
         Stack.Spacing = vertical ? 16 : 22;
         var h = vertical ? Visibility.Collapsed : Visibility.Visible;
         var v = vertical ? Visibility.Visible : Visibility.Collapsed;
-        MediaH.Visibility = TimerH.Visibility = CalH.Visibility = BatH.Visibility = ClockH.Visibility = ClaudeH.Visibility = h;
-        MediaV.Visibility = TimerV.Visibility = CalV.Visibility = BatV.Visibility = ClockV.Visibility = ClaudeV.Visibility = v;
+        MediaH.Visibility = TimerH.Visibility = CalH.Visibility = BatH.Visibility = ClockH.Visibility = ClaudeH.Visibility = StatusH.Visibility = h;
+        MediaV.Visibility = TimerV.Visibility = CalV.Visibility = BatV.Visibility = ClockV.Visibility = ClaudeV.Visibility = StatusV.Visibility = v;
     }
 }

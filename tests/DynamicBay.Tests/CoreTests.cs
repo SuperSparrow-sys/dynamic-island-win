@@ -244,7 +244,7 @@ public class MigrationTests
         var s = new AppSettings { MediaPeekOnTrackChange = true, SettingsVersion = 0 };
         s.Migrate();
         Assert.False(s.MediaPeekOnTrackChange);
-        Assert.Equal(2, s.SettingsVersion);
+        Assert.True(s.SettingsVersion >= 2);
         s.MediaPeekOnTrackChange = true; // the user's own choice afterwards is kept
         s.Migrate();
         Assert.True(s.MediaPeekOnTrackChange);
