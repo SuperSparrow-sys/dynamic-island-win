@@ -77,9 +77,8 @@ public sealed class Waveform : FrameworkElement
         var t = ((RenderingEventArgs)e).RenderingTime;
         if (_last == TimeSpan.Zero) { _last = t; return; }
         double dt = Math.Min((t - _last).TotalSeconds, 0.05);
-        // 30 frames per second: each frame repaints the whole transparent island window (20 % of a core at 60 fps,
-        // 3 % at 30), and the tiny bars look the same. The island's own movements keep the full frame rate.
-        if (dt < 1.0 / 31) return;
+        // Every frame, on purpose: skipping frames makes the bars visibly judder (costs more CPU, smoothness wins).
+        if (dt <= 0) return;
         _last = t;
 
         _retarget -= dt;
