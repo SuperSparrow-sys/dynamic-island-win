@@ -109,7 +109,9 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _clock24h = true;
     [ObservableProperty] private bool _clockSeconds;
     [ObservableProperty] private AppIconStyle _appIcons = AppIconStyle.Mono;
+    [ObservableProperty] private bool _claudeEnabled = true;
     [ObservableProperty] private string _claudeShareFolder = "";
+    [ObservableProperty] private string _sparseAttemptedVersion = "";
 
     // Layer and visibility
     [ObservableProperty] private LayerMode _layer = LayerMode.Floating;

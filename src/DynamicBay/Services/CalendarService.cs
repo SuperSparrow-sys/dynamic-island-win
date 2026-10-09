@@ -162,7 +162,7 @@ public sealed partial class CalendarService : ObservableObject
         return new();
     }
 
-    private static List<CalendarEvent> Parse(string ics, DateTime from, DateTime to, string? color)
+    internal static List<CalendarEvent> Parse(string ics, DateTime from, DateTime to, string? color)
     {
         var cal = Calendar.Load(ics);
         return cal.GetOccurrences(from, to)

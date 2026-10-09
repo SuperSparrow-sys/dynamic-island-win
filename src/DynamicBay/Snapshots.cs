@@ -109,7 +109,29 @@ public static class Snapshots
         vm.Timer.IsActive = compact;
         island.ForceState(mode);
         await Task.Delay(1300); // let springs settle
-        Capture(island, file);
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "readme") RenderClean(island, file);
+        else Capture(island, file);
+    }
+
+    /// <summary>
+    /// Renders the island itself (not the screen) over a neutral gradient at 2x - for README images without
+    /// anything private from the desktop behind it.
+    /// </summary>
+    private static void RenderClean(Window island, string file)
+    {
+        var root = (FrameworkElement)island.Content;
+        double w = root.ActualWidth, h = root.ActualHeight, k = 2;
+        var dv = new DrawingVisual();
+        using (var dc = dv.RenderOpen())
+        {
+            var bg = new LinearGradientBrush(Color.FromRgb(0x1E, 0x2A, 0x4A), Color.FromRgb(0x6B, 0x4E, 0x9B), 35);
+            dc.DrawRectangle(bg, null, new Rect(0, 0, w, h));
+            dc.DrawEllipse(new RadialGradientBrush(Color.FromArgb(120, 0xFF, 0x9F, 0x6B), Color.FromArgb(0, 0xFF, 0x9F, 0x6B)), null, new Point(w * 0.8, h * 0.9), w * 0.5, h * 0.8);
+            dc.DrawRectangle(new VisualBrush(root), null, new Rect(0, 0, w, h));
+        }
+        var rtb = new RenderTargetBitmap((int)(w * k), (int)(h * k), 96 * k, 96 * k, PixelFormats.Pbgra32);
+        rtb.Render(dv);
+        ImageTools.SavePng(rtb, file);
     }
 
     private static void Capture(Window w, string file)

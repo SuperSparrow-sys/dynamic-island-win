@@ -35,6 +35,16 @@ public partial class App : Application
             Shutdown();
             return;
         }
+        if (e.Args.Contains("--uninstall"))
+        {
+            // Undo everything DynamicBay changed outside its own folder.
+            BannerSuppressor.RestoreAll();
+            Autostart.Apply(false);
+            new ClaudeService(AppSettings.Load()).RemoveHooks();
+            await SparsePackage.RemoveAsync();
+            Shutdown();
+            return;
+        }
 
         string? snapshotDir = GetArg(e.Args, "--snapshot");
         _snapshotMode = snapshotDir is not null;
@@ -61,7 +71,18 @@ public partial class App : Application
 
         _settings = snapshotDir is null ? AppSettings.Load() : new AppSettings { Hidden = false };
         Loc.Init(_settings.Language);
-        Log.Info($"DynamicBay {Version} starting");
+        Log.Info($"DynamicBay {Version} starting (identity: {SparsePackage.HasIdentity})");
+
+        // First start after installation: register the identity package, then restart once to run with it.
+        if (snapshotDir is null && await SparsePackage.EnsureRegisteredAsync(_settings))
+        {
+            _single?.ReleaseMutex();
+            _single?.Dispose();
+            _single = null;
+            SparsePackage.Restart();
+            Shutdown();
+            return;
+        }
 
         var media = new MediaService();
         var clipboard = new ClipboardService(_settings);
@@ -114,7 +135,8 @@ public partial class App : Application
         calendar.Start();
         await media.InitAsync();
         await spotify.InitAsync();
-        _vm.Claude.Start();
+        _vm.Claude.SetEnabled(_settings.ClaudeEnabled);
+        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) _vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
         await notifications.StartAsync();
         if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands);
     }

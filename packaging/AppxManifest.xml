@@ -40,7 +40,7 @@
   </Capabilities>
 
   <Applications>
-    <Application Id="DynamicBay" Executable="DynamicBay.exe" EntryPoint="Windows.FullTrustApplication"
+    <Application Id="DynamicBay" Executable="DynamicBay.exe"
                  uap10:RuntimeBehavior="win32App" uap10:TrustLevel="mediumIL">
       <uap:VisualElements DisplayName="DynamicBay" Description="Dynamic Island for Windows"
                           BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png"

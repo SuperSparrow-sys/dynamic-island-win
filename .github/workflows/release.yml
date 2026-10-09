@@ -1,0 +1,52 @@
+name: Release
+
+# Push a tag like v1.0.0 to build the installer and publish it as a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Version from tag
+        id: v
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart('v')
+          if (-not ($v -match '^\d+\.\d+\.\d+')) { $v = "1.0.0" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test tests/DynamicBay.Tests -c Release
+
+      - name: Ensure Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+
+      - name: Build installer
+        shell: pwsh
+        run: ./tools/build-release.ps1 -Version ${{ steps.v.outputs.version }}
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: DynamicBay ${{ steps.v.outputs.version }}
+          files: artifacts/DynamicBay-Setup-${{ steps.v.outputs.version }}.exe
+          generate_release_notes: true
+          body: |
+            **Download:** `DynamicBay-Setup-${{ steps.v.outputs.version }}.exe` unten herunterladen und ausführen.
+            Alles Nötige (.NET) ist enthalten. Windows 10 (2004) oder Windows 11, 64 Bit.
+
+            Hinweis: Der Installer ist nicht von einer Zertifizierungsstelle signiert. Windows SmartScreen zeigt
+            deshalb evtl. „Unbekannter Herausgeber“ – über „Weitere Informationen“ → „Trotzdem ausführen“ starten.

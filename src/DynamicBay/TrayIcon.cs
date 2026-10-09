@@ -21,7 +21,7 @@ public sealed class TrayIcon : IDisposable
             Renderer = new DarkRenderer(),
             ShowImageMargin = false,
             ShowCheckMargin = true,
-            Font = new Font("Segoe UI", 9.5f),
+            Font = new Font("Segoe UI Variable Text", 9.5f),
             Padding = new Padding(4),
         };
         _toggle = new ToolStripMenuItem("", null, (_, _) => toggleHidden());

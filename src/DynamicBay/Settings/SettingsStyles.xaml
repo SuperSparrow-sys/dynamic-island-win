@@ -304,6 +304,66 @@
         </Setter>
     </Style>
 
+    <!-- Menus (app pickers etc.) in the same font and theme as the rest of the settings -->
+    <Style TargetType="ContextMenu">
+        <Setter Property="FontFamily" Value="{StaticResource Font.UI}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="HasDropShadow" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{DynamicResource S.Window}" BorderBrush="{DynamicResource S.FieldBorder}" BorderThickness="1" CornerRadius="10" Padding="4" Margin="0,0,10,10">
+                        <Border.Effect><DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.25" Direction="270" /></Border.Effect>
+                        <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto">
+                            <StackPanel IsItemsHost="True" />
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{DynamicResource S.Text}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bg" CornerRadius="6" Padding="10,6" Background="Transparent">
+                        <ContentPresenter ContentSource="Header" TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource S.Accent}" />
+                            <Setter Property="Foreground" Value="{DynamicResource S.AccentText}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style TargetType="PasswordBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.UI}" />
+        <Setter Property="Foreground" Value="{DynamicResource S.Text}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource S.Text}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border x:Name="Bd" Background="{DynamicResource S.Field}" BorderBrush="{DynamicResource S.FieldBorder}" BorderThickness="1" CornerRadius="8">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="8,3" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource S.Accent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Anchor dot in the position picker -->
     <Style x:Key="S.Anchor" TargetType="Button">
         <Setter Property="Width" Value="18" />

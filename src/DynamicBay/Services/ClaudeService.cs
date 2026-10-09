@@ -70,15 +70,37 @@ public sealed partial class ClaudeService : ObservableObject
     public event Action<ClaudeSession>? Finished;
     public event Action<ClaudeSession, string>? NeedsInput;
 
+    private bool _started;
+
+    /// <summary>Starts or stops the module (the "Claude" switch in settings). When off nothing is read or received.</summary>
+    public void SetEnabled(bool enabled)
+    {
+        if (enabled) Start();
+        else
+        {
+            _scan.Stop();
+            _listener?.Close();
+            _listener = null;
+            Sessions.Clear();
+            AnyWorking = AnyWaiting = false;
+            _started = false;
+        }
+    }
+
     public void Start()
     {
+        if (_started) return;
+        _started = true;
         IsAvailable = Directory.Exists(Path.Combine(ClaudeDir, "projects"));
         HooksInstalled = AreHooksInstalled();
-        _scan.Tick += (_, _) => Scan();
+        _scan.Tick -= OnScanTick;
+        _scan.Tick += OnScanTick;
         _scan.Start();
         Scan();
         StartListener();
     }
+
+    private void OnScanTick(object? sender, EventArgs e) => Scan();
 
     // ---------- sessions from transcripts ----------
 
@@ -262,7 +284,7 @@ public sealed partial class ClaudeService : ObservableObject
                 ctx.Response.Close();
                 var json = JsonNode.Parse(body);
                 if (json is null) continue;
-                Application.Current.Dispatcher.BeginInvoke(() => OnHook(json));
+                _ = Application.Current.Dispatcher.BeginInvoke(() => OnHook(json));
             }
             catch { }
         }

@@ -102,7 +102,7 @@ public sealed partial class IslandViewModel : ObservableObject
         bool timer = s.TimerEnabled && s.HasCompact(Widgets.Timer) && Timer.IsActive;
         bool cal = s.CalendarEnabled && s.HasCompact(Widgets.Calendar) && Calendar.IsSoon;
         bool low = s.BatteryEnabled && s.HasCompact(Widgets.Battery) && Battery.IsLow;
-        bool claude = s.HasCompact(Widgets.Claude) && (Claude.AnyWorking || Claude.AnyWaiting);
+        bool claude = s.ClaudeEnabled && s.HasCompact(Widgets.Claude) && (Claude.AnyWorking || Claude.AnyWaiting);
         bool activities = media || timer || cal || low || claude;
         // The clock shows either as a permanent segment, or as the idle face when nothing else is going on.
         bool clock = s.HasCompact(Widgets.Clock) || (s.Idle == IdleStyle.Clock && !activities);

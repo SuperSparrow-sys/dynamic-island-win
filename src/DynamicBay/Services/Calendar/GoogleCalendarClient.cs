@@ -11,7 +11,7 @@ namespace DynamicBay.Services.Calendars;
 
 /// <summary>
 /// Google Calendar via OAuth 2.0 for installed apps (loopback redirect + PKCE), read-only scope.
-/// Each user brings their own OAuth client (Google limits unverified apps), see docs/CALENDARS.md.
+/// Each user brings their own OAuth client (Google limits unverified apps), see docs/INTEGRATIONS.md.
 /// </summary>
 public sealed class GoogleCalendarClient
 {

@@ -85,7 +85,7 @@ public static partial class AppIcons
         string n = Normalize(name);
         string exe = Normalize(Path.GetFileNameWithoutExtension(path.Split('!')[0].Split('\\').Last()));
         foreach (var k in new[] { n, exe })
-            if (k.Length > 0 && Builtins.TryGetValue(k, out var b) && Application.Current.TryFindResource(b.icon) is Geometry bg)
+            if (k.Length > 0 && Builtins.TryGetValue(k, out var b) && Application.Current?.TryFindResource(b.icon) is Geometry bg)
                 return new AppGlyph(bg, FromArgb(b.color), true);
 
         var index = Index.Value;

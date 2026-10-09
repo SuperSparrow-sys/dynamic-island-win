@@ -183,7 +183,11 @@
                     <TextBlock Style="{StaticResource ST.Group}" Text="Claude" />
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
-                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Live-Status der Agenten', En='Live agent status'}"
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Claude-Integration', En='Claude integration'}"
+                                            ToolTip="{core:L De='Claude-Code-Sitzungen, Agenten-Status und Remote Control in der Insel. Aus: es wird nichts gelesen und nichts empfangen.', En='Claude Code sessions, agent status and Remote Control in the island. Off: nothing is read or received.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.ClaudeEnabled}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.ClaudeEnabled}" Tag="{core:L De='Live-Status der Agenten', En='Live agent status'}"
                                             ToolTip="{core:L De='Ergänzt deine Claude-Code-Einstellungen um Hooks. Dann zeigt die Insel sofort, wenn Claude arbeitet, fertig ist oder deine Freigabe braucht. Eine Sicherung deiner settings.json wird angelegt.', En='Adds hooks to your Claude Code settings so the island shows instantly when Claude is working, done or needs your approval. A backup of your settings.json is created.'}">
                                 <Grid>
                                     <Button Style="{StaticResource S.AccentButton}" Command="{Binding I.Claude.InstallHooksCommand}" Content="{core:L De='Einrichten', En='Set up'}"
@@ -192,7 +196,7 @@
                                             Visibility="{Binding I.Claude.HooksInstalled, Converter={StaticResource Vis}}" />
                                 </Grid>
                             </ContentControl>
-                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Sitzungen aller PCs anzeigen', En='Show sessions of all PCs'}"
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.ClaudeEnabled}" Tag="{core:L De='Sitzungen aller PCs anzeigen', En='Show sessions of all PCs'}"
                                             ToolTip="{core:L De='Jeder PC mit DynamicBay legt Titel, Projekt, Status und Remote-Control-Link seiner Sitzungen in diesen Cloud-Ordner. So siehst du alle und öffnest sie per Remote Control. Keine Zugangsdaten.', En='Every PC running DynamicBay stores title, project, status and Remote Control link of its sessions in this cloud folder, so you see them all and open them via Remote Control. No credentials.'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="ClaudeShareText" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" Margin="0,0,10,0" MaxWidth="220" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
@@ -432,10 +436,10 @@
                                     <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="CopyRedirect_Click">
                                         <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Copy}" Width="13" Height="13" /><TextBlock x:Name="CopyRedirectText" Margin="6,0,0,0" Text="{core:L De='Kopieren', En='Copy'}" /></StackPanel>
                                     </Button>
-                                    <TextBox Style="{StaticResource S.TextBox}" IsReadOnly="True" Text="{Binding RedirectUri, Mode=OneWay}" FontFamily="Consolas" />
+                                    <TextBox Style="{StaticResource S.TextBox}" IsReadOnly="True" Text="{Binding RedirectUri, Mode=OneWay}" />
                                 </DockPanel>
                                 <TextBlock Style="{StaticResource ST.Base}" FontSize="12.5" Margin="0,0,0,6"><Run FontWeight="SemiBold">3.</Run> <Run Text="{core:L De='Kopiere die Client ID aus den App-Einstellungen hierher:', En='Copy the Client ID from the app settings here:'}" /></TextBlock>
-                                <TextBox Style="{StaticResource S.TextBox}" Margin="18,0,0,10" FontFamily="Consolas" Text="{Binding S.SpotifyClientId, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox Style="{StaticResource S.TextBox}" Margin="18,0,0,10" Text="{Binding S.SpotifyClientId, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Style="{StaticResource ST.Base}" FontSize="12.5"><Run FontWeight="SemiBold">4.</Run> <Run Text="{core:L De='Klicke oben auf Verbinden und bestätige im Browser.', En='Click Connect above and confirm in the browser.'}" /></TextBlock>
                             </StackPanel>
                         </StackPanel>
@@ -651,7 +655,7 @@
                                 <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Apple-ID (E-Mail)', En='Apple ID (email)'}" />
                                 <TextBox x:Name="ICloudUser" Style="{StaticResource S.TextBox}" Margin="0,2,0,8" />
                                 <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='App-spezifisches Passwort', En='App-specific password'}" />
-                                <PasswordBox x:Name="ICloudPassword" Margin="0,2,0,10" Padding="8,5" FontFamily="Consolas" />
+                                <PasswordBox x:Name="ICloudPassword" Margin="0,2,0,10" Height="32" />
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource S.AccentButton}" Click="SaveICloud_Click" Content="{core:L De='Verbinden und testen', En='Connect and test'}" />
                                     <Button Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="CloseCalForms_Click" Content="{core:L De='Abbrechen', En='Cancel'}" />
@@ -666,9 +670,9 @@
                                 <TextBlock Style="{StaticResource ST.Desc}" Margin="0,2,0,8" Text="{core:L De='Einmalig: In der Google Cloud Console ein Projekt anlegen, die Google Calendar API aktivieren, den OAuth-Zustimmungsbildschirm einrichten (extern, dich selbst als Testnutzer) und unter Anmeldedaten eine OAuth-Client-ID vom Typ Desktop-App erstellen. Client-ID und Clientschlüssel hier eintragen.', En='Once: in the Google Cloud Console create a project, enable the Google Calendar API, set up the OAuth consent screen (external, yourself as test user) and create an OAuth client ID of type Desktop app under Credentials. Enter client ID and secret here.'}" />
                                 <Button Style="{StaticResource S.Link}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="OpenGoogleConsole_Click" Content="console.cloud.google.com" />
                                 <TextBlock Style="{StaticResource ST.Desc}" Text="Client-ID" />
-                                <TextBox x:Name="GoogleClientId" Style="{StaticResource S.TextBox}" Margin="0,2,0,8" FontFamily="Consolas" />
+                                <TextBox x:Name="GoogleClientId" Style="{StaticResource S.TextBox}" Margin="0,2,0,8" />
                                 <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Clientschlüssel', En='Client secret'}" />
-                                <PasswordBox x:Name="GoogleSecret" Margin="0,2,0,10" Padding="8,5" FontFamily="Consolas" />
+                                <PasswordBox x:Name="GoogleSecret" Margin="0,2,0,10" Height="32" />
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource S.AccentButton}" Click="SaveGoogle_Click" Content="{core:L De='Mit Google anmelden', En='Sign in with Google'}" />
                                     <Button Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="CloseCalForms_Click" Content="{core:L De='Abbrechen', En='Cancel'}" />

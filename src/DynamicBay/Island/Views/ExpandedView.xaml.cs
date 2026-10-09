@@ -41,7 +41,7 @@ public partial class ExpandedView : UserControl
             if (Vm is null) return;
             Vm.Settings.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets)) LayoutHome();
+                if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled)) LayoutHome();
                 if (e.PropertyName is nameof(Core.AppSettings.ShowTrayTab) or nameof(Core.AppSettings.ShowNotificationsTab)) EnsureVisibleTab();
             };
             LayoutHome();
@@ -66,7 +66,7 @@ public partial class ExpandedView : UserControl
     private void LayoutHome()
     {
         var enabled = (Vm?.Settings.HomeWidgets ?? new System.Collections.ObjectModel.ObservableCollection<string> { "media", "calendar", "timer" })
-            .Where(_widgets.ContainsKey).Distinct().ToList();
+            .Where(_widgets.ContainsKey).Where(id => id != Core.Widgets.Claude || Vm?.Settings.ClaudeEnabled != false).Distinct().ToList();
         foreach (var (id, card) in _widgets) card.Visibility = enabled.Contains(id) ? Visibility.Visible : Visibility.Collapsed;
         HomeGrid.ColumnDefinitions.Clear();
         HomeGrid.RowDefinitions.Clear();

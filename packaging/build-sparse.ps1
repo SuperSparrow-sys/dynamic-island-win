@@ -2,7 +2,7 @@
 # The installer trusts the certificate (LocalMachine\TrustedPeople) and the app registers the package on first run.
 #
 # Usage: powershell -File packaging\build-sparse.ps1 -Version 1.0.0 -Out <dir> [-Pfx <path> -PfxPassword <pw>]
-# Without -Pfx a fresh self-signed certificate is generated (fine for open-source builds; see docs/NOTIFICATIONS.md).
+# Without -Pfx a fresh self-signed certificate is generated (fine for open-source builds; see docs/INTEGRATIONS.md).
 param(
     [string]$Version = "1.0.0",
     [string]$Out = "$PSScriptRoot\out",
