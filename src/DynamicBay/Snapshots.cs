@@ -91,6 +91,7 @@ public static class Snapshots
             me.Refresh();
             System.Windows.Media.CompositionTarget.Rendering -= onFrame;
             gaps.Sort();
+            Log.Info($"PERF gen0 collections so far: {GC.CollectionCount(0)}, gen2: {GC.CollectionCount(2)}");
             Log.Info($"PERF transitions: {(me.TotalProcessorTime - t0).TotalSeconds / 14.4 * 100:0.0} % of one core, {gaps.Count} frames, "
                      + $"median {gaps[gaps.Count / 2]:0.0} ms, 95th {gaps[(int)(gaps.Count * 0.95)]:0.0} ms, max {gaps[^1]:0.0} ms, over 25 ms: {gaps.Count(g => g > 25)}");
             return;
