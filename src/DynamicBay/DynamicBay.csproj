@@ -20,8 +20,6 @@
     <SelfContained>false</SelfContained>
     <!-- WinForms is only used for the tray icon; avoid ambiguous type names. -->
     <NoWarn>$(NoWarn);CA1416;WFO0003</NoWarn>
-    <!-- Always-running tray app: no background GC thread, compact the heap more eagerly (smaller footprint). -->
-    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,7 +29,6 @@
 
   <ItemGroup>
     <PackageReference Include="Jint" Version="4.17.0" />
-    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="Ical.Net" Version="4.2.0" />
   </ItemGroup>

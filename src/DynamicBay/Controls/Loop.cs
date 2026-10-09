@@ -8,7 +8,6 @@ namespace DynamicBay.Controls;
 /// <c>&lt;c:Loop.Storyboard&gt;&lt;Storyboard RepeatBehavior="Forever"&gt;…&lt;/Storyboard&gt;&lt;/c:Loop.Storyboard&gt;</c>.
 /// A storyboard started from a Loaded trigger keeps ticking while its layer is hidden, and any running animation makes
 /// WPF redraw the whole (transparent, software-composited) island window every frame - a constant CPU load.
-/// Loops also run at 30 frames per second, which is plenty for a subtle motion.
 /// </summary>
 public static class Loop
 {
@@ -24,7 +23,6 @@ public static class Loop
     private static void OnChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is not FrameworkElement el) return;
-        if (e.NewValue is Storyboard sb && !sb.IsFrozen) Timeline.SetDesiredFrameRate(sb, 30);
         el.IsVisibleChanged -= OnVisibility;
         el.IsVisibleChanged += OnVisibility;
         el.Unloaded -= OnUnloaded;

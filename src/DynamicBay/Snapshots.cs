@@ -28,6 +28,31 @@ public static class Snapshots
             ("bottom", IslandEdge.Bottom, IslandAlign.Center, 0.5),
             ("topright", IslandEdge.Top, IslandAlign.End, 1),
         };
+        // CPU per state: DYNAMICBAY_SNAPSHOT=perf - measures this process in each island state for 15 s.
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "perf")
+        {
+            settings.CompactItems.Clear();
+            foreach (var w in new[] { Widgets.Media }) settings.CompactItems.Add(w);
+            using var me = System.Diagnostics.Process.GetCurrentProcess();
+            async Task Measure(string label, IslandMode mode, bool playing)
+            {
+                vm.Media.IsPlaying = playing;
+                vm.Timer.IsActive = false;
+                island.ForceState(mode);
+                await Task.Delay(3000);
+                me.Refresh();
+                var c0 = me.TotalProcessorTime;
+                await Task.Delay(15000);
+                me.Refresh();
+                Log.Info($"PERF {label}: {(me.TotalProcessorTime - c0).TotalSeconds / 15 * 100:0.0} % of one core");
+            }
+            await Measure("idle bar, nothing playing", IslandMode.Idle, false);
+            await Measure("compact, music playing (waveform)", IslandMode.Compact, true);
+            await Measure("compact, music paused", IslandMode.Compact, false);
+            await Measure("expanded, music playing", IslandMode.Expanded, true);
+            return;
+        }
+
         // Devices widget with the real Bluetooth devices: DYNAMICBAY_SNAPSHOT_DEVICES=1
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_DEVICES") == "1")
         {

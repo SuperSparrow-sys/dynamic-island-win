@@ -19,7 +19,7 @@ public static class MemoryTrim
     public static void Start(Func<bool> isIdle)
     {
         _isIdle = isIdle;
-        Timer.Tick += (_, _) => { if (_isIdle?.Invoke() == true) TrimIfLarge(); };
+        Timer.Tick += (_, _) => LogCpu();
         Timer.Start();
     }
 
@@ -38,6 +38,23 @@ public static class MemoryTrim
             Log.Info($"Memory trimmed: {before / 1048576} MB -> {p.WorkingSet64 / 1048576} MB");
         }
         catch (Exception ex) { Log.Error("MemoryTrim", ex); }
+    }
+
+    private static TimeSpan _lastCpu;
+    private static DateTime _lastCpuAt;
+
+    /// <summary>Average CPU use since the last tick, written to the log, so background load is visible on the user PC.</summary>
+    private static void LogCpu()
+    {
+        using var p = Process.GetCurrentProcess();
+        var now = DateTime.UtcNow;
+        if (_lastCpuAt != default)
+        {
+            double pct = (p.TotalProcessorTime - _lastCpu).TotalSeconds / (now - _lastCpuAt).TotalSeconds * 100;
+            Log.Info($"CPU {pct:0.0} % of one core, working set {p.WorkingSet64 / 1048576} MB");
+        }
+        _lastCpu = p.TotalProcessorTime;
+        _lastCpuAt = now;
     }
 
     private static void TrimIfLarge()

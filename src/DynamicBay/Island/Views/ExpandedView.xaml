@@ -668,7 +668,7 @@
                                                 <Setter TargetName="Dot" Property="Fill" Value="#FFD97757" />
                                                 <DataTrigger.EnterActions>
                                                     <BeginStoryboard x:Name="Pulse">
-                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True" Timeline.DesiredFrameRate="15">
+                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
                                                             <DoubleAnimation Storyboard.TargetName="Dot" Storyboard.TargetProperty="Opacity" From="1" To="0.3" Duration="0:0:0.8" />
                                                         </Storyboard>
                                                     </BeginStoryboard>
