@@ -625,6 +625,7 @@ public partial class IslandWindow : Window
 
     public void ShowPeek(PeekItem item)
     {
+        if (_closed) return;
         if (_settings.DoNotDisturb && !item.ShowInDnd) return;
         if (_settings.Hidden) return;
         if (_suppressed)
@@ -948,8 +949,20 @@ public partial class IslandWindow : Window
         BeginAnimation(OpacityProperty, anim);
     }
 
+    private bool _closed;
+
+    /// <summary>A closed window (mirror removed, app exit) must not react to settings anymore: Show() would throw.</summary>
+    protected override void OnClosed(EventArgs e)
+    {
+        _closed = true;
+        _settings.PropertyChanged -= OnSettingChanged;
+        _peekTimer.Stop(); _hoverTimer.Stop(); _collapseTimer.Stop();
+        base.OnClosed(e);
+    }
+
     private void FadeIn()
     {
+        if (_closed) return;
         if (!IsVisible) Show();
         ApplyLayer();
         BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(1, TimeSpan.FromMilliseconds(220)));

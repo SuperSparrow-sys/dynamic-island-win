@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -31,7 +32,8 @@ public sealed partial class MediaService : ObservableObject
     [ObservableProperty] private string _album = "";
     [ObservableProperty] private ImageSource? _cover;
     [ObservableProperty] private Color _accent = Color.FromRgb(0x30, 0xD1, 0x58);
-    [ObservableProperty] private Brush _accentBrush = new SolidColorBrush(Color.FromRgb(0x30, 0xD1, 0x58));
+    /// <summary>One shared brush for the music symbol, the waveform and the peek: its colour fades on a song change.</summary>
+    public SolidColorBrush AccentBrush { get; } = new(Color.FromRgb(0x30, 0xD1, 0x58));
     [ObservableProperty] private string _sourceApp = "";
     [ObservableProperty] private bool _isSpotify;
     [ObservableProperty] private bool _isAppleMusic;
@@ -234,12 +236,16 @@ public sealed partial class MediaService : ObservableObject
         catch { }
     }
 
+    private static readonly IEasingFunction AccentEase = new CubicEase { EasingMode = EasingMode.EaseInOut };
+
     private void SetAccent(Color c)
     {
+        if (Accent == c) return;
         Accent = c;
-        var b = new SolidColorBrush(c);
-        b.Freeze();
-        AccentBrush = b;
+        // Fade from the old song's colour to the new one (e.g. yellow to red) instead of jumping.
+        var fade = new System.Windows.Media.Animation.ColorAnimation(AccentBrush.Color, c, TimeSpan.FromMilliseconds(700)) { EasingFunction = AccentEase };
+        fade.Freeze();
+        AccentBrush.BeginAnimation(SolidColorBrush.ColorProperty, fade);
     }
 
     private void RefreshPlayback()
