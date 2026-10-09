@@ -87,7 +87,7 @@ public partial class IslandWindow : Window
         _layerAnim.Updated += ApplyLayers;
 
         _peekTimer.Tick += (_, _) => NextPeek();
-        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !_dragging) SetExpanded(true); };
+        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !_dragging && !ShowsQuestion) SetExpanded(true); };
         _collapseTimer.Tick += (_, _) => { _collapseTimer.Stop(); TryCollapse(); };
         _dropLeaveTimer.Tick += (_, _) => { _dropLeaveTimer.Stop(); _dropActive = false; Refresh(); };
         _watchdog.Tick += (_, _) => Watchdog();
@@ -502,14 +502,17 @@ public partial class IslandWindow : Window
 
     private void ExpandedLayerDevicesReset() { }
 
-    public void Toggle() => SetExpanded(!_expanded);
+    public void Toggle() { if (!ShowsQuestion) SetExpanded(!_expanded); }
+
+    private bool ShowsQuestion => _peek.Peek?.HasActions == true;
 
     private void OnHoverEnter(object sender, MouseEventArgs e)
     {
         _collapseTimer.Stop();
         _lastActivity = DateTime.Now;
         if (_minimized) { _minimized = false; Refresh(); }
-        if (_settings.ExpandOnHover && !_expanded && !_dragging && Mouse.LeftButton != MouseButtonState.Pressed)
+        // While a question (buttons) is shown, hovering must not open the panel - the buttons must stay reachable.
+        if (_settings.ExpandOnHover && !_expanded && !_dragging && !ShowsQuestion && Mouse.LeftButton != MouseButtonState.Pressed)
         {
             _hoverTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(0, _settings.HoverDelayMs));
             _hoverTimer.Start();
