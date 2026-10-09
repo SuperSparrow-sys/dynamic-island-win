@@ -79,7 +79,7 @@ public sealed partial class ClipboardService : ObservableObject
     public void Start(MessageWindow msg)
     {
         Directory.CreateDirectory(_folder);
-        if (_settings.ClipboardPersist) LoadIndex();
+        if (_settings.ClipboardPersist) _ = LoadIndexAsync();
         Native.AddClipboardFormatListener(msg.Handle);
         msg.Message += (m, _, _) =>
         {
@@ -94,7 +94,7 @@ public sealed partial class ClipboardService : ObservableObject
             _debounce.Start();
             return true;
         };
-        WatchScreenshotFolder();
+        _ = Task.Run(() => ScreenshotFolders().ToList()).ContinueWith(t => _ui.BeginInvoke(() => WatchScreenshotFolder(t.Result)), TaskContinuationOptions.OnlyOnRanToCompletion);
     }
 
     private void OnClipboardChanged()
@@ -259,9 +259,9 @@ public sealed partial class ClipboardService : ObservableObject
         catch { return null; }
     }
 
-    private void WatchScreenshotFolder()
+    private void WatchScreenshotFolder(IEnumerable<string> dirs)
     {
-        foreach (var dir in ScreenshotFolders())
+        foreach (var dir in dirs)
         {
             try
             {
@@ -393,21 +393,28 @@ public sealed partial class ClipboardService : ObservableObject
         _saveTimer.Start();
     }
 
-    private void LoadIndex()
+    /// <summary>Reads the history and decodes thumbnails off the UI thread (images are frozen, so they can cross threads).</summary>
+    private async Task LoadIndexAsync()
     {
         try
         {
-            if (!File.Exists(IndexPath)) return;
-            var list = JsonSerializer.Deserialize<List<ClipItem>>(File.ReadAllText(IndexPath)) ?? new();
-            foreach (var i in list)
+            var list = await Task.Run(() =>
             {
-                if (i.IsImage)
+                if (!File.Exists(IndexPath)) return new List<ClipItem>();
+                var items = JsonSerializer.Deserialize<List<ClipItem>>(File.ReadAllText(IndexPath)) ?? new();
+                var keep = new List<ClipItem>();
+                foreach (var i in items)
                 {
-                    if (i.ImagePath is null || !File.Exists(i.ImagePath)) continue;
-                    i.Thumbnail = ImageTools.Load(i.ImagePath, 320);
+                    if (i.IsImage)
+                    {
+                        if (i.ImagePath is null || !File.Exists(i.ImagePath)) continue;
+                        i.Thumbnail = ImageTools.Load(i.ImagePath, 320);
+                    }
+                    keep.Add(i);
                 }
-                Items.Add(i);
-            }
+                return keep;
+            });
+            foreach (var i in list) Items.Add(i);
             _lastText = Items.FirstOrDefault(i => i.IsText)?.Text;
         }
         catch { }

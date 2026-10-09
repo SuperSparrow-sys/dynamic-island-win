@@ -52,6 +52,7 @@ public sealed partial class MediaService : ObservableObject
 
     public async Task InitAsync()
     {
+        InstalledApps.Ready += () => { lock (AppNames) AppNames.Clear(); PickSession(); };
         try
         {
             _manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
@@ -142,7 +143,9 @@ public sealed partial class MediaService : ObservableObject
         lock (AppNames)
         {
             if (AppNames.TryGetValue(id, out var cached)) return cached;
-            var name = InstalledApps.All().FirstOrDefault(a => a.LaunchPath.EndsWith("\\" + id, StringComparison.OrdinalIgnoreCase))?.Name;
+            var apps = InstalledApps.Cached;
+            if (apps is null) return null; // still loading in the background - resolved again when ready
+            var name = apps.FirstOrDefault(a => a.LaunchPath.EndsWith("\\" + id, StringComparison.OrdinalIgnoreCase))?.Name;
             if (name is not null) name = name.Replace(" (Web-App)", "");
             AppNames[id] = name ?? "";
             return name;

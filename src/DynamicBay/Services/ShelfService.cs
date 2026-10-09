@@ -11,13 +11,15 @@ using DynamicBay.Core;
 
 namespace DynamicBay.Services;
 
-public sealed class ShelfItem
+public sealed partial class ShelfItem : ObservableObject
 {
     public string Path { get; set; } = "";
     public bool IsCopy { get; set; }
     public DateTime Added { get; set; } = DateTime.Now;
     [System.Text.Json.Serialization.JsonIgnore] public string Name => System.IO.Path.GetFileName(Path.TrimEnd('\\')) is { Length: > 0 } n ? n : Path;
-    [System.Text.Json.Serialization.JsonIgnore] public ImageSource? Icon { get; set; }
+    [ObservableProperty]
+    [property: System.Text.Json.Serialization.JsonIgnore]
+    private ImageSource? _icon;
     [System.Text.Json.Serialization.JsonIgnore] public bool Exists => File.Exists(Path) || Directory.Exists(Path);
 }
 
@@ -48,8 +50,11 @@ public sealed partial class ShelfService : ObservableObject
             foreach (var i in JsonSerializer.Deserialize<List<ShelfItem>>(File.ReadAllText(IndexPath)) ?? new())
             {
                 if (!i.Exists) continue;
-                i.Icon = ShellThumbnail.Get(i.Path, 96);
                 Items.Add(i);
+                // Thumbnails come from the shell (STA COM): fill them in after startup, one per idle slot.
+                var item = i;
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle,
+                    () => item.Icon = ShellThumbnail.Get(item.Path, 96));
             }
         }
         catch { }

@@ -11,9 +11,33 @@ public sealed record InstalledApp(string Name, string LaunchPath);
 public static class InstalledApps
 {
     private static List<InstalledApp>? _cache;
+    private static readonly object Gate = new();
+
+    /// <summary>The app list if already loaded (never blocks).</summary>
+    public static List<InstalledApp>? Cached => _cache;
+
+    /// <summary>Raised on the UI thread when the background warm-up finished.</summary>
+    public static event Action? Ready;
+
+    /// <summary>Loads the list on a background STA thread (the Shell COM API needs STA) so startup stays fluid.</summary>
+    public static Task WarmUpAsync()
+    {
+        var done = new TaskCompletionSource();
+        var t = new Thread(() =>
+        {
+            try { All(); } catch { }
+            done.TrySetResult();
+            System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => Ready?.Invoke());
+        }) { IsBackground = true, Name = "InstalledApps" };
+        t.SetApartmentState(ApartmentState.STA);
+        t.Start();
+        return done.Task;
+    }
 
     public static List<InstalledApp> All(bool refresh = false)
     {
+        lock (Gate)
+        {
         if (_cache is not null && !refresh) return _cache;
         var list = new List<InstalledApp>();
         try
@@ -44,6 +68,7 @@ public static class InstalledApps
         _cache = list.GroupBy(a => a.LaunchPath, StringComparer.OrdinalIgnoreCase).Select(g => g.First())
                      .OrderBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
         return _cache;
+        }
     }
 
     /// <summary>Shortcuts and programs inside a folder (e.g. a personal "Apps" folder full of .lnk files).</summary>
@@ -64,7 +89,7 @@ public static class InstalledApps
     public static string DisplayName(string launchPath)
     {
         if (launchPath.StartsWith(@"shell:AppsFolder\", StringComparison.OrdinalIgnoreCase))
-            return All().FirstOrDefault(a => string.Equals(a.LaunchPath, launchPath, StringComparison.OrdinalIgnoreCase))?.Name
+            return Cached?.FirstOrDefault(a => string.Equals(a.LaunchPath, launchPath, StringComparison.OrdinalIgnoreCase))?.Name
                    ?? launchPath.Split('\\').Last().Split('!').Last();
         var name = Path.GetFileNameWithoutExtension(launchPath.TrimEnd('\\'));
         return name.Length > 0 ? name : launchPath;

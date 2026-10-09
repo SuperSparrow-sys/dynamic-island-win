@@ -104,54 +104,81 @@ public sealed partial class ClaudeService : ObservableObject
 
     // ---------- sessions from transcripts ----------
 
-    private void Scan()
+    private bool _scanning;
+
+    /// <summary>Kicks off a scan; transcript reading happens off the UI thread (files can be tens of MB).</summary>
+    private void Scan() => _ = ScanAsync();
+
+    private async Task ScanAsync()
     {
-        var root = Path.Combine(ClaudeDir, "projects");
-        if (!Directory.Exists(root)) return;
-        List<FileInfo> files;
+        if (_scanning) return;
+        _scanning = true;
         try
         {
-            files = Directory.EnumerateDirectories(root)
+            var known = Sessions.Where(x => x.IsLocal).ToDictionary(x => x.Id, x => x.Updated);
+            var results = await Task.Run(() => ReadSessions(known));
+            if (results is null) return;
+
+            var seen = new HashSet<string>();
+            foreach (var r in results)
+            {
+                seen.Add(Key(Environment.MachineName, r.Id));
+                var s = Sessions.FirstOrDefault(x => x.Id == r.Id && x.IsLocal);
+                if (r.Meta is { } meta)
+                {
+                    if (s is null)
+                    {
+                        s = new ClaudeSession { Id = r.Id, Cwd = meta.cwd };
+                        Sessions.Add(s);
+                    }
+                    s.Title = meta.title.Length > 0 ? meta.title : (meta.prompt.Length > 0 ? meta.prompt : (Loc.German ? "Neue Sitzung" : "New session"));
+                    s.LastPrompt = meta.prompt;
+                    s.Updated = r.Updated;
+                    // Remote Control: bridge id "cse_X" is reachable at claude.ai/code/session_X
+                    if (meta.bridge.StartsWith("cse_", StringComparison.Ordinal)) s.RemoteUrl = "https://claude.ai/code/session_" + meta.bridge[4..];
+                }
+                if (s is null) continue;
+                s.ActiveAgents = r.Agents;
+                // Without hooks, "recently written" approximates "working".
+                s.State = _hookState.TryGetValue(r.Id, out var hs) ? hs
+                    : (DateTime.Now - r.Updated).TotalSeconds < 20 ? ClaudeState.Working : ClaudeState.Idle;
+            }
+            foreach (var r in SyncShared()) seen.Add(Key(r.Machine, r.Id));
+            foreach (var old in Sessions.Where(x => !seen.Contains(Key(x.Machine, x.Id))).ToList()) Sessions.Remove(old);
+            // Newest first
+            var ordered = Sessions.OrderByDescending(x => x.Updated).ToList();
+            for (int i = 0; i < ordered.Count; i++)
+                if (Sessions.IndexOf(ordered[i]) != i) Sessions.Move(Sessions.IndexOf(ordered[i]), i);
+            UpdateSummary();
+        }
+        finally { _scanning = false; }
+    }
+
+    private sealed record ScanResult(string Id, DateTime Updated, int Agents, (string cwd, string title, string prompt, string bridge)? Meta);
+
+    /// <summary>Background part: newest transcripts, metadata only for files that changed since the last scan.</summary>
+    private static List<ScanResult>? ReadSessions(Dictionary<string, DateTime> known)
+    {
+        var root = Path.Combine(ClaudeDir, "projects");
+        if (!Directory.Exists(root)) return null;
+        try
+        {
+            var files = Directory.EnumerateDirectories(root)
                 .SelectMany(d => Directory.EnumerateFiles(d, "*.jsonl").Select(f => new FileInfo(f)))
                 .OrderByDescending(f => f.LastWriteTime).Take(6).ToList();
-        }
-        catch { return; }
-
-        var seen = new HashSet<string>();
-        foreach (var f in files)
-        {
-            string id = Path.GetFileNameWithoutExtension(f.Name);
-            seen.Add(Key(Environment.MachineName, id));
-            var s = Sessions.FirstOrDefault(x => x.Id == id && x.IsLocal);
-            if (s is null || s.Updated != f.LastWriteTime)
+            var list = new List<ScanResult>();
+            foreach (var f in files)
             {
-                var (cwd, title, prompt, bridge) = ReadMeta(f.FullName);
-                if (s is null)
-                {
-                    s = new ClaudeSession { Id = id, Cwd = cwd };
-                    Sessions.Add(s);
-                }
-                s.Title = title.Length > 0 ? title : (prompt.Length > 0 ? prompt : (Loc.German ? "Neue Sitzung" : "New session"));
-                s.LastPrompt = prompt;
-                s.Updated = f.LastWriteTime;
-                // Remote Control: bridge id "cse_X" is reachable at claude.ai/code/session_X
-                if (bridge.StartsWith("cse_", StringComparison.Ordinal)) s.RemoteUrl = "https://claude.ai/code/session_" + bridge[4..];
+                string id = Path.GetFileNameWithoutExtension(f.Name);
+                bool changed = !known.TryGetValue(id, out var upd) || upd != f.LastWriteTime;
+                var sub = Path.Combine(f.DirectoryName!, id, "subagents");
+                int agents = Directory.Exists(sub)
+                    ? Directory.EnumerateFiles(sub, "*.jsonl").Count(p => (DateTime.Now - File.GetLastWriteTime(p)).TotalMinutes < 2) : 0;
+                list.Add(new ScanResult(id, f.LastWriteTime, agents, changed ? ReadMeta(f.FullName) : null));
             }
-            // Sub-agents that wrote in the last 2 minutes count as active.
-            var sub = Path.Combine(f.DirectoryName!, id, "subagents");
-            s.ActiveAgents = Directory.Exists(sub)
-                ? Directory.EnumerateFiles(sub, "*.jsonl").Count(p => (DateTime.Now - File.GetLastWriteTime(p)).TotalMinutes < 2) : 0;
-            // Without hooks, "recently written" approximates "working".
-            s.State = _hookState.TryGetValue(id, out var hs) ? hs
-                : (DateTime.Now - f.LastWriteTime).TotalSeconds < 20 ? ClaudeState.Working : ClaudeState.Idle;
+            return list;
         }
-        foreach (var r in SyncShared()) seen.Add(Key(r.Machine, r.Id));
-        foreach (var old in Sessions.Where(x => !seen.Contains(Key(x.Machine, x.Id))).ToList()) Sessions.Remove(old);
-        // Newest first
-        var ordered = Sessions.OrderByDescending(x => x.Updated).ToList();
-        for (int i = 0; i < ordered.Count; i++)
-            if (Sessions.IndexOf(ordered[i]) != i) Sessions.Move(Sessions.IndexOf(ordered[i]), i);
-        UpdateSummary();
+        catch { return null; }
     }
 
     private static string Key(string machine, string id) => machine.ToUpperInvariant() + "|" + id;

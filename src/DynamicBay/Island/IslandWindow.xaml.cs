@@ -91,6 +91,7 @@ public partial class IslandWindow : Window
         _collapseTimer.Tick += (_, _) => { _collapseTimer.Stop(); TryCollapse(); };
         _dropLeaveTimer.Tick += (_, _) => { _dropLeaveTimer.Stop(); _dropActive = false; Refresh(); };
         _watchdog.Tick += (_, _) => Watchdog();
+        _replaceDebounce.Tick += (_, _) => ReplaceIfGeometryChanged();
 
         HitPad.MouseEnter += OnHoverEnter;
         HitPad.MouseLeave += OnHoverLeave;
@@ -113,7 +114,11 @@ public partial class IslandWindow : Window
         ExpandedLayer.DragOutActive += active => { _dragOut = active; if (!active) ScheduleCollapseIfAway(); };
         ExpandedLayer.CopiedFeedback += _ => { };
 
-        _vm.CompactChanged += Refresh;
+        // Deferred: bindings (visibility, texts) must update before the compact content is measured.
+        _vm.CompactChanged += RefreshSoon;
+        // Texts inside live activities can change width (Claude project name, "in 8 Min." -> "in 12 Min."): re-measure.
+        _vm.Claude.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(ClaudeService.WorkingText)) RefreshSoon(); };
+        _vm.Calendar.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(CalendarService.SoonText)) RefreshSoon(); };
         _vm.HideRequested += () => SetHidden(true);
         _vm.PropertyChanged += OnVmChanged;
         _settings.PropertyChanged += OnSettingChanged;
@@ -153,16 +158,41 @@ public partial class IslandWindow : Window
                 pos.flags &= ~Native.SWP_NOZORDER;
                 Marshal.StructureToPtr(pos, lParam, false);
                 break;
+            case Native.WM_DPICHANGED:
+                _forceReplace = true; // WPF just rescaled the window: size must be recomputed
+                goto case Native.WM_SETTINGCHANGE;
             case Native.WM_DISPLAYCHANGE:
             case Native.WM_SETTINGCHANGE:
-            case Native.WM_DPICHANGED:
-                Dispatcher.BeginInvoke(() => Place(animate: false), DispatcherPriority.Background);
+                // Windows broadcasts these often (theme, Mica, other apps). Re-place only if geometry really changed.
+                _replaceDebounce.Stop();
+                _replaceDebounce.Start();
                 break;
         }
         return IntPtr.Zero;
     }
 
     private bool _desktopForeground;
+
+    /// <summary>Settings window, app picker, menus of DynamicBay itself never count as fullscreen / excluded app.</summary>
+    private static bool IsOwnWindow(IntPtr hwnd)
+    {
+        Native.GetWindowThreadProcessId(hwnd, out uint pid);
+        return pid == (uint)Environment.ProcessId;
+    }
+
+    private readonly DispatcherTimer _replaceDebounce = new() { Interval = TimeSpan.FromMilliseconds(400) };
+    private string _geometryKey = "";
+    private bool _forceReplace;
+
+    private void ReplaceIfGeometryChanged()
+    {
+        _replaceDebounce.Stop();
+        var m = TargetMonitor();
+        string key = $"{m.Device}|{m.Work.Left},{m.Work.Top},{m.Work.Right},{m.Work.Bottom}|{m.Scale}";
+        if (key == _geometryKey && !_forceReplace) return;
+        _forceReplace = false;
+        Place(animate: false);
+    }
 
     private void ApplyLayer()
     {
@@ -253,6 +283,7 @@ public partial class IslandWindow : Window
             MoveWindowPx(x, y, resize: true);
         }
         Log.Info($"Placed island: edge={_settings.Edge} align={_settings.Align} window=({x},{y}) {Width:0}x{Height:0} dip, scale {s:0.00}, work=({wa.Left},{wa.Top},{wa.Right},{wa.Bottom})");
+        _geometryKey = $"{TargetMonitor().Device}|{wa.Left},{wa.Top},{wa.Right},{wa.Bottom}|{s}";
         Refresh();
     }
 
@@ -366,6 +397,16 @@ public partial class IslandWindow : Window
         if (_minimized) return IslandMode.Minimized;
         if (_vm.HasCompact) return IslandMode.Compact;
         return IslandMode.Idle;
+    }
+
+    private bool _refreshQueued;
+
+    /// <summary>Refresh after pending binding updates and layout have run (one coalesced refresh per burst).</summary>
+    private void RefreshSoon()
+    {
+        if (_refreshQueued) return;
+        _refreshQueued = true;
+        Dispatcher.BeginInvoke(() => { _refreshQueued = false; Refresh(); }, DispatcherPriority.Loaded);
     }
 
     /// <summary>Re-evaluates the mode and springs the shape toward it.</summary>
@@ -828,7 +869,7 @@ public partial class IslandWindow : Window
         if (_settings.HideInFullscreen && IsFullscreen(fg) && !_snapshotMode) suppress = true;
         if (!suppress && _settings.ExcludedApps.Count > 0)
         {
-            var name = Native.ProcessName(fg);
+            var name = IsOwnWindow(fg) ? null : Native.ProcessName(fg);
             if (name is not null && _settings.ExcludedApps.Any(a => string.Equals(a.Replace(".exe", ""), name, StringComparison.OrdinalIgnoreCase)))
                 suppress = true;
         }
@@ -864,7 +905,7 @@ public partial class IslandWindow : Window
 
     private bool IsFullscreen(IntPtr fg)
     {
-        if (fg == IntPtr.Zero || fg == _hwnd) return false;
+        if (fg == IntPtr.Zero || fg == _hwnd || IsOwnWindow(fg)) return false;
         string cls = Native.ClassName(fg);
         if (cls is "WorkerW" or "Progman" or "Shell_TrayWnd") return false;
         // QUNS_BUSY (2), QUNS_RUNNING_D3D_FULL_SCREEN (3), QUNS_PRESENTATION_MODE (4)

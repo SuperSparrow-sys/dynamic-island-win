@@ -127,18 +127,33 @@ public partial class App : Application
         _tray = new TrayIcon(_settings, ShowSettings, _islands.ToggleHidden, _islands.ResetPosition, Quit);
 
         _islands.Show();
+        var clock = Stopwatch.StartNew();
 
-        // Services start after the window is up so the first frame isn't delayed.
-        shelf.Load();
+        // Heavy lookups warm up in the background (app list on an STA thread, icon palette on the thread pool).
+        var warmApps = InstalledApps.WarmUpAsync();
+        var warmIcons = Task.Run(() => AppIcons.Count);
+
+        // Services start one by one after the island is visible, yielding in between so it stays responsive.
+        async Task Next() => await Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+        await Next();
+        await media.InitAsync();
+        await Next();
         clipboard.Start(_msg);
+        shelf.Load();
+        await Next();
         battery.Start();
         bluetooth.Start();
         calendar.Start();
-        await media.InitAsync();
-        await spotify.InitAsync();
+        await Next();
+        await notifications.StartAsync();
+        await Next();
         _vm.Claude.SetEnabled(_settings.ClaudeEnabled);
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) _vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
-        await notifications.StartAsync();
+        await spotify.InitAsync();
+        Log.Info($"Services started in {clock.ElapsedMilliseconds} ms");
+        await Task.WhenAll(warmApps, warmIcons);
+        _vm.Shortcuts.Rebuild();
+        Log.Info($"Background warm-up done after {clock.ElapsedMilliseconds} ms");
         if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands, Quit);
     }
 

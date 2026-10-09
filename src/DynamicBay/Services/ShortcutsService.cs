@@ -37,7 +37,9 @@ public sealed partial class ShortcutsService
         {
             if (e.PropertyName is nameof(AppSettings.Shortcuts) or nameof(AppSettings.AppIcons)) Rebuild();
         };
-        Rebuild();
+        // Built after startup (App calls Rebuild once the icon palette and app list are warm) and again when
+        // the installed-apps list is ready, so names of Store apps resolve.
+        InstalledApps.Ready += Rebuild;
     }
 
     private static readonly Brush NeutralTile = Frozen(new SolidColorBrush(Color.FromRgb(0x2C, 0x2C, 0x2E)));
@@ -45,7 +47,7 @@ public sealed partial class ShortcutsService
     private static readonly Brush MonoTile = Frozen(new LinearGradientBrush(Color.FromRgb(0x2E, 0x2E, 0x31), Color.FromRgb(0x24, 0x24, 0x26), 90));
     private static readonly Brush MonoGlyph = Frozen(new SolidColorBrush(Color.FromRgb(0xA8, 0xA8, 0xAE)));
 
-    private void Rebuild()
+    public void Rebuild()
     {
         Items.Clear();
         foreach (var p in _settings.Shortcuts)
