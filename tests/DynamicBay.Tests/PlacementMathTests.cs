@@ -49,6 +49,20 @@ public class PlacementMathTests
     }
 
     [Fact]
+    public void Magnet_takes_the_nearest_spot_even_far_from_the_edge()
+    {
+        // Dropped in the upper left quarter, well inside the screen: top edge, start.
+        var p = PlacementMath.FromDrop(Shape(500, 300), Work, Scale, magnetic: true);
+        Assert.Equal(IslandEdge.Top, p.Edge);
+        Assert.Equal(IslandAlign.Start, p.Align);
+        Assert.Equal(PlacementMath.DefaultInsetDip, p.Inset);
+        // Slightly off the middle of the top edge: exactly the middle.
+        var mid = PlacementMath.FromDrop(Shape(1100, 200), Work, Scale, magnetic: true);
+        Assert.Equal(IslandAlign.Center, mid.Align);
+        Assert.Equal(0.5, mid.Along, 3);
+    }
+
+    [Fact]
     public void Without_magnet_the_free_position_is_kept()
     {
         var p = PlacementMath.FromDrop(Shape(700, 300), Work, Scale, magnetic: false);

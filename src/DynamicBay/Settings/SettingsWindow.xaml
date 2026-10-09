@@ -344,7 +344,7 @@
                                 </Border>
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Magnetisch einrasten', En='Magnetic snapping'}"
-                                            ToolTip="{core:L De='Beim Loslassen in der Nähe von Ankerpunkten und Kanten einrasten.', En='Snap to anchors and edges when released nearby.'}">
+                                            ToolTip="{core:L De='An: Die Insel rastet beim Loslassen am nächsten von zwölf festen Punkten ein (Anfang, Mitte und Ende jeder Kante). Aus: Sie bleibt genau dort, wo du sie loslässt.', En='On: when released, the island snaps to the nearest of twelve fixed spots (start, middle and end of each edge). Off: it stays exactly where you let go.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MagneticSnap}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Abstand zum Rand', En='Distance from edge'}">

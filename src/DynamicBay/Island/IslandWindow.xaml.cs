@@ -878,7 +878,8 @@ public partial class IslandWindow : Window
         double s = monitor.Scale;
         bool monitorChanged = CanChangeMonitor && !string.Equals(monitor.Device, TargetMonitor().Device, StringComparison.OrdinalIgnoreCase);
 
-        var p = PlacementMath.FromDrop(new PxRect(r.Left, r.Top, r.Right, r.Bottom), ToPx(wa), s, _settings.MagneticSnap);
+        // Magnetic spots keep the distance from the slider (a free drop may have left a large one behind).
+        var p = PlacementMath.FromDrop(new PxRect(r.Left, r.Top, r.Right, r.Bottom), ToPx(wa), s, _settings.MagneticSnap, Math.Clamp(_settings.Inset, 0, 60));
         var edge = p.Edge;
 
         bool orientationChanges = p.IsVertical != _vertical;

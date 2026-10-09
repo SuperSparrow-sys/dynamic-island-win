@@ -21,8 +21,6 @@ public readonly record struct Placement(IslandEdge Edge, IslandAlign Align, doub
 public static class PlacementMath
 {
     public const double CornerZone = 0.18;   // fraction of the edge length that counts as "corner"
-    public const double SnapDistanceDip = 70;
-    public const double SnapInsetDip = 44;
     public const double DefaultInsetDip = 8;
 
     public const double OrientationHysteresisDip = 56;
@@ -40,9 +38,14 @@ public static class PlacementMath
         return currentlyVertical ? side < cap + margin : side + margin < cap;
     }
 
-    /// <summary>Derives edge, alignment and position from where the user released the island.</summary>
-    public static Placement FromDrop(PxRect shape, PxRect work, double scale, bool magnetic)
+    /// <summary>
+    /// Derives edge, alignment and position from where the user released the island.
+    /// Magnetic: only twelve fixed spots exist (start, middle and end of each edge, at the default distance);
+    /// the island goes to the one nearest to where it was dropped. Otherwise it stays exactly where it was let go.
+    /// </summary>
+    public static Placement FromDrop(PxRect shape, PxRect work, double scale, bool magnetic, double spotInsetDip = DefaultInsetDip)
     {
+        if (magnetic) return NearestSpot(shape, work, scale, spotInsetDip);
         double dTop = shape.Top - work.Top, dBottom = work.Bottom - shape.Bottom;
         double dLeft = shape.Left - work.Left, dRight = work.Right - shape.Right;
         double min = Math.Min(Math.Min(dTop, dBottom), Math.Min(dLeft, dRight));
@@ -57,7 +60,6 @@ public static class PlacementMath
         double center = horizontal ? shape.CenterX : shape.CenterY;
         double lo = horizontal ? shape.Left : shape.Top;
         double hi = horizontal ? shape.Right : shape.Bottom;
-        double snap = SnapDistanceDip * scale;
 
         IslandAlign align;
         double anchor;
@@ -65,18 +67,50 @@ public static class PlacementMath
         else if (start + length - center < length * CornerZone) { align = IslandAlign.End; anchor = hi; }
         else { align = IslandAlign.Center; anchor = center; }
 
-        if (magnetic)
-        {
-            double mid = start + length / 2;
-            if (align == IslandAlign.Center && Math.Abs(anchor - mid) < snap) anchor = mid;
-            if (align == IslandAlign.Start && anchor - start < snap) anchor = start + DefaultInsetDip * scale;
-            if (align == IslandAlign.End && start + length - anchor < snap) anchor = start + length - DefaultInsetDip * scale;
-        }
-
         double inset = Math.Max(0, min) / scale;
-        if (magnetic && inset < SnapInsetDip) inset = DefaultInsetDip;
         double along = Math.Clamp((anchor - start) / length, 0, 1);
         return new Placement(edge, align, along, inset);
+    }
+
+    /// <summary>The fixed spot whose docked island centre is closest to the centre of the dropped shape.</summary>
+    private static Placement NearestSpot(PxRect shape, PxRect work, double scale, double insetDip)
+    {
+        double inset = insetDip * scale;
+        // The island is wide on the top/bottom edges and tall on the side edges.
+        double wide = Math.Max(shape.Width, shape.Height), thin = Math.Min(shape.Width, shape.Height);
+        Placement best = default;
+        double bestDist = double.MaxValue;
+        foreach (var edge in new[] { IslandEdge.Top, IslandEdge.Bottom, IslandEdge.Left, IslandEdge.Right })
+        {
+            bool horizontal = edge is IslandEdge.Top or IslandEdge.Bottom;
+            double start = horizontal ? work.Left : work.Top, length = horizontal ? work.Width : work.Height;
+            double cross = edge switch
+            {
+                IslandEdge.Top => work.Top + inset + thin / 2,
+                IslandEdge.Bottom => work.Bottom - inset - thin / 2,
+                IslandEdge.Left => work.Left + inset + thin / 2,
+                _ => work.Right - inset - thin / 2,
+            };
+            foreach (var align in new[] { IslandAlign.Start, IslandAlign.Center, IslandAlign.End })
+            {
+                double anchor = align switch
+                {
+                    IslandAlign.Start => start + inset,
+                    IslandAlign.End => start + length - inset,
+                    _ => start + length / 2,
+                };
+                double center = align switch
+                {
+                    IslandAlign.Start => anchor + wide / 2,
+                    IslandAlign.End => anchor - wide / 2,
+                    _ => anchor,
+                };
+                double cx = horizontal ? center : cross, cy = horizontal ? cross : center;
+                double d = (cx - shape.CenterX) * (cx - shape.CenterX) + (cy - shape.CenterY) * (cy - shape.CenterY);
+                if (d < bestDist) { bestDist = d; best = new Placement(edge, align, (anchor - start) / length, insetDip); }
+            }
+        }
+        return best;
     }
 
     /// <summary>
