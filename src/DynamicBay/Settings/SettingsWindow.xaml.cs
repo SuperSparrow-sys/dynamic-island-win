@@ -394,6 +394,28 @@ public partial class SettingsWindow : Window
             var row = Row(icon, label, status.Length > 0 ? status : null, controls, i++ > 0);
             ((Border)row).Padding = new Thickness(0, 8, 0, 8);
             CalendarRows.Children.Add(row);
+
+            // The account's calendars, each with its own switch (e.g. to hide some of many Google calendars)
+            foreach (var cal in _ctx.I.Calendar.CalendarsOf(a).OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase))
+            {
+                var c = cal;
+                var calSwitch = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = !account.Hidden.Contains(c.Id), VerticalAlignment = VerticalAlignment.Center };
+                calSwitch.Click += (_, _) =>
+                {
+                    if (calSwitch.IsChecked == true) account.Hidden.Remove(c.Id);
+                    else if (!account.Hidden.Contains(c.Id)) account.Hidden.Add(c.Id);
+                    SaveAccounts();
+                };
+                var line = new DockPanel { Margin = new Thickness(32, 2, 0, 2), Opacity = account.Enabled ? 1 : 0.5 };
+                DockPanel.SetDock(calSwitch, Dock.Right);
+                line.Children.Add(calSwitch);
+                var dot = new Border { Width = 10, Height = 10, CornerRadius = new CornerRadius(5), Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center,
+                    Background = new CalendarEvent { Color = c.Color }.Brush };
+                DockPanel.SetDock(dot, Dock.Left);
+                line.Children.Add(dot);
+                line.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Base"), Text = c.Name, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+                CalendarRows.Children.Add(line);
+            }
         }
         if (_ctx.S.CalendarAccounts.Count == 0)
             CalendarRows.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Desc"), Margin = new Thickness(0, 0, 0, 8),

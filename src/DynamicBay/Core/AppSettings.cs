@@ -50,6 +50,8 @@ public sealed class CalendarAccount
     public string Url { get; set; } = "";       // ICS link or CalDAV server
     public string User { get; set; } = "";      // Apple ID / Google client id
     public bool Enabled { get; set; } = true;
+    /// <summary>Calendars of this account the user switched off (CalDAV URL or Google calendar id).</summary>
+    public List<string> Hidden { get; set; } = new();
 }
 
 /// <summary>All user settings. Flat on purpose: binds directly into the settings window and serializes as one JSON file.</summary>

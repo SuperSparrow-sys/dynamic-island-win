@@ -65,8 +65,16 @@ public sealed partial class DayCell : ObservableObject
 /// Merges events from all connected calendars: ICS links (Outlook, Google secret address, iCloud public),
 /// iCloud via CalDAV (Apple ID + app-specific password) and Google via OAuth.
 /// </summary>
+/// <summary>One calendar inside an account (for the on/off list in the settings).</summary>
+public sealed record CalendarInfo(string Id, string Name, string? Color);
+
 public sealed partial class CalendarService : ObservableObject
 {
+    private readonly Dictionary<string, List<CalendarInfo>> _calendarsOf = new();
+
+    /// <summary>The calendars found in this account at the last refresh (empty for ICS links or before the first refresh).</summary>
+    public IReadOnlyList<CalendarInfo> CalendarsOf(CalendarAccount a) => _calendarsOf.TryGetValue(a.Id, out var l) ? l : Array.Empty<CalendarInfo>();
+
     private readonly AppSettings _settings;
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(20) };
     private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromMinutes(10) };
@@ -153,7 +161,21 @@ public sealed partial class CalendarService : ObservableObject
         foreach (var d in Week) d.HasEvents = _all.Any(e => e.IsOn(d.Date));
     }
 
+    private bool _refreshing, _refreshAgain;
+
+    /// <summary>One refresh at a time; changes during a refresh (several settings events in a row) run once more afterwards.</summary>
     public async Task RefreshAsync()
+    {
+        if (_refreshing) { _refreshAgain = true; return; }
+        _refreshing = true;
+        try
+        {
+            do { _refreshAgain = false; await RefreshCoreAsync(); } while (_refreshAgain);
+        }
+        finally { _refreshing = false; }
+    }
+
+    private async Task RefreshCoreAsync()
     {
         var accounts = _settings.CalendarAccounts.Where(a => a.Enabled).ToList();
         IsConfigured = accounts.Count > 0;
@@ -203,7 +225,10 @@ public sealed partial class CalendarService : ObservableObject
                 // The calendar list rarely changes: discover it every 6 hours, not on every refresh.
                 if (!_discovered.TryGetValue(a.Id, out var known) || DateTime.Now - known.at > TimeSpan.FromHours(6))
                     _discovered[a.Id] = known = (DateTime.Now, await client.DiscoverAsync());
-                var blobs = await Task.WhenAll(known.calendars.Select(async cal => (cal, items: await client.FetchAsync(cal.Url, from, to))));
+                _calendarsOf[a.Id] = known.calendars.Select(c => new CalendarInfo(c.Url.ToString(), c.Name, c.Color)).ToList();
+                // Switched-off calendars are not even fetched.
+                var shown = known.calendars.Where(c => !a.Hidden.Contains(c.Url.ToString()));
+                var blobs = await Task.WhenAll(shown.Select(async cal => (cal, items: await client.FetchAsync(cal.Url, from, to))));
                 var list = new List<CalendarEvent>();
                 foreach (var (cal, items) in blobs)
                     foreach (var blob in items) list.AddRange(Parse(blob, from, to, cal.Color));
@@ -212,7 +237,8 @@ public sealed partial class CalendarService : ObservableObject
             case CalendarKind.Google:
             {
                 var client = new GoogleCalendarClient(a.User, SecretStore.Get($"cal:{a.Id}:secret") ?? "", SecretStore.Get($"cal:{a.Id}:refresh"));
-                var list = await client.FetchAsync(from, to);
+                var list = await client.FetchAsync(from, to, a.Hidden);
+                _calendarsOf[a.Id] = client.Calendars.Select(c => new CalendarInfo(c.id, c.name, c.color)).ToList();
                 if (client.RefreshToken is not null) SecretStore.Set($"cal:{a.Id}:refresh", client.RefreshToken);
                 return list;
             }

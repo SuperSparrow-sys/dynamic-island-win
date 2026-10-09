@@ -99,12 +99,19 @@ public sealed class GoogleCalendarClient
         return await resp.Content.ReadAsStringAsync();
     }
 
-    public async Task<List<CalendarEvent>> FetchAsync(DateTime from, DateTime to)
+    /// <summary>All calendars of the account (id, name, colour), filled by <see cref="FetchAsync"/>.</summary>
+    public List<(string id, string name, string? color)> Calendars { get; } = new();
+
+    public async Task<List<CalendarEvent>> FetchAsync(DateTime from, DateTime to, ICollection<string>? hidden = null)
     {
         await EnsureTokenAsync();
         var list = JsonNode.Parse(await GetAsync("users/me/calendarList?minAccessRole=reader"));
         var events = new List<CalendarEvent>();
-        var calendars = (list?["items"]?.AsArray() ?? new JsonArray()).Where(c => c is not null && c["selected"]?.GetValue<bool>() != false).ToList();
+        var all = (list?["items"]?.AsArray() ?? new JsonArray()).Where(c => c is not null && c["selected"]?.GetValue<bool>() != false).ToList();
+        foreach (var c in all)
+            Calendars.Add((c!["id"]!.ToString(), c["summaryOverride"]?.ToString() ?? c["summary"]?.ToString() ?? c["id"]!.ToString(), c["backgroundColor"]?.ToString()));
+        // Switched-off calendars are not even fetched.
+        var calendars = all.Where(c => hidden is null || !hidden.Contains(c!["id"]!.ToString())).ToList();
         // All calendars at once instead of one after another.
         var pages = await Task.WhenAll(calendars.Select(async cal =>
         {
