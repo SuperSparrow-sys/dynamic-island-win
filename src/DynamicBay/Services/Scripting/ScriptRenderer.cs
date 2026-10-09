@@ -204,6 +204,8 @@ public static class ScriptRenderer
     {
         if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp)) return;
         el.Cursor = Cursors.Hand;
+        // Take the press, otherwise the island captures the mouse (to move) and the release never arrives here.
+        el.MouseLeftButtonDown += (_, e) => e.Handled = true;
         el.MouseLeftButtonUp += (_, e) =>
         {
             e.Handled = true;

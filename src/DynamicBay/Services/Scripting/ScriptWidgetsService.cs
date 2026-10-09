@@ -76,6 +76,8 @@ public sealed class ScriptWidgetsService
         RunDue();
     }
 
+    public ScriptWidgetConfig? ConfigOf(string id) => _settings.ScriptWidgets.FirstOrDefault(c => c.Id == id);
+
     public ScriptResult? Get(string id, string family) => _results.TryGetValue((id, family), out var r) ? r : null;
 
     /// <summary>Short status for the settings: "OK · 21:05" or the error.</summary>

@@ -48,6 +48,9 @@ public sealed class ScriptWidgetView : ContentControl
         }
         if (r.RanAt == _shown && Content is not null) return;
         _shown = r.RanAt;
+        // Hover: which script, when it last ran, or what went wrong.
+        var cfg = s.ConfigOf(ScriptId);
+        ToolTip = cfg is null ? null : $"{cfg.Name} · {s.StatusOf(cfg)}";
         try
         {
             Content = r.Widget is not null ? ScriptRenderer.Build(r.Widget, Family, Vertical)
