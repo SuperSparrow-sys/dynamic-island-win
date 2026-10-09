@@ -114,6 +114,7 @@ public partial class App : Application
         calendar.Start();
         await media.InitAsync();
         await spotify.InitAsync();
+        _vm.Claude.Start();
         await notifications.StartAsync();
         if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands);
     }
@@ -245,6 +246,27 @@ public partial class App : Application
             Icon = Icon("Icon.Calendar"), IconBrush = Res("B.Red"), IconBackground = Tint("B.Red", 0x2E),
             Title = ev.Title, Subtitle = $"{Loc.T("Cal.Starting")} · {ev.Start:HH:mm}",
             Trailing = calendar.SoonText, TrailingBrush = Res("B.Red"), Seconds = 5,
+        });
+
+        var claudeTint = new SolidColorBrush(Color.FromArgb(0x33, 0xD9, 0x77, 0x57));
+        var claudeColor = new SolidColorBrush(Color.FromRgb(0xD9, 0x77, 0x57));
+        claudeTint.Freeze(); claudeColor.Freeze();
+        _vm!.Claude.Finished += s => island.ShowPeek(new PeekItem
+        {
+            Icon = Icon("Icon.Sparkles"), IconBrush = claudeColor, IconBackground = claudeTint,
+            Title = Loc.German ? "Claude ist fertig" : "Claude is done",
+            Subtitle = $"{s.Project} · {s.Title}",
+            Seconds = 4,
+            OnClick = () => _vm.Claude.Resume(s),
+        });
+        _vm.Claude.NeedsInput += (s, message) => island.ShowPeek(new PeekItem
+        {
+            Icon = Icon("Icon.Sparkles"), IconBrush = Res("B.Orange"), IconBackground = Tint("B.Orange", 0x2E),
+            Title = Loc.German ? "Claude braucht dich" : "Claude needs you",
+            Subtitle = string.IsNullOrWhiteSpace(message) ? s.Project : message,
+            Priority = PeekPriority.High,
+            Seconds = 6,
+            OnClick = () => _vm.Claude.Resume(s),
         });
 
         shelf.FilesAdded += count => island.ShowPeek(new PeekItem

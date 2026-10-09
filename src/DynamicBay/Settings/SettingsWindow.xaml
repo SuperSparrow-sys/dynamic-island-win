@@ -180,6 +180,28 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Style="{StaticResource ST.Group}" Text="Claude" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Live-Status der Agenten', En='Live agent status'}"
+                                            ToolTip="{core:L De='Ergänzt deine Claude-Code-Einstellungen um Hooks. Dann zeigt die Insel sofort, wenn Claude arbeitet, fertig ist oder deine Freigabe braucht. Eine Sicherung deiner settings.json wird angelegt.', En='Adds hooks to your Claude Code settings so the island shows instantly when Claude is working, done or needs your approval. A backup of your settings.json is created.'}">
+                                <Grid>
+                                    <Button Style="{StaticResource S.AccentButton}" Command="{Binding I.Claude.InstallHooksCommand}" Content="{core:L De='Einrichten', En='Set up'}"
+                                            Visibility="{Binding I.Claude.HooksInstalled, Converter={StaticResource NotVis}}" />
+                                    <Button Style="{StaticResource S.Button}" Command="{Binding I.Claude.RemoveHooksCommand}" Content="{core:L De='Entfernen', En='Remove'}"
+                                            Visibility="{Binding I.Claude.HooksInstalled, Converter={StaticResource Vis}}" />
+                                </Grid>
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Sitzungen aller PCs anzeigen', En='Show sessions of all PCs'}"
+                                            ToolTip="{core:L De='Jeder PC mit DynamicBay legt Titel, Projekt, Status und Remote-Control-Link seiner Sitzungen in diesen Cloud-Ordner. So siehst du alle und öffnest sie per Remote Control. Keine Zugangsdaten.', En='Every PC running DynamicBay stores title, project, status and Remote Control link of its sessions in this cloud folder, so you see them all and open them via Remote Control. No credentials.'}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="ClaudeShareText" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" Margin="0,0,10,0" MaxWidth="220" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    <Button Style="{StaticResource S.Button}" Click="PickClaudeShare_Click" Content="{core:L De='Ordner wählen', En='Choose folder'}" />
+                                </StackPanel>
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='In der kompakten Insel', En='In the compact island'}" />
                     <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" Text="{core:L De='Was nebeneinander in der Insel erscheinen darf, solange es aktiv ist.', En='What may appear side by side in the island while it is active.'}" />
                     <Border Style="{StaticResource S.Card}">

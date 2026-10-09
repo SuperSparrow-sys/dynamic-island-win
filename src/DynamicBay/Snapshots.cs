@@ -91,6 +91,12 @@ public static class Snapshots
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8b-widgets-dark.png"), compact: true);
                 settings.AppIcons = AppIconStyle.Mono;
                 await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-9-compact-clock.png"), compact: true);
+
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.Claude, Widgets.Media, Widgets.Shortcuts }) settings.HomeWidgets.Add(w);
+                vm.Claude.Start();
+                await Task.Delay(800);
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-10-claude.png"), compact: true);
                 settings.CompactItems.Remove(Widgets.Clock);
                 settings.HomeWidgets.Clear();
                 foreach (var w in saved) settings.HomeWidgets.Add(w);

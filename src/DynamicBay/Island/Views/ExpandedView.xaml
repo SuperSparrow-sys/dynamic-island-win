@@ -434,6 +434,80 @@
                     </DockPanel>
                 </Border>
 
+                <!-- Claude Code sessions + quick actions -->
+                <Border x:Name="ClaudeCard" Style="{StaticResource Card}" Padding="10">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Claude.OpenDesktopCommand}" ToolTip="Claude Desktop">
+                                    <c:Icon Data="{StaticResource Icon.AppWindow}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                                </Button>
+                                <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Claude.OpenWebCommand}" ToolTip="claude.ai/code">
+                                    <c:Icon Data="{StaticResource Icon.Globe}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <c:Icon Data="{StaticResource Icon.Sparkles}" Width="14" Height="14" Foreground="#FFD97757" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="Claude" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Grid Margin="0,6,0,0">
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                       Text="{core:L De='Keine Claude-Code-Sitzungen gefunden', En='No Claude Code sessions found'}"
+                                       Visibility="{Binding Claude.Sessions.Count, Converter={StaticResource NotVis}}" />
+                            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Claude.Sessions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type s:ClaudeSession}">
+                                        <Grid Margin="0,0,0,5" Background="Transparent" Cursor="Hand" ToolTip="{Binding LastPrompt}">
+                                            <Grid.InputBindings>
+                                                <MouseBinding Gesture="LeftClick" CommandParameter="{Binding}"
+                                                              Command="{Binding DataContext.Claude.ResumeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                            </Grid.InputBindings>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <!-- Remote Control: open this session in the browser / Claude app -->
+                                            <Button Grid.Column="2" Style="{StaticResource Btn.Icon}" Width="22" Height="22" VerticalAlignment="Top" ToolTip="Remote Control"
+                                                    Visibility="{Binding HasRemote, Converter={StaticResource Vis}}" CommandParameter="{Binding}"
+                                                    Command="{Binding DataContext.Claude.OpenRemoteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                                <c:Icon Data="{StaticResource Icon.Globe}" Width="11" Height="11" Foreground="{StaticResource B.Text2}" />
+                                            </Button>
+                                            <!-- status: orange pulsing = working, amber = waiting for you, grey = idle -->
+                                            <Ellipse x:Name="Dot" Width="7" Height="7" Margin="1,5,8,0" VerticalAlignment="Top" Fill="{StaticResource B.Text3}" />
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Style="{StaticResource T.Title}" FontSize="11.5" Text="{Binding Title}" />
+                                                <TextBlock Style="{StaticResource T.Section}" FontWeight="Medium">
+                                                    <Run Text="{Binding Where, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Age, Mode=OneWay}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsWorking}" Value="True">
+                                                <Setter TargetName="Dot" Property="Fill" Value="#FFD97757" />
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard x:Name="Pulse">
+                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                            <DoubleAnimation Storyboard.TargetName="Dot" Storyboard.TargetProperty="Opacity" From="1" To="0.3" Duration="0:0:0.8" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
+                                                <DataTrigger.ExitActions><StopStoryboard BeginStoryboardName="Pulse" /></DataTrigger.ExitActions>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsWaiting}" Value="True">
+                                                <Setter TargetName="Dot" Property="Fill" Value="{StaticResource B.Orange}" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
                 <!-- Shortcuts (pinned apps / folders) -->
                 <Border x:Name="ShortcutsCard" Style="{StaticResource Card}" Padding="10" AllowDrop="True" Drop="Shortcuts_Drop">
                     <DockPanel>

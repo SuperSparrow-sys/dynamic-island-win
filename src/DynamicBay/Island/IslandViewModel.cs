@@ -67,6 +67,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public ClockService Clock { get; }
     public SystemService System { get; }
     public ShortcutsService Shortcuts { get; }
+    public ClaudeService Claude { get; }
+    [ObservableProperty] private bool _showClaude;
 
     public event Action? OpenSettingsRequested;
     public event Action? HideRequested;
@@ -81,12 +83,14 @@ public sealed partial class IslandViewModel : ObservableObject
         Clock = new ClockService(settings);
         System = new SystemService();
         Shortcuts = new ShortcutsService(settings);
+        Claude = new ClaudeService(settings);
 
         PropertyChangedEventHandler recompute = (_, _) => RecomputeCompact();
         Media.PropertyChanged += recompute;
         Timer.PropertyChanged += recompute;
         Calendar.PropertyChanged += recompute;
         Battery.PropertyChanged += recompute;
+        Claude.PropertyChanged += recompute;
         Settings.PropertyChanged += recompute;
         RecomputeCompact();
     }
@@ -98,13 +102,14 @@ public sealed partial class IslandViewModel : ObservableObject
         bool timer = s.TimerEnabled && s.HasCompact(Widgets.Timer) && Timer.IsActive;
         bool cal = s.CalendarEnabled && s.HasCompact(Widgets.Calendar) && Calendar.IsSoon;
         bool low = s.BatteryEnabled && s.HasCompact(Widgets.Battery) && Battery.IsLow;
-        bool activities = media || timer || cal || low;
+        bool claude = s.HasCompact(Widgets.Claude) && (Claude.AnyWorking || Claude.AnyWaiting);
+        bool activities = media || timer || cal || low || claude;
         // The clock shows either as a permanent segment, or as the idle face when nothing else is going on.
         bool clock = s.HasCompact(Widgets.Clock) || (s.Idle == IdleStyle.Clock && !activities);
         bool any = activities || clock;
         bool changed = media != ShowMedia || timer != ShowTimer || cal != ShowCalendar || low != ShowBatteryLow
-                       || clock != ShowClock || any != HasCompact;
-        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; HasCompact = any;
+                       || clock != ShowClock || claude != ShowClaude || any != HasCompact;
+        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; ShowClaude = claude; HasCompact = any;
         if (changed) CompactChanged?.Invoke();
     }
 

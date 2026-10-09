@@ -53,6 +53,7 @@ public partial class SettingsWindow : Window
         BuildCompactRows();
         BuildCalendarRows();
         BuildBannerRows();
+        UpdateClaudeShareText();
         vm.Calendar.StatusChanged += () => Dispatcher.BeginInvoke(BuildCalendarRows);
     }
 
@@ -95,6 +96,7 @@ public partial class SettingsWindow : Window
         (Widgets.Timer, "Icon.Timer", "Timer", "Timer", "Timer und Fokus-Sitzungen", "Timers and focus sessions"),
         (Widgets.System, "Icon.Sliders", "System", "System", "CPU- und Speicherauslastung", "CPU and memory load"),
         (Widgets.Shortcuts, "Icon.AppWindow", "Schnellstart", "Launcher", "Angepinnte Apps und Ordner", "Pinned apps and folders"),
+        (Widgets.Claude, "Icon.Sparkles", "Claude", "Claude", "Claude-Code-Sitzungen und Agenten-Status", "Claude Code sessions and agent status"),
         (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
     };
 
@@ -105,6 +107,7 @@ public partial class SettingsWindow : Window
         (Widgets.Calendar, "Icon.Calendar", "Termin beginnt bald", "Event starting soon"),
         (Widgets.Battery, "Icon.BatteryLow", "Akku schwach", "Low battery"),
         (Widgets.Clock, "Icon.Clock", "Uhrzeit (immer)", "Time (always)"),
+        (Widgets.Claude, "Icon.Sparkles", "Claude arbeitet oder wartet", "Claude working or waiting"),
     };
 
     private void BuildWidgetRows()
@@ -161,6 +164,27 @@ public partial class SettingsWindow : Window
         };
         b.Click += (_, _) => click();
         return b;
+    }
+
+    // ---- claude ----
+
+    private void UpdateClaudeShareText() =>
+        ClaudeShareText.Text = string.IsNullOrEmpty(_ctx.S.ClaudeShareFolder) ? (Loc.German ? "Aus" : "Off") : _ctx.S.ClaudeShareFolder;
+
+    private void PickClaudeShare_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu { PlacementTarget = (UIElement)sender };
+        var off = new MenuItem { Header = Loc.German ? "Aus" : "Off" };
+        off.Click += (_, _) => { _ctx.S.ClaudeShareFolder = ""; UpdateClaudeShareText(); };
+        menu.Items.Add(off);
+        foreach (var t in CloudTargets.Detect())
+        {
+            var item = new MenuItem { Header = t.Name };
+            string root = t.Root;
+            item.Click += (_, _) => { _ctx.S.ClaudeShareFolder = root; UpdateClaudeShareText(); };
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
     }
 
     // ---- banner suppression ----

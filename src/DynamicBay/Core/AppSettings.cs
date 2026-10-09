@@ -14,10 +14,10 @@ public enum IdleStyle { Bar, Clock, Hidden }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger";
-    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger };
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude };
     public const string Battery = "battery";
-    public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock };
+    public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude };
 }
 public enum AccentSource { Cover, Windows, Custom }
 public enum DisplayMode { Single, Mirror }
@@ -54,7 +54,7 @@ public sealed partial class AppSettings : ObservableObject
 
     // Customizable layout
     private ObservableCollection<string> _homeWidgets = new() { Widgets.Media, Widgets.Calendar, Widgets.Timer };
-    private ObservableCollection<string> _compactItems = new() { Widgets.Media, Widgets.Timer, Widgets.Calendar, Widgets.Battery };
+    private ObservableCollection<string> _compactItems = new() { Widgets.Media, Widgets.Timer, Widgets.Calendar, Widgets.Battery, Widgets.Claude };
     private ObservableCollection<string> _shortcuts = new();
 
     public ObservableCollection<string> HomeWidgets { get => _homeWidgets; set => Hook(ref _homeWidgets, value, nameof(HomeWidgets)); }
@@ -109,6 +109,7 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _clock24h = true;
     [ObservableProperty] private bool _clockSeconds;
     [ObservableProperty] private AppIconStyle _appIcons = AppIconStyle.Mono;
+    [ObservableProperty] private string _claudeShareFolder = "";
 
     // Layer and visibility
     [ObservableProperty] private LayerMode _layer = LayerMode.Floating;

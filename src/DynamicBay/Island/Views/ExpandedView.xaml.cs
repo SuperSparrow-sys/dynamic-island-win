@@ -20,7 +20,7 @@ public partial class ExpandedView : UserControl
     {
         InitializeComponent();
         // The optional cards live in the home grid too; they're shown/positioned by LayoutHome.
-        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard })
+        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard })
         {
             ExtraCards.Children.Remove(card);
             HomeGrid.Children.Add(card);
@@ -34,6 +34,7 @@ public partial class ExpandedView : UserControl
             [Core.Widgets.System] = SystemCard,
             [Core.Widgets.Shortcuts] = ShortcutsCard,
             [Core.Widgets.Messenger] = MessengerCard,
+            [Core.Widgets.Claude] = ClaudeCard,
         };
         DataContextChanged += (_, _) =>
         {
@@ -71,7 +72,7 @@ public partial class ExpandedView : UserControl
         HomeGrid.RowDefinitions.Clear();
         if (enabled.Count == 0) return;
 
-        static double Weight(string id) => id switch { "media" => 2.15, "messenger" => 1.6, "shortcuts" => 1.3, _ => 1 };
+        static double Weight(string id) => id switch { "media" => 2.15, "messenger" => 1.6, "claude" => 1.6, "shortcuts" => 1.3, _ => 1 };
 
         if (!_vertical)
         {
@@ -115,7 +116,7 @@ public partial class ExpandedView : UserControl
         Vm?.System.SetActive(IsVisible && enabled.Contains(Core.Widgets.System));
     }
 
-    private static bool IsWide(string id) => id is "media" or "messenger";
+    private static bool IsWide(string id) => id is "media" or "messenger" or "claude";
 
     private static void Place(Border card, int row, int col, int span)
     {
