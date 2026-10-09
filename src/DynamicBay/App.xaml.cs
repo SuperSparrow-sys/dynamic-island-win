@@ -148,6 +148,7 @@ public partial class App : Application
         if (_settings.AudioEnabled) _vm.Audio.Start();
         bluetooth.Start();
         calendar.Start();
+        _vm.Scripts.Start();
         await Next();
         await notifications.StartAsync();
         await Next();

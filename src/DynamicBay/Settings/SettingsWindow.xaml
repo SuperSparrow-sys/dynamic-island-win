@@ -148,6 +148,27 @@
                         <StackPanel x:Name="WidgetRows" />
                     </Border>
 
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Eigene Widgets (Skripte)', En='Own widgets (scripts)'}" />
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" TextWrapping="Wrap"
+                               Text="{core:L De='JavaScript wie bei Scriptable auf dem iPhone: vorhandene Scriptable-Widgets laufen mit kleinen Anpassungen. Skripte laufen geschützt, ohne Zugriff auf Windows oder deine Dateien, nur Internetabfragen und ein eigener Ordner sind erlaubt. Speichern im Editor aktualisiert das Widget sofort. Nur Mini: die Karte oben in der Liste ausschalten.', En='JavaScript like Scriptable on the iPhone: existing Scriptable widgets run with small changes. Scripts run sandboxed, without access to Windows or your files; only web requests and their own folder are allowed. Saving in the editor updates the widget right away. Mini only: switch the card off in the list above.'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <StackPanel x:Name="ScriptRows" />
+                            <WrapPanel Margin="16,12,16,12">
+                                <Button Style="{StaticResource S.AccentButton}" Margin="0,0,8,4" Click="NewScript_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Neues Skript', En='New script'}" /></StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource S.Button}" Margin="0,0,8,4" Click="ImportScript_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Code}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Skript hinzufügen…', En='Add script…'}" /></StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource S.Button}" Margin="0,0,8,4" Click="OpenScriptFolder_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.FolderOpen}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Ordner öffnen', En='Open folder'}" /></StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource S.Link}" Margin="4,0,0,4" VerticalAlignment="Center" Click="ScriptHelp_Click" Content="{core:L De='Anleitung', En='Guide'}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Schnellstart-Apps', En='Launcher apps'}" />
                     <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" Text="{core:L De='Nur die Apps, die du hier auswählst, erscheinen im Schnellstart-Widget. Auch Store-Apps wie WhatsApp oder Discord.', En='Only the apps you pick here appear in the launcher widget. Store apps like WhatsApp or Discord work too.'}" />
                     <Border Style="{StaticResource S.Card}" Padding="16,12">

@@ -41,7 +41,7 @@ public partial class ExpandedView : UserControl
             if (Vm is null) return;
             Vm.Settings.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled)) LayoutHome();
+                if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled) or nameof(Core.AppSettings.ScriptWidgets)) LayoutHome();
                 if (e.PropertyName is nameof(Core.AppSettings.ShowTrayTab) or nameof(Core.AppSettings.ShowNotificationsTab)) EnsureVisibleTab();
             };
             LayoutHome();
@@ -66,6 +66,7 @@ public partial class ExpandedView : UserControl
     /// </summary>
     private void LayoutHome()
     {
+        SyncScriptCards();
         var enabled = (Vm?.Settings.HomeWidgets ?? new System.Collections.ObjectModel.ObservableCollection<string> { "media", "calendar", "timer" })
             .Where(_widgets.ContainsKey).Where(id => id != Core.Widgets.Claude || Vm?.Settings.ClaudeEnabled != false).Distinct().ToList();
         foreach (var (id, card) in _widgets) card.Visibility = enabled.Contains(id) ? Visibility.Visible : Visibility.Collapsed;
@@ -73,7 +74,8 @@ public partial class ExpandedView : UserControl
         HomeGrid.RowDefinitions.Clear();
         if (enabled.Count == 0) return;
 
-        static double Weight(string id) => id switch { "media" => 2.15, "messenger" => 1.6, "claude" => 1.6, "shortcuts" => 1.3, _ => 1 };
+        double Weight(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 2.15 : 1)
+            : id switch { "media" => 2.15, "messenger" => 1.6, "claude" => 1.6, "shortcuts" => 1.3, _ => 1 };
 
         if (!_vertical)
         {
@@ -122,12 +124,53 @@ public partial class ExpandedView : UserControl
         FitHomeToViewport();
     }
 
-    private static bool IsWide(string id) => id is "media" or "messenger" or "claude";
+    private bool IsWide(string id) => id is "media" or "messenger" or "claude" || ScriptOf(id)?.Size == Core.ScriptSize.Large;
 
-    private static double MinWidthOf(string id) => id switch
+    private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id switch
     {
         "media" => 300, "messenger" or "claude" => 230, "shortcuts" => 170, "calendar" => 160, _ => 150,
     };
+
+    // ---- script widgets ----
+
+    private Core.ScriptWidgetConfig? ScriptOf(string id) =>
+        id.StartsWith(Core.Widgets.ScriptPrefix) ? Vm?.Settings.ScriptWidgets.FirstOrDefault(s => s.HomeId == id) : null;
+
+    /// <summary>One card per script widget (created on demand, removed with the script); its size follows the setting.</summary>
+    private void SyncScriptCards()
+    {
+        if (Vm is null) return;
+        var scripts = Vm.Settings.ScriptWidgets.ToList();
+        foreach (var id in _widgets.Keys.Where(k => k.StartsWith(Core.Widgets.ScriptPrefix) && scripts.All(s => s.HomeId != k)).ToList())
+        {
+            HomeGrid.Children.Remove(_widgets[id]);
+            _widgets.Remove(id);
+        }
+        foreach (var sc in scripts)
+        {
+            string family = Services.Scripting.ScriptWidgetsService.FamilyOf(sc.Size);
+            if (_widgets.TryGetValue(sc.HomeId, out var card))
+            {
+                if (card.Child is Services.Scripting.ScriptWidgetView v) v.Family = family;
+                continue;
+            }
+            // Same card frame as the built-in widgets; the script draws edge to edge inside it.
+            card = new Border
+            {
+                Style = (Style)FindResource("Card"),
+                Padding = new Thickness(0),
+                ClipToBounds = true,
+                Child = new Services.Scripting.ScriptWidgetView { ScriptId = sc.Id, Family = family },
+            };
+            card.SizeChanged += (s, _) =>
+            {
+                var b = (Border)s;
+                b.Clip = new System.Windows.Media.RectangleGeometry(new Rect(b.RenderSize), b.CornerRadius.TopLeft, b.CornerRadius.TopLeft);
+            };
+            _widgets[sc.HomeId] = card;
+            HomeGrid.Children.Add(card);
+        }
+    }
 
     // ---- Nook scrolling ----
 

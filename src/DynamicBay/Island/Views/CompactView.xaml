@@ -2,7 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:DynamicBay.Controls"
-             xmlns:core="clr-namespace:DynamicBay.Core">
+             xmlns:core="clr-namespace:DynamicBay.Core"
+             xmlns:sc="clr-namespace:DynamicBay.Services.Scripting">
     <UserControl.Resources>
         <c:BoolToVis x:Key="Vis" />
         <c:BoolToVis x:Key="NotVis" Invert="True" />
@@ -104,6 +105,20 @@
                 <TextBlock Style="{StaticResource T.Numeric}" FontSize="10" HorizontalAlignment="Center" Text="{Binding Clock.Time}" />
             </StackPanel>
         </Grid>
+
+        <!-- Own script widgets: their one-line "Mini" version -->
+        <ItemsControl x:Name="ScriptsSeg" Visibility="{Binding ShowScripts, Converter={StaticResource Vis}}" ItemsSource="{Binding Scripts.CompactIds}"
+                      VerticalAlignment="Center" HorizontalAlignment="Center" Tag="False">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <sc:ScriptWidgetView ScriptId="{Binding}" Family="accessoryInline" Margin="5" MaxWidth="160" VerticalAlignment="Center"
+                                         Vertical="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
         <!-- Battery low -->
         <Grid Visibility="{Binding ShowBatteryLow, Converter={StaticResource Vis}}">

@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Jint" Version="4.17.0" />
     <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="Ical.Net" Version="4.2.0" />
@@ -40,6 +41,7 @@
     <Resource Include="Assets\DynamicBay.ico" />
     <Resource Include="Assets\DynamicBay.png" />
     <EmbeddedResource Include="Assets\AppIcons.json.gz" LogicalName="DynamicBay.Assets.AppIcons.json.gz" />
+    <EmbeddedResource Include="Services\Scripting\ScriptPrelude.js" LogicalName="DynamicBay.Scripting.Prelude.js" />
     <Content Include="Assets\Fonts\Inter-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <!-- Logos of the identity (sparse) package: Windows loads them from the install folder (taskbar, settings). -->
     <Content Include="Assets\Package\*.png" Link="Assets\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

@@ -15,6 +15,9 @@ public partial class CompactView : UserControl
         var h = vertical ? Visibility.Collapsed : Visibility.Visible;
         var v = vertical ? Visibility.Visible : Visibility.Collapsed;
         MediaH.Visibility = TimerH.Visibility = CalH.Visibility = BatH.Visibility = ClockH.Visibility = ClaudeH.Visibility = StatusH.Visibility = h;
+        ScriptsSeg.Tag = vertical;
+        ScriptsSeg.ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(StackPanel)) { });
+        ((FrameworkElementFactory)ScriptsSeg.ItemsPanel.VisualTree).SetValue(StackPanel.OrientationProperty, vertical ? Orientation.Vertical : Orientation.Horizontal);
         MediaV.Visibility = TimerV.Visibility = CalV.Visibility = BatV.Visibility = ClockV.Visibility = ClaudeV.Visibility = StatusV.Visibility = v;
     }
 }

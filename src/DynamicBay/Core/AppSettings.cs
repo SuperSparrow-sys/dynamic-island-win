@@ -18,11 +18,28 @@ public static class Widgets
     public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude };
     public const string Battery = "battery";
     public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic };
+    /// <summary>Home widget ids of user scripts: "script:{id}".</summary>
+    public const string ScriptPrefix = "script:";
 }
 public enum AccentSource { Cover, Windows, Custom }
 public enum DisplayMode { Single, Mirror }
 public enum AppIconStyle { Mono, Dark, Color, Original }
 public enum CalendarKind { Ics, ICloud, Google }
+
+public enum ScriptSize { Small, Large }
+
+/// <summary>A user script widget (JavaScript, Scriptable-style API) - see docs/SCRIPTS.md. The code lives in scripts{File}.</summary>
+public sealed class ScriptWidgetConfig
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N")[..10];
+    public string Name { get; set; } = "";
+    public string File { get; set; } = "";
+    public ScriptSize Size { get; set; } = ScriptSize.Large;
+    /// <summary>Also show the one-line "Mini" version in the compact island.</summary>
+    public bool ShowInCompact { get; set; }
+    public bool AllowNetwork { get; set; } = true;
+    public string HomeId => Widgets.ScriptPrefix + Id;
+}
 
 /// <summary>A connected calendar. Secrets (passwords, tokens) live in <see cref="SecretStore"/> under "cal:{Id}:*".</summary>
 public sealed class CalendarAccount
@@ -73,6 +90,7 @@ public sealed partial class AppSettings : ObservableObject
         _compactItems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CompactItems));
         _shortcuts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Shortcuts));
         _calendarAccounts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CalendarAccounts));
+        _scriptWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ScriptWidgets));
         _suppressBannerApps.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SuppressBannerApps));
     }
 
@@ -85,6 +103,21 @@ public sealed partial class AppSettings : ObservableObject
     }
 
     public bool HasCompact(string id) => CompactItems.Contains(id);
+
+    private ObservableCollection<ScriptWidgetConfig> _scriptWidgets = new();
+    public ObservableCollection<ScriptWidgetConfig> ScriptWidgets
+    {
+        get => _scriptWidgets;
+        set
+        {
+            _scriptWidgets = value ?? new();
+            _scriptWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ScriptWidgets));
+            OnPropertyChanged(nameof(ScriptWidgets));
+        }
+    }
+
+    /// <summary>A script widget changed in place (size, Mini): tell the island and save.</summary>
+    public void ScriptWidgetsChanged() { OnPropertyChanged(nameof(ScriptWidgets)); SaveSoon(); }
 
     private ObservableCollection<CalendarAccount> _calendarAccounts = new();
     public ObservableCollection<CalendarAccount> CalendarAccounts

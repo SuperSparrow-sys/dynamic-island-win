@@ -90,7 +90,7 @@ public partial class IslandWindow : Window
         _layerAnim.Updated += ApplyLayers;
 
         _peekTimer.Tick += (_, _) => NextPeek();
-        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !_dragging && !ShowsQuestion && !_hoverBlocked) SetExpanded(true); };
+        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !_dragging && !ShowsQuestion && !_hoverBlocked && !_snapshotMode) SetExpanded(true); };
         _collapseTimer.Tick += (_, _) => { _collapseTimer.Stop(); TryCollapse(); };
         _dropLeaveTimer.Tick += (_, _) => { _dropLeaveTimer.Stop(); _dropActive = false; Refresh(); };
         _watchdog.Tick += (_, _) => Watchdog();

@@ -1,0 +1,13 @@
+{
+  "titel": "Raumklima",
+  "wert": 21.4,
+  "einheit": "°C",
+  "trend": "steigend",
+  "zeilen": [
+    { "name": "Wohnzimmer", "wert": 21.4 },
+    { "name": "Küche", "wert": 22.1 },
+    { "name": "Büro", "wert": 19.8 },
+    { "name": "Bad", "wert": 23.0 }
+  ],
+  "stand": "09.10. 21:00"
+}

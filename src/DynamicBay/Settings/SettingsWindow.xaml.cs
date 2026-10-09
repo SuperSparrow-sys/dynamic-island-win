@@ -54,6 +54,10 @@ public partial class SettingsWindow : Window
         };
         UpdatePreview();
         BuildWidgetRows();
+        BuildScriptRows();
+        Action<string> scriptsUpdated = _ => Dispatcher.BeginInvoke(BuildScriptRows);
+        vm.Scripts.Updated += scriptsUpdated;
+        Closed += (_, _) => vm.Scripts.Updated -= scriptsUpdated;
         BuildCompactRows();
         BuildCalendarRows();
         BuildBannerRows();
@@ -118,16 +122,21 @@ public partial class SettingsWindow : Window
         (Widgets.Muted, "Icon.VolumeOff", "Ton aus", "Sound off"),
     };
 
+    /// <summary>Built-in widgets plus the user's script widgets.</summary>
+    private (string id, string icon, string de, string en, string descDe, string descEn)[] AllWidgetInfo() =>
+        HomeWidgetInfo.Concat(_ctx.S.ScriptWidgets.Select(sc => (sc.HomeId, "Icon.Code", sc.Name, sc.Name, "Eigenes Skript-Widget", "Own script widget"))).ToArray();
+
     private void BuildWidgetRows()
     {
         var s = _ctx.S;
+        var infos = AllWidgetInfo();
         WidgetRows.Children.Clear();
         // Enabled widgets first (in their order), then the rest.
-        var ordered = s.HomeWidgets.Where(id => HomeWidgetInfo.Any(w => w.id == id))
-            .Concat(HomeWidgetInfo.Select(w => w.id).Where(id => !s.HomeWidgets.Contains(id))).ToList();
+        var ordered = s.HomeWidgets.Where(id => infos.Any(w => w.id == id))
+            .Concat(infos.Select(w => w.id).Where(id => !s.HomeWidgets.Contains(id))).ToList();
         for (int i = 0; i < ordered.Count; i++)
         {
-            var info = HomeWidgetInfo.First(w => w.id == ordered[i]);
+            var info = infos.First(w => w.id == ordered[i]);
             bool on = s.HomeWidgets.Contains(info.id);
             int pos = s.HomeWidgets.IndexOf(info.id);
 
@@ -149,6 +158,95 @@ public partial class SettingsWindow : Window
 
             WidgetRows.Children.Add(Row(info.icon, Loc.German ? info.de : info.en, Loc.German ? info.descDe : info.descEn, controls, i > 0));
         }
+    }
+
+    // ---- script widgets ----
+
+    private void BuildScriptRows()
+    {
+        ScriptRows.Children.Clear();
+        var scripts = _ctx.S.ScriptWidgets.ToList();
+        if (scripts.Count == 0)
+        {
+            ScriptRows.Children.Add(new TextBlock
+            {
+                Style = (Style)FindResource("ST.Desc"), Margin = new Thickness(16, 14, 16, 2), TextWrapping = TextWrapping.Wrap,
+                Text = Loc.German ? "Noch keine Skripte. „Neues Skript“ legt eine Vorlage an und öffnet sie im Editor."
+                                  : "No scripts yet. \u201cNew script\u201d creates a template and opens it in the editor.",
+            });
+            return;
+        }
+        for (int i = 0; i < scripts.Count; i++)
+        {
+            var sc = scripts[i];
+            var controls = new StackPanel { Orientation = Orientation.Horizontal };
+
+            // Size of the card: Klein / Groß
+            var seg = new StackPanel { Orientation = Orientation.Horizontal };
+            foreach (var (size, de, en) in new[] { (ScriptSize.Small, "Klein", "Small"), (ScriptSize.Large, "Groß", "Large") })
+            {
+                var rb = new RadioButton { Style = (Style)FindResource("S.Segment"), Content = Loc.German ? de : en, IsChecked = sc.Size == size, GroupName = "size-" + sc.Id };
+                var chosen = size;
+                rb.Checked += (_, _) => { if (sc.Size == chosen) return; sc.Size = chosen; _ctx.S.ScriptWidgetsChanged(); _ctx.I.Scripts.RunNow(sc); };
+                seg.Children.Add(rb);
+            }
+            controls.Children.Add(new Border { Style = (Style)FindResource("S.Segments"), Child = seg, Margin = new Thickness(0, 0, 12, 0) });
+
+            // Mini line in the compact island
+            var mini = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = sc.ShowInCompact, VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = Loc.German ? "Mini: eine Zeile in der kleinen Insel, immer sichtbar" : "Mini: one line in the small island, always visible" };
+            mini.Click += (_, _) => { sc.ShowInCompact = mini.IsChecked == true; _ctx.S.ScriptWidgetsChanged(); _ctx.I.Scripts.RunNow(sc); };
+            controls.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Desc"), Text = "Mini", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) });
+            controls.Children.Add(mini);
+            controls.Children.Add(new Border { Width = 8 });
+
+            controls.Children.Add(IconButton("Icon.Pencil", Loc.German ? "Im Editor öffnen" : "Open in editor", () => Services.Scripting.ScriptWidgetsService.Edit(sc)));
+            controls.Children.Add(IconButton("Icon.Refresh", Loc.German ? "Jetzt ausführen" : "Run now", () => _ctx.I.Scripts.RunNow(sc)));
+            controls.Children.Add(IconButton("Icon.Trash", Loc.German ? "Entfernen" : "Remove", () => { _ctx.I.Scripts.Remove(sc); BuildScriptRows(); BuildWidgetRows(); }));
+
+            var row = Row("Icon.Code", sc.Name, _ctx.I.Scripts.StatusOf(sc), controls, i > 0);
+            ScriptRows.Children.Add(row);
+        }
+    }
+
+    private Button IconButton(string icon, string tip, Action click)
+    {
+        var b = new Button
+        {
+            Style = (Style)FindResource("S.Button"), Padding = new Thickness(7, 5, 7, 5), Margin = new Thickness(4, 0, 0, 0), ToolTip = tip,
+            Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Width = 13, Height = 13 },
+        };
+        b.Click += (_, _) => click();
+        return b;
+    }
+
+    private void NewScript_Click(object sender, RoutedEventArgs e)
+    {
+        var sc = _ctx.I.Scripts.CreateNew();
+        BuildScriptRows();
+        BuildWidgetRows();
+        Services.Scripting.ScriptWidgetsService.Edit(sc);
+    }
+
+    private void ImportScript_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "JavaScript (*.js)|*.js", Title = Loc.German ? "Skript hinzufügen" : "Add script" };
+        if (dlg.ShowDialog(this) != true) return;
+        try { _ctx.I.Scripts.Import(dlg.FileName); }
+        catch (Exception ex) { Log.Error("ScriptImport", ex); }
+        BuildScriptRows();
+        BuildWidgetRows();
+    }
+
+    private void OpenScriptFolder_Click(object sender, RoutedEventArgs e)
+    {
+        System.IO.Directory.CreateDirectory(Services.Scripting.ScriptWidgetsService.Folder);
+        try { Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { Services.Scripting.ScriptWidgetsService.Folder } }); } catch { }
+    }
+
+    private void ScriptHelp_Click(object sender, RoutedEventArgs e)
+    {
+        try { Process.Start(new ProcessStartInfo("https://github.com/SuperSparrow-sys/dynamic-island-win/blob/main/docs/SCRIPTS.md") { UseShellExecute = true }); } catch { }
     }
 
     private void Move(string id, int delta)

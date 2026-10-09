@@ -28,8 +28,42 @@ public static class Snapshots
             ("bottom", IslandEdge.Bottom, IslandAlign.Center, 0.5),
             ("topright", IslandEdge.Top, IslandAlign.End, 1),
         };
+        // Script widgets: DYNAMICBAY_SNAPSHOT_SCRIPT=<file.js> - the script as large and small card and as Mini line.
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_SCRIPT") is { Length: > 0 } scriptFile && Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") != "settings")
+        {
+            var large = new ScriptWidgetConfig { Id = "snapL", Name = Path.GetFileNameWithoutExtension(scriptFile), File = Path.GetFullPath(scriptFile), Size = ScriptSize.Large, ShowInCompact = true };
+            var small = new ScriptWidgetConfig { Id = "snapS", Name = large.Name, File = large.File, Size = ScriptSize.Small };
+            settings.ScriptWidgets.Add(large);
+            settings.ScriptWidgets.Add(small);
+            settings.HomeWidgets.Clear();
+            foreach (var w in new[] { large.HomeId, small.HomeId, Widgets.Calendar }) settings.HomeWidgets.Add(w);
+            settings.CompactItems.Clear();
+            vm.Scripts.Start();
+            // network + script runs: wait until every size has a result
+            for (int i = 0; i < 100 && (vm.Scripts.Get(large.Id, "accessoryInline") is null || vm.Scripts.Get(large.Id, "medium") is null || vm.Scripts.Get(small.Id, "small") is null); i++)
+                await Task.Delay(200);
+            await Task.Delay(1500);
+            foreach (var (name, edge, align, along) in placements.Where(p => p.name is "top" or "left"))
+            {
+                settings.Edge = edge; settings.Align = align; settings.Inset = 8; settings.Along = along;
+                await Task.Delay(900);
+                vm.Tab = 0;
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-script-cards.png"), compact: false);
+                await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-script-mini.png"), compact: false);
+            }
+            Log.Info("Script snapshot: " + vm.Scripts.StatusOf(large) + " | " + vm.Scripts.StatusOf(small) + $" | compact ids={vm.Scripts.CompactIds.Count} show={vm.ShowScripts} has={vm.HasCompact} mini={(vm.Scripts.Get(large.Id, "accessoryInline")?.Widget is not null)}");
+            return;
+        }
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "settings")
         {
+            if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_SCRIPT") is { Length: > 0 } sf)
+            {
+                var cfg = new ScriptWidgetConfig { Id = "snapL", Name = Path.GetFileNameWithoutExtension(sf), File = Path.GetFullPath(sf), ShowInCompact = true };
+                settings.ScriptWidgets.Add(cfg);
+                settings.HomeWidgets.Add(cfg.HomeId);
+                vm.Scripts.Start();
+                await Task.Delay(4000);
+            }
             var win = new Settings.SettingsWindow(settings, vm);
             win.Show();
             for (int page = 0; page <= 11; page++)
@@ -43,6 +77,12 @@ public static class Snapshots
             if (win.FindName("ICloudForm") is FrameworkElement form) { form.Visibility = Visibility.Visible; await Task.Delay(300); form.BringIntoView(); }
             await Task.Delay(700);
             Capture(win, Path.Combine(dir, "settings-10b-caldav.png"));
+            // Widgets page, scrolled to the script widgets
+            win.ShowPage(11);
+            await Task.Delay(500);
+            if (win.FindName("ScriptRows") is FrameworkElement rows) rows.BringIntoView();
+            await Task.Delay(500);
+            Capture(win, Path.Combine(dir, "settings-11b-scripts.png"));
             // Behaviour page, scrolled down to "hide while these apps are active"
             win.ShowPage(3);
             await Task.Delay(500);
