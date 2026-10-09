@@ -1,0 +1,280 @@
+using System.IO;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using DynamicBay.Core;
+using Windows.Media.Control;
+
+namespace DynamicBay.Services;
+
+/// <summary>
+/// Now-playing via Windows' System Media Transport Controls. Works for Spotify (no login),
+/// browsers, and every other player that publishes a media session.
+/// </summary>
+public sealed partial class MediaService : ObservableObject
+{
+    private GlobalSystemMediaTransportControlsSessionManager? _manager;
+    private GlobalSystemMediaTransportControlsSession? _session;
+    private readonly Dispatcher _ui = Application.Current.Dispatcher;
+    private readonly DispatcherTimer _tick;
+    private DateTime _positionStamp;
+    private TimeSpan _positionAtStamp;
+    private string _lastTrackKey = "";
+
+    [ObservableProperty] private bool _hasSession;
+    [ObservableProperty] private bool _isPlaying;
+    [ObservableProperty] private string _title = "";
+    [ObservableProperty] private string _artist = "";
+    [ObservableProperty] private string _album = "";
+    [ObservableProperty] private ImageSource? _cover;
+    [ObservableProperty] private Color _accent = Color.FromRgb(0x30, 0xD1, 0x58);
+    [ObservableProperty] private Brush _accentBrush = new SolidColorBrush(Color.FromRgb(0x30, 0xD1, 0x58));
+    [ObservableProperty] private string _sourceApp = "";
+    [ObservableProperty] private bool _isSpotify;
+    [ObservableProperty] private double _positionSeconds;
+    [ObservableProperty] private double _durationSeconds;
+    [ObservableProperty] private string _positionText = "0:00";
+    [ObservableProperty] private string _remainingText = "-0:00";
+    [ObservableProperty] private bool _canSkip = true;
+
+    /// <summary>Raised with the new track when the song changes while playing (used for the track peek).</summary>
+    public event Action? TrackChanged;
+
+    public MediaService()
+    {
+        _tick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _tick.Tick += (_, _) => UpdateInterpolatedPosition();
+    }
+
+    public async Task InitAsync()
+    {
+        try
+        {
+            _manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
+            _manager.SessionsChanged += (_, _) => _ui.BeginInvoke(PickSession);
+            _manager.CurrentSessionChanged += (_, _) => _ui.BeginInvoke(PickSession);
+            PickSession();
+        }
+        catch
+        {
+            HasSession = false;
+        }
+    }
+
+    /// <summary>Prefer a playing session, then Spotify, then whatever Windows considers current.</summary>
+    private void PickSession()
+    {
+        if (_manager is null) return;
+        GlobalSystemMediaTransportControlsSession? pick = null;
+        try
+        {
+            var sessions = _manager.GetSessions();
+            pick = sessions.FirstOrDefault(s => IsPlayingSession(s) && IsSpotifyId(s.SourceAppUserModelId))
+                   ?? sessions.FirstOrDefault(IsPlayingSession)
+                   ?? sessions.FirstOrDefault(s => IsSpotifyId(s.SourceAppUserModelId))
+                   ?? _manager.GetCurrentSession();
+        }
+        catch { }
+
+        if (!ReferenceEquals(pick, _session))
+        {
+            if (_session is not null)
+            {
+                _session.MediaPropertiesChanged -= OnMediaChanged;
+                _session.PlaybackInfoChanged -= OnPlaybackChanged;
+                _session.TimelinePropertiesChanged -= OnTimelineChanged;
+            }
+            _session = pick;
+            if (_session is not null)
+            {
+                _session.MediaPropertiesChanged += OnMediaChanged;
+                _session.PlaybackInfoChanged += OnPlaybackChanged;
+                _session.TimelinePropertiesChanged += OnTimelineChanged;
+            }
+        }
+
+        HasSession = _session is not null;
+        if (_session is null)
+        {
+            IsPlaying = false;
+            Title = Artist = Album = "";
+            Cover = null;
+            _tick.Stop();
+            return;
+        }
+        SourceApp = FriendlyName(_session.SourceAppUserModelId);
+        IsSpotify = IsSpotifyId(_session.SourceAppUserModelId);
+        _ = RefreshMediaAsync();
+        RefreshPlayback();
+        RefreshTimeline();
+    }
+
+    private static bool IsPlayingSession(GlobalSystemMediaTransportControlsSession s)
+    {
+        try { return s.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing; }
+        catch { return false; }
+    }
+
+    private static bool IsSpotifyId(string? id) => id?.Contains("spotify", StringComparison.OrdinalIgnoreCase) == true;
+
+    private static string FriendlyName(string id)
+    {
+        if (IsSpotifyId(id)) return "Spotify";
+        if (id.Contains("chrome", StringComparison.OrdinalIgnoreCase)) return "Chrome";
+        if (id.Contains("msedge", StringComparison.OrdinalIgnoreCase)) return "Edge";
+        if (id.Contains("firefox", StringComparison.OrdinalIgnoreCase)) return "Firefox";
+        if (id.Contains("ZuneMusic", StringComparison.OrdinalIgnoreCase)) return "Media Player";
+        var name = id.Split('!')[0];
+        name = Path.GetFileNameWithoutExtension(name);
+        return name.Length > 0 ? char.ToUpper(name[0]) + name[1..] : id;
+    }
+
+    private void OnMediaChanged(GlobalSystemMediaTransportControlsSession s, MediaPropertiesChangedEventArgs e) =>
+        _ui.BeginInvoke(() => _ = RefreshMediaAsync());
+
+    private void OnPlaybackChanged(GlobalSystemMediaTransportControlsSession s, PlaybackInfoChangedEventArgs e) =>
+        _ui.BeginInvoke(() => { RefreshPlayback(); PickSession(); });
+
+    private void OnTimelineChanged(GlobalSystemMediaTransportControlsSession s, TimelinePropertiesChangedEventArgs e) =>
+        _ui.BeginInvoke(RefreshTimeline);
+
+    private async Task RefreshMediaAsync()
+    {
+        var session = _session;
+        if (session is null) return;
+        try
+        {
+            var props = await session.TryGetMediaPropertiesAsync();
+            if (!ReferenceEquals(session, _session) || props is null) return;
+            Title = props.Title ?? "";
+            Artist = string.IsNullOrEmpty(props.Artist) ? props.AlbumArtist ?? "" : props.Artist;
+            Album = props.AlbumTitle ?? "";
+
+            string key = $"{Title}|{Artist}";
+            bool changed = key != _lastTrackKey && Title.Length > 0;
+            _lastTrackKey = key;
+
+            if (props.Thumbnail is not null)
+            {
+                using var ras = await props.Thumbnail.OpenReadAsync();
+                using var stream = ras.AsStreamForRead();
+                var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                ms.Position = 0;
+                var img = ImageTools.Load(ms, 300);
+                Cover = img;
+                if (img is not null) SetAccent(ImageTools.Accent(img, Color.FromRgb(0x30, 0xD1, 0x58)));
+            }
+            else
+            {
+                Cover = null;
+                SetAccent(Color.FromRgb(0x30, 0xD1, 0x58));
+            }
+
+            if (changed && IsPlaying) TrackChanged?.Invoke();
+        }
+        catch { }
+    }
+
+    private void SetAccent(Color c)
+    {
+        Accent = c;
+        var b = new SolidColorBrush(c);
+        b.Freeze();
+        AccentBrush = b;
+    }
+
+    private void RefreshPlayback()
+    {
+        if (_session is null) return;
+        try
+        {
+            var info = _session.GetPlaybackInfo();
+            IsPlaying = info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+            CanSkip = info.Controls.IsNextEnabled;
+            if (IsPlaying) _tick.Start(); else _tick.Stop();
+            RefreshTimeline();
+        }
+        catch { }
+    }
+
+    private void RefreshTimeline()
+    {
+        if (_session is null) return;
+        try
+        {
+            var t = _session.GetTimelineProperties();
+            DurationSeconds = Math.Max(0, (t.EndTime - t.StartTime).TotalSeconds);
+            _positionAtStamp = t.Position;
+            // LastUpdatedTime tells us when Position was sampled; extrapolate from there.
+            _positionStamp = t.LastUpdatedTime.UtcDateTime;
+            if (_positionStamp == default || _positionStamp > DateTime.UtcNow) _positionStamp = DateTime.UtcNow;
+            UpdateInterpolatedPosition();
+        }
+        catch { }
+    }
+
+    private void UpdateInterpolatedPosition()
+    {
+        var pos = _positionAtStamp;
+        if (IsPlaying) pos += DateTime.UtcNow - _positionStamp;
+        double secs = Math.Clamp(pos.TotalSeconds, 0, DurationSeconds > 0 ? DurationSeconds : double.MaxValue);
+        PositionSeconds = secs;
+        PositionText = Format(secs);
+        RemainingText = "-" + Format(Math.Max(0, DurationSeconds - secs));
+    }
+
+    private static string Format(double s)
+    {
+        var ts = TimeSpan.FromSeconds(s);
+        return ts.TotalHours >= 1 ? ts.ToString(@"h\:mm\:ss") : $"{(int)ts.TotalMinutes}:{ts.Seconds:00}";
+    }
+
+    [RelayCommand]
+    private async Task PlayPause()
+    {
+        if (_session is null) return;
+        IsPlaying = !IsPlaying; // optimistic, like iOS
+        try { await _session.TryTogglePlayPauseAsync(); } catch { }
+    }
+
+    [RelayCommand]
+    private async Task Next()
+    {
+        if (_session is null) return;
+        try { await _session.TrySkipNextAsync(); } catch { }
+    }
+
+    [RelayCommand]
+    private async Task Previous()
+    {
+        if (_session is null) return;
+        try { await _session.TrySkipPreviousAsync(); } catch { }
+    }
+
+    public async Task SeekAsync(double seconds)
+    {
+        if (_session is null) return;
+        try
+        {
+            _positionAtStamp = TimeSpan.FromSeconds(seconds);
+            _positionStamp = DateTime.UtcNow;
+            UpdateInterpolatedPosition();
+            await _session.TryChangePlaybackPositionAsync(TimeSpan.FromSeconds(seconds).Ticks);
+        }
+        catch { }
+    }
+
+    /// <summary>For design snapshots only.</summary>
+    public void LoadDemo(ImageSource? cover, string title, string artist)
+    {
+        HasSession = true; IsPlaying = true; Title = title; Artist = artist; SourceApp = "Spotify"; IsSpotify = true;
+        Cover = cover;
+        if (cover is BitmapSource bs) SetAccent(ImageTools.Accent(bs, Accent));
+        DurationSeconds = 214; _positionAtStamp = TimeSpan.FromSeconds(81); _positionStamp = DateTime.UtcNow;
+        UpdateInterpolatedPosition();
+    }
+}

@@ -1,0 +1,41 @@
+<UserControl x:Class="DynamicBay.Island.Views.PeekView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:DynamicBay.Controls"
+             MinWidth="300" MaxWidth="420" Height="58">
+    <UserControl.Resources>
+        <c:BoolToVis x:Key="Vis" />
+    </UserControl.Resources>
+    <Grid Margin="10,0,16,0" DataContext="{Binding Peek}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Leading: image thumbnail or tinted icon disc -->
+        <Grid Width="38" Height="38" VerticalAlignment="Center">
+            <Border CornerRadius="10" ClipToBounds="True" Visibility="{Binding HasImage, Converter={StaticResource Vis}}">
+                <Border.Background>
+                    <ImageBrush ImageSource="{Binding Image}" Stretch="UniformToFill" />
+                </Border.Background>
+            </Border>
+            <Border CornerRadius="19" Background="{Binding IconBackground}" Visibility="{Binding HasIcon, Converter={StaticResource Vis}}">
+                <c:Icon Data="{Binding Icon}" Filled="{Binding IconFilled}" Width="19" Height="19" Foreground="{Binding IconBrush}" />
+            </Border>
+        </Grid>
+
+        <StackPanel Grid.Column="1" Margin="12,0,10,0" VerticalAlignment="Center">
+            <TextBlock Style="{StaticResource T.Title}" Text="{Binding Title}" />
+            <TextBlock Style="{StaticResource T.Caption}" Margin="0,2,0,0" Text="{Binding Subtitle}"
+                       Visibility="{Binding HasSubtitle, Converter={StaticResource Vis}}" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <c:ProgressRing Width="22" Height="22" Thickness="3" Value="{Binding Progress}" RingBrush="{Binding TrailingBrush}"
+                            Visibility="{Binding HasProgress, Converter={StaticResource Vis}}" Margin="0,0,8,0" />
+            <TextBlock Style="{StaticResource T.Numeric}" FontSize="14" Foreground="{Binding TrailingBrush}" Text="{Binding Trailing}"
+                       VerticalAlignment="Center" Visibility="{Binding HasTrailing, Converter={StaticResource Vis}}" />
+        </StackPanel>
+    </Grid>
+</UserControl>

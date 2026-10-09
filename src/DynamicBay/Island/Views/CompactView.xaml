@@ -1,0 +1,64 @@
+<UserControl x:Class="DynamicBay.Island.Views.CompactView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:DynamicBay.Controls">
+    <UserControl.Resources>
+        <c:BoolToVis x:Key="Vis" />
+        <c:BoolToVis x:Key="NotVis" Invert="True" />
+    </UserControl.Resources>
+
+    <!-- Live activities side by side in one island -->
+    <c:SegmentStack x:Name="Stack" Spacing="22" Margin="14,0">
+
+        <!-- Music -->
+        <Grid x:Name="MediaSeg" Visibility="{Binding ShowMedia, Converter={StaticResource Vis}}">
+            <StackPanel x:Name="MediaH" Orientation="Horizontal">
+                <c:Icon Data="{StaticResource Glyph.Music}" Filled="True" Width="13" Height="13" Foreground="{Binding Media.AccentBrush}" />
+                <c:Waveform Margin="9,0,0,0" Width="17" Height="11" IsPlaying="{Binding Media.IsPlaying}" BarBrush="{Binding Media.AccentBrush}" />
+            </StackPanel>
+            <StackPanel x:Name="MediaV" Orientation="Vertical" Visibility="Collapsed">
+                <c:Icon Data="{StaticResource Glyph.Music}" Filled="True" Width="13" Height="13" Foreground="{Binding Media.AccentBrush}" />
+                <c:Waveform Margin="0,8,0,0" Width="11" Height="17" Vertical="True" IsPlaying="{Binding Media.IsPlaying}" BarBrush="{Binding Media.AccentBrush}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Timer -->
+        <Grid Visibility="{Binding ShowTimer, Converter={StaticResource Vis}}">
+            <StackPanel x:Name="TimerH" Orientation="Horizontal">
+                <c:ProgressRing Width="12" Height="12" Thickness="2.2" Value="{Binding Timer.Progress}" RingBrush="{StaticResource B.Orange}" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Numeric}" FontSize="12" Foreground="{StaticResource B.Orange}"
+                           Text="{Binding Timer.RemainingText}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel x:Name="TimerV" Visibility="Collapsed">
+                <c:ProgressRing Width="12" Height="12" Thickness="2.2" Value="{Binding Timer.Progress}" RingBrush="{StaticResource B.Orange}" />
+                <TextBlock Margin="0,5,0,0" Style="{StaticResource T.Numeric}" FontSize="9.5" Foreground="{StaticResource B.Orange}"
+                           Text="{Binding Timer.RemainingText}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Calendar soon -->
+        <Grid Visibility="{Binding ShowCalendar, Converter={StaticResource Vis}}">
+            <StackPanel x:Name="CalH" Orientation="Horizontal">
+                <c:Icon Data="{StaticResource Icon.Calendar}" Width="12" Height="12" StrokeWidth="2.4" Foreground="{StaticResource B.Red}" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Numeric}" FontSize="12" Text="{Binding Calendar.SoonText}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel x:Name="CalV" Visibility="Collapsed">
+                <c:Icon Data="{StaticResource Icon.Calendar}" Width="12" Height="12" StrokeWidth="2.4" Foreground="{StaticResource B.Red}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Battery low -->
+        <Grid Visibility="{Binding ShowBatteryLow, Converter={StaticResource Vis}}">
+            <StackPanel x:Name="BatH" Orientation="Horizontal">
+                <c:Icon Data="{StaticResource Icon.BatteryLow}" Width="15" Height="15" StrokeWidth="2.2" Foreground="{StaticResource B.Red}" />
+                <TextBlock Margin="6,0,0,0" Style="{StaticResource T.Numeric}" FontSize="12" Foreground="{StaticResource B.Red}"
+                           Text="{Binding Battery.Percent, StringFormat={}{0} %}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel x:Name="BatV" Visibility="Collapsed">
+                <c:Icon Data="{StaticResource Icon.BatteryLow}" Width="14" Height="14" StrokeWidth="2.2" Foreground="{StaticResource B.Red}" />
+                <TextBlock Margin="0,4,0,0" Style="{StaticResource T.Numeric}" FontSize="9.5" Foreground="{StaticResource B.Red}"
+                           Text="{Binding Battery.Percent}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+    </c:SegmentStack>
+</UserControl>

@@ -1,0 +1,6 @@
+<Window x:Class="DynamicBay.Settings.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DynamicBay" Width="860" Height="620">
+    <Grid />
+</Window>

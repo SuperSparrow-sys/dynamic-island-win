@@ -1,0 +1,36 @@
+<Window x:Class="DynamicBay.Island.IslandWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:v="clr-namespace:DynamicBay.Island.Views"
+        Title="DynamicBay" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" ResizeMode="NoResize" Topmost="True" ShowActivated="False"
+        Width="720" Height="320" SnapsToDevicePixels="False" UseLayoutRounding="False">
+
+    <Grid x:Name="RootGrid">
+        <Grid.LayoutTransform>
+            <ScaleTransform x:Name="UserScale" ScaleX="1" ScaleY="1" />
+        </Grid.LayoutTransform>
+
+        <!-- HitPad: near-invisible margin so the thin idle bar is easy to hover, click and drop onto. -->
+        <Border x:Name="HitPad" Margin="28" Padding="6" Background="#01000000"
+                HorizontalAlignment="Center" VerticalAlignment="Top" AllowDrop="True">
+            <Grid x:Name="Shape" Width="200" Height="12">
+                <Border x:Name="ShapeBg" Background="{StaticResource B.Island}" CornerRadius="6">
+                    <Border.Effect>
+                        <DropShadowEffect x:Name="Shadow" BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.38" Color="Black" RenderingBias="Performance" />
+                    </Border.Effect>
+                </Border>
+
+                <Grid x:Name="ShapeContent">
+                    <v:CompactView x:Name="CompactLayer" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" />
+                    <v:PeekView x:Name="PeekLayer" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" Cursor="Hand" />
+                    <v:DropView x:Name="DropLayer" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" />
+                    <v:ExpandedView x:Name="ExpandedLayer" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" />
+                </Grid>
+
+                <!-- Hairline rim keeps the black shape defined on dark wallpapers -->
+                <Border x:Name="Rim" BorderBrush="#1FFFFFFF" BorderThickness="1" CornerRadius="6" IsHitTestVisible="False" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
