@@ -13,8 +13,8 @@ jobs:
   release:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x
 
@@ -44,6 +44,7 @@ jobs:
           name: DynamicBay ${{ steps.v.outputs.version }}
           files: artifacts/DynamicBay-Setup-${{ steps.v.outputs.version }}.exe
           generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
           body: |
             **Download:** `DynamicBay-Setup-${{ steps.v.outputs.version }}.exe` unten herunterladen und ausführen.
             Alles Nötige (.NET) ist enthalten. Windows 10 (2004) oder Windows 11, 64 Bit.
