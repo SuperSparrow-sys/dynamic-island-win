@@ -28,6 +28,20 @@ public static class Snapshots
             ("bottom", IslandEdge.Bottom, IslandAlign.Center, 0.5),
             ("topright", IslandEdge.Top, IslandAlign.End, 1),
         };
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "settings")
+        {
+            var win = new Settings.SettingsWindow(settings, vm);
+            win.Show();
+            for (int page = 0; page <= 10; page++)
+            {
+                win.ShowPage(page);
+                await Task.Delay(700);
+                Capture(win, Path.Combine(dir, $"settings-{page:00}.png"));
+            }
+            win.Close();
+            return;
+        }
+
         foreach (var (name, edge, align, along) in placements)
         {
             settings.Edge = edge;

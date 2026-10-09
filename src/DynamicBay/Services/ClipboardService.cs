@@ -39,7 +39,7 @@ public sealed partial class ClipItem : ObservableObject
         get
         {
             var d = DateTime.Now - Created;
-            if (d.TotalMinutes < 1) return Loc.German ? "gerade eben" : "just now";
+            if (d.TotalMinutes < 1) return Loc.German ? "jetzt" : "now";
             if (d.TotalHours < 1) return Loc.German ? $"vor {(int)d.TotalMinutes} Min." : $"{(int)d.TotalMinutes} min ago";
             if (d.TotalDays < 1) return Created.ToString("HH:mm");
             return Created.ToString("dd.MM.");
@@ -221,21 +221,65 @@ public sealed partial class ClipboardService : ObservableObject
             try { File.Delete(i.ImagePath); } catch { }
     }
 
-    private void WatchScreenshotFolder()
+    private readonly List<FileSystemWatcher> _watchers = new();
+
+    /// <summary>
+    /// Screenshot folders: the Windows "Screenshots" known folder (often redirected into OneDrive),
+    /// plus OneDrive's own "save screenshots to OneDrive" folders.
+    /// </summary>
+    public static IEnumerable<string> ScreenshotFolders()
+    {
+        var dirs = new List<string>();
+        if (KnownFolder(new Guid("b7bede81-df94-4682-a7d8-57a52620b86f")) is { } known) dirs.Add(known);
+        dirs.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "Screenshots"));
+        foreach (var env in new[] { "OneDrive", "OneDriveConsumer", "OneDriveCommercial" })
+        {
+            var root = Environment.GetEnvironmentVariable(env);
+            if (string.IsNullOrEmpty(root)) continue;
+            foreach (var pics in new[] { "Pictures", "Bilder" })
+            {
+                dirs.Add(Path.Combine(root, pics, "Screenshots"));
+                dirs.Add(Path.Combine(root, pics, "Bildschirmfotos"));
+            }
+        }
+        return dirs.Where(Directory.Exists).Select(d => Path.GetFullPath(d).TrimEnd('\\'))
+                   .Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    [System.Runtime.InteropServices.DllImport("shell32.dll")]
+    private static extern int SHGetKnownFolderPath(ref Guid id, uint flags, IntPtr token, out IntPtr path);
+
+    private static string? KnownFolder(Guid id)
     {
         try
         {
-            var pics = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-            var dir = Path.Combine(pics, "Screenshots");
-            if (!Directory.Exists(dir)) return;
-            _watcher = new FileSystemWatcher(dir, "*.png") { EnableRaisingEvents = true };
-            _watcher.Created += (_, e) => _ui.BeginInvoke(async () =>
-            {
-                await Task.Delay(600); // let the writer finish
-                OnScreenshotFile(e.FullPath);
-            });
+            if (SHGetKnownFolderPath(ref id, 0, IntPtr.Zero, out var p) != 0) return null;
+            var s = System.Runtime.InteropServices.Marshal.PtrToStringUni(p);
+            System.Runtime.InteropServices.Marshal.FreeCoTaskMem(p);
+            return s;
         }
-        catch { }
+        catch { return null; }
+    }
+
+    private void WatchScreenshotFolder()
+    {
+        foreach (var dir in ScreenshotFolders())
+        {
+            try
+            {
+                var w = new FileSystemWatcher(dir) { EnableRaisingEvents = true, IncludeSubdirectories = false };
+                w.Filters.Add("*.png");
+                w.Filters.Add("*.jpg");
+                w.Created += (_, e) => _ui.BeginInvoke(async () =>
+                {
+                    await Task.Delay(700); // let the writer (or OneDrive sync) finish
+                    OnScreenshotFile(e.FullPath);
+                });
+                _watchers.Add(w);
+                Log.Info($"Watching screenshots in {dir}");
+            }
+            catch (Exception ex) { Log.Error("ScreenshotWatch", ex); }
+        }
     }
 
     private void OnScreenshotFile(string path)

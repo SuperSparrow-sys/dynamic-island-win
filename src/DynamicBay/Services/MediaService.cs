@@ -105,6 +105,8 @@ public sealed partial class MediaService : ObservableObject
             _tick.Stop();
             return;
         }
+        if (SourceApp != FriendlyName(_session.SourceAppUserModelId))
+            Log.Info($"Media session: {_session.SourceAppUserModelId}");
         SourceApp = FriendlyName(_session.SourceAppUserModelId);
         IsSpotify = IsSpotifyId(_session.SourceAppUserModelId);
         _ = RefreshMediaAsync();
@@ -154,7 +156,8 @@ public sealed partial class MediaService : ObservableObject
             Album = props.AlbumTitle ?? "";
 
             string key = $"{Title}|{Artist}";
-            bool changed = key != _lastTrackKey && Title.Length > 0;
+            // The first track seen after startup is not a "change".
+            bool changed = key != _lastTrackKey && Title.Length > 0 && _lastTrackKey.Length > 0;
             _lastTrackKey = key;
 
             if (props.Thumbnail is not null)

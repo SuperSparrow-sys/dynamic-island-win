@@ -6,7 +6,7 @@
              Width="380" Height="132">
     <Grid Margin="12">
         <!-- Dashed drop target with a slow marching border -->
-        <Rectangle RadiusX="20" RadiusY="20" StrokeThickness="1.5" StrokeDashArray="5 4" Stroke="#66FFFFFF" Fill="#0DFFFFFF">
+        <Rectangle RadiusX="18" RadiusY="18" StrokeThickness="1.5" StrokeDashArray="5 4" Stroke="#66FFFFFF" Fill="#0DFFFFFF">
             <Rectangle.Triggers>
                 <EventTrigger RoutedEvent="Loaded">
                     <BeginStoryboard>

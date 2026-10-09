@@ -27,6 +27,8 @@ public sealed class PeekItem
     public PeekPriority Priority { get; init; } = PeekPriority.Normal;
     public Action? OnClick { get; init; }
     public object? DragPayload { get; init; }
+    public bool ShowWaveform { get; init; }
+    public Brush WaveformBrush { get; init; } = Brushes.White;
     public bool HasImage => Image is not null;
     public bool HasIcon => Image is null && Icon is not null;
     public bool HasSubtitle => Subtitle.Length > 0;

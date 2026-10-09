@@ -113,6 +113,15 @@ public static class Loc
     };
 }
 
+/// <summary>Inline bilingual text for the settings UI: Text="{core:L De='Allgemein', En='General'}"</summary>
+[MarkupExtensionReturnType(typeof(string))]
+public sealed class LExtension : MarkupExtension
+{
+    public string De { get; set; } = "";
+    public string En { get; set; } = "";
+    public override object ProvideValue(IServiceProvider serviceProvider) => Loc.German ? De : En;
+}
+
 /// <summary>XAML: Text="{core:T Tab.Home}"</summary>
 [MarkupExtensionReturnType(typeof(string))]
 public sealed class TExtension : MarkupExtension

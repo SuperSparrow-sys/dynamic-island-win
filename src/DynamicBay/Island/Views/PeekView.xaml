@@ -6,21 +6,21 @@
     <UserControl.Resources>
         <c:BoolToVis x:Key="Vis" />
     </UserControl.Resources>
-    <Grid Margin="10,0,16,0" DataContext="{Binding Peek}">
+    <!-- Concentric corners: island radius 22 - inset 9 = 13 for the leading artwork/icon. -->
+    <Grid Margin="9,9,16,9" DataContext="{Binding Peek}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <!-- Leading: image thumbnail or tinted icon disc -->
-        <Grid Width="38" Height="38" VerticalAlignment="Center">
-            <Border CornerRadius="10" ClipToBounds="True" Visibility="{Binding HasImage, Converter={StaticResource Vis}}">
+        <Grid Width="40" Height="40" VerticalAlignment="Center">
+            <Border CornerRadius="13" Visibility="{Binding HasImage, Converter={StaticResource Vis}}">
                 <Border.Background>
                     <ImageBrush ImageSource="{Binding Image}" Stretch="UniformToFill" />
                 </Border.Background>
             </Border>
-            <Border CornerRadius="19" Background="{Binding IconBackground}" Visibility="{Binding HasIcon, Converter={StaticResource Vis}}">
+            <Border CornerRadius="13" Background="{Binding IconBackground}" Visibility="{Binding HasIcon, Converter={StaticResource Vis}}">
                 <c:Icon Data="{Binding Icon}" Filled="{Binding IconFilled}" Width="19" Height="19" Foreground="{Binding IconBrush}" />
             </Border>
         </Grid>
@@ -36,6 +36,8 @@
                             Visibility="{Binding HasProgress, Converter={StaticResource Vis}}" Margin="0,0,8,0" />
             <TextBlock Style="{StaticResource T.Numeric}" FontSize="14" Foreground="{Binding TrailingBrush}" Text="{Binding Trailing}"
                        VerticalAlignment="Center" Visibility="{Binding HasTrailing, Converter={StaticResource Vis}}" />
+            <c:Waveform Width="20" Height="15" IsPlaying="True" BarBrush="{Binding WaveformBrush}"
+                        Visibility="{Binding ShowWaveform, Converter={StaticResource Vis}}" />
         </StackPanel>
     </Grid>
 </UserControl>

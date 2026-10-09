@@ -35,6 +35,7 @@
   <ItemGroup>
     <Resource Include="Assets\Fonts\*.ttf" />
     <Resource Include="Assets\DynamicBay.ico" />
+    <Resource Include="Assets\DynamicBay.png" />
     <Content Include="Assets\Fonts\Inter-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

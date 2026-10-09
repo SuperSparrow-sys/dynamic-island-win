@@ -153,6 +153,8 @@ public partial class App : Application
                 IconBrush = media.AccentBrush,
                 Title = media.Title,
                 Subtitle = media.Artist,
+                ShowWaveform = true,
+                WaveformBrush = media.AccentBrush,
                 Seconds = 2.6,
                 Priority = PeekPriority.Low,
                 OnClick = () => { _vm!.Tab = 0; island.SetExpanded(true); },

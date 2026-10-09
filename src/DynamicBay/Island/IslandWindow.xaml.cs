@@ -217,6 +217,7 @@ public partial class IslandWindow : Window
             _y.Snap(y);
             MoveWindowPx(x, y, resize: true);
         }
+        Log.Info($"Placed island: edge={_settings.Edge} align={_settings.Align} window=({x},{y}) {Width:0}x{Height:0} dip, scale {s:0.00}, work=({wa.Left},{wa.Top},{wa.Right},{wa.Bottom})");
         Refresh();
     }
 
@@ -363,7 +364,7 @@ public partial class IslandWindow : Window
         {
             IslandMode.Expanded => 32,
             IslandMode.Drop => 30,
-            IslandMode.Peek => 29,
+            IslandMode.Peek => 22,
             _ => Math.Min(target.Width, target.Height) / 2,
         };
 
@@ -810,6 +811,7 @@ public partial class IslandWindow : Window
         }
         if (suppress != _suppressed)
         {
+            Log.Info($"Island {(suppress ? "suppressed" : "restored")} (foreground: {Native.ProcessName(fg)} / {Native.ClassName(fg)})");
             _suppressed = suppress;
             if (suppress) FadeOut();
             else if (!_settings.Hidden) FadeIn();
@@ -840,9 +842,10 @@ public partial class IslandWindow : Window
     private bool IsFullscreen(IntPtr fg)
     {
         if (fg == IntPtr.Zero || fg == _hwnd) return false;
-        if (Native.SHQueryUserNotificationState(out int state) == 0 && state is 3 or 4 or 5 && OnPrimary(fg)) return true;
         string cls = Native.ClassName(fg);
         if (cls is "WorkerW" or "Progman" or "Shell_TrayWnd") return false;
+        // QUNS_BUSY (2), QUNS_RUNNING_D3D_FULL_SCREEN (3), QUNS_PRESENTATION_MODE (4)
+        if (Native.SHQueryUserNotificationState(out int state) == 0 && state is 2 or 3 or 4 && OnPrimary(fg)) return true;
         // Maximized windows also cover the monitor but keep their caption; real fullscreen windows don't.
         long style = Native.GetWindowLongPtr(fg, Native.GWL_STYLE).ToInt64();
         if ((style & Native.WS_CAPTION) == Native.WS_CAPTION) return false;

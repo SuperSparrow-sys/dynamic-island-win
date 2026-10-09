@@ -57,7 +57,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="14,10,14,14">
+    <Grid Margin="12,10,12,12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -120,7 +120,7 @@
             <Grid x:Name="HomeGrid" Visibility="{Binding Tab, Converter={StaticResource EqVis}, ConverterParameter=0}">
 
                 <!-- Media card -->
-                <Border x:Name="MediaCard" Style="{StaticResource Card}" Padding="12">
+                <Border x:Name="MediaCard" Style="{StaticResource Card}" Padding="10">
                     <Grid>
                         <!-- Nothing playing -->
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -139,10 +139,10 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid x:Name="CoverHost" Width="96" Height="96" VerticalAlignment="Top">
-                                <Border CornerRadius="14" Background="{StaticResource B.Fill2}">
+                                <Border CornerRadius="10" Background="{StaticResource B.Fill2}">
                                     <c:Icon Data="{StaticResource Glyph.Music}" Filled="True" Width="30" Height="30" Foreground="{StaticResource B.Text3}" />
                                 </Border>
-                                <Border CornerRadius="14" x:Name="CoverArt">
+                                <Border CornerRadius="10" x:Name="CoverArt">
                                     <Border.Background>
                                         <ImageBrush ImageSource="{Binding Media.Cover}" Stretch="UniformToFill" />
                                     </Border.Background>
@@ -216,7 +216,7 @@
                         </Grid>
 
                         <!-- Spotify device picker overlay -->
-                        <Border x:Name="DevicesOverlay" Visibility="Collapsed" Background="#F2161618" CornerRadius="14" Margin="-6">
+                        <Border x:Name="DevicesOverlay" Visibility="Collapsed" Background="#F2161618" CornerRadius="16" Margin="-6">
                             <DockPanel Margin="12,8">
                                 <DockPanel DockPanel.Dock="Top">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="24" Height="24" Click="DevicesClose_Click">
@@ -244,7 +244,7 @@
                 </Border>
 
                 <!-- Calendar card -->
-                <Border x:Name="CalendarCard" Style="{StaticResource Card}" Padding="12,10">
+                <Border x:Name="CalendarCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top">
                             <TextBlock Style="{StaticResource T.Title}" Foreground="{StaticResource B.Red}" Text="{Binding Calendar.MonthText}" />
@@ -289,7 +289,7 @@
                 </Border>
 
                 <!-- Timer card -->
-                <Border x:Name="TimerCard" Style="{StaticResource Card}" Padding="12,10">
+                <Border x:Name="TimerCard" Style="{StaticResource Card}" Padding="10">
                     <Grid>
                         <!-- Idle: presets -->
                         <DockPanel Visibility="{Binding Timer.IsActive, Converter={StaticResource NotVis}}">
@@ -297,14 +297,14 @@
                                 <c:Icon Data="{StaticResource Icon.Timer}" Width="14" Height="14" Foreground="{StaticResource B.Orange}" />
                                 <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:T Timer.Title}" />
                             </StackPanel>
-                            <UniformGrid Columns="2" Rows="2" Margin="0,10,0,0">
-                                <Button Style="{StaticResource Btn.Pill}" Margin="0,0,3,3" Padding="0,6" Command="{Binding Timer.StartMinutesCommand}">
+                            <UniformGrid Columns="2" Rows="2" Margin="0,10,0,0" VerticalAlignment="Center">
+                                <Button Style="{StaticResource Btn.Pill}" Margin="0,0,3,3" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
                                     <Button.CommandParameter><sys:Double>1</sys:Double></Button.CommandParameter>1 min</Button>
-                                <Button Style="{StaticResource Btn.Pill}" Margin="3,0,0,3" Padding="0,6" Command="{Binding Timer.StartMinutesCommand}">
+                                <Button Style="{StaticResource Btn.Pill}" Margin="3,0,0,3" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
                                     <Button.CommandParameter><sys:Double>5</sys:Double></Button.CommandParameter>5 min</Button>
-                                <Button Style="{StaticResource Btn.Pill}" Margin="0,3,3,0" Padding="0,6" Command="{Binding Timer.StartMinutesCommand}">
+                                <Button Style="{StaticResource Btn.Pill}" Margin="0,3,3,0" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
                                     <Button.CommandParameter><sys:Double>10</sys:Double></Button.CommandParameter>10 min</Button>
-                                <Button Style="{StaticResource Btn.Pill}" Margin="3,3,0,0" Padding="0,6" Background="#33FF9F0A" Foreground="{StaticResource B.Orange}"
+                                <Button Style="{StaticResource Btn.Pill}" Margin="3,3,0,0" Padding="0,7" Height="32" Background="#33FF9F0A" Foreground="{StaticResource B.Orange}"
                                         Command="{Binding Timer.StartFocusCommand}" Content="{core:T Timer.Pomodoro}" />
                             </UniformGrid>
                         </DockPanel>
@@ -353,7 +353,7 @@
                             </StackPanel>
                         </DockPanel>
                         <Grid>
-                            <Border CornerRadius="12" BorderThickness="1.2" BorderBrush="#33FFFFFF" Visibility="{Binding Shelf.IsEmpty, Converter={StaticResource Vis}}">
+                            <Border CornerRadius="10" BorderThickness="1.2" BorderBrush="#33FFFFFF" Visibility="{Binding Shelf.IsEmpty, Converter={StaticResource Vis}}">
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                                     <c:Icon Data="{StaticResource Icon.DropIn}" Width="20" Height="20" Foreground="{StaticResource B.Text3}" HorizontalAlignment="Center" />
                                     <TextBlock Style="{StaticResource T.Caption}" Margin="0,6,0,0" HorizontalAlignment="Center" Text="{core:T Shelf.Empty}" />
@@ -368,11 +368,11 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type s:ShelfItem}">
-                                            <Grid Width="66" Margin="0,0,4,4" Background="Transparent" Cursor="Hand" ToolTip="{Binding Path}"
+                                            <Grid Width="62" Margin="0,0,2,2" Background="Transparent" Cursor="Hand" ToolTip="{Binding Path}"
                                                   MouseLeftButtonDown="ShelfItem_MouseDown" MouseMove="ShelfItem_MouseMove">
                                                 <Border x:Name="Hover" CornerRadius="10" Background="Transparent" />
-                                                <StackPanel Margin="4,6">
-                                                    <Image Source="{Binding Icon}" Width="38" Height="38" RenderOptions.BitmapScalingMode="HighQuality" />
+                                                <StackPanel Margin="3,5">
+                                                    <Image Source="{Binding Icon}" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality" />
                                                     <TextBlock Style="{StaticResource T.Base}" FontSize="10" Margin="0,4,0,0" TextAlignment="Center"
                                                                TextWrapping="Wrap" MaxHeight="26" Text="{Binding Name}" />
                                                 </StackPanel>
@@ -426,13 +426,13 @@
                                                     <RowDefinition Height="Auto" />
                                                 </Grid.RowDefinitions>
                                                 <!-- image tile -->
-                                                <Border CornerRadius="12" Visibility="{Binding IsImage, Converter={StaticResource Vis}}" BorderBrush="{StaticResource B.Hairline}" BorderThickness="1">
+                                                <Border CornerRadius="10" Visibility="{Binding IsImage, Converter={StaticResource Vis}}" BorderBrush="{StaticResource B.Hairline}" BorderThickness="1">
                                                     <Border.Background>
                                                         <ImageBrush ImageSource="{Binding Thumbnail}" Stretch="UniformToFill" />
                                                     </Border.Background>
                                                 </Border>
                                                 <!-- text tile -->
-                                                <Border CornerRadius="12" Background="{StaticResource B.Fill2}" Padding="9,7" Visibility="{Binding IsText, Converter={StaticResource Vis}}">
+                                                <Border CornerRadius="10" Background="{StaticResource B.Fill2}" Padding="9,7" Visibility="{Binding IsText, Converter={StaticResource Vis}}">
                                                     <TextBlock Style="{StaticResource T.Base}" FontSize="10.5" Foreground="{StaticResource B.Text}" TextWrapping="Wrap"
                                                                TextTrimming="CharacterEllipsis" Text="{Binding Preview}" />
                                                 </Border>
@@ -509,7 +509,7 @@
                                                                       Command="{Binding DataContext.Notifications.OpenCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                                       CommandParameter="{Binding}" />
                                                     </Grid.InputBindings>
-                                                    <Border x:Name="Bg" CornerRadius="12" Background="Transparent" />
+                                                    <Border x:Name="Bg" CornerRadius="10" Background="Transparent" />
                                                     <Grid Margin="8,7">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto" />
