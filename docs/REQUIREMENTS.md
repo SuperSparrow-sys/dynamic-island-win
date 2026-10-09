@@ -35,7 +35,7 @@ Legende: **fertig**, **in Arbeit**, **offen**, **Live-Test** (gebaut, wird zum S
 | 19 | Spotify: lokal ohne Login, Musiksymbol in der Insel; optional Login, Anmeldung bleibt gespeichert | fertig (Login: Live-Test) |
 | 20 | Apple Music: Anzeige und Steuerung | fertig |
 | 21 | Apple Music mit Login | offen (braucht eigenes Apple-Entwicklerkonto, siehe docs/INTEGRATIONS.md) |
-| 22 | Benachrichtigungen aller Apps in der Insel | fertig (Live-Test nach Installation) |
+| 22 | Benachrichtigungen aller Apps in der Insel | fertig, nach Installation getestet (Identität registriert, 26 Mitteilungen gelesen) |
 | 23 | WhatsApp und andere Messenger: Nachrichten-Widget (Antworten technisch nicht möglich) | fertig (Live-Test) |
 | 24 | Kalender: Google und Apple/iCloud mit Anmeldung, dazu ICS-Links (Outlook) | fertig (Live-Test) |
 | 25 | iCloud: Speichern in iCloud Drive, dazu OneDrive (alle Konten), Google Drive, Dropbox | fertig |
@@ -47,8 +47,8 @@ Legende: **fertig**, **in Arbeit**, **offen**, **Live-Test** (gebaut, wird zum S
 ## Auslieferung
 | # | Anforderung | Status |
 |---|---|---|
-| 30 | Öffentliches GitHub-Repo (MIT) SuperSparrow-sys/dynamic-island-win | offen |
-| 31 | Installer (Inno Setup, klassisch) als .exe für andere PCs, bringt alles mit (.NET inklusive) | fertig (Installation: Live-Test) |
+| 30 | Öffentliches GitHub-Repo (MIT) SuperSparrow-sys/dynamic-island-win | fertig, Vorab-Version v1.0.0-beta.1 mit Installer veröffentlicht |
+| 31 | Installer (Inno Setup, klassisch) als .exe für andere PCs, bringt alles mit (.NET inklusive) | fertig, auf diesem PC installiert und getestet |
 | 32 | Automatischer Build und Release über GitHub Actions | fertig |
 | 33 | Tests (34 Unit-Tests, Snapshot- und Live-Test-Skripte) | fertig |
 | 34 | Doku zu Struktur und Fehlersuche (ARCHITECTURE, TROUBLESHOOTING, DEVELOPMENT, INTEGRATIONS) | fertig |

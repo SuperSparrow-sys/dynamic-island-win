@@ -74,10 +74,11 @@ public sealed partial class NotificationService : ObservableObject
     {
         try
         {
-            if (!HasPackageIdentity()) { Access = NotificationAccess.Unavailable; return; }
+            if (!HasPackageIdentity()) { Access = NotificationAccess.Unavailable; Log.Info("Notification access: unavailable (no package identity)"); return; }
             _listener = UserNotificationListener.Current;
             var status = await _listener.RequestAccessAsync();
             Access = status == UserNotificationListenerAccessStatus.Allowed ? NotificationAccess.Allowed : NotificationAccess.Denied;
+            Log.Info($"Notification access: {Access}");
             if (Access != NotificationAccess.Allowed) return;
             _poll.Tick += async (_, _) => await PollAsync();
             _poll.Start();
