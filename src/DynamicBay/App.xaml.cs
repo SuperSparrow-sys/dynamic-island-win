@@ -263,15 +263,20 @@ public partial class App : Application
             if (_settings.ClaudeEnabled && ClaudeService.NeedsAnswer(n.App, n.AppId, n.Title, n.Body)) _vm!.Claude.RemoteAsked(n.Id);
         };
         notifications.Removed += n => _vm?.Claude.RemoteAnswered(n.Id);
-        notifications.Arrived += n => island.ShowPeek(new PeekItem
+        notifications.Arrived += n =>
         {
-            Image = n.Logo,
-            Icon = n.Logo is null ? Icon("Icon.Bell") : null,
-            Title = string.Equals(n.Title, n.App, StringComparison.OrdinalIgnoreCase) ? n.App : $"{n.Title}",
-            Subtitle = _settings.NotificationShowBody ? FirstLine(n.Body, n.App) : n.App,
-            Seconds = Math.Clamp(_settings.NotificationSeconds, 2, 15),
-            OnClick = () => { _vm?.Claude.RemoteAnswered(n.Id); notifications.Open(n); },
-        });
+            // The island shows its own screenshot peek (with the picture); the Snipping Tool toast would be a second one.
+            if (n.AppId == BannerSuppressor.SnippingTool && _settings.PeekOnScreenshot && _settings.ClipboardEnabled) return;
+            island.ShowPeek(new PeekItem
+            {
+                Image = n.Logo,
+                Icon = n.Logo is null ? Icon("Icon.Bell") : null,
+                Title = string.Equals(n.Title, n.App, StringComparison.OrdinalIgnoreCase) ? n.App : $"{n.Title}",
+                Subtitle = _settings.NotificationShowBody ? FirstLine(n.Body, n.App) : n.App,
+                Seconds = Math.Clamp(_settings.NotificationSeconds, 2, 15),
+                OnClick = () => { _vm?.Claude.RemoteAnswered(n.Id); notifications.Open(n); },
+            });
+        };
 
         timer.Finished += mode =>
         {
