@@ -375,12 +375,12 @@ public partial class SettingsWindow : Window
     private void BuildBannerRows()
     {
         BannerRows.Children.Clear();
-        foreach (var id in _ctx.S.SuppressBannerApps)
+        foreach (var id in _ctx.S.BannerExceptions)
         {
             var app = id;
             var remove = new Button { Style = (Style)FindResource("S.Button"), Padding = new Thickness(8, 4, 8, 4),
                 Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.Close"), Width = 12, Height = 12 } };
-            remove.Click += (_, _) => { _ctx.S.SuppressBannerApps.Remove(app); BuildBannerRows(); };
+            remove.Click += (_, _) => { _ctx.S.BannerExceptions.Remove(app); BuildBannerRows(); };
             var dock = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
             DockPanel.SetDock(remove, Dock.Right);
             dock.Children.Add(remove);
@@ -403,17 +403,16 @@ public partial class SettingsWindow : Window
         var menu = new ContextMenu { PlacementTarget = (UIElement)sender };
         // Apps that recently sent notifications, plus common candidates that are installed.
         var ids = _ctx.I.Notifications.Items.Select(n => n.AppId).Where(id => id.Length > 0).ToList();
-        ids.Add(BannerSuppressor.SnippingTool);
         foreach (var known in new[] { "WhatsApp", "Discord", "Microsoft Teams", "Outlook", "Telegram", "Signal", "Claude", "Spotify" })
         {
             var app = InstalledApps.All().FirstOrDefault(a => a.Name.StartsWith(known, StringComparison.OrdinalIgnoreCase));
             if (app is not null) ids.Add(app.LaunchPath.Replace(@"shell:AppsFolder\", ""));
         }
-        foreach (var id in ids.Distinct(StringComparer.OrdinalIgnoreCase).Where(id => !_ctx.S.SuppressBannerApps.Contains(id)))
+        foreach (var id in ids.Distinct(StringComparer.OrdinalIgnoreCase).Where(id => !_ctx.S.BannerExceptions.Contains(id)))
         {
             var item = new MenuItem { Header = BannerSuppressor.NameOf(id) };
             string appId = id;
-            item.Click += (_, _) => { _ctx.S.SuppressBannerApps.Add(appId); BuildBannerRows(); };
+            item.Click += (_, _) => { _ctx.S.BannerExceptions.Add(appId); BuildBannerRows(); };
             menu.Items.Add(item);
         }
         menu.IsOpen = true;
@@ -831,7 +830,6 @@ public partial class SettingsWindow : Window
 
     // ---- notifications ----
 
-    private void OpenWindowsNotifications_Click(object sender, RoutedEventArgs e) => NotificationService.OpenWindowsSettings();
 
     private void RemoveMuted_Click(object sender, RoutedEventArgs e)
     {

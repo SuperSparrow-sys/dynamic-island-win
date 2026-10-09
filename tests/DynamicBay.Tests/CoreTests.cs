@@ -140,7 +140,7 @@ public class SettingsTests
         Assert.Equal(AppIconStyle.Mono, s.AppIcons);
         Assert.Equal(50, s.ClipboardMax);
         Assert.True(s.SuppressBanners);
-        Assert.Contains(BannerSuppressor.SnippingTool, s.SuppressBannerApps);
+        Assert.Empty(s.BannerExceptions);
     }
 }
 

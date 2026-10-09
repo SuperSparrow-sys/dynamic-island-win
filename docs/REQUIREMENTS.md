@@ -31,7 +31,7 @@ Legende: **fertig**, **in Arbeit**, **offen**, **Live-Test** (gebaut, wird zum S
 |---|---|---|
 | 16 | Dateiablage (Dateien rein- und rausziehen) | fertig |
 | 17 | Screenshots über das Snipping Tool, Zwischenablage (Bilder und Text) in der Insel sichtbar, 50 Einträge, bleibt nach Neustart | fertig |
-| 18 | Windows-Banner (z. B. Snipping Tool) unterdrücken, solange DynamicBay läuft | fertig |
+| 18 | Alle Windows-Banner und den Mitteilungston abschalten, solange DynamicBay läuft (Ausnahmen möglich) | fertig |
 | 19 | Spotify: lokal ohne Login, Musiksymbol in der Insel; optional Login, Anmeldung bleibt gespeichert | fertig (Login: Live-Test) |
 | 20 | Apple Music: Anzeige und Steuerung | fertig |
 | 21 | Apple Music mit Login | offen (braucht eigenes Apple-Entwicklerkonto, siehe docs/INTEGRATIONS.md) |

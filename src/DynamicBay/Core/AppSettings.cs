@@ -78,10 +78,10 @@ public sealed partial class AppSettings : ObservableObject
     public ObservableCollection<string> CompactItems { get => _compactItems; set => Hook(ref _compactItems, value, nameof(CompactItems)); }
     public ObservableCollection<string> Shortcuts { get => _shortcuts; set => Hook(ref _shortcuts, value, nameof(Shortcuts)); }
 
-    // Windows banner suppression while DynamicBay runs (see BannerSuppressor)
+    // Windows banners and notification sound off while DynamicBay runs (see BannerSuppressor); exceptions keep their banner.
     [ObservableProperty] private bool _suppressBanners = true;
-    private ObservableCollection<string> _suppressBannerApps = new() { "Microsoft.ScreenSketch_8wekyb3d8bbwe!App" };
-    public ObservableCollection<string> SuppressBannerApps { get => _suppressBannerApps; set => Hook(ref _suppressBannerApps, value, nameof(SuppressBannerApps)); }
+    private ObservableCollection<string> _bannerExceptions = new();
+    public ObservableCollection<string> BannerExceptions { get => _bannerExceptions; set => Hook(ref _bannerExceptions, value, nameof(BannerExceptions)); }
 
     public AppSettings()
     {
@@ -90,7 +90,7 @@ public sealed partial class AppSettings : ObservableObject
         _shortcuts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Shortcuts));
         _calendarAccounts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CalendarAccounts));
         _scriptWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ScriptWidgets));
-        _suppressBannerApps.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SuppressBannerApps));
+        _bannerExceptions.CollectionChanged += (_, _) => OnPropertyChanged(nameof(BannerExceptions));
     }
 
     /// <summary>Collections raise PropertyChanged for their own name on every change, so listeners and autosave see edits.</summary>
@@ -158,6 +158,8 @@ public sealed partial class AppSettings : ObservableObject
             if (BluetoothEnabled && !HomeWidgets.Contains(Widgets.Devices)) HomeWidgets.Add(Widgets.Devices);
             SettingsVersion = 5;
         }
+        // v6: all Windows notifications go to the island (banners and sound off for every app, not just Snipping Tool).
+        if (SettingsVersion < 6) { SuppressBanners = true; SettingsVersion = 6; }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });
         CalendarIcsUrl = "";

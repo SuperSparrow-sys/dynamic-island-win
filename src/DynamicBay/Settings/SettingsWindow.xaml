@@ -401,7 +401,7 @@
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.HideInFullscreen}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Nicht stören', En='Do not disturb'}"
-                                            ToolTip="{core:L De='Keine Einblendungen und Mitteilungen. Ausnahmen: Timer und schwacher Akku.', En='No peeks or notifications except important ones like timers and low battery.'}">
+                                            ToolTip="{core:L De='Die Insel bleibt klein und zeigt nur Musik und den Timer. Mitteilungen sammeln sich still, aufklappen geht per Klick.', En='The island stays small and only shows music and the timer. Notifications collect quietly; click to open.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.DoNotDisturb}" />
                             </ContentControl>
                         </StackPanel>
@@ -580,29 +580,26 @@
                                     <Slider Style="{StaticResource S.Slider}" Minimum="2" Maximum="15" Value="{Binding S.NotificationSeconds}" TickFrequency="1" IsSnapToTickEnabled="True" />
                                 </StackPanel>
                             </ContentControl>
-                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Banner dauerhaft in Windows abschalten', En='Turn banners off in Windows'}"
-                                            ToolTip="{core:L De='In den Windows-Einstellungen bei einer App „Benachrichtigungsbanner anzeigen“ ausschalten. Ihre Mitteilungen erscheinen dann nur noch in der Insel und im Infocenter.', En='In Windows turn off Show notification banners for the apps you want. Notifications then only appear in the island and the notification center.'}">
-                                <Button Style="{StaticResource S.Button}" Click="OpenWindowsNotifications_Click">
-                                    <StackPanel Orientation="Horizontal"><TextBlock Text="{core:L De='Windows-Einstellungen', En='Windows settings'}" /><c:Icon Data="{StaticResource Icon.External}" Width="13" Height="13" Margin="8,0,0,0" /></StackPanel>
-                                </Button>
-                            </ContentControl>
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Banner automatisch ausblenden', En='Hide banners automatically'}" />
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Windows-Mitteilungen', En='Windows notifications'}" />
                     <Border Style="{StaticResource S.Card}" Padding="16,12">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,10">
                                 <CheckBox DockPanel.Dock="Right" Style="{StaticResource S.Switch}" IsChecked="{Binding S.SuppressBanners}" VerticalAlignment="Center" />
                                 <StackPanel>
-                                    <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Nur in der Insel anzeigen, solange DynamicBay läuft', En='Show only in the island while DynamicBay runs'}" />
-                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Für diese Apps erscheint unten rechts kein Windows-Banner mehr. Beim Beenden stellt DynamicBay deine Windows-Einstellung wieder her.', En='These apps no longer show a Windows banner in the corner. DynamicBay restores your Windows setting when it exits.'}" />
+                                    <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Nur in der Insel zeigen', En='Show only in the island'}" />
+                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Windows zeigt unten rechts nichts mehr an und spielt keinen Ton. Alles landet weiter in der Mitteilungszentrale. Beim Beenden stellt DynamicBay deine Windows-Einstellungen wieder her.', En='Windows shows nothing in the corner and plays no sound. Everything still lands in the notification center. DynamicBay restores your Windows settings when it exits.'}" />
                                 </StackPanel>
                             </DockPanel>
-                            <StackPanel x:Name="BannerRows" />
-                            <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Click="AddBannerApp_Click">
-                                <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='App hinzufügen', En='Add app'}" /></StackPanel>
-                            </Button>
+                            <StackPanel IsEnabled="{Binding S.SuppressBanners}">
+                                <TextBlock Style="{StaticResource ST.Desc}" Margin="0,0,0,8" Text="{core:L De='Ausnahmen: Diese Apps zeigen weiter ihr Windows-Banner.', En='Exceptions: these apps keep their Windows banner.'}" />
+                                <StackPanel x:Name="BannerRows" />
+                                <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Click="AddBannerApp_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Ausnahme hinzufügen', En='Add exception'}" /></StackPanel>
+                                </Button>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

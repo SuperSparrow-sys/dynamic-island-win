@@ -121,11 +121,10 @@ public partial class App : Application
             if (ev.PropertyName is nameof(AppSettings.ToggleHotkey) or nameof(AppSettings.MicMuteHotkey) or nameof(AppSettings.AudioEnabled)) RegisterHotkey();
             if (ev.PropertyName == nameof(AppSettings.AudioEnabled)) { if (_settings.AudioEnabled) _vm?.Audio.Start(); else _vm?.Audio.Stop(); }
             if (ev.PropertyName == nameof(AppSettings.StartWithWindows)) Autostart.Apply(_settings.StartWithWindows);
-            if (ev.PropertyName is nameof(AppSettings.SuppressBanners) or nameof(AppSettings.SuppressBannerApps) or nameof(AppSettings.Hidden))
-                BannerSuppressor.Apply(_settings);
+            if (ev.PropertyName is nameof(AppSettings.SuppressBanners) or nameof(AppSettings.BannerExceptions) or nameof(AppSettings.Hidden) or nameof(AppSettings.NotificationsEnabled))
+                BannerSuppressor.Apply(_settings, notifications.Access == NotificationAccess.Allowed);
         };
         Autostart.Apply(_settings.StartWithWindows);
-        BannerSuppressor.Apply(_settings);
 
         WirePeeks(media, clipboard, shelf, notifications, timer, calendar, battery, bluetooth);
 
@@ -153,6 +152,8 @@ public partial class App : Application
         _vm.Scripts.Start();
         await Next();
         await notifications.StartAsync();
+        // Windows stays silent and shows nothing in the corner: the island shows the notifications (only with access to them).
+        if (!_snapshotMode) BannerSuppressor.Apply(_settings, notifications.Access == NotificationAccess.Allowed);
         await Next();
         _vm.Claude.SetEnabled(_settings.ClaudeEnabled);
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) _vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
@@ -278,6 +279,7 @@ public partial class App : Application
         // the compact island shows the waiting Claude symbol until the notification is opened or dismissed.
         notifications.Seen += n =>
         {
+            if (!_snapshotMode) BannerSuppressor.Seen(n.AppId);
             if (_settings.ClaudeEnabled && ClaudeService.NeedsAnswer(n.App, n.AppId, n.Title, n.Body)) _vm!.Claude.RemoteAsked(n.Id);
         };
         notifications.Removed += n => _vm?.Claude.RemoteAnswered(n.Id);
@@ -309,6 +311,7 @@ public partial class App : Application
                     _ => Loc.T("Timer.Done"),
                 },
                 Priority = PeekPriority.High,
+                ShowInDnd = true,
                 Seconds = 6,
                 OnClick = () =>
                 {
@@ -350,6 +353,7 @@ public partial class App : Application
                 Title = muted ? (Loc.German ? "Mikrofon stumm" : "Microphone muted") : (Loc.German ? "Mikrofon an" : "Microphone on"),
                 Subtitle = _settings.MicMuteHotkey,
                 Priority = PeekPriority.High,
+                ShowInDnd = true,
                 Seconds = 1.8,
             });
         };

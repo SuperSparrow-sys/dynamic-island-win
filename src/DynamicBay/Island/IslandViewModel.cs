@@ -25,6 +25,8 @@ public sealed class PeekItem
     public double? Progress { get; init; }
     public double Seconds { get; init; } = 3.2;
     public PeekPriority Priority { get; init; } = PeekPriority.Normal;
+    /// <summary>Also shown in "Nicht stören" (timer finished, feedback to a key the user just pressed).</summary>
+    public bool ShowInDnd { get; init; }
     public Action? OnClick { get; init; }
     public object? DragPayload { get; init; }
     public bool ShowWaveform { get; init; }
@@ -123,18 +125,20 @@ public sealed partial class IslandViewModel : ObservableObject
     private void RecomputeCompact()
     {
         var s = Settings;
+        // "Nicht stören": only music and a running timer stay, everything else leaves the island.
+        bool all = !s.DoNotDisturb;
         bool media = s.MediaEnabled && s.HasCompact(Widgets.Media) && Media.HasSession && Media.IsPlaying;
         bool timer = s.TimerEnabled && s.HasCompact(Widgets.Timer) && Timer.IsActive;
-        bool cal = s.CalendarEnabled && s.HasCompact(Widgets.Calendar) && Calendar.IsSoon;
-        bool low = s.BatteryEnabled && s.HasCompact(Widgets.Battery) && Battery.IsLow;
-        bool claude = s.ClaudeEnabled && s.HasCompact(Widgets.Claude) && (Claude.AnyWorking || Claude.AnyWaiting);
-        bool muted = s.AudioEnabled && s.HasCompact(Widgets.Muted) && Audio.SpeakerMuted;
-        bool mic = s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.MicInUse;
-        bool cam = s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.CameraInUse;
-        bool scripts = Scripts.CompactIds.Count > 0;
+        bool cal = all && s.CalendarEnabled && s.HasCompact(Widgets.Calendar) && Calendar.IsSoon;
+        bool low = all && s.BatteryEnabled && s.HasCompact(Widgets.Battery) && Battery.IsLow;
+        bool claude = all && s.ClaudeEnabled && s.HasCompact(Widgets.Claude) && (Claude.AnyWorking || Claude.AnyWaiting);
+        bool muted = all && s.AudioEnabled && s.HasCompact(Widgets.Muted) && Audio.SpeakerMuted;
+        bool mic = all && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.MicInUse;
+        bool cam = all && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.CameraInUse;
+        bool scripts = all && Scripts.CompactIds.Count > 0;
         bool activities = media || timer || cal || low || claude || muted || mic || cam || scripts;
         // The clock shows either as a permanent segment, or as the idle face when nothing else is going on.
-        bool clock = s.HasCompact(Widgets.Clock) || (s.Idle == IdleStyle.Clock && !activities);
+        bool clock = all && (s.HasCompact(Widgets.Clock) || (s.Idle == IdleStyle.Clock && !activities));
         bool any = activities || clock;
         bool changed = media != ShowMedia || timer != ShowTimer || cal != ShowCalendar || low != ShowBatteryLow
                        || clock != ShowClock || claude != ShowClaude || muted != ShowMuted || mic != ShowMic || cam != ShowCamera || scripts != ShowScripts || any != HasCompact;

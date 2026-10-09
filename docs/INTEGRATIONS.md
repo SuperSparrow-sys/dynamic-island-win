@@ -37,9 +37,13 @@ Windows gibt Mitteilungen fremder Apps nur an Programme mit *Paket-Identität* h
 (Zertifikat in *Vertrauenswürdige Personen*, Registrierung beim ersten Start). Danach erscheinen WhatsApp, Outlook,
 Teams usw. als Peek, im Mitteilungs-Tab und im Nachrichten-Widget. Antworten aus der Insel ist technisch nicht möglich.
 
-**Doppelte Banner vermeiden:** Einstellungen → Mitteilungen → *Windows-Banner unterdrücken*: Für die gewählten Apps
-(Standard: Snipping Tool) zeigt Windows unten rechts nichts mehr an, solange DynamicBay läuft. Die ursprüngliche
-Einstellung wird beim Beenden wiederhergestellt.
+**Nur in der Insel:** Solange DynamicBay läuft, zeigt Windows unten rechts keine Banner und spielt keinen
+Mitteilungston (Einstellungen → Mitteilungen → *Windows-Mitteilungen*). Alles landet weiter in der Mitteilungszentrale,
+von dort liest die Insel. Einzelne Apps lassen sich als Ausnahme eintragen. Ohne Zugriff auf die Mitteilungen bleibt
+Windows unverändert. Die ursprünglichen Einstellungen werden beim Beenden wiederhergestellt.
+
+**Nicht stören:** Die Insel bleibt klein und zeigt nur Musik und einen laufenden Timer. Mitteilungen sammeln sich
+still im Mitteilungs-Tab, eingeblendet wird nur das Ende eines Timers.
 
 ## Cloud-Speicher
 

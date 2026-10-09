@@ -380,6 +380,15 @@ public partial class IslandWindow : Window
     {
         switch (e.PropertyName)
         {
+            case nameof(AppSettings.DoNotDisturb):
+                if (_settings.DoNotDisturb)
+                {
+                    // Back to the small island: close the panel and drop pending messages.
+                    _peekQueue.Clear();
+                    if (_peek.Peek is { ShowInDnd: false }) NextPeek();
+                    if (_expanded && !_vm.IsPinned) SetExpanded(false);
+                }
+                break;
             case nameof(AppSettings.Layer): ApplyLayer(); break;
             case nameof(AppSettings.Scale): ApplyUserScale(); Place(false); break;
             case nameof(AppSettings.Edge):
@@ -580,7 +589,8 @@ public partial class IslandWindow : Window
         _lastActivity = DateTime.Now;
         if (_minimized) { _minimized = false; Refresh(); }
         // While a question (buttons) is shown, hovering must not open the panel - the buttons must stay reachable.
-        if (_settings.ExpandOnHover && !_expanded && !_dragging && !ShowsQuestion && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
+        // "Nicht stören" keeps the island small: it only opens on a click.
+        if (_settings.ExpandOnHover && !_settings.DoNotDisturb && !_expanded && !_dragging && !ShowsQuestion && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
         {
             _hoverTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(0, _settings.HoverDelayMs));
             _hoverTimer.Start();
@@ -615,7 +625,7 @@ public partial class IslandWindow : Window
 
     public void ShowPeek(PeekItem item)
     {
-        if (_settings.DoNotDisturb && item.Priority < PeekPriority.High) return;
+        if (_settings.DoNotDisturb && !item.ShowInDnd) return;
         if (_settings.Hidden) return;
         if (_suppressed)
         {
