@@ -15,11 +15,12 @@
         <Border x:Name="HitPad" Margin="28" Padding="6" Background="#01000000"
                 HorizontalAlignment="Center" VerticalAlignment="Top" AllowDrop="True">
             <Grid x:Name="Shape" Width="200" Height="12">
-                <Border x:Name="ShapeBg" Background="{StaticResource B.Island}" CornerRadius="6">
-                    <Border.Effect>
-                        <DropShadowEffect x:Name="Shadow" BlurRadius="22" ShadowDepth="4" Direction="270" Opacity="0.38" Color="Black" RenderingBias="Performance" />
-                    </Border.Effect>
-                </Border>
+                <!-- Painted shadow: stacked translucent rounded rects (filled in code). A DropShadowEffect re-blurs on every
+                     frame, which is far too slow for the software-rendered island. -->
+                <Grid x:Name="SoftShadow" IsHitTestVisible="False">
+                    <Grid.RenderTransform><TranslateTransform x:Name="ShadowOffset" Y="4" /></Grid.RenderTransform>
+                </Grid>
+                <Border x:Name="ShapeBg" Background="{StaticResource B.Island}" CornerRadius="6" />
 
                 <Grid x:Name="ShapeContent">
                     <v:CompactView x:Name="CompactLayer" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" />

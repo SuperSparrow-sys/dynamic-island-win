@@ -50,6 +50,35 @@ public static class Snapshots
             await Measure("compact, music playing (waveform)", IslandMode.Compact, true);
             await Measure("compact, music paused", IslandMode.Compact, false);
             await Measure("expanded, music playing", IslandMode.Expanded, true);
+            // Open/close transitions: frame pacing while the island morphs (blur, scale, springs).
+            var gaps = new List<double>();
+            double lastFrame = -1;
+            bool recording = false;
+            EventHandler onFrame = (_, e) =>
+            {
+                double t = ((System.Windows.Media.RenderingEventArgs)e).RenderingTime.TotalMilliseconds;
+                if (recording && lastFrame > 0) gaps.Add(t - lastFrame);
+                lastFrame = t;
+            };
+            System.Windows.Media.CompositionTarget.Rendering += onFrame;
+            me.Refresh();
+            var t0 = me.TotalProcessorTime;
+            for (int i = 0; i < 8; i++)
+            {
+                foreach (var mode in new[] { IslandMode.Expanded, IslandMode.Compact })
+                {
+                    lastFrame = -1; recording = true;
+                    island.ForceState(mode);
+                    await Task.Delay(650);
+                    recording = false;
+                    await Task.Delay(250);
+                }
+            }
+            me.Refresh();
+            System.Windows.Media.CompositionTarget.Rendering -= onFrame;
+            gaps.Sort();
+            Log.Info($"PERF transitions: {(me.TotalProcessorTime - t0).TotalSeconds / 14.4 * 100:0.0} % of one core, {gaps.Count} frames, "
+                     + $"median {gaps[gaps.Count / 2]:0.0} ms, 95th {gaps[(int)(gaps.Count * 0.95)]:0.0} ms, max {gaps[^1]:0.0} ms, over 25 ms: {gaps.Count(g => g > 25)}");
             return;
         }
 

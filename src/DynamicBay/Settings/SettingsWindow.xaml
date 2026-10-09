@@ -141,6 +141,10 @@
                                     </StackPanel>
                                 </Border>
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Grafikkarte verwenden', En='Use graphics card'}"
+                                            ToolTip="{core:L De='Aus: Die Insel zeichnet ohne Grafikkarte. Das braucht deutlich weniger Arbeitsspeicher und Strom. Nur einschalten, wenn die Insel bei dir ruckelt.', En='Off: the island draws without the graphics card, which needs far less memory and power. Only turn on if the island stutters for you.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.GpuRendering}" />
+                            </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Schatten', En='Shadow'}"
                                             ToolTip="{core:L De='Weicher Schatten unter der Insel.', En='Soft shadow under the island.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.Shadow}" />

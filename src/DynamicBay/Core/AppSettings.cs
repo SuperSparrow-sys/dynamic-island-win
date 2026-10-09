@@ -67,6 +67,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private double _scale = 1.0;
     [ObservableProperty] private double _animationSpeed = 1.0;
     [ObservableProperty] private bool _shadow = true;
+    /// <summary>Off (default): the island draws in software - much less RAM and CPU for its transparent window.</summary>
+    [ObservableProperty] private bool _gpuRendering;
     [ObservableProperty] private IdleStyle _idle = IdleStyle.Bar;
     /// <summary>Frames per second of the island animations; 0 = as many as the display offers.</summary>
     [ObservableProperty] private int _frameRate;

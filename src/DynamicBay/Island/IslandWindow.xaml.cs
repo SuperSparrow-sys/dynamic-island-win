@@ -127,10 +127,11 @@ public partial class IslandWindow : Window
         _vm.PropertyChanged += OnVmChanged;
         _settings.PropertyChanged += OnSettingChanged;
 
+        BuildSoftShadow();
         SourceInitialized += OnSourceInitialized;
         Loaded += (_, _) =>
         {
-            ShapeBg.Effect = _settings.Shadow ? Shadow : null; // the XAML always starts with the shadow
+            SoftShadow.Visibility = _settings.Shadow ? Visibility.Visible : Visibility.Collapsed;
             ApplyUserScale();
             Place(animate: false);
             Refresh();
@@ -147,7 +148,48 @@ public partial class IslandWindow : Window
         // Tool window: not in Alt+Tab. No-activate: never steals focus from the app you're typing in.
         Native.AddExStyle(_hwnd, Native.WS_EX_TOOLWINDOW | Native.WS_EX_NOACTIVATE);
         HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
+        ApplyRenderMode();
         ApplyLayer();
+    }
+
+    /// <summary>
+    /// The island draws in software by default: for a transparent window WPF would otherwise render on the GPU and copy
+    /// every frame back into memory, which costs about 180 MB of RAM and three to four times the CPU (measured).
+    /// Settings → Darstellung → "Grafikkarte verwenden" switches back.
+    /// </summary>
+    private void ApplyRenderMode()
+    {
+        if (HwndSource.FromHwnd(_hwnd)?.CompositionTarget is { } target)
+            target.RenderMode = _settings.GpuRendering ? RenderMode.Default : RenderMode.SoftwareOnly;
+    }
+
+    private const int ShadowSteps = 4;
+    private const double ShadowSpread = 1.5;
+
+    /// <summary>A very faint shadow, only on the side facing away from the docked edge (below for the top edge).</summary>
+    private void BuildSoftShadow()
+    {
+        var layer = new SolidColorBrush(Color.FromArgb(0x08, 0, 0, 0)); // 4 thin layers: about 12 % black at the edge (more layers cost frames while morphing)
+        layer.Freeze();
+        for (int i = 1; i <= ShadowSteps; i++)
+            SoftShadow.Children.Add(new System.Windows.Controls.Border { Background = layer, IsHitTestVisible = false });
+        ShapeShadowToEdge();
+    }
+
+    private void ShapeShadowToEdge()
+    {
+        for (int i = 0; i < SoftShadow.Children.Count; i++)
+        {
+            double far = (i + 1) * ShadowSpread, side = far * 0.5;
+            ((System.Windows.Controls.Border)SoftShadow.Children[i]).Margin = _settings.Edge switch
+            {
+                IslandEdge.Bottom => new Thickness(-side, -far, -side, 0),
+                IslandEdge.Left => new Thickness(0, -side, -far, -side),
+                IslandEdge.Right => new Thickness(-far, -side, 0, -side),
+                _ => new Thickness(-side, 0, -side, -far),
+            };
+        }
+        (ShadowOffset.X, ShadowOffset.Y) = _settings.Edge switch { IslandEdge.Bottom => (0, -2), IslandEdge.Left => (2, 0), IslandEdge.Right => (-2, 0), _ => (0, 2) };
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -325,7 +367,7 @@ public partial class IslandWindow : Window
         HitPad.HorizontalAlignment = h;
         HitPad.VerticalAlignment = v;
         // Shadow falls away from the docked edge.
-        Shadow.Direction = _settings.Edge switch { IslandEdge.Bottom => 90, IslandEdge.Left => 0, IslandEdge.Right => 180, _ => 270 };
+        ShapeShadowToEdge();
     }
 
     private HorizontalAlignment AlignH() => _settings.Align switch
@@ -400,7 +442,8 @@ public partial class IslandWindow : Window
                 // Jumping between monitors (possibly with different DPI) is done without the glide.
                 if (!_dragging) Place(animate: false);
                 break;
-            case nameof(AppSettings.Shadow): ShapeBg.Effect = _settings.Shadow ? Shadow : null; break;
+            case nameof(AppSettings.Shadow): SoftShadow.Visibility = _settings.Shadow ? Visibility.Visible : Visibility.Collapsed; ApplyShape(); break;
+            case nameof(AppSettings.GpuRendering): ApplyRenderMode(); break;
             case nameof(AppSettings.Hidden): SetHidden(_settings.Hidden); break;
             case nameof(AppSettings.Idle):
             case nameof(AppSettings.AutoHide):
@@ -517,6 +560,9 @@ public partial class IslandWindow : Window
         Shape.Height = h;
         ShapeBg.CornerRadius = new CornerRadius(r);
         Rim.CornerRadius = new CornerRadius(r);
+        if (SoftShadow.Visibility == Visibility.Visible)
+            for (int i = 0; i < SoftShadow.Children.Count; i++)
+                ((System.Windows.Controls.Border)SoftShadow.Children[i]).CornerRadius = new CornerRadius(r + (i + 1) * ShadowSpread);
         ShapeContent.Clip = new RectangleGeometry(new Rect(0, 0, w, h), r, r);
     }
 

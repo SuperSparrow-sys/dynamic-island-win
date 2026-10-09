@@ -72,6 +72,9 @@ public partial class App : Application
         _settings = snapshotDir is null ? AppSettings.Load() : new AppSettings { Hidden = false };
         if (snapshotDir is null) { _settings.Migrate(); _settings.Save(); }
         Loc.Init(_settings.Language);
+        // Without the graphics card for the whole process (see IslandWindow.ApplyRenderMode): no Direct3D device at all,
+        // which saves another ~70 MB. Switching back takes effect after a restart; the island itself switches live.
+        if (!_settings.GpuRendering) System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         Log.Info($"DynamicBay {Version} starting (identity: {SparsePackage.HasIdentity})");
         // Start-up cost before our code runs (runtime, assemblies) and UI stalls from here on.
         using (var me = System.Diagnostics.Process.GetCurrentProcess()) Log.Info($"Runtime start took {(DateTime.Now - me.StartTime).TotalMilliseconds:0} ms");
