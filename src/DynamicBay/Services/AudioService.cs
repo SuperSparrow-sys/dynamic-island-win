@@ -33,20 +33,36 @@ public sealed partial class AudioService : ObservableObject
     public event Action<string>? MicStarted;
     public event Action<bool>? MicMuteChanged;
 
-    public AudioService(AppSettings settings) => _settings = settings;
+    public AudioService(AppSettings settings)
+    {
+        _settings = settings;
+        _fast.Tick += (_, _) => ReadMute();
+        _usage.Tick += (_, _) => ReadUsage();
+    }
 
     public void Start()
     {
         if (_started) return;
         _started = true;
-        try { _enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorCom(); }
-        catch (Exception ex) { Log.Error("Audio", ex); }
-        _fast.Tick += (_, _) => ReadMute();
-        _usage.Tick += (_, _) => ReadUsage();
+        if (_enumerator is null)
+        {
+            try { _enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorCom(); }
+            catch (Exception ex) { Log.Error("Audio", ex); }
+        }
         ReadMute();
         ReadUsage(initial: true);
         _fast.Start();
         _usage.Start();
+    }
+
+    /// <summary>Switched off in the settings: no more polling, no symbols.</summary>
+    public void Stop()
+    {
+        if (!_started) return;
+        _started = false;
+        _fast.Stop();
+        _usage.Stop();
+        MicInUse = CameraInUse = false;
     }
 
     // ---------- mute (Core Audio) ----------

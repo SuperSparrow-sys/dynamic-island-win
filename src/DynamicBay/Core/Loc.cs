@@ -3,7 +3,7 @@ using System.Windows.Markup;
 
 namespace DynamicBay.Core;
 
-/// <summary>Tiny DE/EN string table. Language is fixed at startup (changing it asks for a restart).</summary>
+/// <summary>Tiny DE/EN string table. Language is fixed at startup; a change applies after restarting the app.</summary>
 public static class Loc
 {
     public static bool German { get; private set; } = true;
@@ -86,7 +86,7 @@ public static class Loc
         ["Timer.Break"] = ("Pause", "Break"),
         ["Timer.Done"] = ("Timer abgelaufen", "Timer finished"),
         ["Timer.FocusDone"] = ("Fokuszeit vorbei – Zeit für eine Pause", "Focus session done – take a break"),
-        ["Timer.BreakDone"] = ("Pause vorbei – weiter geht's", "Break is over – back to it"),
+        ["Timer.BreakDone"] = ("Pause vorbei – weiter geht’s", "Break is over – back to it"),
         ["Timer.Start"] = ("Start", "Start"),
         ["Timer.Pause"] = ("Pause", "Pause"),
         ["Timer.Resume"] = ("Weiter", "Resume"),
@@ -108,7 +108,7 @@ public static class Loc
         ["Update.Downloading"] = ("Update {0} wird geladen", "Downloading update {0}"),
         ["Update.InstallingHint"] = ("Danach kurz bestätigen – DynamicBay startet neu", "Confirm once – DynamicBay restarts"),
         ["Update.Cancelled"] = ("Update abgebrochen", "Update cancelled"),
-        ["Update.CancelledHint"] = ("Jederzeit über das Tray-Menü nachholen", "Install any time from the tray menu"),
+        ["Update.CancelledHint"] = ("Später über das Symbol in der Taskleiste nachholen", "Install later from the taskbar icon"),
         ["Update.Failed"] = ("Update fehlgeschlagen", "Update failed"),
         ["Tray.Update"] = ("Update {0} installieren", "Install update {0}"),
         ["Update.Hint"] = ("Version {0} · klicken zum Herunterladen", "Version {0} · click to download"),

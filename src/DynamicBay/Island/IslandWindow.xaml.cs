@@ -132,6 +132,7 @@ public partial class IslandWindow : Window
         SourceInitialized += OnSourceInitialized;
         Loaded += (_, _) =>
         {
+            ShapeBg.Effect = _settings.Shadow ? Shadow : null; // the XAML always starts with the shadow
             ApplyUserScale();
             Place(animate: false);
             Refresh();
@@ -704,7 +705,7 @@ public partial class IslandWindow : Window
         _hoverTimer.Stop();
         if (_expanded)
         {
-            _vm.Tab = 1; // show the shelf, drop lands on its card
+            if (_settings.ShowTrayTab) _vm.Tab = 1; // show the shelf, drop lands on its card
             return;
         }
         _dropActive = true;

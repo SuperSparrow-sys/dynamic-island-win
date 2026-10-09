@@ -117,7 +117,7 @@ public partial class App : Application
         {
             _settings.SaveSoon();
             if (ev.PropertyName is nameof(AppSettings.ToggleHotkey) or nameof(AppSettings.MicMuteHotkey) or nameof(AppSettings.AudioEnabled)) RegisterHotkey();
-            if (ev.PropertyName == nameof(AppSettings.AudioEnabled) && _settings.AudioEnabled) _vm?.Audio.Start();
+            if (ev.PropertyName == nameof(AppSettings.AudioEnabled)) { if (_settings.AudioEnabled) _vm?.Audio.Start(); else _vm?.Audio.Stop(); }
             if (ev.PropertyName == nameof(AppSettings.StartWithWindows)) Autostart.Apply(_settings.StartWithWindows);
             if (ev.PropertyName is nameof(AppSettings.SuppressBanners) or nameof(AppSettings.SuppressBannerApps) or nameof(AppSettings.Hidden))
                 BannerSuppressor.Apply(_settings);
@@ -199,7 +199,7 @@ public partial class App : Application
                 Trailing = $"{item.PixelWidth}×{item.PixelHeight}",
                 TrailingBrush = Res("B.Text3"),
                 Seconds = 3.5,
-                OnClick = () => { _vm!.Tab = 1; island.Expand(); },
+                OnClick = () => { if (_settings.ShowTrayTab) _vm!.Tab = 1; island.Expand(); },
             });
         };
 
@@ -258,7 +258,7 @@ public partial class App : Application
 
         // Claude asks something (also from a Remote Control session on another PC, which only shows up as a notification):
         // the compact island shows the waiting Claude symbol until the notification is opened or dismissed.
-        notifications.Arrived += n =>
+        notifications.Seen += n =>
         {
             if (_settings.ClaudeEnabled && ClaudeService.NeedsAnswer(n.App, n.AppId, n.Title, n.Body)) _vm!.Claude.RemoteAsked(n.Id);
         };
@@ -363,7 +363,7 @@ public partial class App : Application
             Title = Loc.German ? (count == 1 ? "1 Datei abgelegt" : $"{count} Dateien abgelegt") : (count == 1 ? "1 file added" : $"{count} files added"),
             Subtitle = Loc.T("Shelf.EmptyHint"),
             Seconds = 2.2,
-            OnClick = () => { _vm!.Tab = 1; island.Expand(); },
+            OnClick = () => { if (_settings.ShowTrayTab) _vm!.Tab = 1; island.Expand(); },
         });
     }
 

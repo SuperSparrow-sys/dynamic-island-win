@@ -102,11 +102,11 @@ public partial class SettingsWindow : Window
     {
         (Widgets.Media, "Icon.Music", "Medien", "Media", "Cover, Titel und Steuerung", "Artwork, title and controls"),
         (Widgets.Clock, "Icon.Clock", "Uhr", "Clock", "Große Uhrzeit mit Datum", "Large time with date"),
-        (Widgets.Calendar, "Icon.Calendar", "Kalender", "Calendar", "Woche und nächster Termin", "Week and next event"),
-        (Widgets.Timer, "Icon.Timer", "Timer", "Timer", "Timer und Fokus-Sitzungen", "Timers and focus sessions"),
+        (Widgets.Calendar, "Icon.Calendar", "Kalender", "Calendar", "Woche und Termine des Tages", "Week and the day’s events"),
+        (Widgets.Timer, "Icon.Timer", "Timer", "Timer", "Timer und Fokuszeiten", "Timers and focus sessions"),
         (Widgets.System, "Icon.Sliders", "System", "System", "CPU- und Speicherauslastung", "CPU and memory load"),
         (Widgets.Shortcuts, "Icon.AppWindow", "Schnellstart", "Launcher", "Angepinnte Apps und Ordner", "Pinned apps and folders"),
-        (Widgets.Claude, "Icon.Sparkles", "Claude", "Claude", "Claude-Code-Sitzungen und Agenten-Status", "Claude Code sessions and agent status"),
+        (Widgets.Claude, "Icon.Sparkles", "Claude", "Claude", "Deine Sitzungen und ob Claude gerade arbeitet", "Your sessions and whether Claude is working"),
         (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
     };
 

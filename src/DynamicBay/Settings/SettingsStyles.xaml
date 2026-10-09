@@ -110,6 +110,7 @@
 
     <!-- Segmented control item (RadioButton in a horizontal StackPanel inside S.Segments border) -->
     <Style x:Key="S.Segments" TargetType="Border">
+        <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Background" Value="{DynamicResource S.Field}" />
         <Setter Property="BorderBrush" Value="{DynamicResource S.FieldBorder}" />
         <Setter Property="BorderThickness" Value="1" />

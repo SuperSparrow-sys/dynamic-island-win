@@ -65,6 +65,8 @@ public sealed partial class NotificationService : ObservableObject
     public event Action<NotificationItem>? Arrived;
     /// <summary>The user dismissed it in Windows (or it expired).</summary>
     public event Action<NotificationItem>? Removed;
+    /// <summary>Every new notification, also with notifications or peeks switched off (Claude questions).</summary>
+    public event Action<NotificationItem>? Seen;
 
     public NotificationService(AppSettings settings)
     {
@@ -101,6 +103,8 @@ public sealed partial class NotificationService : ObservableObject
     private async Task PollAsync()
     {
         if (_listener is null) return;
+        // Nothing needs them: neither the island (switched off) nor the Claude question detection.
+        if (!_settings.NotificationsEnabled && !_settings.ClaudeEnabled) return;
         IReadOnlyList<UserNotification> list;
         try { list = await _listener.GetNotificationsAsync(NotificationKinds.Toast); }
         catch { return; }
@@ -116,6 +120,8 @@ public sealed partial class NotificationService : ObservableObject
             var item = await ToItemAsync(n);
             if (item is null) continue;
             if (_settings.MutedApps.Contains(item.App)) continue;
+            if (_primed) Seen?.Invoke(item);
+            if (!_settings.NotificationsEnabled) continue; // off: not shown in the island at all
             Items.Insert(0, item);
             if (_primed) Log.Info($"Notification from {item.App} ({item.AppId})");
             if (_primed && _settings.NotificationsEnabled && !_settings.DoNotDisturb) Arrived?.Invoke(item);

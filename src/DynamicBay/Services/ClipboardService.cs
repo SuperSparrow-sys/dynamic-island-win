@@ -76,6 +76,14 @@ public sealed partial class ClipboardService : ObservableObject
     {
         _settings = settings;
         Items.CollectionChanged += (_, _) => IsEmpty = Items.Count == 0;
+        _settings.PropertyChanged += (_, e) =>
+        {
+            // A smaller history applies right away, not only with the next new entry.
+            if (e.PropertyName == nameof(AppSettings.ClipboardMax)) { Trim(); SaveIndexSoon(); }
+            // "Keep after restart" off: also forget what was saved before.
+            if (e.PropertyName == nameof(AppSettings.ClipboardPersist) && !_settings.ClipboardPersist)
+                try { File.Delete(IndexPath); } catch { }
+        };
     }
 
     public void Start(MessageWindow msg)

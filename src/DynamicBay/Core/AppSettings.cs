@@ -21,7 +21,6 @@ public static class Widgets
     /// <summary>Home widget ids of user scripts: "script:{id}".</summary>
     public const string ScriptPrefix = "script:";
 }
-public enum AccentSource { Cover, Windows, Custom }
 public enum DisplayMode { Single, Mirror }
 public enum AppIconStyle { Mono, Dark, Color, Original }
 public enum CalendarKind { Ics, ICloud, Google }
@@ -66,8 +65,6 @@ public sealed partial class AppSettings : ObservableObject
 
     // Appearance
     [ObservableProperty] private double _scale = 1.0;
-    [ObservableProperty] private AccentSource _accent = AccentSource.Cover;
-    [ObservableProperty] private string _customAccent = "#0A84FF";
     [ObservableProperty] private double _animationSpeed = 1.0;
     [ObservableProperty] private bool _shadow = true;
     [ObservableProperty] private IdleStyle _idle = IdleStyle.Bar;

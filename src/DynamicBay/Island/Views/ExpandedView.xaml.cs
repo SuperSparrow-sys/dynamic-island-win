@@ -41,7 +41,9 @@ public partial class ExpandedView : UserControl
             if (Vm is null) return;
             Vm.Settings.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled) or nameof(Core.AppSettings.ScriptWidgets)) LayoutHome();
+                if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled) or nameof(Core.AppSettings.ScriptWidgets)
+                    or nameof(Core.AppSettings.MediaEnabled) or nameof(Core.AppSettings.TimerEnabled) or nameof(Core.AppSettings.CalendarEnabled)) LayoutHome();
+                if (e.PropertyName is nameof(Core.AppSettings.ShelfEnabled)) SetVertical(_vertical);
                 if (e.PropertyName is nameof(Core.AppSettings.ShowTrayTab) or nameof(Core.AppSettings.ShowNotificationsTab)) EnsureVisibleTab();
             };
             LayoutHome();
@@ -72,7 +74,7 @@ public partial class ExpandedView : UserControl
     {
         SyncScriptCards();
         var enabled = (Vm?.Settings.HomeWidgets ?? new System.Collections.ObjectModel.ObservableCollection<string> { "media", "calendar", "timer" })
-            .Where(_widgets.ContainsKey).Where(id => id != Core.Widgets.Claude || Vm?.Settings.ClaudeEnabled != false).Distinct().ToList();
+            .Where(_widgets.ContainsKey).Where(ModuleOn).Distinct().ToList();
         foreach (var (id, card) in _widgets) card.Visibility = enabled.Contains(id) ? Visibility.Visible : Visibility.Collapsed;
         HomeGrid.ColumnDefinitions.Clear();
         HomeGrid.RowDefinitions.Clear();
@@ -126,6 +128,21 @@ public partial class ExpandedView : UserControl
         }
         Vm?.System.SetActive(IsVisible && enabled.Contains(Core.Widgets.System));
         FitHomeToViewport();
+    }
+
+    /// <summary>A card whose module is switched off in the settings is not shown (e.g. "Wiedergabe anzeigen" off hides the player).</summary>
+    private bool ModuleOn(string id)
+    {
+        var s = Vm?.Settings;
+        if (s is null) return true;
+        return id switch
+        {
+            Core.Widgets.Media => s.MediaEnabled,
+            Core.Widgets.Timer => s.TimerEnabled,
+            Core.Widgets.Calendar => s.CalendarEnabled,
+            Core.Widgets.Claude => s.ClaudeEnabled,
+            _ => true,
+        };
     }
 
     private bool IsWide(string id) => id is "media" or "messenger" or "claude" || ScriptOf(id)?.Size == Core.ScriptSize.Large;
@@ -225,13 +242,16 @@ public partial class ExpandedView : UserControl
         FitHomeToViewport();
         LayoutHome();
 
+        // Shelf switched off: its card goes, the clipboard takes the whole width/height.
+        bool shelf = Vm?.Settings.ShelfEnabled != false;
+        ShelfCard.Visibility = shelf ? Visibility.Visible : Visibility.Collapsed;
         Layout(TrayGrid, vertical,
-            horizontal: new[] { (ShelfCard, 0, 0, 1), (ClipCard, 0, 1, 1) },
-            hCols: new[] { new GridLength(1, GridUnitType.Star), new GridLength(1.9, GridUnitType.Star) },
+            horizontal: shelf ? new[] { (ShelfCard, 0, 0, 1), (ClipCard, 0, 1, 1) } : new[] { (ClipCard, 0, 0, 1) },
+            hCols: shelf ? new[] { new GridLength(1, GridUnitType.Star), new GridLength(1.9, GridUnitType.Star) } : new[] { new GridLength(1, GridUnitType.Star) },
             hRows: new[] { new GridLength(1, GridUnitType.Star) },
-            vertical: new[] { (ShelfCard, 0, 0, 1), (ClipCard, 1, 0, 1) },
+            vertical: shelf ? new[] { (ShelfCard, 0, 0, 1), (ClipCard, 1, 0, 1) } : new[] { (ClipCard, 0, 0, 1) },
             vCols: new[] { new GridLength(1, GridUnitType.Star) },
-            vRows: new[] { new GridLength(1, GridUnitType.Star), new GridLength(1.7, GridUnitType.Star) });
+            vRows: shelf ? new[] { new GridLength(1, GridUnitType.Star), new GridLength(1.7, GridUnitType.Star) } : new[] { new GridLength(1, GridUnitType.Star) });
 
         ClipList.ItemsPanel = (ItemsPanelTemplate)FindResource(vertical ? "WrapPanel" : "RowPanel");
         ClipScroll.HorizontalScrollBarVisibility = vertical ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
@@ -309,7 +329,7 @@ public partial class ExpandedView : UserControl
 
     private void Shelf_Drop(object sender, DragEventArgs e)
     {
-        if (Vm is null) return;
+        if (Vm is null || !Vm.Settings.ShelfEnabled) return;
         if (e.Data.GetData(DataFormats.FileDrop) is string[] files) Vm.Shelf.Add(files);
         e.Handled = true;
     }

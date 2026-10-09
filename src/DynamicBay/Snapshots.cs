@@ -64,31 +64,33 @@ public static class Snapshots
                 vm.Scripts.Start();
                 await Task.Delay(4000);
             }
+            foreach (var app in InstalledApps.All().Take(3)) settings.Shortcuts.Add(app.LaunchPath); // launcher list with tiles
             var win = new Settings.SettingsWindow(settings, vm);
             win.Show();
             for (int page = 0; page <= 11; page++)
             {
                 win.ShowPage(page);
                 await Task.Delay(700);
-                Capture(win, Path.Combine(dir, $"settings-{page:00}.png"));
+                RenderWindow(win, Path.Combine(dir, $"settings-{page:00}.png"));
             }
             // Calendar page with the CalDAV form open
             win.ShowPage(9);
             if (win.FindName("ICloudForm") is FrameworkElement form) { form.Visibility = Visibility.Visible; await Task.Delay(300); form.BringIntoView(); }
             await Task.Delay(700);
-            Capture(win, Path.Combine(dir, "settings-10b-caldav.png"));
+            RenderWindow(win, Path.Combine(dir, "settings-10b-caldav.png"));
             // Widgets page, scrolled to the script widgets
             win.ShowPage(11);
             await Task.Delay(500);
             if (win.FindName("ScriptRows") is FrameworkElement rows) rows.BringIntoView();
             await Task.Delay(500);
-            Capture(win, Path.Combine(dir, "settings-11b-scripts.png"));
+            RenderWindow(win, Path.Combine(dir, "settings-11b-scripts.png"));
+            if (win.FindName("PageScroll") is System.Windows.Controls.ScrollViewer ps) { ps.ScrollToVerticalOffset(ps.VerticalOffset + 650); await Task.Delay(500); RenderWindow(win, Path.Combine(dir, "settings-11c-launcher.png")); }
             // Behaviour page, scrolled down to "hide while these apps are active"
             win.ShowPage(3);
             await Task.Delay(500);
             (win.FindName("PageScroll") as System.Windows.Controls.ScrollViewer)?.ScrollToEnd();
             await Task.Delay(500);
-            Capture(win, Path.Combine(dir, "settings-03b-excluded.png"));
+            RenderWindow(win, Path.Combine(dir, "settings-03b-excluded.png"));
             win.Close();
             return;
         }
@@ -215,6 +217,27 @@ public static class Snapshots
         var rtb = new RenderTargetBitmap((int)(w * k), (int)(h * k), 96 * k, 96 * k, PixelFormats.Pbgra32);
         rtb.Render(dv);
         ImageTools.SavePng(rtb, file);
+    }
+
+    /// <summary>Renders the window content itself (not the screen), so other windows cannot cover it.</summary>
+    private static void RenderWindow(Window w, string file)
+    {
+        var root = (FrameworkElement)w.Content;
+        double k = VisualTreeHelper.GetDpi(w).DpiScaleX;
+        int pw = (int)(root.ActualWidth * k), ph = (int)(root.ActualHeight * k);
+        var dv = new DrawingVisual();
+        using (var dc = dv.RenderOpen())
+        {
+            var bg = w.Background is SolidColorBrush b && b.Color.A > 0 ? b : new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3));
+            dc.DrawRectangle(bg, null, new Rect(0, 0, root.ActualWidth, root.ActualHeight));
+            dc.DrawRectangle(new VisualBrush(root), null, new Rect(0, 0, root.ActualWidth, root.ActualHeight));
+        }
+        var bmp = new RenderTargetBitmap(pw, ph, 96 * k, 96 * k, PixelFormats.Pbgra32);
+        bmp.Render(dv);
+        var enc = new PngBitmapEncoder();
+        enc.Frames.Add(BitmapFrame.Create(bmp));
+        using var fs = File.Create(file);
+        enc.Save(fs);
     }
 
     private static void Capture(Window w, string file)
