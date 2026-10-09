@@ -156,7 +156,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="999" Padding="{TemplateBinding Padding}">
+                    <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="9" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -206,7 +206,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
-                    <Border x:Name="Bg" Background="Transparent" CornerRadius="999" Padding="10,5">
+                    <Border x:Name="Bg" Background="Transparent" CornerRadius="9" Padding="10,5">
                         <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                     </Border>
                     <ControlTemplate.Triggers>

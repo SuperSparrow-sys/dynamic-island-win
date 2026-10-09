@@ -212,10 +212,8 @@ public sealed partial class MediaService : ObservableObject
                 using var stream = ras.AsStreamForRead();
                 var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
-                ms.Position = 0;
-                var img = ImageTools.Load(ms, 300);
-                Cover = img;
-                if (img is not null) SetAccent(ImageTools.Accent(img, Color.FromRgb(0x30, 0xD1, 0x58)));
+                if (!ReferenceEquals(session, _session)) return;
+                OfferCover(ms.ToArray(), Title);
             }
             else if (!InHold)
             {
@@ -354,15 +352,62 @@ public sealed partial class MediaService : ObservableObject
         RefreshPlayback();
     }
 
+    // ---- artwork: never show the player's app icon as a cover ----
+    // Browser web apps (Spotify in Chrome) report the browser icon as artwork for a moment on every track change.
+    // 1) After a title change, artwork is applied only once updates settle (the last image wins).
+    // 2) An image that shows up for different titles is the app icon, not a cover, and is ignored from then on.
+
+    private readonly Dictionary<string, HashSet<string>> _artTitles = new();
+    private readonly HashSet<string> _placeholderArt = new();
+    private byte[]? _pendingArt;
+    private string _pendingArtTitle = "";
+    private string _coverTitle = "";
+    private DispatcherTimer? _artSettle;
+
+    private void OfferCover(byte[] bytes, string title)
+    {
+        string hash = Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(bytes));
+        if (!_artTitles.TryGetValue(hash, out var titles)) _artTitles[hash] = titles = new HashSet<string>();
+        titles.Add(title);
+        if (titles.Count > 1 && _placeholderArt.Add(hash)) Log.Info("Media: ignoring app icon used as artwork");
+        if (_placeholderArt.Contains(hash)) { ScheduleMediaRetry(); return; } // keep the old cover, real art follows
+
+        _pendingArt = bytes;
+        _pendingArtTitle = title;
+        if (title == _coverTitle && _artSettle?.IsEnabled != true) { ApplyPendingArt(); return; } // same track: art update
+        _artSettle ??= new DispatcherTimer(TimeSpan.FromMilliseconds(650), DispatcherPriority.Normal, (_, _) =>
+        {
+            _artSettle!.Stop();
+            ApplyPendingArt();
+        }, _ui);
+        _artSettle.Stop();
+        _artSettle.Start();
+    }
+
+    private void ApplyPendingArt()
+    {
+        if (_pendingArt is null) return;
+        var img = ImageTools.Load(new MemoryStream(_pendingArt), 300);
+        _pendingArt = null;
+        if (img is null) return;
+        Cover = img;
+        _coverTitle = _pendingArtTitle;
+        SetAccent(ImageTools.Accent(img, Color.FromRgb(0x30, 0xD1, 0x58)));
+    }
+
     private bool _pendingTrackPeek;
     private DispatcherTimer? _trackPeek;
+    private int _peekWaits;
 
     private void ScheduleTrackPeek()
     {
-        _trackPeek ??= new DispatcherTimer(TimeSpan.FromMilliseconds(800), DispatcherPriority.Normal, (_, _) =>
+        _trackPeek ??= new DispatcherTimer(TimeSpan.FromMilliseconds(900), DispatcherPriority.Normal, (_, _) =>
         {
             _trackPeek!.Stop();
             if (!_pendingTrackPeek) return;
+            // Wait until the artwork for the new title has been applied (or give up after a few tries).
+            if (_coverTitle != Title && _peekWaits++ < 4) { _trackPeek.Start(); return; }
+            _peekWaits = 0;
             _pendingTrackPeek = false;
             if (IsPlaying && Title.Length > 0) TrackChanged?.Invoke();
         }, _ui);
