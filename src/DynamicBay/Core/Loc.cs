@@ -23,6 +23,8 @@ public static class Loc
 
     public static string F(string key, params object[] args) => string.Format(T(key), args);
 
+    internal static IReadOnlyDictionary<string, (string de, string en)> TableForTests => Table;
+
     private static readonly Dictionary<string, (string de, string en)> Table = new()
     {
         ["App.Name"] = ("DynamicBay", "DynamicBay"),

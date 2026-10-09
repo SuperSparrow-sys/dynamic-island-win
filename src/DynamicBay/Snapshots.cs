@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -57,7 +57,7 @@ public static class Snapshots
                 Image = vm.Clipboard.Items.FirstOrDefault(i => i.IsImage)?.Thumbnail,
                 Title = Loc.T("Peek.Screenshot"),
                 Subtitle = Loc.T("Peek.ScreenshotHint"),
-                Trailing = "1920Ã—1080",
+                Trailing = "1920×1080",
                 TrailingBrush = (Brush)Application.Current.FindResource("B.Text3"),
                 Seconds = 60,
             });
@@ -191,11 +191,11 @@ public static class Snapshots
         var shot = DemoScreenshot();
         vm.Clipboard.AddDemo(new ClipItem { Kind = ClipKind.Image, IsScreenshot = true, Thumbnail = shot, PixelWidth = 1920, PixelHeight = 1080 });
         vm.Clipboard.AddDemo(new ClipItem { Kind = ClipKind.Text, Text = "https://github.com/SuperSparrow-sys/dynamic-island-win", Created = DateTime.Now.AddMinutes(-3) });
-        vm.Clipboard.AddDemo(new ClipItem { Kind = ClipKind.Text, Text = "Treffen am Freitag um 14 Uhr im Studio, bitte EntwÃ¼rfe mitbringen.", Created = DateTime.Now.AddMinutes(-12), Pinned = true });
+        vm.Clipboard.AddDemo(new ClipItem { Kind = ClipKind.Text, Text = "Treffen am Freitag um 14 Uhr im Studio, bitte Entwürfe mitbringen.", Created = DateTime.Now.AddMinutes(-12), Pinned = true });
 
         var demoDir = Path.Combine(Path.GetTempPath(), "DynamicBayDemo");
         Directory.CreateDirectory(demoDir);
-        foreach (var name in new[] { "PrÃ¤sentation.pptx", "Rechnung_Oktober.pdf", "Notizen.txt" })
+        foreach (var name in new[] { "Präsentation.pptx", "Rechnung_Oktober.pdf", "Notizen.txt" })
         {
             var p = Path.Combine(demoDir, name);
             if (!File.Exists(p)) File.WriteAllText(p, "");

@@ -1,4 +1,4 @@
-; DynamicBay installer (Inno Setup 6). Built by tools\build-release.ps1 or the GitHub release workflow.
+﻿; DynamicBay installer (Inno Setup 6). Built by tools\build-release.ps1 or the GitHub release workflow.
 ; The app is published self-contained (.NET runtime included), so nothing else has to be installed on the target PC.
 
 #ifndef AppVersion
