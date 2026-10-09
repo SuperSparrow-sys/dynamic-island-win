@@ -68,6 +68,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private double _animationSpeed = 1.0;
     [ObservableProperty] private bool _shadow = true;
     [ObservableProperty] private IdleStyle _idle = IdleStyle.Bar;
+    /// <summary>Frames per second of the island animations; 0 = as many as the display offers.</summary>
+    [ObservableProperty] private int _frameRate;
 
     // Customizable layout
     private ObservableCollection<string> _homeWidgets = new() { Widgets.Media, Widgets.Calendar, Widgets.Timer };

@@ -32,6 +32,7 @@ public sealed class Waveform : FrameworkElement
     private TimeSpan _last;
     private double _retarget;
     private bool _hooked;
+    private double _drawn = -1;
 
     public Waveform()
     {
@@ -75,9 +76,9 @@ public sealed class Waveform : FrameworkElement
     private void OnFrame(object? sender, EventArgs e)
     {
         var t = ((RenderingEventArgs)e).RenderingTime;
+        if (!Motion.FrameRate.Due(ref _drawn, t.TotalSeconds)) return;
         if (_last == TimeSpan.Zero) { _last = t; return; }
         double dt = Math.Min((t - _last).TotalSeconds, 0.05);
-        // Every frame, on purpose: skipping frames makes the bars visibly judder (costs more CPU, smoothness wins).
         if (dt <= 0) return;
         _last = t;
 

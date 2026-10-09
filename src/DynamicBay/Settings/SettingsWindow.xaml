@@ -121,6 +121,16 @@
                                     <Slider Style="{StaticResource S.Slider}" Minimum="0.6" Maximum="1.6" Value="{Binding S.AnimationSpeed}" TickFrequency="0.1" IsSnapToTickEnabled="True" />
                                 </StackPanel>
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Bildrate', En='Frame rate'}"
+                                            ToolTip="{core:L De='Wie viele Bilder pro Sekunde die Bewegungen der Insel haben. Maximal ist am flüssigsten, 30 oder 60 sparen Strom.', En='Frames per second of the island’s motion. Maximum is smoothest; 30 or 60 save power.'}">
+                                <Border Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="30" IsChecked="{Binding S.FrameRate, Converter={StaticResource EqBool}, ConverterParameter=30}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="60" IsChecked="{Binding S.FrameRate, Converter={StaticResource EqBool}, ConverterParameter=60}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Maximal', En='Maximum'}" IsChecked="{Binding S.FrameRate, Converter={StaticResource EqBool}, ConverterParameter=0}" />
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Im Leerlauf', En='When idle'}"
                                             ToolTip="{core:L De='Was die Insel zeigt, wenn nichts passiert.', En='What the island shows when nothing is going on.'}">
                                 <Border Style="{StaticResource S.Segments}">

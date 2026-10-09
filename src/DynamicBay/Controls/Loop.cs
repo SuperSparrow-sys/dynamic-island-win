@@ -41,7 +41,11 @@ public static class Loop
         bool running = (bool)el.GetValue(RunningProperty);
         if (run == running) return;
         el.SetValue(RunningProperty, run);
-        if (run) sb.Begin(el, true);
+        if (run)
+        {
+            if (!sb.IsFrozen) Timeline.SetDesiredFrameRate(sb, Motion.FrameRate.Limit > 0 ? Motion.FrameRate.Limit : null);
+            sb.Begin(el, true);
+        }
         else sb.Stop(el);
     }
 }

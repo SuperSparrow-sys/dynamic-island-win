@@ -50,6 +50,7 @@ public sealed class SpringGroup
     private double _last;
     private double _accumulator;
     private bool _running;
+    private double _drawn = -1;
 
     public event Action? Updated;
 
@@ -66,12 +67,14 @@ public sealed class SpringGroup
         _clock.Restart();
         _last = 0;
         _accumulator = 0;
+        _drawn = -1;
         CompositionTarget.Rendering += OnRendering;
     }
 
     private void OnRendering(object? sender, EventArgs e)
     {
         double now = _clock.Elapsed.TotalSeconds;
+        if (!FrameRate.Due(ref _drawn, now)) return; // the physics catch up on the next drawn frame
         double dt = Math.Min(now - _last, 0.05);
         _last = now;
         _accumulator += dt;

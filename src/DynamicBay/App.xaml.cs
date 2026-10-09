@@ -121,10 +121,12 @@ public partial class App : Application
             if (ev.PropertyName is nameof(AppSettings.ToggleHotkey) or nameof(AppSettings.MicMuteHotkey) or nameof(AppSettings.AudioEnabled)) RegisterHotkey();
             if (ev.PropertyName == nameof(AppSettings.AudioEnabled)) { if (_settings.AudioEnabled) _vm?.Audio.Start(); else _vm?.Audio.Stop(); }
             if (ev.PropertyName == nameof(AppSettings.StartWithWindows)) Autostart.Apply(_settings.StartWithWindows);
+            if (ev.PropertyName == nameof(AppSettings.FrameRate)) Motion.FrameRate.Limit = _settings.FrameRate;
             if (ev.PropertyName is nameof(AppSettings.SuppressBanners) or nameof(AppSettings.BannerExceptions) or nameof(AppSettings.Hidden) or nameof(AppSettings.NotificationsEnabled))
                 BannerSuppressor.Apply(_settings, notifications.Access == NotificationAccess.Allowed);
         };
         Autostart.Apply(_settings.StartWithWindows);
+        Motion.FrameRate.Limit = _settings.FrameRate;
 
         WirePeeks(media, clipboard, shelf, notifications, timer, calendar, battery, bluetooth);
 

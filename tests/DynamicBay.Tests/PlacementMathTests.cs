@@ -106,3 +106,19 @@ public class PlacementMathTests
         Assert.True(PlacementMath.LiveVertical(100, 100, Work, currentlyVertical: true, Scale));
     }
 }
+
+public class FrameRateTests
+{
+    [Fact]
+    public void Limit_30_on_60_hz_draws_every_second_frame()
+    {
+        DynamicBay.Motion.FrameRate.Limit = 30;
+        try
+        {
+            double last = -1;
+            var drawn = Enumerable.Range(0, 12).Select(i => DynamicBay.Motion.FrameRate.Due(ref last, i / 60.0)).ToArray();
+            Assert.Equal(new[] { true, false, true, false, true, false, true, false, true, false, true, false }, drawn);
+        }
+        finally { DynamicBay.Motion.FrameRate.Limit = 0; }
+    }
+}
