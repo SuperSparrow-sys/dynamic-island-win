@@ -120,14 +120,20 @@ public static class Snapshots
     private static void RenderClean(Window island, string file)
     {
         var root = (FrameworkElement)island.Content;
-        double w = root.ActualWidth, h = root.ActualHeight, k = 2;
+        var shape = (FrameworkElement)island.FindName("Shape");
+        // Crop: the island's own bounds plus a margin for the shadow (in the root's coordinate space).
+        var b = shape.TransformToAncestor(root).TransformBounds(new Rect(0, 0, shape.ActualWidth, shape.ActualHeight));
+        var crop = Rect.Inflate(b, 36, 30);
+        double w = crop.Width, h = crop.Height, k = 2;
         var dv = new DrawingVisual();
         using (var dc = dv.RenderOpen())
         {
             var bg = new LinearGradientBrush(Color.FromRgb(0x1E, 0x2A, 0x4A), Color.FromRgb(0x6B, 0x4E, 0x9B), 35);
             dc.DrawRectangle(bg, null, new Rect(0, 0, w, h));
             dc.DrawEllipse(new RadialGradientBrush(Color.FromArgb(120, 0xFF, 0x9F, 0x6B), Color.FromArgb(0, 0xFF, 0x9F, 0x6B)), null, new Point(w * 0.8, h * 0.9), w * 0.5, h * 0.8);
-            dc.DrawRectangle(new VisualBrush(root), null, new Rect(0, 0, w, h));
+            // Absolute viewbox = exact 1:1 mapping (a default VisualBrush would stretch the content bounds and distort).
+            var brush = new VisualBrush(root) { ViewboxUnits = BrushMappingMode.Absolute, Viewbox = crop, Stretch = Stretch.None };
+            dc.DrawRectangle(brush, null, new Rect(0, 0, w, h));
         }
         var rtb = new RenderTargetBitmap((int)(w * k), (int)(h * k), 96 * k, 96 * k, PixelFormats.Pbgra32);
         rtb.Render(dv);
