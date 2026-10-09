@@ -18,6 +18,7 @@
             <c:EqualsToBool x:Key="EqBool" />
             <c:EqualsToVis x:Key="EqVis" />
             <c:BoolToVis x:Key="Vis" />
+            <c:ExcludedLabel x:Key="ExcludedLabel" />
             <c:BoolToVis x:Key="NotVis" Invert="True" />
             <Style TargetType="c:Icon">
                 <Setter Property="Foreground" Value="{DynamicResource S.Text}" />
@@ -395,11 +396,13 @@
                                             <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Padding="8,4" Click="RemoveExcluded_Click" Tag="{Binding}">
                                                 <c:Icon Data="{StaticResource Icon.Close}" Width="12" Height="12" />
                                             </Button>
-                                            <TextBlock Style="{StaticResource ST.Base}" VerticalAlignment="Center" Text="{Binding}" />
+                                            <TextBlock Style="{StaticResource ST.Base}" VerticalAlignment="Center" Text="{Binding Converter={StaticResource ExcludedLabel}}" ToolTip="{Binding}" />
                                         </DockPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            <Button Style="{StaticResource S.AccentButton}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="PickExcludedApps_Click"
+                                    Content="{core:L De='Apps auswählen', En='Choose apps'}" />
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="PickRunningApp_Click"
                                         Content="{core:L De='Laufende App wählen', En='Pick running app'}" />

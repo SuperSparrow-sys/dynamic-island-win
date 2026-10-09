@@ -43,6 +43,12 @@ public static class Snapshots
             if (win.FindName("ICloudForm") is FrameworkElement form) { form.Visibility = Visibility.Visible; await Task.Delay(300); form.BringIntoView(); }
             await Task.Delay(700);
             Capture(win, Path.Combine(dir, "settings-10b-caldav.png"));
+            // Behaviour page, scrolled down to "hide while these apps are active"
+            win.ShowPage(3);
+            await Task.Delay(500);
+            (win.FindName("PageScroll") as System.Windows.Controls.ScrollViewer)?.ScrollToEnd();
+            await Task.Delay(500);
+            Capture(win, Path.Combine(dir, "settings-03b-excluded.png"));
             win.Close();
             return;
         }
@@ -67,6 +73,7 @@ public static class Snapshots
                 Seconds = 60,
             });
             await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-3-peek.png"), compact: true);
+            vm.Spotify.IsConnected = true; // shows like + device buttons next to the transport
             vm.Tab = 0;
             await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-4-home.png"), compact: true);
             if (name is "top" or "left")

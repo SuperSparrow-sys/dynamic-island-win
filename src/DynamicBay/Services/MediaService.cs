@@ -262,6 +262,8 @@ public sealed partial class MediaService : ObservableObject
     private void RefreshTimeline()
     {
         if (_session is null) return;
+        // Right after a seek the player may still report the old position once: do not jump back.
+        if (_scrubbing || DateTime.UtcNow < _seekSettleUntil) return;
         try
         {
             var t = _session.GetTimelineProperties();
@@ -277,6 +279,7 @@ public sealed partial class MediaService : ObservableObject
 
     private void UpdateInterpolatedPosition()
     {
+        if (_scrubbing) return;
         var pos = _positionAtStamp;
         if (IsPlaying) pos += DateTime.UtcNow - _positionStamp;
         double secs = Math.Clamp(pos.TotalSeconds, 0, DurationSeconds > 0 ? DurationSeconds : double.MaxValue);
@@ -429,9 +432,24 @@ public sealed partial class MediaService : ObservableObject
         _mediaRetry.Start();
     }
 
+    private bool _scrubbing;
+    private DateTime _seekSettleUntil;
+
+    /// <summary>Dragging along the timeline: show the time under the cursor without seeking yet.</summary>
+    public void Scrub(double seconds)
+    {
+        _scrubbing = true;
+        double secs = Math.Clamp(seconds, 0, DurationSeconds);
+        PositionSeconds = secs;
+        PositionText = Format(secs);
+        RemainingText = "-" + Format(Math.Max(0, DurationSeconds - secs));
+    }
+
     public async Task SeekAsync(double seconds)
     {
+        _scrubbing = false;
         if (_session is null) return;
+        _seekSettleUntil = DateTime.UtcNow.AddSeconds(1.5);
         try
         {
             _positionAtStamp = TimeSpan.FromSeconds(seconds);

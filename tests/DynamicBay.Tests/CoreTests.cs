@@ -250,3 +250,30 @@ public class MigrationTests
         Assert.True(s.MediaPeekOnTrackChange);
     }
 }
+
+public class ExcludedAppsTests
+{
+    [Theory]
+    [InlineData(@"shell:AppsFolder\{6D809377-6AF0-444B-8957-A3773F02200E}\Google\Chrome\Application\chrome.exe", "chrome.exe")]
+    [InlineData(@"shell:AppsFolder\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App", "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App")]
+    [InlineData(@"C:\Tools\obs64.exe", "obs64.exe")]
+    public void Picked_apps_become_exe_names_or_app_ids(string launchPath, string expected) =>
+        Assert.Equal(expected, ExcludedApps.TokenFor(new InstalledApp("x", launchPath)));
+
+    [Fact]
+    public void Matches_by_process_name_or_window_app_id()
+    {
+        var entries = new[] { "obs64.exe", "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App" };
+        Assert.True(ExcludedApps.Matches(entries, "OBS64", () => null));
+        Assert.True(ExcludedApps.Matches(entries, "CalculatorApp", () => "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"));
+        Assert.False(ExcludedApps.Matches(entries, "notepad", () => "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App"));
+    }
+
+    [Fact]
+    public void Window_app_id_is_only_read_when_an_app_id_entry_exists()
+    {
+        bool read = false;
+        ExcludedApps.Matches(new[] { "obs64.exe" }, "notepad", () => { read = true; return null; });
+        Assert.False(read);
+    }
+}

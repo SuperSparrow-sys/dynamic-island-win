@@ -32,7 +32,46 @@ public static class TaskbarIdentity
         catch (Exception ex) { Log.Error("TaskbarIdentity", ex); }
     }
 
-    private static PropertyKey PKEY(int pid) => new() { fmtid = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), pid = pid };
+    /// <summary>
+    /// AppUserModelID of a window: the per-window id (browsers, Electron apps) or, for Store apps, the package app id.
+    /// </summary>
+    public static string? Read(IntPtr hwnd)
+    {
+        if (hwnd == IntPtr.Zero) return null;
+        try
+        {
+            var iid = typeof(IPropertyStore).GUID;
+            if (SHGetPropertyStoreForWindow(hwnd, ref iid, out var store) == 0 && store is not null)
+            {
+                try
+                {
+                    var key = PKEY(5);
+                    store.GetValue(ref key, out var pv);
+                    try { if (pv.vt == 31 && pv.pointer != IntPtr.Zero) return Marshal.PtrToStringUni(pv.pointer); }
+                    finally { PropVariantClear(ref pv); }
+                }
+                finally { Marshal.ReleaseComObject(store); }
+            }
+            GetWindowThreadProcessId(hwnd, out uint pid);
+            var h = OpenProcess(0x1000 /* QUERY_LIMITED_INFORMATION */, false, pid);
+            if (h == IntPtr.Zero) return null;
+            try
+            {
+                int len = 256;
+                var sb = new System.Text.StringBuilder(len);
+                return GetApplicationUserModelId(h, ref len, sb) == 0 ? sb.ToString() : null;
+            }
+            finally { CloseHandle(h); }
+        }
+        catch { return null; }
+    }
+
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
+    [DllImport("kernel32.dll")] private static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
+    [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr h);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern int GetApplicationUserModelId(IntPtr process, ref int length, System.Text.StringBuilder id);
+
+        private static PropertyKey PKEY(int pid) => new() { fmtid = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), pid = pid };
 
     private static void Set(IPropertyStore store, PropertyKey key, string value)
     {

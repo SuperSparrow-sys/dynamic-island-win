@@ -248,19 +248,46 @@
                                     </StackPanel>
                                 </DockPanel>
 
-                                <!-- Timeline (click to seek) -->
+                                <!-- Timeline: click or drag to seek; on hover the bar thickens and shows its knob -->
                                 <StackPanel Grid.Row="2" Margin="0,6,0,0">
-                                    <Grid x:Name="Timeline" Height="12" Background="Transparent" Cursor="Hand" MouseLeftButtonDown="Timeline_MouseDown">
-                                        <Border Height="4" CornerRadius="2" Background="{StaticResource B.Fill3}" VerticalAlignment="Center" />
-                                        <Border Height="4" CornerRadius="2" Background="{StaticResource B.Text}" VerticalAlignment="Center" HorizontalAlignment="Left">
-                                            <Border.Width>
-                                                <MultiBinding Converter="{StaticResource Ratio}">
-                                                    <Binding Path="Media.PositionSeconds" />
-                                                    <Binding Path="Media.DurationSeconds" />
-                                                    <Binding Path="ActualWidth" ElementName="Timeline" />
-                                                </MultiBinding>
-                                            </Border.Width>
-                                        </Border>
+                                    <Grid x:Name="Timeline" Height="16" Background="Transparent" Cursor="Hand"
+                                          MouseLeftButtonDown="Timeline_MouseDown" MouseMove="Timeline_MouseMove" MouseLeftButtonUp="Timeline_MouseUp">
+                                        <Border x:Name="TimelineTrack" Height="4" CornerRadius="3" Background="{StaticResource B.Fill3}" VerticalAlignment="Center" />
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                                            <Border x:Name="TimelineFill" Height="4" CornerRadius="3" Background="{StaticResource B.Text}" VerticalAlignment="Center">
+                                                <Border.Width>
+                                                    <MultiBinding Converter="{StaticResource Ratio}">
+                                                        <Binding Path="Media.PositionSeconds" />
+                                                        <Binding Path="Media.DurationSeconds" />
+                                                        <Binding Path="ActualWidth" ElementName="Timeline" />
+                                                    </MultiBinding>
+                                                </Border.Width>
+                                            </Border>
+                                            <Border x:Name="TimelineKnob" Width="12" Height="12" CornerRadius="6" Margin="-6,0,0,0" Background="{StaticResource B.Text}"
+                                                    VerticalAlignment="Center" Opacity="0">
+                                                <Border.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.5" /></Border.Effect>
+                                            </Border>
+                                        </StackPanel>
+                                        <Grid.Triggers>
+                                            <EventTrigger RoutedEvent="MouseEnter">
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetName="TimelineKnob" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.15" />
+                                                        <DoubleAnimation Storyboard.TargetName="TimelineTrack" Storyboard.TargetProperty="Height" To="6" Duration="0:0:0.15" />
+                                                        <DoubleAnimation Storyboard.TargetName="TimelineFill" Storyboard.TargetProperty="Height" To="6" Duration="0:0:0.15" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                            <EventTrigger RoutedEvent="MouseLeave">
+                                                <BeginStoryboard>
+                                                    <Storyboard>
+                                                        <DoubleAnimation Storyboard.TargetName="TimelineKnob" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.25" />
+                                                        <DoubleAnimation Storyboard.TargetName="TimelineTrack" Storyboard.TargetProperty="Height" To="4" Duration="0:0:0.25" />
+                                                        <DoubleAnimation Storyboard.TargetName="TimelineFill" Storyboard.TargetProperty="Height" To="4" Duration="0:0:0.25" />
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                        </Grid.Triggers>
                                     </Grid>
                                     <DockPanel Margin="0,2,0,0">
                                         <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Numeric}" FontSize="10" FontWeight="Medium" Foreground="{StaticResource B.Text3}" Text="{Binding Media.RemainingText}" />
@@ -269,13 +296,21 @@
                                 </StackPanel>
 
                                 <!-- Transport -->
+                                <!-- Like | previous, play, next | devices: own columns, so nothing overlaps on a narrow card -->
                                 <Grid Grid.Row="3" Margin="0,2,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
                                     <Button HorizontalAlignment="Left" Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.ToggleLikeCommand}"
                                             Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}" ToolTip="{core:T Media.Like}">
                                         <c:Icon Width="16" Height="16" Data="{Binding Spotify.IsLiked, Converter={StaticResource LikeGlyph}}"
                                                 Filled="{Binding Spotify.IsLiked}" Foreground="{Binding Spotify.IsLiked, Converter={StaticResource LikeBrush}}" />
                                     </Button>
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center">
                                         <Button Style="{StaticResource Btn.Media}" Command="{Binding Media.PreviousCommand}">
                                             <c:Icon Data="{StaticResource Glyph.Previous}" Filled="True" Width="20" Height="20" />
                                         </Button>
@@ -286,7 +321,7 @@
                                             <c:Icon Data="{StaticResource Glyph.Next}" Filled="True" Width="20" Height="20" />
                                         </Button>
                                     </StackPanel>
-                                    <Button HorizontalAlignment="Right" Style="{StaticResource Btn.Icon}" Click="Devices_Click"
+                                    <Button Grid.Column="4" HorizontalAlignment="Right" Style="{StaticResource Btn.Icon}" Click="Devices_Click"
                                             Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}" ToolTip="{core:T Media.Devices}">
                                         <c:Icon Data="{StaticResource Icon.Devices}" Width="16" Height="16" Foreground="{StaticResource B.Text2}" />
                                     </Button>

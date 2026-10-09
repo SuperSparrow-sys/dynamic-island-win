@@ -948,8 +948,7 @@ public partial class IslandWindow : Window
         if (_settings.HideInFullscreen && IsFullscreen(fg) && !_snapshotMode) suppress = true;
         if (!suppress && _settings.ExcludedApps.Count > 0)
         {
-            var name = IsOwnWindow(fg) ? null : Native.ProcessName(fg);
-            if (name is not null && _settings.ExcludedApps.Any(a => string.Equals(a.Replace(".exe", ""), name, StringComparison.OrdinalIgnoreCase)))
+            if (!IsOwnWindow(fg) && ExcludedApps.Matches(_settings.ExcludedApps, Native.ProcessName(fg), () => TaskbarIdentity.Read(fg)))
                 suppress = true;
         }
         if (suppress != _suppressed)

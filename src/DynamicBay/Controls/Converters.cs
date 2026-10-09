@@ -5,6 +5,13 @@ using System.Windows.Media;
 
 namespace DynamicBay.Controls;
 
+/// <summary>Readable app name for an entry of "hide while these apps are active".</summary>
+public sealed class ExcludedLabel : IValueConverter
+{
+    public object Convert(object value, Type t, object p, CultureInfo c) => value is string s ? Core.ExcludedApps.Label(s) : "";
+    public object ConvertBack(object value, Type t, object p, CultureInfo c) => Binding.DoNothing;
+}
+
 public sealed class BoolToVis : IValueConverter
 {
     public bool Invert { get; set; }

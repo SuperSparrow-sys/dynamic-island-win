@@ -576,6 +576,30 @@ public partial class SettingsWindow : Window
         _ctx.S.SaveSoon();
     }
 
+    /// <summary>Same checklist as for the launcher: checked apps hide the island, unchecked ones are removed.</summary>
+    private void PickExcludedApps_Click(object sender, RoutedEventArgs e)
+    {
+        Mouse.OverrideCursor = Cursors.Wait;
+        List<InstalledApp> apps;
+        try { apps = InstalledApps.All(refresh: true); }
+        finally { Mouse.OverrideCursor = null; }
+        var current = new HashSet<string>(_ctx.S.ExcludedApps, StringComparer.OrdinalIgnoreCase);
+        var pinned = apps.Where(a => current.Contains(ExcludedApps.TokenFor(a))).Select(a => a.LaunchPath).ToList();
+        var picker = new AppPickerWindow(apps, pinned, Loc.German ? "Ausblenden bei diesen Apps" : "Hide while these apps are active",
+            Loc.German ? "Ist eine dieser Apps im Vordergrund, blendet sich die Insel aus." : "While one of these apps is in front, the island hides.")
+        { Owner = this };
+        if (picker.ShowDialog() != true) return;
+        var chosen = new HashSet<string>(picker.Selected, StringComparer.OrdinalIgnoreCase);
+        foreach (var app in apps)
+        {
+            var token = ExcludedApps.TokenFor(app);
+            var existing = _ctx.S.ExcludedApps.FirstOrDefault(x => string.Equals(x, token, StringComparison.OrdinalIgnoreCase));
+            if (chosen.Contains(app.LaunchPath) && existing is null) _ctx.S.ExcludedApps.Add(token);
+            else if (!chosen.Contains(app.LaunchPath) && existing is not null) _ctx.S.ExcludedApps.Remove(existing);
+        }
+        _ctx.S.SaveSoon();
+    }
+
     private void RemoveExcluded_Click(object sender, RoutedEventArgs e)
     {
         _ctx.S.ExcludedApps.Remove((string)((FrameworkElement)sender).Tag);

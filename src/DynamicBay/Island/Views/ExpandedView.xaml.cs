@@ -212,12 +212,33 @@ public partial class ExpandedView : UserControl
 
     // ---- media ----
 
-    private async void Timeline_MouseDown(object sender, MouseButtonEventArgs e)
+    // Timeline: click or drag; the time follows the cursor and the player seeks once on release.
+    private bool _scrubbing;
+
+    private double TimelineSeconds(MouseEventArgs e) =>
+        Math.Clamp(e.GetPosition(Timeline).X / Math.Max(1, Timeline.ActualWidth), 0, 1) * (Vm?.Media.DurationSeconds ?? 0);
+
+    private void Timeline_MouseDown(object sender, MouseButtonEventArgs e)
     {
+        e.Handled = true; // never start moving the island from here
         if (Vm is null || Vm.Media.DurationSeconds <= 0) return;
-        double ratio = Math.Clamp(e.GetPosition(Timeline).X / Timeline.ActualWidth, 0, 1);
-        await Vm.Media.SeekAsync(ratio * Vm.Media.DurationSeconds);
+        _scrubbing = true;
+        Timeline.CaptureMouse();
+        Vm.Media.Scrub(TimelineSeconds(e));
+    }
+
+    private void Timeline_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_scrubbing && Vm is not null) Vm.Media.Scrub(TimelineSeconds(e));
+    }
+
+    private async void Timeline_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_scrubbing || Vm is null) return;
+        _scrubbing = false;
+        Timeline.ReleaseMouseCapture();
         e.Handled = true;
+        await Vm.Media.SeekAsync(TimelineSeconds(e));
     }
 
     private async void Devices_Click(object sender, RoutedEventArgs e)
