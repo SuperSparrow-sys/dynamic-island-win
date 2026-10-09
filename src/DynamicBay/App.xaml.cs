@@ -166,7 +166,7 @@ public partial class App : Application
         Log.Info($"Background warm-up done after {clock.ElapsedMilliseconds} ms");
         if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands, Quit);
         // CPU and memory in the log every 90 s (no trimming: smooth animations matter more than a small working set).
-        MemoryTrim.Start(() => _islands.All.All(w => w.IsIdle));
+        MemoryTrim.Start();
     }
 
     private static string? GetArg(string[] args, string name)

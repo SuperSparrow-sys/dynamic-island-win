@@ -28,6 +28,8 @@ Einstellungen nicht.
 
 `tools/live-test.ps1` testet die echte App mit Maus: Hover, Screenshot-Peek (Testbild im Screenshot-Ordner), Ziehen an
 den linken und unteren Rand. `tools/toast-test.ps1` schickt Test-Benachrichtigungen im Namen einer App.
+`tools/media-key.ps1` drückt eine Medientaste (weiter, zurück, Play/Pause), `tools/skip-test.ps1` nimmt die Insel beim
+Titelwechsel alle 150 ms auf, `tools/screen-grab.ps1` fotografiert einen Bildschirmbereich samt Insel.
 
 ## Icons
 
