@@ -144,7 +144,7 @@
             <!-- Home: media, calendar, timer -->
             <!-- Nook page scrolls when the chosen widgets need more room than the island has -->
             <ScrollViewer x:Name="HomeScroll" Visibility="{Binding Tab, Converter={StaticResource EqVis}, ConverterParameter=0}"
-                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                          HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
                           PreviewMouseWheel="HomeScroll_Wheel" SizeChanged="HomeScroll_SizeChanged">
             <Grid x:Name="HomeGrid">
 

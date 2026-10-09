@@ -136,25 +136,20 @@ public partial class ExpandedView : UserControl
     /// <summary>The grid is at least as big as the visible area, so few widgets still fill it (stars) and many scroll.</summary>
     private void FitHomeToViewport()
     {
-        // When the content overflows, a thin scroll bar appears along the edge: leave room for it.
-        const double bar = 9;
+        // The page reaches under the panel edge in its scroll direction (the panel clips it along its rounded shape),
+        // so a card that does not fit is cut off by the island itself. The grid keeps the normal 12 px inset.
+        const double edge = 12;
+        HomeScroll.Margin = _vertical ? new Thickness(0, 0, 0, -edge) : new Thickness(-edge, 0, -edge, 0);
+        HomeGrid.Margin = _vertical ? new Thickness(0, 0, 0, edge) : new Thickness(edge, 0, edge, 0);
         // Not laid out yet (panel closed, other tab): measuring now would pin the grid to 0 px and leave the page
         // empty. SizeChanged / IsVisibleChanged run this again once the page is visible.
         if (HomeScroll.ActualWidth < 1 || HomeScroll.ActualHeight < 1) return;
-        bool overflow = _vertical ? MinContentHeight() > HomeScroll.ActualHeight + 1 : MinContentWidth() > HomeScroll.ActualWidth + 1;
         // No fixed size across the scroll direction: the scroll viewer already limits it to the visible area.
         HomeGrid.Width = double.NaN;
         HomeGrid.Height = double.NaN;
-        HomeGrid.MinWidth = _vertical ? 0 : HomeScroll.ActualWidth;
-        HomeGrid.MinHeight = _vertical ? HomeScroll.ActualHeight : 0;
-        HomeGrid.Margin = !overflow ? new Thickness(0) : _vertical ? new Thickness(0, 0, bar, 0) : new Thickness(0, 0, 0, bar);
+        HomeGrid.MinWidth = _vertical ? 0 : Math.Max(0, HomeScroll.ActualWidth - 2 * edge);
+        HomeGrid.MinHeight = _vertical ? Math.Max(0, HomeScroll.ActualHeight - edge) : 0;
     }
-
-    private double MinContentWidth() =>
-        HomeGrid.ColumnDefinitions.Sum(c => c.MinWidth) + Math.Max(0, HomeGrid.ColumnDefinitions.Count - 1) * 8;
-
-    private double MinContentHeight() =>
-        HomeGrid.RowDefinitions.Sum(r => r.MinHeight) + Math.Max(0, HomeGrid.RowDefinitions.Count - 1) * 8;
 
     private void HomeScroll_Wheel(object sender, MouseWheelEventArgs e)
     {
@@ -177,8 +172,9 @@ public partial class ExpandedView : UserControl
     public void SetVertical(bool vertical)
     {
         _vertical = vertical;
-        HomeScroll.HorizontalScrollBarVisibility = vertical ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
-        HomeScroll.VerticalScrollBarVisibility = vertical ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
+        // No scroll bar: a card cut off at the panel edge shows that there is more (like iOS).
+        HomeScroll.HorizontalScrollBarVisibility = vertical ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Hidden;
+        HomeScroll.VerticalScrollBarVisibility = vertical ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Disabled;
         FitHomeToViewport();
         LayoutHome();
 
