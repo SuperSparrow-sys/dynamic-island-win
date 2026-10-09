@@ -38,6 +38,11 @@ public static class Snapshots
                 await Task.Delay(700);
                 Capture(win, Path.Combine(dir, $"settings-{page:00}.png"));
             }
+            // Calendar page with the CalDAV form open
+            win.ShowPage(9);
+            if (win.FindName("ICloudForm") is FrameworkElement form) { form.Visibility = Visibility.Visible; await Task.Delay(300); form.BringIntoView(); }
+            await Task.Delay(700);
+            Capture(win, Path.Combine(dir, "settings-10b-caldav.png"));
             win.Close();
             return;
         }

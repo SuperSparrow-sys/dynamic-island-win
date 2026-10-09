@@ -665,7 +665,7 @@
                             <StackPanel x:Name="CalendarRows" />
                             <WrapPanel Margin="0,4,0,0">
                                 <Button Style="{StaticResource S.Button}" Margin="0,0,8,6" Click="AddICloud_Click">
-                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Cloud}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='iCloud verbinden', En='Connect iCloud'}" /></StackPanel>
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Cloud}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='iCloud / GMX verbinden', En='Connect iCloud / GMX'}" /></StackPanel>
                                 </Button>
                                 <Button Style="{StaticResource S.Button}" Margin="0,0,8,6" Click="AddGoogle_Click">
                                     <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.User}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Google verbinden', En='Connect Google'}" /></StackPanel>
@@ -678,12 +678,14 @@
                             <!-- iCloud form -->
                             <StackPanel x:Name="ICloudForm" Visibility="Collapsed" Margin="0,10,0,0">
                                 <Border Height="1" Background="{DynamicResource S.Divider}" Margin="0,0,0,12" />
-                                <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='iCloud-Kalender', En='iCloud calendar'}" />
+                                <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='iCloud- oder CalDAV-Kalender (GMX, web.de, ...)', En='iCloud or CalDAV calendar (GMX, web.de, ...)'}" />
                                 <TextBlock Style="{StaticResource ST.Desc}" Margin="0,2,0,8" Text="{core:L De='Apple verlangt ein app-spezifisches Passwort, nicht dein normales Apple-ID-Passwort. Erstelle es auf appleid.apple.com unter Anmeldung und Sicherheit, App-spezifische Passwörter.', En='Apple requires an app-specific password, not your normal Apple ID password. Create it at appleid.apple.com under Sign-In and Security, App-Specific Passwords.'}" />
                                 <Button Style="{StaticResource S.Link}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="OpenAppleId_Click" Content="appleid.apple.com" />
-                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Apple-ID (E-Mail)', En='Apple ID (email)'}" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Server (für iCloud so lassen; GMX: https://caldav.gmx.net, web.de: https://caldav.web.de)', En='Server (keep for iCloud; GMX: https://caldav.gmx.net, web.de: https://caldav.web.de)'}" />
+                                <TextBox x:Name="ICloudServer" Style="{StaticResource S.TextBox}" Margin="0,2,0,8" Text="https://caldav.icloud.com/" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Apple-ID bzw. E-Mail-Adresse', En='Apple ID or email address'}" />
                                 <TextBox x:Name="ICloudUser" Style="{StaticResource S.TextBox}" Margin="0,2,0,8" />
-                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='App-spezifisches Passwort', En='App-specific password'}" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Passwort (iCloud: app-spezifisch; GMX: dein GMX-Passwort)', En='Password (iCloud: app-specific; GMX: your GMX password)'}" />
                                 <PasswordBox x:Name="ICloudPassword" Margin="0,2,0,10" Height="32" />
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource S.AccentButton}" Click="SaveICloud_Click" Content="{core:L De='Verbinden und testen', En='Connect and test'}" />

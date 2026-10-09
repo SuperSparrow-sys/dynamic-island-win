@@ -22,7 +22,7 @@ eingebaut.
 
 Einstellungen → Timer und Kalender → *Kalender-Konten*. Mehrere Konten gleichzeitig möglich.
 
-- **iCloud:** Apple-ID + **app-spezifisches Passwort** (appleid.apple.com → Anmeldung und Sicherheit →
+- **iCloud / GMX / web.de (CalDAV):** Server-Feld (iCloud vorgegeben, GMX `https://caldav.gmx.net`, web.de `https://caldav.web.de`). iCloud: Apple-ID + **app-spezifisches Passwort** (appleid.apple.com → Anmeldung und Sicherheit →
   App-spezifische Passwörter). Zugriff über CalDAV (`caldav.icloud.com`), alle Kalender werden gefunden.
 - **Google:** Einmalig in der [Google Cloud Console](https://console.cloud.google.com) ein Projekt anlegen,
   *Google Calendar API* aktivieren, OAuth-Zustimmungsbildschirm einrichten (extern, dich selbst als Testnutzer),

@@ -74,4 +74,21 @@ public class PlacementMathTests
         // shape edge = window right - offset = work right - inset
         Assert.Equal(1920 - 8 * Scale, x + 600 - 42.5, 3);
     }
+
+    [Fact]
+    public void Live_orientation_turns_vertical_near_side_edges_only()
+    {
+        // Work 1920 x 1140: middle of the top edge stays horizontal, close to the left edge turns vertical.
+        Assert.False(PlacementMath.LiveVertical(960, 20, Work, currentlyVertical: false, Scale));
+        Assert.True(PlacementMath.LiveVertical(20, 520, Work, currentlyVertical: false, Scale));
+        Assert.True(PlacementMath.LiveVertical(1900, 520, Work, currentlyVertical: false, Scale));
+    }
+
+    [Fact]
+    public void Live_orientation_does_not_flicker_near_the_diagonal()
+    {
+        // Equal distance to the left and the top edge: keep whatever shape the island has right now.
+        Assert.False(PlacementMath.LiveVertical(100, 100, Work, currentlyVertical: false, Scale));
+        Assert.True(PlacementMath.LiveVertical(100, 100, Work, currentlyVertical: true, Scale));
+    }
 }

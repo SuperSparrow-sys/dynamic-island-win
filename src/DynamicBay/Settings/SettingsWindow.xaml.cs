@@ -272,7 +272,7 @@ public partial class SettingsWindow : Window
         foreach (var a in _ctx.S.CalendarAccounts)
         {
             var account = a;
-            string kind = a.Kind switch { CalendarKind.ICloud => "iCloud", CalendarKind.Google => "Google", _ => "ICS" };
+            string kind = a.Kind switch { CalendarKind.ICloud => IsICloud(a.Url) ? "iCloud" : "CalDAV", CalendarKind.Google => "Google", _ => "ICS" };
             string icon = a.Kind switch { CalendarKind.ICloud => "Icon.Cloud", CalendarKind.Google => "Icon.User", _ => "Icon.Link" };
             string status = _ctx.I.Calendar.StatusOf(a);
             var controls = new StackPanel { Orientation = Orientation.Horizontal };
@@ -343,10 +343,26 @@ public partial class SettingsWindow : Window
 
     private async void SaveICloud_Click(object sender, RoutedEventArgs e)
     {
-        var account = new CalendarAccount { Kind = CalendarKind.ICloud, Name = "iCloud", User = ICloudUser.Text.Trim(), Url = "https://caldav.icloud.com/" };
+        var server = ICloudServer.Text.Trim();
+        if (server.Length == 0) server = "https://caldav.icloud.com/";
+        if (!server.Contains("://")) server = "https://" + server;
+        if (!server.EndsWith("/")) server += "/";
+        var account = new CalendarAccount { Kind = CalendarKind.ICloud, Name = ServerName(server), User = ICloudUser.Text.Trim(), Url = server };
         SecretStore.Set($"cal:{account.Id}:password", ICloudPassword.Password.Trim());
         if (await TestAndAddAsync(account, ICloudStatus)) { ICloudPassword.Clear(); }
         else SecretStore.Set($"cal:{account.Id}:password", null);
+    }
+
+    private static bool IsICloud(string? url) => string.IsNullOrWhiteSpace(url) || url.Contains("icloud.com", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>"iCloud", "GMX", "Web.de" ... from the CalDAV server address.</summary>
+    private static string ServerName(string url)
+    {
+        if (IsICloud(url)) return "iCloud";
+        var host = Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : url;
+        var parts = host.Split((char)46);
+        var name = parts.Length >= 2 ? parts[^2] : host;
+        return name.Length <= 4 ? name.ToUpperInvariant() : char.ToUpperInvariant(name[0]) + name[1..];
     }
 
     private async void SaveGoogle_Click(object sender, RoutedEventArgs e)

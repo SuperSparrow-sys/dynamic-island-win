@@ -25,6 +25,21 @@ public static class PlacementMath
     public const double SnapInsetDip = 44;
     public const double DefaultInsetDip = 8;
 
+    public const double OrientationHysteresisDip = 56;
+
+    /// <summary>
+    /// While dragging: should the island already take its vertical (side edge) shape? Decided by the cursor - the side
+    /// edges win when the cursor is closer to them than to top/bottom. A margin keeps the shape from flipping back
+    /// and forth near the diagonal.
+    /// </summary>
+    public static bool LiveVertical(double x, double y, PxRect work, bool currentlyVertical, double scale)
+    {
+        double side = Math.Min(x - work.Left, work.Right - x);
+        double cap = Math.Min(y - work.Top, work.Bottom - y);
+        double margin = OrientationHysteresisDip * scale;
+        return currentlyVertical ? side < cap + margin : side + margin < cap;
+    }
+
     /// <summary>Derives edge, alignment and position from where the user released the island.</summary>
     public static Placement FromDrop(PxRect shape, PxRect work, double scale, bool magnetic)
     {

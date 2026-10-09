@@ -742,21 +742,61 @@ public partial class IslandWindow : Window
             _hoverTimer.Stop();
             _collapseTimer.Stop();
             _moveAnim_Stop();
+            // Follow the cursor through a stiff, critically damped spring: smooth at any mouse rate, no visible lag.
+            _x.Response = _y.Response = DragResponse;
+            _x.Damping = _y.Damping = 1.0;
             if (_expanded) { _expanded = false; }
             Refresh();
         }
         // Single mode: the island may travel to any monitor (the one under the cursor).
         // Mirror mode: each island stays on its own monitor.
-        var wa = CanChangeMonitor ? Monitors.FromPoint(c.X, c.Y).Work : Target().work;
+        var mon = CanChangeMonitor ? Monitors.FromPoint(c.X, c.Y) : TargetMonitor();
+        var wa = mon.Work;
+        // Take the side-edge (vertical) or top/bottom (horizontal) shape already while dragging.
+        bool wantVertical = PlacementMath.LiveVertical(c.X, c.Y, ToPx(wa), _vertical, mon.Scale);
+        if (wantVertical != _vertical) { ReshapeWhileDragging(wantVertical, c); dx = 0; dy = 0; }
         int nx = _pressWindow.Left + dx, ny = _pressWindow.Top + dy;
         var shape = ShapeScreenRect(nx, ny);
         if (shape.Left < wa.Left) nx += wa.Left - shape.Left;
         if (shape.Right > wa.Right) nx -= shape.Right - wa.Right;
         if (shape.Top < wa.Top) ny += wa.Top - shape.Top;
         if (shape.Bottom > wa.Bottom) ny -= shape.Bottom - wa.Bottom;
-        _x.Snap(nx);
-        _y.Snap(ny);
-        MoveWindowPx(nx, ny);
+        _x.Target = nx;
+        _y.Target = ny;
+        _moveAnim.Kick();
+    }
+
+    private const double DragResponse = 0.09;
+
+    /// <summary>
+    /// Switches between the horizontal and the vertical shape mid-drag. The window changes size, so it is moved to keep
+    /// the shape centred under the cursor; the shape itself morphs with its springs.
+    /// </summary>
+    private void ReshapeWhileDragging(bool vertical, Native.POINT cursor)
+    {
+        _vertical = vertical;
+        _vm.IsVertical = vertical;
+        _settings.PropertyChanged -= OnSettingChanged;
+        _settings.Edge = vertical ? (cursor.X < (TargetMonitor().Work.Left + TargetMonitor().Work.Right) / 2 ? IslandEdge.Left : IslandEdge.Right)
+                                  : (cursor.Y < (TargetMonitor().Work.Top + TargetMonitor().Work.Bottom) / 2 ? IslandEdge.Top : IslandEdge.Bottom);
+        _settings.PropertyChanged += OnSettingChanged;
+        CompactLayer.SetVertical(vertical);
+        ExpandedLayer.SetVertical(vertical);
+        var win = WinSize(vertical);
+        Width = win.Width * U;
+        Height = win.Height * U;
+        SizeExpandedLayer();
+        AlignShape();
+        Refresh();
+        UpdateLayout();
+        double s = WindowScale;
+        var p = Shape.TransformToAncestor(this).Transform(new Point(0, 0));
+        double cx = (p.X + _w.Target * U / 2) * s, cy = (p.Y + _h.Target * U / 2) * s;
+        int wx = (int)(cursor.X - cx), wy = (int)(cursor.Y - cy);
+        MoveWindowPx(wx, wy, resize: true);
+        _x.Snap(wx); _y.Snap(wy);
+        _pressCursor = cursor;
+        _pressWindow.Left = wx; _pressWindow.Top = wy;
     }
 
     private void _moveAnim_Stop()
@@ -810,6 +850,8 @@ public partial class IslandWindow : Window
     private void FinishDrag()
     {
         _dragging = false;
+        _x.Response = _y.Response = 0.5;
+        _x.Damping = _y.Damping = 0.86;
         var r = ShapeScreenRect((int)_x.Value, (int)_y.Value);
         var oldShapePos = (r.Left, r.Top);
         var monitor = CanChangeMonitor ? Monitors.FromPoint((r.Left + r.Right) / 2, (r.Top + r.Bottom) / 2) : TargetMonitor();
