@@ -47,7 +47,13 @@ public sealed partial class BatteryService : ObservableObject
         IsCharging = (ps.BatteryChargeStatus & WinForms.BatteryChargeStatus.Charging) != 0 || (IsPluggedIn && Percent < 100);
         IsLow = !IsPluggedIn && Percent <= _settings.BatteryLowThreshold;
 
-        if (initial) { _lastPlugged = IsPluggedIn; return; }
+        if (initial)
+        {
+            // Don't announce a state that already existed when DynamicBay started.
+            _lastPlugged = IsPluggedIn;
+            _fullNotified = IsPluggedIn && Percent >= 100;
+            return;
+        }
         if (!_settings.BatteryEnabled) { _lastPlugged = IsPluggedIn; return; }
 
         if (_lastPlugged != IsPluggedIn)

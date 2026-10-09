@@ -97,15 +97,26 @@ public sealed partial class MediaService : ObservableObject
             }
         }
 
-        HasSession = _session is not null;
         if (_session is null)
         {
+            // Players drop their session for a moment while skipping (notably browser/web apps).
+            // Keep showing the last track during a short grace period instead of flashing "not playing".
+            if (HasSession && (InHold || _lostSince is null || DateTime.UtcNow - _lostSince < LossGrace))
+            {
+                _lostSince ??= DateTime.UtcNow;
+                ScheduleRecheck(LossGrace);
+                return;
+            }
+            _lostSince = null;
+            HasSession = false;
             IsPlaying = false;
             Title = Artist = Album = "";
             Cover = null;
             _tick.Stop();
             return;
         }
+        _lostSince = null;
+        HasSession = true;
         if (SourceApp != FriendlyName(_session.SourceAppUserModelId))
             Log.Info($"Media session: {_session.SourceAppUserModelId}");
         SourceApp = FriendlyName(_session.SourceAppUserModelId);
@@ -177,6 +188,15 @@ public sealed partial class MediaService : ObservableObject
         {
             var props = await session.TryGetMediaPropertiesAsync();
             if (!ReferenceEquals(session, _session) || props is null) return;
+            // Mid-skip the player briefly reports an empty track: keep the old one and look again shortly.
+            if (string.IsNullOrEmpty(props.Title))
+            {
+                if (Title.Length > 0) { ScheduleMediaRetry(); return; }
+            }
+            else if (props.Title != Title)
+            {
+                Hold(TimeSpan.FromSeconds(1.2)); // a track change is often followed by a short "stopped" blip
+            }
             Title = props.Title ?? "";
             Artist = string.IsNullOrEmpty(props.Artist) ? props.AlbumArtist ?? "" : props.Artist;
             Album = props.AlbumTitle ?? "";
@@ -197,13 +217,18 @@ public sealed partial class MediaService : ObservableObject
                 Cover = img;
                 if (img is not null) SetAccent(ImageTools.Accent(img, Color.FromRgb(0x30, 0xD1, 0x58)));
             }
-            else
+            else if (!InHold)
             {
+                // During a skip the artwork often arrives a moment after the title; don't blank it in between.
                 Cover = null;
                 SetAccent(Color.FromRgb(0x30, 0xD1, 0x58));
             }
+            else ScheduleMediaRetry();
 
-            if (changed && IsPlaying) TrackChanged?.Invoke();
+            // Players (esp. browser web apps) send title first and the real artwork a moment later, sometimes with the
+            // app icon in between. Announce the new track once updates have settled, so the peek shows the cover.
+            if (changed) _pendingTrackPeek = true;
+            if (_pendingTrackPeek) ScheduleTrackPeek();
         }
         catch { }
     }
@@ -222,7 +247,10 @@ public sealed partial class MediaService : ObservableObject
         try
         {
             var info = _session.GetPlaybackInfo();
-            IsPlaying = info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+            bool playing = info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+            // Ignore the brief "changing/stopped" state while a skip is in flight; re-check when the hold ends.
+            if (!playing && IsPlaying && InHold) { ScheduleRecheck(_holdUntil - DateTime.UtcNow); return; }
+            IsPlaying = playing;
             CanSkip = info.Controls.IsNextEnabled;
             if (IsPlaying) _tick.Start(); else _tick.Stop();
             RefreshTimeline();
@@ -274,6 +302,7 @@ public sealed partial class MediaService : ObservableObject
     private async Task Next()
     {
         if (_session is null) return;
+        Hold(SkipHold);
         try { await _session.TrySkipNextAsync(); } catch { }
     }
 
@@ -281,7 +310,75 @@ public sealed partial class MediaService : ObservableObject
     private async Task Previous()
     {
         if (_session is null) return;
+        Hold(SkipHold);
         try { await _session.TrySkipPreviousAsync(); } catch { }
+    }
+
+    // Visible state transitions are logged: a skip should never produce "playing=False" or "session=False" in between.
+    partial void OnIsPlayingChanged(bool value) => Log.Info($"Media: playing={value} '{Title}'");
+    partial void OnHasSessionChanged(bool value) => Log.Info($"Media: session={value}");
+
+    // ---- bridging the gap while a track changes ----
+
+    private static readonly TimeSpan SkipHold = TimeSpan.FromSeconds(2.5);
+    private static readonly TimeSpan LossGrace = TimeSpan.FromSeconds(1.5);
+    private DateTime _holdUntil;
+    private DateTime? _lostSince;
+    private DispatcherTimer? _recheck, _mediaRetry;
+
+    private bool InHold => DateTime.UtcNow < _holdUntil;
+
+    /// <summary>For a moment after a skip, transient "stopped / no session / empty title" states are not shown.</summary>
+    private void Hold(TimeSpan duration)
+    {
+        var until = DateTime.UtcNow + duration;
+        if (until > _holdUntil) _holdUntil = until;
+        ScheduleRecheck(duration);
+    }
+
+    /// <summary>Re-evaluates the real state once the hold/grace period is over.</summary>
+    private void ScheduleRecheck(TimeSpan after)
+    {
+        _recheck ??= new DispatcherTimer(DispatcherPriority.Normal, _ui);
+        _recheck.Stop();
+        _recheck.Interval = after > TimeSpan.FromMilliseconds(50) ? after + TimeSpan.FromMilliseconds(50) : TimeSpan.FromMilliseconds(100);
+        _recheck.Tick -= OnRecheck;
+        _recheck.Tick += OnRecheck;
+        _recheck.Start();
+    }
+
+    private void OnRecheck(object? sender, EventArgs e)
+    {
+        _recheck!.Stop();
+        PickSession();
+        RefreshPlayback();
+    }
+
+    private bool _pendingTrackPeek;
+    private DispatcherTimer? _trackPeek;
+
+    private void ScheduleTrackPeek()
+    {
+        _trackPeek ??= new DispatcherTimer(TimeSpan.FromMilliseconds(800), DispatcherPriority.Normal, (_, _) =>
+        {
+            _trackPeek!.Stop();
+            if (!_pendingTrackPeek) return;
+            _pendingTrackPeek = false;
+            if (IsPlaying && Title.Length > 0) TrackChanged?.Invoke();
+        }, _ui);
+        _trackPeek.Stop();
+        _trackPeek.Start(); // restarted by every further update of the same change
+    }
+
+    private void ScheduleMediaRetry()
+    {
+        _mediaRetry ??= new DispatcherTimer(TimeSpan.FromMilliseconds(350), DispatcherPriority.Normal, (_, _) =>
+        {
+            _mediaRetry!.Stop();
+            _ = RefreshMediaAsync();
+        }, _ui);
+        _mediaRetry.Stop();
+        _mediaRetry.Start();
     }
 
     public async Task SeekAsync(double seconds)
