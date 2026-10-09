@@ -1,0 +1,70 @@
+using System.Runtime.InteropServices;
+
+namespace DynamicBay.Core;
+
+/// <summary>
+/// Gives a window its own taskbar identity (AppUserModelID + relaunch icon). With the identity package the process
+/// otherwise inherits the package's app id, whose logo the taskbar cannot resolve for a sparse package (AppListEntry
+/// is "none"), so it shows a grey square. With an own id the taskbar uses the icon given here.
+/// </summary>
+public static class TaskbarIdentity
+{
+    public const string SettingsAppId = "SuperSparrow.DynamicBay.Settings";
+
+    public static void Apply(IntPtr hwnd, string appId, string displayName)
+    {
+        if (hwnd == IntPtr.Zero) return;
+        try
+        {
+            var iid = typeof(IPropertyStore).GUID;
+            if (SHGetPropertyStoreForWindow(hwnd, ref iid, out var store) != 0 || store is null) return;
+            try
+            {
+                var exe = Environment.ProcessPath ?? "";
+                Set(store, PKEY(5), appId);                        // System.AppUserModel.ID
+                Set(store, PKEY(3), $"\"{exe}\"");                 // RelaunchCommand (a second start opens the settings)
+                Set(store, PKEY(4), displayName);                  // RelaunchDisplayNameResource
+                Set(store, PKEY(2), exe + ",0");                   // RelaunchIconResource
+                store.Commit();
+            }
+            finally { Marshal.ReleaseComObject(store); }
+        }
+        catch (Exception ex) { Log.Error("TaskbarIdentity", ex); }
+    }
+
+    private static PropertyKey PKEY(int pid) => new() { fmtid = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"), pid = pid };
+
+    private static void Set(IPropertyStore store, PropertyKey key, string value)
+    {
+        var pv = new PropVariant { vt = 31 /* VT_LPWSTR */, pointer = Marshal.StringToCoTaskMemUni(value) };
+        try { store.SetValue(ref key, ref pv); }
+        finally { PropVariantClear(ref pv); }
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    private struct PropertyKey { public Guid fmtid; public int pid; }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct PropVariant
+    {
+        [FieldOffset(0)] public ushort vt;
+        [FieldOffset(8)] public IntPtr pointer;
+        [FieldOffset(16)] private IntPtr _pad;
+    }
+
+    [ComImport, Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IPropertyStore
+    {
+        void GetCount(out uint count);
+        void GetAt(uint index, out PropertyKey key);
+        void GetValue(ref PropertyKey key, out PropVariant value);
+        void SetValue(ref PropertyKey key, ref PropVariant value);
+        void Commit();
+    }
+
+    [DllImport("shell32.dll")]
+    private static extern int SHGetPropertyStoreForWindow(IntPtr hwnd, ref Guid iid, [MarshalAs(UnmanagedType.Interface)] out IPropertyStore store);
+
+    [DllImport("ole32.dll")]
+    private static extern int PropVariantClear(ref PropVariant pv);
+}

@@ -52,11 +52,50 @@
         <ItemsPanelTemplate x:Key="WrapPanel"><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
 
         <!-- Hover-revealed overlay buttons on tiles -->
+        <!-- Dark glass circles over pictures: hover gets lighter but stays opaque, so the button never fades into the image -->
         <Style x:Key="TileButton" TargetType="Button" BasedOn="{StaticResource Btn.Icon}">
             <Setter Property="Width" Value="24" />
             <Setter Property="Height" Value="24" />
             <Setter Property="Background" Value="#B3000000" />
+            <Setter Property="Foreground" Value="{StaticResource B.Text}" />
             <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="999">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#F23A3A3C" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#FF48484A" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Delete: turns red on hover -->
+        <Style x:Key="TileButton.Danger" TargetType="Button" BasedOn="{StaticResource TileButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="999">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource B.Red}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#FFD93A30" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 
@@ -611,7 +650,7 @@
                                                         ToolTip="{core:T Cloud.SaveTo}">
                                                     <c:Icon Data="{StaticResource Icon.CloudUpload}" Width="10" Height="10" />
                                                 </Button>
-                                                <Button x:Name="Remove" Style="{StaticResource TileButton}" Width="18" Height="18" Margin="0,2,2,0"
+                                                <Button x:Name="Remove" Style="{StaticResource TileButton.Danger}" Width="18" Height="18" Margin="0,2,2,0"
                                                         HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Hidden"
                                                         Command="{Binding DataContext.Shelf.RemoveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                         CommandParameter="{Binding}">
@@ -685,7 +724,7 @@
                                                             Command="{Binding DataContext.Clipboard.SaveAsCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
                                                         <c:Icon Data="{StaticResource Icon.Save}" Width="11" Height="11" />
                                                     </Button>
-                                                    <Button Style="{StaticResource TileButton}" ToolTip="{core:T Clip.Delete}"
+                                                    <Button Style="{StaticResource TileButton.Danger}" ToolTip="{core:T Clip.Delete}"
                                                             Command="{Binding DataContext.Clipboard.DeleteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
                                                         <c:Icon Data="{StaticResource Icon.Trash}" Width="11" Height="11" />
                                                     </Button>

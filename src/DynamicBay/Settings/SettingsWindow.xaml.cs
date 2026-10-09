@@ -43,7 +43,11 @@ public partial class SettingsWindow : Window
         Resources.MergedDictionaries.Add(SettingsTheme.Create(SettingsTheme.IsLight()));
         _ctx = new SettingsContext(settings, vm);
         DataContext = _ctx;
-        SourceInitialized += (_, _) => ApplyBackdrop();
+        SourceInitialized += (_, _) =>
+        {
+            ApplyBackdrop();
+            Core.TaskbarIdentity.Apply(new System.Windows.Interop.WindowInteropHelper(this).Handle, Core.TaskbarIdentity.SettingsAppId, "DynamicBay");
+        };
         settings.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName is nameof(AppSettings.Edge) or nameof(AppSettings.Align) or nameof(AppSettings.Along)) UpdatePreview();

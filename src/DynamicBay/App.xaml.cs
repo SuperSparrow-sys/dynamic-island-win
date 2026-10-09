@@ -105,6 +105,7 @@ public partial class App : Application
             _islands.Main.Show();
             try { await Snapshots.RunAsync(_islands.Main, _vm, _settings, snapshotDir); }
             catch (Exception ex) { Log.Error("Snapshot", ex); }
+            MemoryTrim.TrimNow(); // logs how much a trim releases after a busy run
             Shutdown();
             return;
         }
@@ -158,6 +159,10 @@ public partial class App : Application
         _vm.Shortcuts.Rebuild();
         Log.Info($"Background warm-up done after {clock.ElapsedMilliseconds} ms");
         if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands, Quit);
+        // Start-up loads a lot once (icons, app list, services): hand the slack back, then keep it small while idle.
+        await Task.Delay(TimeSpan.FromSeconds(6));
+        MemoryTrim.TrimNow();
+        MemoryTrim.Start(() => _islands.All.All(w => w.IsIdle));
     }
 
     private static string? GetArg(string[] args, string name)

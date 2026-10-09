@@ -50,6 +50,9 @@ public partial class IslandWindow : Window
     private readonly DispatcherTimer _watchdog = new() { Interval = TimeSpan.FromMilliseconds(900) };
     private DateTime _lastActivity = DateTime.Now;
 
+    /// <summary>Closed, nothing shown, nobody touched it for a minute (memory may be trimmed).</summary>
+    public bool IsIdle => !_expanded && !_dragging && _peek.Peek is null && (DateTime.Now - _lastActivity).TotalSeconds > 60;
+
     // Dragging the island
     private bool _pressed, _dragging;
     private Native.POINT _pressCursor;
