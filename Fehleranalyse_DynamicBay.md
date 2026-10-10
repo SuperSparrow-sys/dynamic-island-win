@@ -470,6 +470,59 @@ Die Spalte „Sicherheit“ sagt, wie sicher der Befund ist. „Bestätigt“ he
 
 ---
 
-## Runde 1: Fixes
+## Behebung und Nachprüfung
 
-*(wird nach den Fixes ergänzt)*
+### Runde 1 (Commit `cba9fe8`)
+
+Behoben sind alle Befunde 1–36 und der größte Teil von 37–43.
+
+Nicht oder bewusst anders umgesetzt:
+
+- **34:** Ein festes Signaturzertifikat braucht ein GitHub-Secret. Das ist offen. Der Uninstaller entfernt jetzt alle Zertifikate mit diesem Subject.
+- **35:** Installation pro Benutzer wäre ein Umbau. Das bleibt offen.
+- **37h:** NOTPRESENT-Endpunkte werden weiter abgefragt. Getrennte Bluetooth-Headsets brauchen den Pfad.
+- **33:** Das Identitäts-Paket wird mit `DeferRegistrationWhenPackagesAreInUse` aktualisiert und greift beim nächsten Start. Es gibt keinen sofortigen Neustart und damit auch keine Neustart-Schleife.
+
+Neue Tests: `AudioFixTests`, `PersistenceFixTests`, `SecurityFixTests`, `UiFixTests`. Die Zahl der Tests stieg von 108 auf 204.
+
+### Runde 2 (Commit `a47bf8c`)
+
+Eine adversariale Prüfung des Diffs von Runde 1 fand keine kritischen oder hohen Regressionen. Behoben wurde:
+
+- **Skript-Widgets und Proxy:** Hinter einem System-Proxy funktionierten Skript-Widgets nicht mehr. Jetzt wird jedes Ziel geprüft, auch Redirects.
+- **Microsoft-Backoff:** Er dauerte bis zu 30 min. Jetzt sind es höchstens 5 min, und bei Netz zurück oder nach dem Aufwachen wird sofort neu versucht.
+- **Teams:**
+  - Nach dem Zurückstellen stimmt die Ring-Anzeige wieder.
+  - Wird eine Abmeldung abgebrochen, kommt „Nicht stören“ wieder.
+  - Beim Beenden wartet die App nicht mehr zweimal je 3 s.
+- **Zeiterfassung:**
+  - Die Pausen-Frage nach dem Herunterfahren klappt auch mit Schnellstart. Maßgeblich ist jetzt die Anmeldezeit statt der Uptime.
+  - Alte offene Einträge werden beim Zusammenführen geschlossen.
+- **Vollbild-Wächter:** Ein maximiertes Fenster gilt nur mit Rahmen zum Größenändern als normales App-Fenster. Borderless-Spiele blenden die Insel weiter aus.
+- **Claude:**
+  - Sitzungen anderer PCs kommen nach dem Ausschalten nicht wieder.
+  - Ordner mit `&` oder `;` sind erlaubt.
+- **System-Karte:** Sie aktualisiert sich korrekt bei mehreren Inseln.
+- **Banner-Backup:** Die Rückfall-Annahme gilt nur für den ersten Abgleich.
+- **Kleinkram:** Temp-Dateien von Secrets werden entfernt. Zwischenablage-Bilder bleiben, solange ein defekter Verlauf beiseitegelegt ist.
+- **Snapshot-Modus:** Er schreibt keine Nutzerdateien mehr, `AtomicFile` beachtet jetzt `ReadOnly`.
+
+Bewusst belassen:
+
+- Migration v10 schaltet Downloads auch für 1.0.15-Nutzer ein, die es abgeschaltet hatten. Das Release ist einen Tag alt, und die meisten Betroffenen hatten die Downloads wegen Befund 9 nie bekommen.
+- CalDAV verlangt https.
+- Ein Einfachklick aufs Tray-Symbol wartet die Doppelklickzeit ab.
+- Der Claude-Listener startet nur mit den von DynamicBay eingetragenen Hooks.
+
+### Runde 3
+
+Ich habe die Änderungen aus Runde 2 und die UI-Fixes aus Runde 1 selbst nachgelesen: Peek-Warteschlange, Tray, Hotkeys, Spiegel-Monitor, Zahnräder und Notizen. Neue Fehler habe ich nicht gefunden.
+
+### Tests in jeder Runde
+
+- `dotnet build`: 0 Warnungen.
+- `dotnet test`: 204 von 204 bestanden.
+- `ISCC` kompiliert das Installer-Skript fehlerfrei. Gebaut wurde in den Scratchpad, installiert wurde nichts.
+- Snapshot-Modus mit allen Zuständen an allen Kanten: Die Darstellung ist unverändert. Ich habe vor und nach dem Lauf geprüft, dass `%AppData%\DynamicBay` nicht verändert wurde.
+- Musik, Teams, Spotify und Graph wurden nicht angesprochen.
+- **Nicht live getestet:** der zweite Start neben der laufenden Insel (Befund 2). Den Prozessstart hat der Auto-Modus blockiert.
