@@ -331,10 +331,24 @@ public class DevicesWidgetTests
     {
         var s = new AppSettings { SettingsVersion = 4 };
         s.Migrate();
-        Assert.Contains(Widgets.Devices, s.HomeWidgets);
-        s.HomeWidgets.Remove(Widgets.Devices);   // user switched it off
+        // added once (v5), then moved to the second page "System" (v9)
+        Assert.Contains(Widgets.Devices, s.SystemWidgets);
+        Assert.DoesNotContain(Widgets.Devices, s.HomeWidgets);
+        s.SystemWidgets.Remove(Widgets.Devices);   // user switched it off
         s.Migrate();
         Assert.DoesNotContain(Widgets.Devices, s.HomeWidgets);
+        Assert.DoesNotContain(Widgets.Devices, s.SystemWidgets);
+    }
+
+    [Fact]
+    public void Sound_and_devices_move_to_the_system_page_once()
+    {
+        var s = new AppSettings { SettingsVersion = 8 };
+        s.HomeWidgets.Clear();
+        foreach (var w in new[] { Widgets.Media, Widgets.Audio, Widgets.Calendar }) s.HomeWidgets.Add(w);
+        s.Migrate();
+        Assert.Equal(new[] { Widgets.Media, Widgets.Calendar }, s.HomeWidgets);
+        Assert.Equal(new[] { Widgets.Audio }, s.SystemWidgets);
     }
 
     [Theory]
