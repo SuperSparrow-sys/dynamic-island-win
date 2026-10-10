@@ -16,6 +16,36 @@ public sealed record CloudTarget(string Name, string Root, string Kind)
 /// </summary>
 public static class CloudTargets
 {
+    private static List<CloudTarget>? _cached;
+    private static DateTime _cachedAt;
+    private static Task<List<CloudTarget>>? _refresh;
+
+    /// <summary>
+    /// The cloud folders, found off the UI thread (checking drives and the iCloud folder can take seconds) and kept
+    /// for five minutes. The first call waits for the search, later calls return at once and refresh in the background.
+    /// </summary>
+    public static async Task<List<CloudTarget>> GetAsync()
+    {
+        if (_cached is not null)
+        {
+            if (DateTime.UtcNow - _cachedAt > TimeSpan.FromMinutes(5)) _ = RefreshAsync();
+            return _cached;
+        }
+        return await RefreshAsync();
+    }
+
+    public static Task<List<CloudTarget>> RefreshAsync()
+    {
+        if (_refresh is { IsCompleted: false } running) return running;
+        return _refresh = Task.Run(() =>
+        {
+            var list = Detect();
+            _cached = list;
+            _cachedAt = DateTime.UtcNow;
+            return list;
+        });
+    }
+
     public static List<CloudTarget> Detect()
     {
         var list = new List<CloudTarget>();
@@ -49,12 +79,13 @@ public static class CloudTargets
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         Add("iCloud Drive", Path.Combine(home, "iCloudDrive"), "icloud");
 
-        // Google Drive for desktop mounts a virtual drive with "My Drive" / "Meine Ablage".
+        // Google Drive for desktop mounts a virtual (fixed) drive with "My Drive" / "Meine Ablage".
+        // Network, removable and optical drives are skipped: asking them can block for seconds.
         foreach (var drive in DriveInfo.GetDrives())
         {
             try
             {
-                if (!drive.IsReady) continue;
+                if (drive.DriveType != DriveType.Fixed || !drive.IsReady) continue;
                 foreach (var name in new[] { "My Drive", "Meine Ablage" })
                     Add("Google Drive", Path.Combine(drive.RootDirectory.FullName, name), "gdrive");
             }

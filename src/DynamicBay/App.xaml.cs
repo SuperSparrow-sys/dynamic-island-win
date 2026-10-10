@@ -143,6 +143,7 @@ public partial class App : Application
         // Heavy lookups warm up in the background (app list on an STA thread, icon palette on the thread pool).
         var warmApps = InstalledApps.WarmUpAsync();
         var warmIcons = Task.Run(() => AppIcons.Count);
+        _ = CloudTargets.RefreshAsync(); // "In Cloud speichern" opens at once later
 
         // Services start one by one after the island is visible, yielding in between so it stays responsive.
         async Task Next() => await Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);

@@ -91,7 +91,7 @@ public partial class IslandWindow : Window
         _layerAnim.Updated += ApplyLayers;
 
         _peekTimer.Tick += (_, _) => NextPeek();
-        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !_dragging && !ShowsQuestion && !_hoverBlocked && !_snapshotMode) SetExpanded(true); };
+        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !_dragging && !ShowsQuestion && !ShowsClickablePeek && !_hoverBlocked && !_snapshotMode) SetExpanded(true); };
         _collapseTimer.Tick += (_, _) => { _collapseTimer.Stop(); TryCollapse(); };
         _dropLeaveTimer.Tick += (_, _) => { _dropLeaveTimer.Stop(); _dropActive = false; Refresh(); };
         _watchdog.Tick += (_, _) => Watchdog();
@@ -637,6 +637,9 @@ public partial class IslandWindow : Window
     public void Toggle() { if (!ShowsQuestion) SetExpanded(!_expanded); }
 
     private bool ShowsQuestion => _peek.Peek?.HasActions == true;
+
+    /// <summary>A peek with its own click (open the app, the shelf) or a file to drag out: hovering must not open the panel.</summary>
+    private bool ShowsClickablePeek => !_expanded && _peek.Peek is { HasActions: false } p && (p.OnClick is not null || p.DragPayload is not null);
     private bool _hoverBlocked;
 
     private void OnHoverEnter(object sender, MouseEventArgs e)
@@ -646,7 +649,7 @@ public partial class IslandWindow : Window
         if (_minimized) { _minimized = false; Refresh(); }
         // While a question (buttons) is shown, hovering must not open the panel - the buttons must stay reachable.
         // "Nicht stören" keeps the island small: it only opens on a click.
-        if (_settings.ExpandOnHover && !_settings.DoNotDisturb && !_expanded && !_dragging && !ShowsQuestion && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
+        if (_settings.ExpandOnHover && !_settings.DoNotDisturb && !_expanded && !_dragging && !ShowsQuestion && !ShowsClickablePeek && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
         {
             _hoverTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(0, _settings.HoverDelayMs));
             _hoverTimer.Start();
@@ -757,15 +760,21 @@ public partial class IslandWindow : Window
 
     private void OnPeekClick(object sender, MouseButtonEventArgs e)
     {
-        if (_dragging || _peek.Peek is null) return;
-        if (_peek.Peek.HasActions) return; // questions are answered with their buttons only
+        if (RunPeekClick()) e.Handled = true;
+    }
+
+    /// <summary>Runs the shown peek's own action (or opens the panel). False if there is nothing to click.</summary>
+    private bool RunPeekClick()
+    {
+        if (_dragging || _peek.Peek is null) return false;
+        if (_peek.Peek.HasActions) return false; // questions are answered with their buttons only
         var action = _peek.Peek.OnClick;
         _peek.Peek = null;
         _peekTimer.Stop();
         if (action is not null) action();
         else SetExpanded(true);
         Refresh();
-        e.Handled = true;
+        return true;
     }
 
     // ================= Drag & drop files =================
@@ -814,6 +823,17 @@ public partial class IslandWindow : Window
         if (!_dragging)
         {
             if (Math.Abs(dx) + Math.Abs(dy) < 6) return;
+            if (!_expanded && _peek.Peek?.DragPayload is string[] { Length: > 0 } files)
+            {
+                // The peek shows a received file: pull it straight into another app.
+                _pressed = false;
+                HitPad.ReleaseMouseCapture();
+                _peekTimer.Stop();
+                try { DragDrop.DoDragDrop(HitPad, new DataObject(DataFormats.FileDrop, files), DragDropEffects.Copy | DragDropEffects.Move); }
+                catch (Exception ex) { Log.Error("PeekDrag", ex); }
+                _peekTimer.Start();
+                return;
+            }
             _dragging = true;
             _hoverTimer.Stop();
             _collapseTimer.Stop();
@@ -920,6 +940,7 @@ public partial class IslandWindow : Window
         if (wasDragging) { FinishDrag(); return; }
         // A click: open/close. (Clicks on buttons inside never reach here.)
         if (e.OriginalSource is DependencyObject d && IsInside(d, ExpandedLayer)) return;
+        if (!_expanded && RunPeekClick()) return; // a click on a peek does what the peek offers
         Toggle();
     }
 
@@ -1184,6 +1205,7 @@ public partial class IslandWindow : Window
     private bool _snapshotMode;
 
     public void SetPeekForSnapshot(PeekItem item) => _peek.Peek = item;
+    public bool IsExpandedForTest => _expanded;
 
     public void ForceState(IslandMode mode, bool vertical = false)
     {

@@ -408,18 +408,19 @@ public partial class ExpandedView : UserControl
 
     // ---- save to cloud ----
 
-    private void CloudSave_Click(object sender, RoutedEventArgs e)
+    private async void CloudSave_Click(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
         var button = (FrameworkElement)sender;
         var item = button.DataContext;
+        DragOutActive?.Invoke(true); // keep the island open while the folders are looked up and the menu is up
+        var targets = await CloudTargets.GetAsync();
         var menu = new ContextMenu
         {
             Style = (Style)FindResource("Island.Menu"),
             PlacementTarget = button,
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
         };
-        var targets = CloudTargets.Detect();
         foreach (var t in targets)
         {
             var mi = new MenuItem
@@ -433,29 +434,24 @@ public partial class ExpandedView : UserControl
         }
         if (targets.Count == 0)
             menu.Items.Add(new MenuItem { Header = Core.Loc.T("Cloud.None"), IsEnabled = false, Style = (Style)FindResource("Island.MenuItem") });
-        DragOutActive?.Invoke(true); // keep the island open while the menu is up
         menu.Closed += (_, _) => DragOutActive?.Invoke(false);
         menu.IsOpen = true;
     }
 
-    private void SaveTo(CloudTarget target, object? item)
+    private async void SaveTo(CloudTarget target, object? item)
     {
         try
         {
-            switch (item)
+            // Copying into a synced cloud folder can take a moment (big files, the sync client): off the UI thread.
+            Action? save = item switch
             {
-                case ShelfItem s when System.IO.File.Exists(s.Path):
-                    CloudTargets.SaveFile(target, s.Path);
-                    break;
-                case ClipItem { IsImage: true, ImagePath: not null } c:
-                    CloudTargets.SaveFile(target, c.ImagePath);
-                    break;
-                case ClipItem { IsText: true } c:
-                    CloudTargets.SaveText(target, c.Text ?? "", $"Text {c.Created:yyyy-MM-dd HHmmss}.txt");
-                    break;
-                default:
-                    return;
-            }
+                ShelfItem s when System.IO.File.Exists(s.Path) => () => CloudTargets.SaveFile(target, s.Path),
+                ClipItem { IsImage: true, ImagePath: not null } c => () => CloudTargets.SaveFile(target, c.ImagePath),
+                ClipItem { IsText: true } c => () => CloudTargets.SaveText(target, c.Text ?? "", $"Text {c.Created:yyyy-MM-dd HHmmss}.txt"),
+                _ => null,
+            };
+            if (save is null) return;
+            await Task.Run(save);
             ShowToast(Core.Loc.F("Cloud.Saved", target.Name));
         }
         catch (Exception ex)

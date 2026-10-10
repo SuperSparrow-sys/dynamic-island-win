@@ -49,7 +49,21 @@ public static class Snapshots
                 down = now; last = t;
             };
             System.Windows.Media.CompositionTarget.Rendering += onFrame;
-            await Task.Delay(30000);
+            // DYNAMICBAY_LIVE_PEEK=1: a clickable peek with a file (like a Taildrop arrival); logs clicks and opening.
+            if (Environment.GetEnvironmentVariable("DYNAMICBAY_LIVE_PEEK") == "1")
+            {
+                var file = Path.Combine(Path.GetTempPath(), "DynamicBay-Peek-Test.txt");
+                File.WriteAllText(file, "test");
+                island.ShowPeek(new PeekItem { Title = "DynamicBay-Peek-Test.txt", Subtitle = "Test", Seconds = 20, DragPayload = new[] { file },
+                                               OnClick = () => Log.Info("LIVE peek clicked") });
+                bool wasOpen = false;
+                for (int i = 0; i < 280; i++)
+                {
+                    await Task.Delay(100);
+                    if (island.IsExpandedForTest != wasOpen) { wasOpen = island.IsExpandedForTest; Log.Info($"LIVE island {(wasOpen ? "opened" : "closed")}"); }
+                }
+            }
+            else await Task.Delay(30000);
             System.Windows.Media.CompositionTarget.Rendering -= onFrame;
             return;
         }

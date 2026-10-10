@@ -391,13 +391,14 @@ public partial class SettingsWindow : Window
         UpdateTaildropFolderText();
     }
 
-    private void PickClaudeShare_Click(object sender, RoutedEventArgs e)
+    private async void PickClaudeShare_Click(object sender, RoutedEventArgs e)
     {
+        var targets = await CloudTargets.GetAsync();
         var menu = new ContextMenu { PlacementTarget = (UIElement)sender };
         var off = new MenuItem { Header = Loc.German ? "Aus" : "Off" };
         off.Click += (_, _) => { _ctx.S.ClaudeShareFolder = ""; UpdateClaudeShareText(); };
         menu.Items.Add(off);
-        foreach (var t in CloudTargets.Detect())
+        foreach (var t in targets)
         {
             var item = new MenuItem { Header = t.Name };
             string root = t.Root;

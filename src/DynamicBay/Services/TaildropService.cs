@@ -253,6 +253,7 @@ public sealed class TaildropService : IDisposable
         if (_batch.Count == 0) return;
         var files = _batch.ToList();
         _batch.Clear();
+        Log.Info($"Taildrop: delivered {files.Count} file(s): {string.Join(", ", files.Select(Path.GetFileName))}");
         Received?.Invoke(files);
     }
 
