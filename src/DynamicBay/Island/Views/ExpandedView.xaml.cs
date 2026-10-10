@@ -409,6 +409,27 @@ public partial class ExpandedView : UserControl
 
     // ---- save to cloud ----
 
+    /// <summary>Reads the text in a screenshot or picture (Windows OCR, offline) and copies it.</summary>
+    private async void CopyText_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (((FrameworkElement)sender).DataContext is not ClipItem { IsImage: true, ImagePath: { } path }) return;
+        try
+        {
+            ShowToast(Core.Loc.German ? "Text wird erkannt…" : "Reading text…");
+            string text = await TextRecognition.ReadAsync(path);
+            if (text.Length == 0) { ShowToast(Core.Loc.German ? "Kein Text gefunden" : "No text found"); return; }
+            Clipboard.SetText(text);
+            int lines = text.Split('\n').Length;
+            ShowToast(Core.Loc.German ? $"Text kopiert ({lines} {(lines == 1 ? "Zeile" : "Zeilen")})" : $"Text copied ({lines} {(lines == 1 ? "line" : "lines")})");
+        }
+        catch (Exception ex)
+        {
+            Core.Log.Error("OCR", ex);
+            ShowToast(Core.Loc.German ? "Texterkennung fehlgeschlagen" : "Text recognition failed");
+        }
+    }
+
     /// <summary>Opens Explorer where the file lies, with the file selected (shelf files, saved clipboard pictures).</summary>
     private void ShowInFolder_Click(object sender, RoutedEventArgs e)
     {

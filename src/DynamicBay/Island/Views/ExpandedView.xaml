@@ -859,6 +859,10 @@
                                                 </Border>
                                                 <!-- hover actions -->
                                                 <StackPanel x:Name="Actions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,5" Visibility="Hidden">
+                                                    <Button Style="{StaticResource TileButton}" ToolTip="{core:L De='Text kopieren (Texterkennung)', En='Copy text (text recognition)'}" Click="CopyText_Click"
+                                                            Visibility="{Binding IsImage, Converter={StaticResource Vis}}">
+                                                        <c:Icon Data="{StaticResource Icon.ScanText}" Width="11" Height="11" />
+                                                    </Button>
                                                     <Button Style="{StaticResource TileButton}" ToolTip="{core:L De='Im Ordner zeigen', En='Show in folder'}" Click="ShowInFolder_Click"
                                                             Visibility="{Binding IsImage, Converter={StaticResource Vis}}">
                                                         <c:Icon Data="{StaticResource Icon.FolderOpen}" Width="11" Height="11" />

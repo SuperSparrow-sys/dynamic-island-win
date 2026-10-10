@@ -411,3 +411,32 @@ public class WorkModeTests
         s.FocusActive = false; s.DoNotDisturb = true; Assert.True(s.Quiet);
     }
 }
+
+public class TextRecognitionTests
+{
+    [Fact]
+    public async Task Reads_text_from_a_picture()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"dbocr-{Guid.NewGuid():N}.png");
+        var visual = new System.Windows.Media.DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            dc.DrawRectangle(System.Windows.Media.Brushes.White, null, new System.Windows.Rect(0, 0, 600, 120));
+            dc.DrawText(new System.Windows.Media.FormattedText("Rechnung 2026 bezahlt", System.Globalization.CultureInfo.InvariantCulture,
+                System.Windows.FlowDirection.LeftToRight, new System.Windows.Media.Typeface("Segoe UI"), 40, System.Windows.Media.Brushes.Black, 1.0),
+                new System.Windows.Point(20, 30));
+        }
+        var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap(600, 120, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+        bmp.Render(visual);
+        var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+        using (var fs = File.Create(file)) enc.Save(fs);
+        try
+        {
+            string text = await TextRecognition.ReadAsync(file);
+            Assert.Contains("Rechnung", text);
+            Assert.Contains("bezahlt", text);
+        }
+        finally { File.Delete(file); }
+    }
+}
