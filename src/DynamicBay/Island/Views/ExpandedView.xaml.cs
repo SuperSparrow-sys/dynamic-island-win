@@ -381,11 +381,31 @@ public partial class ExpandedView : UserControl
         v.EndDrag();
     }
 
-    private async void Devices_Click(object sender, RoutedEventArgs e)
+    private void Devices_Click(object sender, RoutedEventArgs e)
     {
         if (Vm is null) return;
         DevicesOverlay.Visibility = Visibility.Visible;
-        await Vm.Spotify.LoadDevices();
+        if (MusicTabQueue.IsChecked == true) _ = Vm.Spotify.LoadQueue(); else MusicTabQueue.IsChecked = true;
+    }
+
+    /// <summary>For design snapshots only.</summary>
+    public void ShowMusicOverlayForSnapshot()
+    {
+        DevicesOverlay.Visibility = Visibility.Visible;
+        MusicTabQueue.IsChecked = true;
+    }
+
+    /// <summary>Up next, playlists or devices: show the pane and load it fresh.</summary>
+    private void MusicTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (QueuePane is null || PlaylistsPane is null || DevicesPane is null) return; // still building
+        QueuePane.Visibility = MusicTabQueue.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PlaylistsPane.Visibility = MusicTabPlaylists.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        DevicesPane.Visibility = MusicTabDevices.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (Vm is null || DevicesOverlay.Visibility != Visibility.Visible) return;
+        if (MusicTabQueue.IsChecked == true) _ = Vm.Spotify.LoadQueue();
+        else if (MusicTabPlaylists.IsChecked == true) _ = Vm.Spotify.LoadPlaylists();
+        else _ = Vm.Spotify.LoadDevices();
     }
 
     private void DevicesClose_Click(object sender, RoutedEventArgs e) => DevicesOverlay.Visibility = Visibility.Collapsed;

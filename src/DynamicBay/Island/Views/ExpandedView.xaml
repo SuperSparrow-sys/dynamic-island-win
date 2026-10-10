@@ -21,6 +21,31 @@
         <c:RatioConverter x:Key="Ratio" />
         <c:PercentToWidth x:Key="PercentWidth" />
         <c:InverseBool x:Key="Not" />
+        <!-- small segmented tabs inside a card (Spotify: up next / playlists / devices) -->
+        <Style x:Key="Seg.Small" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource B.Text2}" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.UI}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bg" Background="Transparent" CornerRadius="8" Padding="9,0" Height="24">
+                            <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource B.Fill2}" />
+                                <Setter Property="Foreground" Value="{StaticResource B.Text}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <c:TextOr x:Key="TodoTitle" Fallback="{core:L De='Aufgaben', En='Tasks'}" />
         <c:BoolPick x:Key="OutputGlyph" True="{StaticResource Icon.Headphones}" False="{StaticResource Icon.Speaker}" />
         <c:BoolPick x:Key="DefaultBg" True="{StaticResource B.Fill2}" False="{x:Static Brushes.Transparent}" />
@@ -83,13 +108,30 @@
         <!-- Hover-revealed overlay buttons on tiles -->
         <!-- Dark glass circles over pictures: hover gets lighter but stays opaque, so the button never fades into the image -->
         <!-- A row in a widget list (projects, sound devices): same height and radius everywhere.
-             Radius 10 = card radius 20 minus its padding 10, so the row corners run parallel to the card. -->
+             Radius 8 = card radius 20 minus its side padding 12, so the row corners run parallel to the card. -->
         <Style x:Key="Row.Item" TargetType="Button" BasedOn="{StaticResource Btn.Chip}">
             <Setter Property="Height" Value="28" />
             <Setter Property="Padding" Value="9,0" />
             <Setter Property="Margin" Value="0,0,0,4" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.85" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.7" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="TileButton" TargetType="Button" BasedOn="{StaticResource Btn.Icon}">
             <Setter Property="Width" Value="24" />
@@ -226,7 +268,7 @@
             <Grid x:Name="HomeGrid">
 
                 <!-- Media card -->
-                <Border x:Name="MediaCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="MediaCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <Grid>
                         <!-- Nothing playing -->
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -436,44 +478,98 @@
                                             <c:Icon Width="16" Height="16" Data="{Binding Spotify.Repeat, Converter={StaticResource RepeatGlyph}}"
                                                     Foreground="{Binding Spotify.Repeat, Converter={StaticResource RepeatBrush}}" />
                                         </Button>
-                                        <Button Style="{StaticResource Btn.Side}" Click="Devices_Click" ToolTip="{core:T Media.Devices}">
-                                            <c:Icon Data="{StaticResource Icon.Devices}" Width="16" Height="16" Foreground="{StaticResource B.Text2}" />
+                                        <Button Style="{StaticResource Btn.Side}" Click="Devices_Click" ToolTip="{core:L De='Als Nächstes, Playlists, Geräte', En='Up next, playlists, devices'}">
+                                            <c:Icon Data="{StaticResource Icon.Queue}" Width="16" Height="16" Foreground="{StaticResource B.Text2}" />
                                         </Button>
                                     </StackPanel>
                                 </Grid>
                             </Grid>
                         </Grid>
 
-                        <!-- Spotify device picker overlay -->
-                        <Border x:Name="DevicesOverlay" Visibility="Collapsed" Background="#F2161618" CornerRadius="16" Margin="-6">
-                            <DockPanel Margin="12,8">
-                                <DockPanel DockPanel.Dock="Top" Height="22">
+                        <!-- Spotify: up next, playlists and devices (one button in the player, three tabs) -->
+                        <Border x:Name="DevicesOverlay" Visibility="Collapsed" Background="#FF141414" CornerRadius="20" Margin="-12,-9,-12,-12">
+                            <DockPanel Margin="12,8,12,10">
+                                <DockPanel DockPanel.Dock="Top" Height="24">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="24" Height="24" Click="DevicesClose_Click">
                                         <c:Icon Data="{StaticResource Icon.Close}" Width="13" Height="13" Foreground="{StaticResource B.Text2}" />
                                     </Button>
-                                    <TextBlock Style="{StaticResource T.Section}" Text="{core:T Media.Devices}" VerticalAlignment="Center" />
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <RadioButton x:Name="MusicTabQueue" GroupName="MusicTab" Style="{StaticResource Seg.Small}" Content="{core:L De='Als Nächstes', En='Up next'}" Checked="MusicTab_Checked" IsChecked="True" />
+                                        <RadioButton x:Name="MusicTabPlaylists" GroupName="MusicTab" Style="{StaticResource Seg.Small}" Content="Playlists" Checked="MusicTab_Checked" />
+                                        <RadioButton x:Name="MusicTabDevices" GroupName="MusicTab" Style="{StaticResource Seg.Small}" Content="{core:T Media.Devices}" Checked="MusicTab_Checked" />
+                                    </StackPanel>
                                 </DockPanel>
-                                <ItemsControl ItemsSource="{Binding Spotify.Devices}" Margin="0,6,0,0">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type s:SpotifyDevice}">
-                                            <Button Style="{StaticResource Btn.Pill}" Background="Transparent" HorizontalContentAlignment="Stretch" Padding="8,5"
-                                                    Command="{Binding DataContext.Spotify.TransferToCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                    CommandParameter="{Binding}" HorizontalAlignment="Stretch">
-                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <c:Icon Data="{StaticResource Icon.Speaker}" Width="14" Height="14" Foreground="{Binding IsActive, Converter={StaticResource OnBrush}}" />
-                                                    <TextBlock Style="{StaticResource T.Base}" Margin="8,0,0,0" Text="{Binding Name}" />
-                                                </StackPanel>
+                                <Grid Margin="0,8,0,0">
+                                    <!-- up next -->
+                                    <ScrollViewer x:Name="QueuePane" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsControl ItemsSource="{Binding Spotify.Queue}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type s:SpotifyQueueItem}">
+                                            <Button Style="{StaticResource Row.Item}" Background="Transparent" Height="36" Padding="4,0" Margin="0,0,0,2"
+                                                    Command="{Binding DataContext.Spotify.PlayFromQueueCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                <DockPanel>
+                                                    <Border DockPanel.Dock="Left" Width="30" Height="30" CornerRadius="6" Background="{StaticResource B.Fill2}" Margin="0,0,9,0">
+                                                        <Border.Clip><RectangleGeometry Rect="0,0,30,30" RadiusX="6" RadiusY="6" /></Border.Clip>
+                                                        <Image Source="{Binding ImageUrl, TargetNullValue={x:Null}}" Stretch="UniformToFill" />
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" Text="{Binding Title}" />
+                                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="10" Text="{Binding Artist}" />
+                                                    </StackPanel>
+                                                </DockPanel>
                                             </Button>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                    <!-- playlists -->
+                                    <Grid x:Name="PlaylistsPane" Visibility="Collapsed">
+                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                                   Text="{Binding Spotify.PlaylistHint}" Visibility="{Binding Spotify.PlaylistHint, Converter={StaticResource Vis}}" />
+                                        <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                            <ItemsControl ItemsSource="{Binding Spotify.Playlists}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type s:SpotifyPlaylist}">
+                                            <Button Style="{StaticResource Row.Item}" Background="Transparent" Height="36" Padding="4,0" Margin="0,0,0,2"
+                                                    Command="{Binding DataContext.Spotify.PlayPlaylistCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                <DockPanel>
+                                                    <Border DockPanel.Dock="Left" Width="30" Height="30" CornerRadius="6" Background="{StaticResource B.Fill2}" Margin="0,0,9,0">
+                                                        <Border.Clip><RectangleGeometry Rect="0,0,30,30" RadiusX="6" RadiusY="6" /></Border.Clip>
+                                                        <Image Source="{Binding ImageUrl, TargetNullValue={x:Null}}" Stretch="UniformToFill" />
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" Text="{Binding Name}" />
+                                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="10" Text="{Binding Detail}" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Grid>
+                                    <!-- devices -->
+                                    <ItemsControl x:Name="DevicesPane" Visibility="Collapsed" ItemsSource="{Binding Spotify.Devices}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type s:SpotifyDevice}">
+                                                <Button Style="{StaticResource Row.Item}" Background="Transparent"
+                                                        Command="{Binding DataContext.Spotify.TransferToCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <c:Icon Data="{StaticResource Icon.Speaker}" Width="14" Height="14" Foreground="{Binding IsActive, Converter={StaticResource OnBrush}}" />
+                                                        <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" Margin="8,0,0,0" Text="{Binding Name}" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
                             </DockPanel>
                         </Border>
                     </Grid>
                 </Border>
 
                 <!-- Calendar card -->
-                <Border x:Name="CalendarCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="CalendarCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top">
                             <TextBlock Style="{StaticResource T.Title}" Foreground="{StaticResource B.Red}" Text="{Binding Calendar.MonthText}" />
@@ -555,7 +651,7 @@
                 </Border>
 
                 <!-- Timer card -->
-                <Border x:Name="TimerCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="TimerCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <Grid>
                         <!-- Idle: presets -->
                         <DockPanel Visibility="{Binding Timer.IsActive, Converter={StaticResource NotVis}}">
@@ -608,7 +704,7 @@
             <!-- Optional widgets (shown when enabled in settings; laid out in code) -->
             <Grid x:Name="ExtraCards" Visibility="Collapsed">
                 <!-- Contacts: frequent people with Teams chat, Teams call and phone (via Smartphone-Link) -->
-                <Border x:Name="ContactsCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="ContactsCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
                             <c:Icon Data="{StaticResource Icon.User}" Width="14" Height="14" Foreground="{StaticResource B.Green}" VerticalAlignment="Center" />
@@ -654,7 +750,7 @@
                 </Border>
 
                 <!-- Time tracking: tap a project to start or switch, tap the running one (or the square) to stop -->
-                <Border x:Name="TimeCard" Style="{StaticResource Card}" Padding="10" Cursor="Hand" MouseLeftButtonUp="TimeCard_Click"
+                <Border x:Name="TimeCard" Style="{StaticResource Card}" Padding="12,9,12,12" Cursor="Hand" MouseLeftButtonUp="TimeCard_Click"
                         ToolTip="{core:L De='Klicken: Zeiterfassung öffnen (Einträge, nachtragen, Projekte)', En='Click: open time tracking (entries, add time, projects)'}">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Height="22">
@@ -710,7 +806,7 @@
                 </Border>
 
                 <!-- Microsoft To Do: open tasks, overdue and today's first; tick them off here -->
-                <Border x:Name="TodoCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="TodoCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Height="22">
                             <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Todo.OpenAppCommand}" ToolTip="Microsoft To Do">
@@ -800,7 +896,7 @@
                 </Border>
 
                 <!-- Notes: quick, short notes - written in a second, gone in one click -->
-                <Border x:Name="NotesCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="NotesCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Height="22">
                             <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Notes.NewCommand}"
@@ -830,7 +926,7 @@
                                                          Background="{StaticResource B.Fill2}" Foreground="{StaticResource B.Text}" CaretBrush="{StaticResource B.Text}" BorderThickness="0"
                                                          LostKeyboardFocus="Note_LostFocus" GotKeyboardFocus="Note_GotFocus">
                                                     <TextBox.Resources>
-                                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="10" /></Style>
+                                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="8" /></Style>
                                                     </TextBox.Resources>
                                                 </TextBox>
                                                 <Button x:Name="NoteDelete" Style="{StaticResource Btn.Icon}" Width="18" Height="18" Margin="0,3,3,0" HorizontalAlignment="Right" VerticalAlignment="Top"
@@ -853,7 +949,7 @@
                 </Border>
 
                 <!-- Audio: output and microphone with one click, Bluetooth headsets connect with one click -->
-                <Border x:Name="AudioCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="AudioCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
                             <c:Icon Data="{StaticResource Icon.Headphones}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
@@ -921,7 +1017,7 @@
                 </Border>
 
                 <!-- Devices: this PC and connected Bluetooth devices with their battery, like the iPhone battery widget -->
-                <Border x:Name="DevicesCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="DevicesCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
                             <c:Icon Data="{StaticResource Icon.Bluetooth}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
@@ -966,7 +1062,7 @@
                 </Border>
 
                 <!-- Clock -->
-                <Border x:Name="ClockCard" Style="{StaticResource Card}" Padding="10" Cursor="Hand" MouseLeftButtonUp="ClockCard_Click"
+                <Border x:Name="ClockCard" Style="{StaticResource Card}" Padding="12,9,12,12" Cursor="Hand" MouseLeftButtonUp="ClockCard_Click"
                         ToolTip="{core:L De='Klicken: Ziffern oder Zifferblatt', En='Click: digits or dial'}">
                     <Grid>
                     <!-- Dial like the iPhone Clock icon -->
@@ -989,7 +1085,7 @@
                 </Border>
 
                 <!-- System -->
-                <Border x:Name="SystemCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="SystemCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
                             <c:Icon Data="{StaticResource Icon.Cog}" Width="14" Height="14" Foreground="{StaticResource B.Text2}" VerticalAlignment="Center" />
@@ -1019,7 +1115,7 @@
                 </Border>
 
                 <!-- Messenger: latest chat messages mirrored from Windows notifications -->
-                <Border x:Name="MessengerCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="MessengerCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
                             <c:Icon Data="{StaticResource Icon.Chat}" Width="14" Height="14" Foreground="{StaticResource B.Green}" VerticalAlignment="Center" />
@@ -1060,7 +1156,7 @@
                 </Border>
 
                 <!-- Claude Code sessions + quick actions -->
-                <Border x:Name="ClaudeCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="ClaudeCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Height="22">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -1134,7 +1230,7 @@
                 </Border>
 
                 <!-- Shortcuts (pinned apps / folders) -->
-                <Border x:Name="ShortcutsCard" Style="{StaticResource Card}" Padding="10" AllowDrop="True" Drop="Shortcuts_Drop">
+                <Border x:Name="ShortcutsCard" Style="{StaticResource Card}" Padding="12,9,12,12" AllowDrop="True" Drop="Shortcuts_Drop">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
                             <c:Icon Data="{StaticResource Icon.AppWindow}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
@@ -1167,7 +1263,7 @@
             <Grid x:Name="TrayGrid" Visibility="{Binding Tab, Converter={StaticResource EqVis}, ConverterParameter=1}">
 
                 <!-- Shelf -->
-                <Border x:Name="ShelfCard" Style="{StaticResource Card}" Padding="10" AllowDrop="True" Drop="Shelf_Drop">
+                <Border x:Name="ShelfCard" Style="{StaticResource Card}" Padding="12,9,12,12" AllowDrop="True" Drop="Shelf_Drop">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Margin="2,0,0,6">
                             <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Shelf.ClearCommand}"
@@ -1238,7 +1334,7 @@
                 </Border>
 
                 <!-- Clipboard -->
-                <Border x:Name="ClipCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="ClipCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Margin="2,0,0,6">
                             <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Clipboard.ClearCommand}"
@@ -1331,7 +1427,7 @@
 
             <!-- Notifications -->
             <Grid Visibility="{Binding Tab, Converter={StaticResource EqVis}, ConverterParameter=2}">
-                <Border Style="{StaticResource Card}" Padding="10">
+                <Border Style="{StaticResource Card}" Padding="12,9,12,12">
                     <Grid>
                         <!-- Unavailable / denied / empty states -->
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"

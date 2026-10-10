@@ -29,6 +29,15 @@ public sealed class SpotifyQueueItem
     public string Title { get; init; } = "";
     public string Artist { get; init; } = "";
     public string? ImageUrl { get; init; }
+    public int Index { get; init; }
+}
+
+public sealed class SpotifyPlaylist
+{
+    public string Name { get; init; } = "";
+    public string Uri { get; init; } = "";
+    public string? ImageUrl { get; init; }
+    public string Detail { get; init; } = "";
 }
 
 /// <summary>
@@ -41,7 +50,7 @@ public sealed partial class SpotifyService : ObservableObject
     public const int RedirectPort = 43821;
     public static string RedirectUri => $"http://127.0.0.1:{RedirectPort}/callback";
     private const string Scopes = "user-read-playback-state user-modify-playback-state user-read-currently-playing " +
-                                  "user-library-read user-library-modify user-read-private";
+                                  "user-library-read user-library-modify user-read-private playlist-read-private playlist-read-collaborative";
 
     private readonly AppSettings _settings;
     private readonly HttpClient _http = new() { BaseAddress = new Uri("https://api.spotify.com/v1/") };
@@ -69,6 +78,9 @@ public sealed partial class SpotifyService : ObservableObject
     [ObservableProperty] private bool _supportsVolume;
     public ObservableCollection<SpotifyDevice> Devices { get; } = new();
     public ObservableCollection<SpotifyQueueItem> Queue { get; } = new();
+    public ObservableCollection<SpotifyPlaylist> Playlists { get; } = new();
+    /// <summary>Shown instead of the playlists when they cannot be read (older sign-in without the playlist permission).</summary>
+    [ObservableProperty] private string _playlistHint = "";
 
     public SpotifyService(AppSettings settings)
     {
@@ -271,13 +283,14 @@ public sealed partial class SpotifyService : ObservableObject
     }
 
     /// <summary>A write request (like, shuffle, repeat): true on success; failures are logged and shown in the player.</summary>
-    private async Task<bool> SendActionAsync(HttpMethod method, string path)
+    private async Task<bool> SendActionAsync(HttpMethod method, string path, object? body = null)
     {
         if (!await EnsureTokenAsync()) { ShowPlayerError(Loc.German ? "Spotify ist nicht verbunden" : "Spotify is not connected"); return false; }
         try
         {
             var req = new HttpRequestMessage(method, path);
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+            if (body is not null) req.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
             var res = await _http.SendAsync(req);
             if (res.IsSuccessStatusCode) return true;
             var text = await res.Content.ReadAsStringAsync();
@@ -412,12 +425,79 @@ public sealed partial class SpotifyService : ObservableObject
         var res = await SendAsync(HttpMethod.Get, "me/player/queue");
         Queue.Clear();
         if (res?["queue"] is JsonArray arr)
-            foreach (var t in arr.Take(8))
+        {
+            int i = 0;
+            foreach (var t in arr.Take(10))
                 Queue.Add(new SpotifyQueueItem
                 {
+                    Index = i++,
                     Title = t!["name"]?.ToString() ?? "",
-                    Artist = string.Join(", ", (t["artists"] as JsonArray)?.Select(a => a!["name"]?.ToString()) ?? Array.Empty<string>()),
-                    ImageUrl = (t["album"]?["images"] as JsonArray)?.LastOrDefault()?["url"]?.ToString(),
+                    // songs have artists, podcast episodes a show
+                    Artist = t["artists"] is JsonArray artists ? string.Join(", ", artists.Select(a => a!["name"]?.ToString())) : t["show"]?["name"]?.ToString() ?? "",
+                    ImageUrl = ((t["album"]?["images"] ?? t["images"]) as JsonArray)?.LastOrDefault()?["url"]?.ToString(),
                 });
+        }
+    }
+
+    /// <summary>For design snapshots only.</summary>
+    public void LoadDemoQueue()
+    {
+        Queue.Clear();
+        int i = 0;
+        foreach (var (t, a) in new[] { ("Blinding Lights", "The Weeknd"), ("Levitating", "Dua Lipa"), ("As It Was", "Harry Styles"), ("Flowers", "Miley Cyrus") })
+            Queue.Add(new SpotifyQueueItem { Index = i++, Title = t, Artist = a });
+    }
+
+    /// <summary>Jumps to a song further down the queue (Spotify has no "play this one": it skips forward to it).</summary>
+    [RelayCommand]
+    public async Task PlayFromQueue(SpotifyQueueItem? item)
+    {
+        if (item is null) return;
+        for (int i = 0; i <= item.Index; i++)
+        {
+            if (!await SendActionAsync(HttpMethod.Post, "me/player/next")) return;
+            if (i < item.Index) await Task.Delay(120);
+        }
+        await Task.Delay(500);
+        await LoadQueue();
+    }
+
+    /// <summary>Your playlists (own and followed), as Spotify lists them.</summary>
+    [RelayCommand]
+    public async Task LoadPlaylists()
+    {
+        var res = await SendAsync(HttpMethod.Get, "me/playlists?limit=40");
+        if (res?["error"] is { } err)
+        {
+            Log.Info($"Spotify playlists: {err["status"]} {err["message"]}");
+            PlaylistHint = Loc.German ? "Für Playlists Spotify einmal neu verbinden (Einstellungen → Medien und Spotify)." : "Reconnect Spotify once for playlists (Settings → Media and Spotify).";
+            return;
+        }
+        PlaylistHint = "";
+        Playlists.Clear();
+        foreach (var p in res?["items"] as JsonArray ?? new JsonArray())
+        {
+            if (p is null) continue;
+            int count = p["tracks"]?["total"]?.GetValue<int>() ?? p["items"]?["total"]?.GetValue<int>() ?? 0;
+            Playlists.Add(new SpotifyPlaylist
+            {
+                Name = p["name"]?.ToString() ?? "",
+                Uri = p["uri"]?.ToString() ?? "",
+                ImageUrl = (p["images"] as JsonArray)?.LastOrDefault()?["url"]?.ToString(),
+                Detail = (Loc.German ? $"{count} Titel · " : $"{count} tracks · ") + (p["owner"]?["display_name"]?.ToString() ?? ""),
+            });
+        }
+        if (Playlists.Count == 0) PlaylistHint = Loc.German ? "Keine Playlists gefunden." : "No playlists found.";
+    }
+
+    [RelayCommand]
+    public async Task PlayPlaylist(SpotifyPlaylist? playlist)
+    {
+        if (playlist is null || playlist.Uri.Length == 0) return;
+        if (await SendActionAsync(HttpMethod.Put, "me/player/play", new { context_uri = playlist.Uri }))
+        {
+            await Task.Delay(600);
+            await PollAsync();
+        }
     }
 }

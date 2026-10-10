@@ -331,6 +331,13 @@ public static class Snapshots
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.TimeTrack, Widgets.Notes, Widgets.Audio, Widgets.Todo, Widgets.Devices }) settings.HomeWidgets.Add(w);
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8e-work.png"), compact: true);
+                // Spotify: up next / playlists / devices over the player
+                vm.Spotify.LoadDemoQueue();
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.Media, Widgets.Calendar }) settings.HomeWidgets.Add(w);
+                island.ExpandedLayer.ShowMusicOverlayForSnapshot();
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8f-upnext.png"), compact: true);
+                island.ExpandedLayer.DevicesOverlay.Visibility = Visibility.Collapsed;
                 settings.AppIcons = AppIconStyle.Mono;
                 await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-9-compact-clock.png"), compact: true);
 
