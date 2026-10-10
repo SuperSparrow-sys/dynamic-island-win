@@ -39,7 +39,67 @@ public sealed partial class ShelfService : ObservableObject
     public ShelfService(AppSettings settings)
     {
         _settings = settings;
-        Items.CollectionChanged += (_, _) => { IsEmpty = Items.Count == 0; Count = Items.Count; };
+        Items.CollectionChanged += (_, _) => { IsEmpty = Items.Count == 0; Count = Items.Count; SyncWatchers(); };
+    }
+
+    // ---------- files deleted or renamed outside DynamicBay ----------
+
+    /// <summary>One watcher per folder that holds shelf files: a file deleted there (also into the recycle bin) leaves
+    /// the shelf at once, a renamed one keeps its entry - otherwise it could no longer be dragged out.</summary>
+    private readonly Dictionary<string, FileSystemWatcher> _watchers = new(StringComparer.OrdinalIgnoreCase);
+
+    private void SyncWatchers()
+    {
+        var dirs = Items.Select(i => System.IO.Path.GetDirectoryName(i.Path.TrimEnd('\\')))
+                        .Where(d => !string.IsNullOrEmpty(d)).Select(d => d!).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var gone in _watchers.Keys.Where(d => !dirs.Contains(d)).ToList())
+        {
+            _watchers[gone].Dispose();
+            _watchers.Remove(gone);
+        }
+        foreach (var dir in dirs.Where(d => !_watchers.ContainsKey(d)))
+        {
+            try
+            {
+                if (!Directory.Exists(dir)) continue;
+                var w = new FileSystemWatcher(dir) { IncludeSubdirectories = false, NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName };
+                w.Deleted += (_, e) => OnUi(() => Gone(e.FullPath));
+                w.Renamed += (_, e) => OnUi(() => Renamed(e.OldFullPath, e.FullPath));
+                w.EnableRaisingEvents = true;
+                _watchers[dir] = w;
+            }
+            catch (Exception ex) { Log.Info($"Shelf watcher for {dir}: {ex.Message}"); }
+        }
+    }
+
+    private static void OnUi(Action a) => System.Windows.Application.Current?.Dispatcher.BeginInvoke(a);
+
+    private void Gone(string path)
+    {
+        var hit = Items.Where(i => string.Equals(i.Path.TrimEnd('\\'), path, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (hit.Count == 0 || File.Exists(path) || Directory.Exists(path)) return;
+        foreach (var i in hit) Items.Remove(i);
+        Save();
+    }
+
+    private void Renamed(string oldPath, string newPath)
+    {
+        for (int n = 0; n < Items.Count; n++)
+        {
+            var i = Items[n];
+            if (!string.Equals(i.Path.TrimEnd('\\'), oldPath, StringComparison.OrdinalIgnoreCase)) continue;
+            Items[n] = new ShelfItem { Path = newPath, IsCopy = i.IsCopy, Added = i.Added, Icon = i.Icon };
+        }
+        Save();
+    }
+
+    /// <summary>Safety net when the panel opens (removed USB stick, a missed event): drops entries whose file is gone.</summary>
+    public void PruneMissing()
+    {
+        var missing = Items.Where(i => !i.Exists).ToList();
+        if (missing.Count == 0) return;
+        foreach (var i in missing) Items.Remove(i);
+        Save();
     }
 
     public void Load()

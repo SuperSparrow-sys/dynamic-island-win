@@ -50,6 +50,7 @@ public partial class ExpandedView : UserControl
             Vm?.System.SetActive(IsVisible && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
             Vm?.Spotify.SetPanelOpen(IsVisible);
             Vm?.Media.SetPanelOpen(IsVisible);
+            if (IsVisible) Vm?.Shelf.PruneMissing();
         };
         HomeScroll.IsVisibleChanged += (_, _) => Dispatcher.BeginInvoke(FitHomeToViewport, System.Windows.Threading.DispatcherPriority.Loaded);
         SetVertical(false);
