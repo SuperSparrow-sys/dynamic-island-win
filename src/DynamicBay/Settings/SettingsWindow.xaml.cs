@@ -63,6 +63,7 @@ public partial class SettingsWindow : Window
         BuildCalendarRows();
         BuildBannerRows();
         UpdateClaudeShareText();
+        UpdateTaildropFolderText();
         UpdateUpdateRow();
         Action updateChanged = () => Dispatcher.BeginInvoke(UpdateUpdateRow);
         Action calendarChanged = () => Dispatcher.BeginInvoke(RefreshCalendarRows);
@@ -363,6 +364,32 @@ public partial class SettingsWindow : Window
 
     private void UpdateClaudeShareText() =>
         ClaudeShareText.Text = string.IsNullOrEmpty(_ctx.S.ClaudeShareFolder) ? (Loc.German ? "Aus" : "Off") : _ctx.S.ClaudeShareFolder;
+
+    // ---- Taildrop folder ----
+
+    private void UpdateTaildropFolderText()
+    {
+        string folder = _ctx.S.TaildropFolder;
+        bool custom = !string.IsNullOrWhiteSpace(folder);
+        TaildropFolderText.Text = custom ? folder : (Loc.German ? "Downloads (wie Tailscale)" : "Downloads (like Tailscale)");
+        TaildropFolderText.ToolTip = custom ? folder : Services.TaildropService.DownloadsFolder;
+        TaildropFolderReset.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void PickTaildropFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Loc.German ? "Ordner für Dateien vom iPad oder iPhone" : "Folder for files from iPad or iPhone" };
+        if (!string.IsNullOrWhiteSpace(_ctx.S.TaildropFolder)) dlg.InitialDirectory = _ctx.S.TaildropFolder;
+        if (dlg.ShowDialog(this) != true) return;
+        _ctx.S.TaildropFolder = dlg.FolderName;
+        UpdateTaildropFolderText();
+    }
+
+    private void ResetTaildropFolder_Click(object sender, RoutedEventArgs e)
+    {
+        _ctx.S.TaildropFolder = "";
+        UpdateTaildropFolderText();
+    }
 
     private void PickClaudeShare_Click(object sender, RoutedEventArgs e)
     {

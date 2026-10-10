@@ -14,6 +14,7 @@ namespace DynamicBay;
 public partial class App : Application
 {
     private static Mutex? _single;
+    private TaildropService? _taildrop;
     private MessageWindow? _msg;
     private TrayIcon? _tray;
     private IslandManager? _islands;
@@ -100,6 +101,7 @@ public partial class App : Application
         var battery = new BatteryService(_settings);
         var bluetooth = new BluetoothService();
         var spotify = new SpotifyService(_settings);
+        _taildrop = new TaildropService(_settings);
 
         _vm = new IslandViewModel(_settings, media, clipboard, shelf, notifications, timer, calendar, battery, spotify) { Bluetooth = bluetooth };
         _islands = new IslandManager(_vm);
@@ -161,6 +163,8 @@ public partial class App : Application
         if (!_snapshotMode) BannerSuppressor.Apply(_settings, notifications.Access == NotificationAccess.Allowed);
         await Next();
         _vm.Claude.SetEnabled(_settings.ClaudeEnabled);
+        _taildrop.SetEnabled(_settings.TaildropEnabled);
+        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.TaildropEnabled)) _taildrop.SetEnabled(_settings.TaildropEnabled); };
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) _vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
         await spotify.InitAsync();
         Log.Info($"Services started in {clock.ElapsedMilliseconds} ms");
@@ -384,6 +388,31 @@ public partial class App : Application
             OnClick = () => _vm.Claude.Resume(s),
         });
 
+        // Files from the iPad/iPhone (Taildrop): into the shelf and announced with a preview.
+        _taildrop!.Received += files =>
+        {
+            if (_settings.ShelfEnabled) shelf.Add(files, announce: false);
+            string first = files[0];
+            long bytes = files.Sum(f => { try { return new FileInfo(f).Length; } catch { return 0L; } });
+            bool image = files.All(f => ImageExtensions.Contains(Path.GetExtension(f)));
+            island.ShowPeek(new PeekItem
+            {
+                Image = ShellThumbnail.Get(first, 96),
+                Icon = Icon("Icon.Inbox"),
+                Title = files.Count == 1 ? Path.GetFileName(first)
+                      : Loc.German ? $"{files.Count} {(image ? "Fotos" : "Dateien")}" : $"{files.Count} {(image ? "photos" : "files")}",
+                Subtitle = (Loc.German ? "Über Taildrop empfangen · " : "Received via Taildrop · ") + FormatSize(bytes),
+                Seconds = 4,
+                Priority = PeekPriority.Normal,
+                DragPayload = files.ToArray(),
+                OnClick = () =>
+                {
+                    if (_settings.ShelfEnabled && _settings.ShowTrayTab) { _vm!.Tab = 1; island.Expand(); }
+                    else try { Process.Start("explorer.exe", $"/select,\"{first}\""); } catch { }
+                },
+            });
+        };
+
         shelf.FilesAdded += count => island.ShowPeek(new PeekItem
         {
             Icon = Icon("Icon.Inbox"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
@@ -393,6 +422,15 @@ public partial class App : Application
             OnClick = () => { if (_settings.ShowTrayTab) _vm!.Tab = 1; island.Expand(); },
         });
     }
+
+    private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".heic", ".heif", ".gif", ".webp", ".bmp", ".tif", ".tiff" };
+
+    private static string FormatSize(long bytes) => bytes switch
+    {
+        < 1024 * 1024 => $"{Math.Max(1, bytes / 1024)} KB",
+        < 1024L * 1024 * 1024 => $"{bytes / 1048576.0:0.0} MB",
+        _ => $"{bytes / 1073741824.0:0.0} GB",
+    };
 
     private static string FirstLine(string body, string fallback)
     {
@@ -467,6 +505,7 @@ public partial class App : Application
     private void Quit()
     {
         _settings.Save();
+        _taildrop?.Dispose(); // ends the Tailscale event stream
         _tray?.Dispose();
         _msg?.Dispose();
         Shutdown();
@@ -479,6 +518,7 @@ public partial class App : Application
         {
             _settings.Save();
             BannerSuppressor.RestoreAll(); // Windows banners come back as soon as DynamicBay isn't running
+            _taildrop?.Dispose();
         }
         _tray?.Dispose();
         base.OnExit(e);

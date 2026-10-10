@@ -70,7 +70,10 @@ public sealed partial class ShelfService : ObservableObject
         catch { }
     }
 
-    public void Add(IEnumerable<string> paths)
+    public void Add(IEnumerable<string> paths) => Add(paths, announce: true);
+
+    /// <summary>announce = false: the caller shows its own message (e.g. files received via Taildrop).</summary>
+    public void Add(IEnumerable<string> paths, bool announce)
     {
         int added = 0;
         foreach (var p in paths)
@@ -95,7 +98,7 @@ public sealed partial class ShelfService : ObservableObject
         if (added > 0)
         {
             Save();
-            FilesAdded?.Invoke(added);
+            if (announce) FilesAdded?.Invoke(added);
         }
     }
 

@@ -573,6 +573,24 @@
                             </ContentControl>
                         </StackPanel>
                     </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Vom iPad oder iPhone', En='From iPad or iPhone'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Taildrop empfangen', En='Receive via Taildrop'}"
+                                            ToolTip="{core:L De='Auf dem iPad oder iPhone: Teilen, dann Tailscale und diesen PC wählen. Die Datei erscheint sofort in der Insel und in der Ablage. Dafür muss Tailscale auf beiden Geräten laufen und „Send Files“ in der Tailscale-Verwaltung eingeschaltet sein.', En='On the iPad or iPhone: Share, then Tailscale and this PC. The file shows up in the island and the shelf right away. Tailscale must run on both devices with Send Files turned on in the Tailscale admin console.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.TaildropEnabled}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.TaildropEnabled}" Tag="{core:L De='Speichern in', En='Save to'}"
+                                            ToolTip="{core:L De='Tailscale legt Dateien immer in den Downloads ab. DynamicBay verschiebt sie auf Wunsch in einen eigenen Ordner.', En='Tailscale always puts files into Downloads. DynamicBay can move them to a folder of your choice.'}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="TaildropFolderText" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" MaxWidth="260" TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                                    <Button Style="{StaticResource S.Button}" Click="PickTaildropFolder_Click" Content="{core:L De='Ordner wählen…', En='Choose folder…'}" />
+                                    <Button x:Name="TaildropFolderReset" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="ResetTaildropFolder_Click" Content="{core:L De='Downloads', En='Downloads'}" />
+                                </StackPanel>
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <!-- 7 Notifications -->

@@ -343,3 +343,20 @@ public class DevicesWidgetTests
     public void Battery_label(int? pct, string expected) =>
         Assert.Equal(expected, new DynamicBay.Controls.BatteryRing { Mode = "text" }.Convert(pct!, typeof(string), null!, System.Globalization.CultureInfo.InvariantCulture));
 }
+
+public class DownloadMarkTests
+{
+    [Fact]
+    public void Download_mark_stream_is_visible_to_File_Exists()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"dbtest-{Guid.NewGuid():N}.txt");
+        File.WriteAllText(file, "x");
+        try
+        {
+            Assert.False(File.Exists(file + ":Zone.Identifier"));
+            using (var s = new FileStream(file + ":Zone.Identifier", FileMode.Create)) s.WriteByte(1);
+            Assert.True(File.Exists(file + ":Zone.Identifier"));
+        }
+        finally { File.Delete(file); }
+    }
+}
