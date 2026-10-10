@@ -53,3 +53,30 @@ Legende: **fertig**, **in Arbeit**, **offen**, **Live-Test** (gebaut, wird zum S
 | 33 | Tests (34 Unit-Tests, Snapshot- und Live-Test-Skripte) | fertig |
 | 34 | Doku zu Struktur und Fehlersuche (ARCHITECTURE, TROUBLESHOOTING, DEVELOPMENT, INTEGRATIONS) | fertig |
 | 35 | Abschluss-Live-Check gemeinsam: OneDrive, Spotify, Mitteilungen, Kalender, Bluetooth, Claude | offen |
+
+## Büro und Arbeit (Oktober 2026)
+Reihenfolge: zuerst alles ohne Anmeldung (Paket A), dann Microsoft 365 mit einer einmaligen Anmeldung (Paket B),
+dann die optionale Zeiterfassung (Paket C).
+
+### Paket A – ohne Anmeldung
+| # | Anforderung | Status |
+|---|---|---|
+| 36 | Beitreten-Knopf: Teams-, Zoom-, Meet- und Webex-Links im Termin erkennen; Einblendung kurz vor Beginn und Knopf in der Kalender-Karte | offen |
+| 37 | Meeting-Modus: Teams/Zoom nutzt das Mikrofon → „Nicht stören“, Meetingdauer, Stumm- und Kamera-Status; danach zurück | offen |
+| 38 | Bildschirmfreigabe oder Präsentation: Insel wird zum Strich (auch bei Musik), Mitteilungen ohne Text | offen |
+| 39 | Text aus Screenshots (OCR, Windows-eigene Texterkennung) kopieren | offen |
+| 40 | Fokus-Sitzung: Pomodoro schaltet „Nicht stören“ mit ein, kleine Tagesübersicht | offen |
+| 41 | Dock-Profile: Position der Insel je Bildschirm-Anordnung merken und beim An-/Abdocken wiederherstellen | offen |
+
+### Paket B – Microsoft 365 (eine Anmeldung)
+| # | Anforderung | Status |
+|---|---|---|
+| 42 | Microsoft-Anmeldung (Microsoft Graph), Anmeldung bleibt gespeichert | offen |
+| 43 | Outlook- und Exchange-Kalender in der Kalender-Karte (mit Teams-Links für den Beitreten-Knopf) | offen |
+| 44 | Teams-Status sehen und umschalten (optional mit dem Meeting-Modus gekoppelt) | offen |
+| 45 | Microsoft To Do als Widget: heutige Aufgaben, abhaken | offen |
+
+### Paket C – optional
+| # | Anforderung | Status |
+|---|---|---|
+| 46 | Zeiterfassung als Widget: Start/Stopp pro Projekt, CSV-Export | offen |
