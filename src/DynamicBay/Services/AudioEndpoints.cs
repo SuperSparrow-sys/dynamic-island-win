@@ -125,6 +125,44 @@ public static class AudioEndpoints
         catch (Exception ex) { Core.Log.Info($"Set mute: {ex.Message}"); }
     }
 
+    /// <summary>
+    /// The Bluetooth audio driver's filter, opened directly from its device path: for a
+    /// disconnected headset Windows has no topology connection to it, so it cannot be reached through the endpoint.
+    /// Sends the one-shot connect/disconnect request like the "Verbinden" button in the sound settings.
+    /// </summary>
+    public static int ConnectViaFilter(string filterPath, bool connect)
+    {
+        using var h = CreateFile(filterPath, 0xC0000000 /* read | write */, 3 /* share read | write */, IntPtr.Zero, 3 /* open existing */, 0, IntPtr.Zero);
+        if (h.IsInvalid) return Marshal.GetHRForLastWin32Error();
+        var prop = new KsProperty { Set = KsPropSetBtAudio, Id = connect ? 0u : 1u, Flags = 1 /* GET */ };
+        bool ok = DeviceIoControl(h, 0x2F0003 /* IOCTL_KS_PROPERTY */, ref prop, (uint)Marshal.SizeOf<KsProperty>(), IntPtr.Zero, 0, out _, IntPtr.Zero);
+        return ok ? 0 : Marshal.GetHRForLastWin32Error();
+    }
+
+    /// <summary>Topology id of the driver filter ("{2}." + device path) -> the device path to open.</summary>
+    public static string? FilterPathOf(string endpointId)
+    {
+        try
+        {
+            var en = (IMMDeviceEnumerator)CreateEnumerator();
+            en.GetDevice(endpointId, out var dev);
+            var id = KsDeviceId(dev);
+            if (id is null) return null;
+            int i = id.IndexOf(@"\\?\", StringComparison.Ordinal);
+            return i >= 0 ? id[i..] : null;
+        }
+        catch { return null; }
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFile(string name, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool DeviceIoControl(Microsoft.Win32.SafeHandles.SafeFileHandle h, uint code, ref KsProperty input, uint inputSize, IntPtr output, uint outputSize, out uint returned, IntPtr overlapped);
+
+    /// <summary>Why the last connect failed (for the log and tests).</summary>
+    public static string? LastError { get; private set; }
+
     /// <summary>Asks the Bluetooth audio driver to connect (or disconnect) the headset behind this endpoint. Blocks a moment: call off the UI thread.</summary>
     public static bool Connect(string endpointId, bool connect = true)
     {
@@ -133,13 +171,20 @@ public static class AudioEndpoints
             var en = (IMMDeviceEnumerator)CreateEnumerator();
             en.GetDevice(endpointId, out var dev);
             var ks = BtAudioControl(dev);
-            if (ks is null) return false;
+            if (ks is null)
+            {
+                // Disconnected: no topology connection to the driver - open its filter by device path instead.
+                var path = FilterPathOf(endpointId);
+                int hrPath = path is null ? -1 : ConnectViaFilter(path, connect);
+                Core.Log.Info($"Bluetooth audio {(connect ? "connect" : "disconnect")} (driver path): 0x{hrPath:X8}");
+                return hrPath == 0;
+            }
             var prop = new KsProperty { Set = KsPropSetBtAudio, Id = connect ? 0u : 1u /* ONESHOT_RECONNECT / ONESHOT_DISCONNECT */, Flags = 1 /* GET */ };
             int hr = ks.KsProperty(ref prop, (uint)Marshal.SizeOf<KsProperty>(), IntPtr.Zero, 0, out _);
             Core.Log.Info($"Bluetooth audio {(connect ? "connect" : "disconnect")}: 0x{hr:X8}");
             return hr >= 0;
         }
-        catch (Exception ex) { Core.Log.Info($"Bluetooth audio connect: {ex.Message}"); return false; }
+        catch (Exception ex) { LastError = ex.ToString(); Core.Log.Info($"Bluetooth audio connect: {ex}"); return false; }
     }
 
     // ---------- device topology: endpoint → the driver's filter ----------
@@ -150,6 +195,7 @@ public static class AudioEndpoints
         dev.Activate(ref iid, 23, IntPtr.Zero, out var obj);
         if (obj is not IDeviceTopology topo) return null;
         topo.GetConnector(0, out var connector);
+        // A disconnected headset has no connection here (0x80070003): the caller then tries the driver path.
         if (connector.GetConnectedTo(out var other) != 0) return null;
         return other;
     }

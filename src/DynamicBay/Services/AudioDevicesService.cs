@@ -276,6 +276,12 @@ public sealed partial class AudioDevicesService : ObservableObject
         item.Busy = true;
         bool connect = !item.Connected;
         bool ok = await Task.Run(() => AudioEndpoints.Connect(item.ConnectId, connect));
+        if (!ok)
+        {
+            // Windows lets only its own settings connect some headsets (e.g. through Intel's Bluetooth offload).
+            Log.Info($"Bluetooth: {item.Name} - opening the Windows Bluetooth settings");
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:bluetooth") { UseShellExecute = true }); } catch { }
+        }
         // The driver answers at once; the headset needs a few seconds. Device changes refresh the list by themselves.
         if (ok) for (int i = 0; i < 16 && item.Busy && Headsets.Contains(item); i++) await Task.Delay(500);
         item.Busy = false;

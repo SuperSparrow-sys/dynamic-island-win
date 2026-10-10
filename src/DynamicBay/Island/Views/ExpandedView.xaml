@@ -924,7 +924,9 @@
                                         <TextBlock Margin="6,0,0,0" FontWeight="Normal" Text="{core:L De='Kurz etwas notieren', En='Jot something down'}" />
                                     </StackPanel>
                                 </Button>
-                                <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                <!-- hidden while empty: it would lie over the button and swallow its click -->
+                                <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled"
+                                              Visibility="{Binding Notes.IsEmpty, Converter={StaticResource NotVis}}">
                                     <ItemsControl x:Name="NoteList" ItemsSource="{Binding Notes.Items}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type s:NoteItem}">
