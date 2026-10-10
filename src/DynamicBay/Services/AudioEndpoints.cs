@@ -91,26 +91,38 @@ public static class AudioEndpoints
         catch (Exception ex) { Core.Log.Info($"Set default audio device: {ex.Message}"); return false; }
     }
 
-    /// <summary>
-    /// Makes sure a device can be heard after switching to it: a speaker that was not in use is often left muted
-    /// (sound only came back after toggling mute by hand). Returns the state found before, for the log.
-    /// </summary>
-    public static (bool muted, float level)? Unmute(string id)
+    private static IAudioEndpointVolume? Volume(string id)
+    {
+        var en = (IMMDeviceEnumerator)CreateEnumerator();
+        en.GetDevice(id, out var dev);
+        var iid = typeof(IAudioEndpointVolume).GUID;
+        dev.Activate(ref iid, 23, IntPtr.Zero, out var obj);
+        return obj as IAudioEndpointVolume;
+    }
+
+    /// <summary>Mute state and volume (0..1) of a device, null if it cannot be read.</summary>
+    public static (bool muted, float level)? State(string id)
     {
         try
         {
-            var en = (IMMDeviceEnumerator)CreateEnumerator();
-            en.GetDevice(id, out var dev);
-            var iid = typeof(IAudioEndpointVolume).GUID;
-            dev.Activate(ref iid, 23, IntPtr.Zero, out var obj);
-            if (obj is not IAudioEndpointVolume vol) return null;
+            if (Volume(id) is not { } vol) return null;
             vol.GetMute(out bool muted);
             vol.GetMasterVolumeLevelScalar(out float level);
-            var ctx = Guid.Empty;
-            if (muted) vol.SetMute(false, ref ctx);
             return (muted, level);
         }
-        catch (Exception ex) { Core.Log.Info($"Unmute: {ex.Message}"); return null; }
+        catch { return null; }
+    }
+
+    /// <summary>Mutes or unmutes a device (outputs only - microphones are never touched by the switch).</summary>
+    public static void SetMute(string id, bool mute)
+    {
+        try
+        {
+            if (Volume(id) is not { } vol) return;
+            var ctx = Guid.Empty;
+            vol.SetMute(mute, ref ctx);
+        }
+        catch (Exception ex) { Core.Log.Info($"Set mute: {ex.Message}"); }
     }
 
     /// <summary>Asks the Bluetooth audio driver to connect (or disconnect) the headset behind this endpoint. Blocks a moment: call off the UI thread.</summary>

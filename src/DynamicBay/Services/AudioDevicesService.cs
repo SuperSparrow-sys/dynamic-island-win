@@ -42,7 +42,7 @@ public sealed partial class AudioDevicesService : ObservableObject
     private readonly AppSettings _settings;
     private readonly MediaService _media;
     private readonly Dispatcher _ui = Application.Current.Dispatcher;
-    private readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(400) };
+    private readonly DispatcherTimer _debounce = new() { Interval = TimeSpan.FromMilliseconds(150) };
     private Notifier? _notifier;
     private AudioEndpoints.IMMDeviceEnumerator? _enumerator;
     private bool _started, _refreshing, _again, _first = true;
@@ -151,11 +151,12 @@ public sealed partial class AudioDevicesService : ObservableObject
         bool first = _first;
         _first = false;
 
-        // 1. The headphones that were playing are gone: pause the music (it would carry on through the speakers).
+        // 1. The headphones that were playing are gone: pause the music (it would carry on through the speakers),
+        //    the speaker Windows switched to is not left muted (so the next sound is not silent by surprise).
         if (!first && _defaultOutput is not null && _defaultOutputWasHeadphones && !active.Contains(_defaultOutput) && _settings.AudioPauseOnDisconnect)
         {
             Log.Info("Audio: headphones gone - pausing music");
-            _ = _media.PauseAsync();
+            _ = PauseThenUnmuteAsync(outId);
         }
 
         // 2. Headphones just connected: make them the output (Windows does not always do it).
@@ -164,7 +165,7 @@ public sealed partial class AudioDevicesService : ObservableObject
             var fresh = outputs.FirstOrDefault(o => o.Bluetooth && IsHeadphones(o) && !_activeOutputs.Contains(o.Id));
             if (fresh is not null && fresh.Id != outId && AudioEndpoints.SetDefault(fresh.Id))
             {
-                AudioEndpoints.Unmute(fresh.Id);
+                AudioEndpoints.SetMute(fresh.Id, false); // headphones: only you hear it
                 Log.Info($"Audio: {fresh.Device} connected - now the output");
                 outId = fresh.Id;
                 foreach (var o in Outputs) o.IsDefault = o.Id == outId;
@@ -176,7 +177,8 @@ public sealed partial class AudioDevicesService : ObservableObject
 
         // 3. A Bluetooth headset as microphone: use the PC's microphone, so the headset keeps its good sound.
         if (_allowedBluetoothMic is not null && !inputs.Any(i => i.Id == _allowedBluetoothMic)) _allowedBluetoothMic = null;
-        if (_settings.AudioAvoidBluetoothMic)
+        // Never in a running call: the microphone must not change under you while someone listens.
+        if (_settings.AudioAvoidBluetoothMic && !_settings.InMeeting)
         {
             var btMic = inputs.FirstOrDefault(i => (i.Id == inId || i.Id == commId) && i.HandsFree && i.Id != _allowedBluetoothMic);
             var pcMic = inputs.FirstOrDefault(i => !i.Bluetooth);
@@ -202,18 +204,44 @@ public sealed partial class AudioDevicesService : ObservableObject
 
     // ---------- commands ----------
 
+    /// <summary>
+    /// Picks a device. Microphones: just switched (their mute is never touched - no surprise in a call).
+    /// Outputs: from headphones to a speaker the music pauses FIRST and the speaker is on; between speakers the
+    /// mute state carries over (muted stays muted, on stays on); headphones are always on.
+    /// </summary>
     [RelayCommand]
-    private void Select(AudioDeviceItem? item)
+    private async Task Select(AudioDeviceItem? item)
     {
-        if (item is null) return;
-        if (item.Flow == AudioFlow.Input && item.Bluetooth) _allowedBluetoothMic = item.Id; // chosen on purpose (for a call)
+        if (item is null || item.IsDefault) return;
+        if (item.Flow == AudioFlow.Input)
+        {
+            if (item.Bluetooth) _allowedBluetoothMic = item.Id; // chosen on purpose (for a call)
+            if (!AudioEndpoints.SetDefault(item.Id)) return;
+            Log.Info($"Audio: microphone -> {item.Name}");
+            foreach (var i in Inputs) i.IsDefault = i == item;
+            DefaultChanged?.Invoke();
+            return;
+        }
+        var old = Outputs.FirstOrDefault(o => o.IsDefault);
+        var oldState = old is null ? null : AudioEndpoints.State(old.Id);
+        bool fromHeadphones = old?.Headphones == true;
+        bool leavingHeadphones = fromHeadphones && !item.Headphones;
+        if (leavingHeadphones && _media.IsPlaying) await _media.PauseAsync(); // before the speaker takes over
         if (!AudioEndpoints.SetDefault(item.Id)) return;
-        var before = AudioEndpoints.Unmute(item.Id);
-        Log.Info($"Audio: {(item.Flow == AudioFlow.Output ? "output" : "microphone")} -> {item.Name}" +
-                 (before is { } b ? $" (was {(b.muted ? "muted, now on" : "on")}, volume {(int)Math.Round(b.level * 100)} %)" : ""));
+        bool mute = !item.Headphones && !fromHeadphones && oldState is { muted: true };
+        AudioEndpoints.SetMute(item.Id, mute);
+        Log.Info($"Audio: output {old?.Name ?? "?"} -> {item.Name}, {(mute ? "muted like before" : "sound on")}{(leavingHeadphones ? ", music paused" : "")}");
+        foreach (var o in Outputs) o.IsDefault = o == item;
+        _defaultOutput = item.Id;
+        _defaultOutputWasHeadphones = item.Headphones && item.Bluetooth;
         DefaultChanged?.Invoke();
-        var list = item.Flow == AudioFlow.Output ? Outputs : Inputs;
-        foreach (var i in list) i.IsDefault = i == item;
+    }
+
+    private async Task PauseThenUnmuteAsync(string? speakerId)
+    {
+        await _media.PauseAsync();
+        if (speakerId is not null) AudioEndpoints.SetMute(speakerId, false);
+        DefaultChanged?.Invoke();
     }
 
     /// <summary>Connects a disconnected headset, disconnects a connected one.</summary>
