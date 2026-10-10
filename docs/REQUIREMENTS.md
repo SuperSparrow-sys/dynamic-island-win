@@ -1,4 +1,4 @@
-fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |# Anforderungen und Status
+# Anforderungen und Status
 
 Alle Wünsche aus der Planung und Entwicklung, mit Stand der Umsetzung.
 Legende: **fertig**, **in Arbeit**, **offen**, **Live-Test** (gebaut, wird zum Schluss gemeinsam mit echten Konten geprüft).
@@ -61,20 +61,20 @@ dann die optionale Zeiterfassung (Paket C).
 ### Paket A – ohne Anmeldung
 | # | Anforderung | Status |
 |---|---|---|
-| 36 | Beitreten-Knopf: Teams- und Zoom-Links im Termin erkennen; Einblendung kurz vor Beginn und Knopf in der Kalender-Karte | offen |
-| 37 | Meeting-Modus: Teams/Zoom nutzt das Mikrofon → „Nicht stören“, Meetingdauer, Stumm- und Kamera-Status; danach zurück | offen |
-| 38 | Bildschirmfreigabe oder Präsentation: Insel wird zum Strich (auch bei Musik), Mitteilungen ohne Text | offen |
-| 39 | Text aus Screenshots (OCR, Windows-eigene Texterkennung) kopieren | offen |
-| 40 | Fokus-Sitzung: Pomodoro schaltet „Nicht stören“ mit ein, kleine Tagesübersicht | offen |
-| 41 | Dock-Profile: Position der Insel je Bildschirm-Anordnung merken und beim An-/Abdocken wiederherstellen | offen |
+| 36 | Beitreten-Knopf: Teams- und Zoom-Links im Termin erkennen; Einblendung kurz vor Beginn und Knopf in der Kalender-Karte | fertig (Live-Test) |
+| 37 | Meeting-Modus: Teams/Zoom nutzt das Mikrofon → „Nicht stören“, Meetingdauer, Stumm- und Kamera-Status; danach zurück | fertig (Live-Test) |
+| 38 | Bildschirmfreigabe oder Präsentation: Insel wird zum Strich (auch bei Musik), Mitteilungen ohne Text | fertig (Live-Test) |
+| 39 | Text aus Screenshots (OCR, Windows-eigene Texterkennung) kopieren | fertig (Live-Test) |
+| 40 | Fokus-Sitzung: Pomodoro schaltet „Nicht stören“ mit ein, kleine Tagesübersicht | fertig (Live-Test) |
+| 41 | Dock-Profile: Position der Insel je Bildschirm-Anordnung merken und beim An-/Abdocken wiederherstellen | fertig (Live-Test) |
 
 ### Paket B – Microsoft 365 (eine Anmeldung)
 | # | Anforderung | Status |
 |---|---|---|
-| 42 | Microsoft-Anmeldung (Microsoft Graph), Anmeldung bleibt gespeichert | offen |
-| 43 | Outlook- und Exchange-Kalender in der Kalender-Karte (mit Teams-Links für den Beitreten-Knopf) | offen |
-| 44 | Teams-Status sehen und umschalten (optional mit dem Meeting-Modus gekoppelt) | offen |
-| 45 | Microsoft To Do als Widget: heutige Aufgaben, abhaken | offen |
+| 42 | Microsoft-Anmeldung (Microsoft Graph), Anmeldung bleibt gespeichert | fertig (Live-Test) |
+| 43 | Outlook- und Exchange-Kalender in der Kalender-Karte (mit Teams-Links für den Beitreten-Knopf) | fertig (Live-Test) |
+| 44 | Teams-Status sehen und umschalten (optional mit dem Meeting-Modus gekoppelt) | fertig (Live-Test) |
+| 45 | Microsoft To Do als Widget: heutige Aufgaben, abhaken | fertig (Live-Test) |
 
 ### Paket C – optional
 | # | Anforderung | Status |
@@ -84,7 +84,7 @@ dann die optionale Zeiterfassung (Paket C).
 ### Paket D – Kontakte und Anrufe
 | # | Anforderung | Status |
 |---|---|---|
-| 47 | Kontakte-Widget: häufige Kontakte (Microsoft-Kontakte und Personen, mit denen man oft arbeitet) mit Knöpfen für Teams-Chat, Teams-Anruf und Telefon | offen |
-| 48 | Telefonanrufe über Smartphone-Link starten (tel:-Links gehen an das verknüpfte Handy) | offen |
-| 49 | Eingehende Anrufe (Smartphone-Link, Teams) als Einblendung in der Insel; ein Telefonat zählt wie ein Meeting (still) | offen |
+| 47 | Kontakte-Widget: häufige Kontakte (Microsoft-Kontakte und Personen, mit denen man oft arbeitet) mit Knöpfen für Teams-Chat, Teams-Anruf und Telefon | fertig (Live-Test) |
+| 48 | Telefonanrufe über Smartphone-Link starten (tel:-Links gehen an das verknüpfte Handy) | fertig (Live-Test) |
+| 49 | Eingehende Anrufe (Smartphone-Link, Teams) als Einblendung in der Insel; ein Telefonat zählt wie ein Meeting (still) | fertig (Live-Test) |
 | 50 | Lautstärkeregler nur für die Musik in der Medienkarte: Spotify über die eigene Lautstärke (Web API), Apple Music und andere Player über die App-Lautstärke im Windows-Mixer | fertig (Live-Test) |
