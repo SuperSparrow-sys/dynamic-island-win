@@ -331,9 +331,9 @@ public sealed partial class CalendarService : ObservableObject
         var t = DateTime.Today;
         _all = new()
         {
-            new CalendarEvent { Title = "Design Review", Start = DateTime.Now.AddMinutes(8), End = DateTime.Now.AddMinutes(38) },
+            new CalendarEvent { Title = "Design Review mit dem gesamten Vertriebsteam", Start = DateTime.Now.AddMinutes(8), End = DateTime.Now.AddMinutes(38) },
             new CalendarEvent { Title = "Lunch mit Lena", Start = t.AddHours(13), End = t.AddHours(14), Color = "#0A84FF" },
-            new CalendarEvent { Title = "Geburtstag Mia", Start = t, End = t.AddDays(1), AllDay = true, Color = "#BF5AF2" },
+            new CalendarEvent { Title = "Geburtstag Mia und Grillabend im Garten", Start = t, End = t.AddDays(1), AllDay = true, Color = "#BF5AF2" },
             new CalendarEvent { Title = "Zahnarzt", Start = t.AddDays(1).AddHours(9), End = t.AddDays(1).AddHours(10), Color = "#30D158" },
         };
         IsConfigured = true;

@@ -189,7 +189,7 @@ public partial class ExpandedView : UserControl
 
     private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id switch
     {
-        "media" => 372, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "notes" => 190, "shortcuts" => 170, "calendar" => 160, _ => 150,
+        "media" => 360, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "notes" => 190, "shortcuts" => 170, "calendar" => 134, "timer" => 120, _ => 150,
     };
 
     // ---- script widgets ----
@@ -256,14 +256,40 @@ public partial class ExpandedView : UserControl
         // Wide layout: fixed pixel columns (share of the visible width by weight, at least the minimum).
         if (!_vertical && _columns.Count == HomeGrid.ColumnDefinitions.Count && _columns.Count > 0)
         {
-            double avail = Math.Max(0, HomeScroll.ActualWidth - 2 * edge), total = _columns.Sum(c => c.weight);
+            double avail = Math.Max(0, HomeScroll.ActualWidth - 2 * edge);
+            var widths = ColumnWidths(_columns, avail);
             for (int i = 0; i < _columns.Count; i++)
             {
-                var (weight, min) = _columns[i];
                 HomeGrid.ColumnDefinitions[i].MinWidth = 0;
-                HomeGrid.ColumnDefinitions[i].Width = new GridLength(Math.Max(min, avail * weight / total));
+                HomeGrid.ColumnDefinitions[i].Width = new GridLength(widths[i]);
             }
         }
+    }
+
+    /// <summary>
+    /// Shares the width by weight, but every column gets at least its minimum: columns that would be too narrow are
+    /// fixed at their minimum and the rest share what is left (repeated until it settles). If even the minimums do not
+    /// fit, the page scrolls.
+    /// </summary>
+    public static double[] ColumnWidths(IReadOnlyList<(double weight, double min)> cols, double avail)
+    {
+        var w = new double[cols.Count];
+        var fixedAt = new bool[cols.Count];
+        for (int round = 0; round < cols.Count; round++)
+        {
+            double rest = avail - Enumerable.Range(0, cols.Count).Where(i => fixedAt[i]).Sum(i => cols[i].min);
+            double weights = Enumerable.Range(0, cols.Count).Where(i => !fixedAt[i]).Sum(i => cols[i].weight);
+            bool changed = false;
+            for (int i = 0; i < cols.Count; i++)
+            {
+                if (fixedAt[i]) { w[i] = cols[i].min; continue; }
+                w[i] = weights > 0 ? Math.Max(0, rest) * cols[i].weight / weights : cols[i].min;
+                if (w[i] < cols[i].min) { fixedAt[i] = true; changed = true; }
+            }
+            if (!changed) break;
+        }
+        for (int i = 0; i < cols.Count; i++) w[i] = Math.Max(w[i], cols[i].min);
+        return w;
     }
 
     /// <summary>Weight and minimum width (including the 8 px gap) of each column in the wide layout.</summary>

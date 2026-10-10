@@ -456,6 +456,26 @@ public class TextRecognitionTests
     }
 }
 
+public class HomeLayoutTests
+{
+    [Fact]
+    public void Columns_keep_their_minimum_and_the_rest_share_the_width()
+    {
+        // media (2.15, min 380), calendar (1, 168), timer (1, 150) in 700 px: media gets its minimum, the others share the rest
+        var w = DynamicBay.Island.Views.ExpandedView.ColumnWidths(new[] { (2.15, 380.0), (1.0, 168.0), (1.0, 150.0) }, 700);
+        Assert.Equal(380, w[0], 1);
+        Assert.Equal(700, w.Sum(), 1);
+        Assert.True(w[1] >= 168 && w[2] >= 150);
+    }
+
+    [Fact]
+    public void Too_many_columns_scroll_instead_of_shrinking_below_the_minimum()
+    {
+        var w = DynamicBay.Island.Views.ExpandedView.ColumnWidths(new[] { (1.0, 300.0), (1.0, 300.0), (1.0, 300.0) }, 700);
+        Assert.All(w, x => Assert.True(x >= 300));
+    }
+}
+
 public class DownloadsTests
 {
     [Theory]
