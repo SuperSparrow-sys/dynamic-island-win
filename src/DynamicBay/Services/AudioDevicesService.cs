@@ -67,6 +67,31 @@ public sealed partial class AudioDevicesService : ObservableObject
         _settings = settings;
         _media = media;
         _debounce.Tick += (_, _) => { _debounce.Stop(); _ = RefreshAsync(); };
+        _settings.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AppSettings.InMeeting) && _settings.InMeeting) _ = CallStartedAsync(); };
+    }
+
+    /// <summary>
+    /// A call (Teams, Zoom, phone via Phone Link) started: listen on the connected headphones, speak into the PC's own
+    /// microphone (a Bluetooth headset microphone would turn the sound into telephone quality). The microphone's mute
+    /// state is left alone; a headset microphone picked by hand for this call stays.
+    /// </summary>
+    private async Task CallStartedAsync()
+    {
+        if (!_settings.AudioCallRouting) return;
+        var list = await Task.Run(AudioEndpoints.List);
+        var headphones = list.FirstOrDefault(e => e.Flow == AudioFlow.Output && e.Active && e.Bluetooth && !e.HandsFree && IsHeadphones(e));
+        var outId = AudioEndpoints.DefaultId(AudioFlow.Output);
+        if (headphones is not null && headphones.Id != outId && AudioEndpoints.SetDefault(headphones.Id))
+        {
+            AudioEndpoints.SetMute(headphones.Id, false);
+            Log.Info($"Audio: call - listening on {headphones.Device}");
+        }
+        var inId = AudioEndpoints.DefaultId(AudioFlow.Input, 2);
+        var pcMic = list.FirstOrDefault(e => e.Flow == AudioFlow.Input && e.Active && !e.Bluetooth);
+        if (pcMic is not null && pcMic.Id != inId && inId != _allowedBluetoothMic && AudioEndpoints.SetDefault(pcMic.Id))
+            Log.Info($"Audio: call - speaking into {ShortName(pcMic)}");
+        DefaultChanged?.Invoke();
+        await RefreshAsync();
     }
 
     public void Start()
@@ -177,8 +202,7 @@ public sealed partial class AudioDevicesService : ObservableObject
 
         // 3. A Bluetooth headset as microphone: use the PC's microphone, so the headset keeps its good sound.
         if (_allowedBluetoothMic is not null && !inputs.Any(i => i.Id == _allowedBluetoothMic)) _allowedBluetoothMic = null;
-        // Never in a running call: the microphone must not change under you while someone listens.
-        if (_settings.AudioAvoidBluetoothMic && !_settings.InMeeting)
+        if (_settings.AudioAvoidBluetoothMic)
         {
             var btMic = inputs.FirstOrDefault(i => (i.Id == inId || i.Id == commId) && i.HandsFree && i.Id != _allowedBluetoothMic);
             var pcMic = inputs.FirstOrDefault(i => !i.Bluetooth);

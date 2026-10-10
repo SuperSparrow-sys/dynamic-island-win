@@ -330,6 +330,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _audioAvoidBluetoothMic = true;
     /// <summary>Music pauses when the headphones drop out, instead of carrying on through the speakers.</summary>
     [ObservableProperty] private bool _audioPauseOnDisconnect = true;
+    /// <summary>In a call: listen on the connected headphones, speak into the PC's own microphone.</summary>
+    [ObservableProperty] private bool _audioCallRouting = true;
     /// <summary>Time tracking asks after 4 hours and in the evening whether the project still runs.</summary>
     [ObservableProperty] private bool _timeReminders = true;
     /// <summary>Teams status chosen in the island, and until when it holds (Teams keeps it a working day).</summary>

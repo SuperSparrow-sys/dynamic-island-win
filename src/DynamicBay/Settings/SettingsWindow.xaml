@@ -729,6 +729,10 @@
                                             ToolTip="{core:L De='Wie beim iPhone.', En='Like on the iPhone.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioPauseOnDisconnect}" />
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Im Call', En='In a call'}"
+                                            ToolTip="{core:L De='Hören über Kopfhörer, sprechen ins PC-Mikrofon.', En='Listen on headphones, speak into the PC microphone.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioCallRouting}" />
+                            </ContentControl>
                         </StackPanel>
                     </Border>
                 </StackPanel>
