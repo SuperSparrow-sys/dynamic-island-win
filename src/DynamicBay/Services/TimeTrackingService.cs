@@ -33,7 +33,7 @@ public sealed partial class TimeTrackingService : ObservableObject
 {
     public static readonly TimeSpan Quarter = TimeSpan.FromMinutes(15);
     private readonly AppSettings _settings;
-    private readonly DispatcherTimer _tick = new() { Interval = TimeSpan.FromSeconds(1) };
+    private readonly DispatcherTimer _tick = new() { Interval = TimeSpan.FromSeconds(5) }; // shows minutes only: a few seconds late at most
     private readonly DispatcherTimer _write = new() { Interval = Quarter };
     private readonly List<TimeEntry> _entries = new();
     private DateTime _runningSince; // exact start, for the live display (the file has the rounded one)
@@ -162,7 +162,8 @@ public sealed partial class TimeTrackingService : ObservableObject
     }
 
     private static string Format(TimeSpan t) => $"{(int)t.TotalHours}:{t.Minutes:00}";
-    private static string FormatLive(TimeSpan t) => t.TotalHours >= 1 ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}" : $"{t.Minutes}:{t.Seconds:00}";
+    /// <summary>Hours and minutes only (0:25, 1:05) - running seconds were too restless.</summary>
+    private static string FormatLive(TimeSpan t) => Format(t);
 
     // ---------- the file ----------
 

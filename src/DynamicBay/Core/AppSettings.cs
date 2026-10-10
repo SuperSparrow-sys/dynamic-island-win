@@ -17,7 +17,7 @@ public static class Widgets
     public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts";
     public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts };
     public const string Battery = "battery";
-    public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic };
+    public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic, TimeTrack };
     /// <summary>Home widget ids of user scripts: "script:{id}".</summary>
     public const string ScriptPrefix = "script:";
 }
@@ -87,7 +87,7 @@ public sealed partial class AppSettings : ObservableObject
 
     // Customizable layout
     private ObservableCollection<string> _homeWidgets = new() { Widgets.Media, Widgets.Calendar, Widgets.Timer };
-    private ObservableCollection<string> _compactItems = new() { Widgets.Mic, Widgets.Media, Widgets.Timer, Widgets.Calendar, Widgets.Battery, Widgets.Claude, Widgets.Muted };
+    private ObservableCollection<string> _compactItems = new() { Widgets.Mic, Widgets.Media, Widgets.Timer, Widgets.Calendar, Widgets.Battery, Widgets.Claude, Widgets.Muted, Widgets.TimeTrack };
     private ObservableCollection<string> _shortcuts = new();
 
     public ObservableCollection<string> HomeWidgets { get => _homeWidgets; set => Hook(ref _homeWidgets, value, nameof(HomeWidgets)); }
@@ -183,6 +183,12 @@ public sealed partial class AppSettings : ObservableObject
         }
         // v6: all Windows notifications go to the island (banners and sound off for every app, not just Snipping Tool).
         if (SettingsVersion < 6) { SuppressBanners = true; SettingsVersion = 6; }
+        // v7: the running time tracking in the small island became a choice - on, as before.
+        if (SettingsVersion < 7)
+        {
+            if (!CompactItems.Contains(Widgets.TimeTrack)) CompactItems.Add(Widgets.TimeTrack);
+            SettingsVersion = 7;
+        }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });
         CalendarIcsUrl = "";

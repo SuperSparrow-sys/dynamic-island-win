@@ -143,7 +143,7 @@ public sealed partial class IslandViewModel : ObservableObject
         // Quiet (by hand, in a call, while sharing, in a focus session): only music, the timer and the call stay.
         bool all = !s.Quiet;
         bool meeting = s.InMeeting;
-        bool tracking = Time.IsRunning; // like the timer: stays visible when the island is quiet
+        bool tracking = s.HasCompact(Widgets.TimeTrack) && Time.IsRunning; // like the timer: stays visible when the island is quiet
         bool media = s.MediaEnabled && s.HasCompact(Widgets.Media) && Media.HasSession && Media.IsPlaying;
         bool timer = s.TimerEnabled && s.HasCompact(Widgets.Timer) && Timer.IsActive;
         bool cal = all && s.CalendarEnabled && s.HasCompact(Widgets.Calendar) && Calendar.IsSoon;

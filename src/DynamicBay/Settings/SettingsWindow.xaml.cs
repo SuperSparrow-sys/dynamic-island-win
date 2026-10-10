@@ -144,6 +144,7 @@ public partial class SettingsWindow : Window
         (Widgets.Claude, "Icon.Sparkles", "Claude arbeitet oder wartet", "Claude working or waiting"),
         (Widgets.Mic, "Icon.Mic", "Mikrofon oder Kamera aktiv", "Microphone or camera in use"),
         (Widgets.Muted, "Icon.VolumeOff", "Ton aus", "Sound off"),
+        (Widgets.TimeTrack, "Icon.Clock", "Zeiterfassung läuft", "Time tracking running"),
     };
 
     /// <summary>Built-in widgets plus the user's script widgets.</summary>
