@@ -442,6 +442,20 @@ public class TextRecognitionTests
     }
 }
 
+public class DownloadsTests
+{
+    [Theory]
+    [InlineData(@"C:\Dl\Bericht.pdf.crdownload", true, "Bericht.pdf")]
+    [InlineData(@"C:\Dl\Film.mp4.part", true, "Film.mp4")]
+    [InlineData(@"C:\Dl\Unbestätigt 123456.crdownload", true, "")]
+    [InlineData(@"C:\Dl\Bericht.pdf", false, "Bericht.pdf")]
+    public void Browser_partial_files_are_recognised(string path, bool partial, string name)
+    {
+        Assert.Equal(partial, DownloadsService.IsPartial(path));
+        if (partial) Assert.Equal(name, DownloadsService.FinalName(path));
+    }
+}
+
 public class MusicVolumeTests
 {
     [Theory]
