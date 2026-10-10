@@ -323,6 +323,14 @@ public static class Snapshots
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.Media, Widgets.Audio, Widgets.Devices }) settings.HomeWidgets.Add(w);
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8d-audio.png"), compact: true);
+                // Work widgets side by side: headers, rows and radii must line up.
+                vm.Notes.LoadDemo();
+                settings.TimeProjects.Clear();
+                foreach (var p in new[] { "Allgemein", "automation-frank", "Angebot Berlin" }) settings.TimeProjects.Add(p);
+                vm.Time.LoadDemo(new[] { new TimeEntry { Project = "automation-frank", Start = DateTime.Today.AddHours(8), End = DateTime.Today.AddHours(9) } });
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.TimeTrack, Widgets.Notes, Widgets.Audio, Widgets.Todo, Widgets.Devices }) settings.HomeWidgets.Add(w);
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8e-work.png"), compact: true);
                 settings.AppIcons = AppIconStyle.Mono;
                 await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-9-compact-clock.png"), compact: true);
 

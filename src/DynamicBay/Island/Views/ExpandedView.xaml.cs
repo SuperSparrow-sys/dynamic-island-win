@@ -20,7 +20,7 @@ public partial class ExpandedView : UserControl
     {
         InitializeComponent();
         // The optional cards live in the home grid too; they're shown/positioned by LayoutHome.
-        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, TodoCard, TeamsCard, TimeCard, ContactsCard, AudioCard })
+        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, TodoCard, TeamsCard, TimeCard, ContactsCard, AudioCard, NotesCard })
         {
             ExtraCards.Children.Remove(card);
             HomeGrid.Children.Add(card);
@@ -41,9 +41,13 @@ public partial class ExpandedView : UserControl
             [Core.Widgets.TimeTrack] = TimeCard,
             [Core.Widgets.Contacts] = ContactsCard,
             [Core.Widgets.Audio] = AudioCard,
+            [Core.Widgets.Notes] = NotesCard,
         };
         DataContextChanged += (_, _) =>
         {
+            if (_notesVm is not null) _notesVm.Notes.Added -= OnNoteAdded;
+            _notesVm = Vm;
+            if (_notesVm is not null) _notesVm.Notes.Added += OnNoteAdded;
             if (Vm is null) return;
             _settings = Vm.Settings;
             _settings.PropertyChanged += OnSettingsChanged;
@@ -171,7 +175,7 @@ public partial class ExpandedView : UserControl
 
     private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id switch
     {
-        "media" => 300, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "shortcuts" => 170, "calendar" => 160, _ => 150,
+        "media" => 300, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "notes" => 190, "shortcuts" => 170, "calendar" => 160, _ => 150,
     };
 
     // ---- script widgets ----
@@ -510,6 +514,37 @@ public partial class ExpandedView : UserControl
     {
         if (NewTimeProject.Text.Trim().Length > 0) Vm?.Time.AddProject(NewTimeProject.Text);
         NewTimeProject.Visibility = Visibility.Collapsed;
+    }
+
+    // ---- notes ----
+
+    private IslandViewModel? _notesVm;
+
+    /// <summary>A new note: the cursor goes right into it (the island takes the keyboard only now, never by itself).</summary>
+    private void OnNoteAdded(Services.NoteItem note)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            NoteList.UpdateLayout();
+            if (NoteList.ItemContainerGenerator.ContainerFromItem(note) is ContentPresenter cp
+                && cp.ContentTemplate.FindName("NoteBox", cp) is TextBox box)
+            {
+                if (Window.GetWindow(this) is { } w) w.Activate();
+                box.Focus();
+                Keyboard.Focus(box);
+                box.CaretIndex = box.Text.Length;
+            }
+        }, System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    private void Note_GotFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (Window.GetWindow(this) is { IsActive: false } w) w.Activate();
+    }
+
+    private void Note_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is Services.NoteItem n) Vm?.Notes.DropIfEmpty(n);
     }
 
     /// <summary>A click on the time card (not on a project or button) opens the time tracking window.</summary>

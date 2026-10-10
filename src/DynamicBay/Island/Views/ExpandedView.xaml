@@ -82,6 +82,15 @@
 
         <!-- Hover-revealed overlay buttons on tiles -->
         <!-- Dark glass circles over pictures: hover gets lighter but stays opaque, so the button never fades into the image -->
+        <!-- A row in a widget list (projects, sound devices): same height and radius everywhere.
+             Radius 10 = card radius 20 minus its padding 10, so the row corners run parallel to the card. -->
+        <Style x:Key="Row.Item" TargetType="Button" BasedOn="{StaticResource Btn.Chip}">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="9,0" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
         <Style x:Key="TileButton" TargetType="Button" BasedOn="{StaticResource Btn.Icon}">
             <Setter Property="Width" Value="24" />
             <Setter Property="Height" Value="24" />
@@ -139,7 +148,7 @@
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                 <RadioButton Style="{StaticResource Tab.Segment}" GroupName="tabs"
                              IsChecked="{Binding Tab, Converter={StaticResource EqBool}, ConverterParameter=0}">
-                    <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <c:Icon Data="{StaticResource Icon.Sparkles}" Width="14" Height="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
                         <TextBlock Style="{StaticResource TabText}" Text="{core:T Tab.Home}" />
                     </StackPanel>
@@ -147,7 +156,7 @@
                 <RadioButton Style="{StaticResource Tab.Segment}" GroupName="tabs" Margin="2,0,0,0"
                              Visibility="{Binding Settings.ShowTrayTab, Converter={StaticResource Vis}}"
                              IsChecked="{Binding Tab, Converter={StaticResource EqBool}, ConverterParameter=1}">
-                    <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <c:Icon Data="{StaticResource Icon.Inbox}" Width="14" Height="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
                         <TextBlock Style="{StaticResource TabText}" Text="{core:T Tab.Tray}" />
                     </StackPanel>
@@ -155,7 +164,7 @@
                 <RadioButton Style="{StaticResource Tab.Segment}" GroupName="tabs" Margin="2,0,0,0"
                              Visibility="{Binding Settings.ShowNotificationsTab, Converter={StaticResource Vis}}"
                              IsChecked="{Binding Tab, Converter={StaticResource EqBool}, ConverterParameter=2}">
-                    <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <c:Icon Data="{StaticResource Icon.Bell}" Width="14" Height="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
                         <TextBlock Style="{StaticResource TabText}" Text="{core:T Tab.Notifications}" />
                         <Border Style="{StaticResource Badge}" Visibility="{Binding Notifications.Count, Converter={StaticResource Vis}}">
@@ -438,7 +447,7 @@
                         <!-- Spotify device picker overlay -->
                         <Border x:Name="DevicesOverlay" Visibility="Collapsed" Background="#F2161618" CornerRadius="16" Margin="-6">
                             <DockPanel Margin="12,8">
-                                <DockPanel DockPanel.Dock="Top">
+                                <DockPanel DockPanel.Dock="Top" Height="22">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="24" Height="24" Click="DevicesClose_Click">
                                         <c:Icon Data="{StaticResource Icon.Close}" Width="13" Height="13" Foreground="{StaticResource B.Text2}" />
                                     </Button>
@@ -450,7 +459,7 @@
                                             <Button Style="{StaticResource Btn.Pill}" Background="Transparent" HorizontalContentAlignment="Stretch" Padding="8,5"
                                                     Command="{Binding DataContext.Spotify.TransferToCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}" HorizontalAlignment="Stretch">
-                                                <StackPanel Orientation="Horizontal">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                     <c:Icon Data="{StaticResource Icon.Speaker}" Width="14" Height="14" Foreground="{Binding IsActive, Converter={StaticResource OnBrush}}" />
                                                     <TextBlock Style="{StaticResource T.Base}" Margin="8,0,0,0" Text="{Binding Name}" />
                                                 </StackPanel>
@@ -550,9 +559,9 @@
                     <Grid>
                         <!-- Idle: presets -->
                         <DockPanel Visibility="{Binding Timer.IsActive, Converter={StaticResource NotVis}}">
-                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-                                <c:Icon Data="{StaticResource Icon.Timer}" Width="14" Height="14" Foreground="{StaticResource B.Orange}" />
-                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:T Timer.Title}" />
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
+                                <c:Icon Data="{StaticResource Icon.Timer}" Width="14" Height="14" Foreground="{StaticResource B.Orange}" VerticalAlignment="Center" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:T Timer.Title}" />
                             </StackPanel>
                             <!-- Today's focus sessions (only once there is one) -->
                             <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource T.Caption}" FontSize="10" Margin="0,6,0,0" TextTrimming="CharacterEllipsis"
@@ -601,9 +610,9 @@
                 <!-- Contacts: frequent people with Teams chat, Teams call and phone (via Smartphone-Link) -->
                 <Border x:Name="ContactsCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-                            <c:Icon Data="{StaticResource Icon.User}" Width="14" Height="14" Foreground="{StaticResource B.Green}" />
-                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:L De='Kontakte', En='Contacts'}" />
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
+                            <c:Icon Data="{StaticResource Icon.User}" Width="14" Height="14" Foreground="{StaticResource B.Green}" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Kontakte', En='Contacts'}" />
                         </StackPanel>
                         <Grid Margin="0,6,0,0">
                             <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
@@ -648,8 +657,8 @@
                 <Border x:Name="TimeCard" Style="{StaticResource Card}" Padding="10" Cursor="Hand" MouseLeftButtonUp="TimeCard_Click"
                         ToolTip="{core:L De='Klicken: Zeiterfassung öffnen (Einträge, nachtragen, Projekte)', En='Click: open time tracking (entries, add time, projects)'}">
                     <DockPanel>
-                        <DockPanel DockPanel.Dock="Top">
-                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <DockPanel DockPanel.Dock="Top" Height="22">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Time.StopCommand}" ToolTip="{core:L De='Stoppen', En='Stop'}"
                                         Visibility="{Binding Time.IsRunning, Converter={StaticResource Vis}}">
                                     <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2" Fill="{StaticResource B.Red}" />
@@ -663,10 +672,10 @@
                                     <c:Icon Data="{StaticResource Icon.External}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
                                 </Button>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <c:Icon Data="{StaticResource Icon.Clock}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" />
-                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:L De='Zeit', En='Time'}" />
-                                <TextBlock Style="{StaticResource T.Caption}" Margin="8,1,0,0" VerticalAlignment="Center" Text="{Binding Time.TodayTotal, StringFormat={}{0} h}"
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <c:Icon Data="{StaticResource Icon.Clock}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Zeit', En='Time'}" />
+                                <TextBlock Style="{StaticResource T.Caption}" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding Time.TodayTotal, StringFormat={}{0} h}"
                                            ToolTip="{core:L De='Heute insgesamt', En='Today in total'}" />
                             </StackPanel>
                         </DockPanel>
@@ -685,12 +694,12 @@
                             <ItemsControl ItemsSource="{Binding Time.Projects}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type s:ProjectTotal}">
-                                        <Button Style="{StaticResource Btn.Chip}" Margin="0,0,0,4" Padding="8,5" HorizontalContentAlignment="Stretch"
+                                        <Button Style="{StaticResource Row.Item}"
                                                 Background="{Binding Running, Converter={StaticResource TrackBg}}"
                                                 Command="{Binding DataContext.Time.ToggleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding Project}">
                                             <DockPanel>
-                                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Numeric}" FontSize="10.5" Foreground="{StaticResource B.Text2}" Margin="8,0,0,0" Text="{Binding Today}" />
-                                                <TextBlock Style="{StaticResource T.Base}" FontSize="11" TextTrimming="CharacterEllipsis" Text="{Binding Project}" />
+                                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Numeric}" FontSize="11" FontWeight="Medium" Foreground="{StaticResource B.Text2}" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding Today}" />
+                                                <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Project}" />
                                             </DockPanel>
                                         </Button>
                                     </DataTemplate>
@@ -703,13 +712,13 @@
                 <!-- Microsoft To Do: open tasks, overdue and today's first; tick them off here -->
                 <Border x:Name="TodoCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>
-                        <DockPanel DockPanel.Dock="Top">
+                        <DockPanel DockPanel.Dock="Top" Height="22">
                             <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Todo.OpenAppCommand}" ToolTip="Microsoft To Do">
                                 <c:Icon Data="{StaticResource Icon.External}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
                             </Button>
-                            <StackPanel Orientation="Horizontal">
-                                <c:Icon Data="{StaticResource Icon.Check}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" />
-                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" Text="{Binding Settings.TodoListName, Converter={StaticResource TodoTitle}}" />
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <c:Icon Data="{StaticResource Icon.Check}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Settings.TodoListName, Converter={StaticResource TodoTitle}}" />
                             </StackPanel>
                         </DockPanel>
                         <Grid Margin="0,6,0,0">
@@ -790,20 +799,73 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Notes: quick, short notes - written in a second, gone in one click -->
+                <Border x:Name="NotesCard" Style="{StaticResource Card}" Padding="10">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Height="22">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Notes.NewCommand}"
+                                    ToolTip="{core:L De='Neue Notiz', En='New note'}">
+                                <c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" Foreground="{StaticResource B.Text2}" />
+                            </Button>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <c:Icon Data="{StaticResource Icon.Pencil}" Width="14" Height="14" Foreground="{StaticResource B.Orange}" VerticalAlignment="Center" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Notizen', En='Notes'}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Grid Margin="0,6,0,0">
+                            <Button Style="{StaticResource Btn.Chip}" Background="{StaticResource B.Fill2}" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="12,6"
+                                    Command="{Binding Notes.NewCommand}" Visibility="{Binding Notes.IsEmpty, Converter={StaticResource Vis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <c:Icon Data="{StaticResource Icon.Plus}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                                    <TextBlock Margin="6,0,0,0" FontWeight="Normal" Text="{core:L De='Kurz etwas notieren', En='Jot something down'}" />
+                                </StackPanel>
+                            </Button>
+                            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl x:Name="NoteList" ItemsSource="{Binding Notes.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type s:NoteItem}">
+                                            <Grid Margin="0,0,0,4">
+                                                <TextBox x:Name="NoteBox" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True"
+                                                         MaxHeight="96" MinHeight="28" VerticalScrollBarVisibility="Auto" Padding="8,6,22,6" FontSize="11.5" FontFamily="{StaticResource Font.UI}"
+                                                         Background="{StaticResource B.Fill2}" Foreground="{StaticResource B.Text}" CaretBrush="{StaticResource B.Text}" BorderThickness="0"
+                                                         LostKeyboardFocus="Note_LostFocus" GotKeyboardFocus="Note_GotFocus">
+                                                    <TextBox.Resources>
+                                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="10" /></Style>
+                                                    </TextBox.Resources>
+                                                </TextBox>
+                                                <Button x:Name="NoteDelete" Style="{StaticResource Btn.Icon}" Width="18" Height="18" Margin="0,3,3,0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                        Visibility="Hidden" ToolTip="{core:L De='Löschen', En='Delete'}"
+                                                        Command="{Binding DataContext.Notes.DeleteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                    <c:Icon Data="{StaticResource Icon.Close}" Width="10" Height="10" Foreground="{StaticResource B.Text2}" />
+                                                </Button>
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="NoteDelete" Property="Visibility" Value="Visible" />
+                                                </Trigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
                 <!-- Audio: output and microphone with one click, Bluetooth headsets connect with one click -->
                 <Border x:Name="AudioCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-                            <c:Icon Data="{StaticResource Icon.Headphones}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" />
-                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="Audio" />
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
+                            <c:Icon Data="{StaticResource Icon.Headphones}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="Audio" />
                         </StackPanel>
                         <ScrollViewer Margin="0,6,0,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel>
-                                <TextBlock Style="{StaticResource T.Caption}" FontSize="10" Margin="2,0,0,3" Text="{core:L De='Ausgabe', En='Output'}" />
+                                <TextBlock Style="{StaticResource T.Section}" Margin="2,0,0,4" Text="{core:L De='Ausgabe', En='Output'}" />
                                 <ItemsControl ItemsSource="{Binding AudioDevices.Outputs}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type s:AudioDeviceItem}">
-                                            <Button Style="{StaticResource Btn.Chip}" Margin="0,0,0,2" Padding="7,4" HorizontalContentAlignment="Stretch"
+                                            <Button Style="{StaticResource Row.Item}"
                                                     Background="{Binding IsDefault, Converter={StaticResource DefaultBg}}" ToolTip="{Binding Name}"
                                                     Command="{Binding DataContext.AudioDevices.SelectCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
                                                 <DockPanel>
@@ -811,17 +873,17 @@
                                                             Visibility="{Binding IsDefault, Converter={StaticResource Vis}}" />
                                                     <c:Icon DockPanel.Dock="Left" Data="{Binding Headphones, Converter={StaticResource OutputGlyph}}" Width="12" Height="12" Margin="0,0,7,0"
                                                             Foreground="{Binding IsDefault, Converter={StaticResource OnBrush}}" />
-                                                    <TextBlock Style="{StaticResource T.Base}" FontSize="11" FontWeight="Normal" TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
+                                                    <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
                                                 </DockPanel>
                                             </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock Style="{StaticResource T.Caption}" FontSize="10" Margin="2,6,0,3" Text="{core:L De='Mikrofon', En='Microphone'}" />
+                                <TextBlock Style="{StaticResource T.Section}" Margin="2,6,0,4" Text="{core:L De='Mikrofon', En='Microphone'}" />
                                 <ItemsControl ItemsSource="{Binding AudioDevices.Inputs}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type s:AudioDeviceItem}">
-                                            <Button Style="{StaticResource Btn.Chip}" Margin="0,0,0,2" Padding="7,4" HorizontalContentAlignment="Stretch"
+                                            <Button Style="{StaticResource Row.Item}"
                                                     Background="{Binding IsDefault, Converter={StaticResource DefaultBg}}" ToolTip="{Binding Name}"
                                                     Command="{Binding DataContext.AudioDevices.SelectCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
                                                 <DockPanel>
@@ -829,19 +891,19 @@
                                                             Visibility="{Binding IsDefault, Converter={StaticResource Vis}}" />
                                                     <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Mic}" Width="12" Height="12" Margin="0,0,7,0"
                                                             Foreground="{Binding IsDefault, Converter={StaticResource OnBrush}}" />
-                                                    <TextBlock Style="{StaticResource T.Base}" FontSize="11" FontWeight="Normal" TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
+                                                    <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
                                                 </DockPanel>
                                             </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                                 <StackPanel Visibility="{Binding AudioDevices.HasHeadsets, Converter={StaticResource Vis}}">
-                                    <TextBlock Style="{StaticResource T.Caption}" FontSize="10" Margin="2,6,0,3" Text="Bluetooth" />
+                                    <TextBlock Style="{StaticResource T.Section}" Margin="2,6,0,4" Text="Bluetooth" />
                                     <ItemsControl ItemsSource="{Binding AudioDevices.Headsets}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type s:BluetoothAudioItem}">
-                                                <DockPanel Margin="7,0,0,3" ToolTip="{Binding Name}">
-                                                    <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Chip}" Padding="8,0" Height="22" FontSize="10.5"
+                                                <DockPanel Height="28" Margin="9,0,0,4" ToolTip="{Binding Name}">
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Chip}" Padding="10,0" Height="24" FontSize="11" VerticalAlignment="Center"
                                                             Background="{Binding Connected, Converter={StaticResource ConnectBg}}" IsEnabled="{Binding Busy, Converter={StaticResource Not}}"
                                                             Content="{Binding Connected, Converter={StaticResource ConnectText}}"
                                                             Command="{Binding DataContext.AudioDevices.ToggleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
@@ -859,9 +921,12 @@
                 </Border>
 
                 <!-- Devices: this PC and connected Bluetooth devices with their battery, like the iPhone battery widget -->
-                <Border x:Name="DevicesCard" Style="{StaticResource Card}" Padding="12,10">
+                <Border x:Name="DevicesCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource T.Section}" Text="{core:L De='Geräte', En='Devices'}" />
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
+                            <c:Icon Data="{StaticResource Icon.Bluetooth}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Geräte', En='Devices'}" />
+                        </StackPanel>
                         <Viewbox StretchDirection="DownOnly" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,8,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <!-- this PC -->
@@ -926,7 +991,10 @@
                 <!-- System -->
                 <Border x:Name="SystemCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource T.Title}" Text="{core:L De='System', En='System'}" />
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
+                            <c:Icon Data="{StaticResource Icon.Cog}" Width="14" Height="14" Foreground="{StaticResource B.Text2}" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='System', En='System'}" />
+                        </StackPanel>
                         <Viewbox StretchDirection="DownOnly" Margin="0,6,0,0">
                         <UniformGrid Columns="2" VerticalAlignment="Center">
                             <StackPanel HorizontalAlignment="Center" Margin="6,0">
@@ -953,7 +1021,10 @@
                 <!-- Messenger: latest chat messages mirrored from Windows notifications -->
                 <Border x:Name="MessengerCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource T.Title}" Text="{core:L De='Nachrichten', En='Messages'}" />
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
+                            <c:Icon Data="{StaticResource Icon.Chat}" Width="14" Height="14" Foreground="{StaticResource B.Green}" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Nachrichten', En='Messages'}" />
+                        </StackPanel>
                         <Grid Margin="0,6,0,0">
                             <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
                                        Text="{core:L De='Keine neuen Nachrichten', En='No new messages'}"
@@ -991,8 +1062,8 @@
                 <!-- Claude Code sessions + quick actions -->
                 <Border x:Name="ClaudeCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>
-                        <DockPanel DockPanel.Dock="Top">
-                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <DockPanel DockPanel.Dock="Top" Height="22">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Claude.OpenDesktopCommand}" ToolTip="Claude Desktop">
                                     <c:Icon Data="{StaticResource Icon.AppWindow}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
                                 </Button>
@@ -1000,9 +1071,9 @@
                                     <c:Icon Data="{StaticResource Icon.Globe}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
                                 </Button>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <c:Icon Data="{StaticResource Icon.Sparkles}" Width="14" Height="14" Foreground="#FFD97757" />
-                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="Claude" />
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <c:Icon Data="{StaticResource Icon.Sparkles}" Width="14" Height="14" Foreground="#FFD97757" VerticalAlignment="Center" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="Claude" />
                             </StackPanel>
                         </DockPanel>
                         <Grid Margin="0,6,0,0">
@@ -1065,7 +1136,10 @@
                 <!-- Shortcuts (pinned apps / folders) -->
                 <Border x:Name="ShortcutsCard" Style="{StaticResource Card}" Padding="10" AllowDrop="True" Drop="Shortcuts_Drop">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Style="{StaticResource T.Title}" Text="{core:L De='Schnellstart', En='Launcher'}" />
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
+                            <c:Icon Data="{StaticResource Icon.AppWindow}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Schnellstart', En='Launcher'}" />
+                        </StackPanel>
                         <Grid Margin="0,6,0,0">
                             <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
                                        Text="{core:L De='Apps oder Ordner hierher ziehen', En='Drag apps or folders here'}"
