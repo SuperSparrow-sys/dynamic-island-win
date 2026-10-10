@@ -62,10 +62,7 @@ public partial class ExpandedView : UserControl
         };
         IsVisibleChanged += (_, _) =>
         {
-            Vm?.System.SetActive(IsVisible && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
-            Vm?.Spotify.SetPanelOpen(IsVisible);
-            Vm?.Media.SetPanelOpen(IsVisible);
-            Vm?.MusicVolume.SetPanelOpen(IsVisible);
+            SetCountedOpen(IsVisible);
             if (IsVisible) { Vm?.Todo?.PanelOpened(); _ = Vm?.Presence?.RefreshAsync(); }
             if (IsVisible) Vm?.Shelf.PruneMissing();
         };
@@ -75,6 +72,23 @@ public partial class ExpandedView : UserControl
     }
 
     private Core.AppSettings? _settings;
+
+    // The services are shared by all islands (main + mirrors): their panel-only polling runs while any panel is open,
+    // so closing a mirror's panel must not stop it for the one still open.
+    private static int _openPanels;
+    private bool _countedOpen;
+
+    private void SetCountedOpen(bool open)
+    {
+        if (open == _countedOpen) return;
+        _countedOpen = open;
+        _openPanels += open ? 1 : -1;
+        bool any = _openPanels > 0;
+        Vm?.System.SetActive(any && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
+        Vm?.Spotify.SetPanelOpen(any);
+        Vm?.Media.SetPanelOpen(any);
+        Vm?.MusicVolume.SetPanelOpen(any);
+    }
 
     private void OnSettingsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
@@ -90,6 +104,11 @@ public partial class ExpandedView : UserControl
     {
         if (_settings is not null) _settings.PropertyChanged -= OnSettingsChanged;
         _settings = null;
+        if (Vm is { } vm) vm.PropertyChanged -= OnTabChanged;
+        if (_notesVm is not null) _notesVm.Notes.Added -= OnNoteAdded;
+        _notesVm = null;
+        if (_gearVm is not null) { _gearVm.PropertyChanged -= OnAltChanged; _gearVm = null; }
+        SetCountedOpen(false); // a closed mirror no longer counts as an open panel
     }
 
     private IslandViewModel? Vm => DataContext as IslandViewModel;
@@ -166,7 +185,7 @@ public partial class ExpandedView : UserControl
                 card.Margin = new Thickness(0, 0, rightEdge ? 0 : 8, lastRow ? 0 : 8);
             }
         }
-        Vm?.System.SetActive(IsVisible && enabled.Contains(Core.Widgets.System));
+        Vm?.System.SetActive(_openPanels > 0 && enabled.Contains(Core.Widgets.System));
         FitHomeToViewport();
     }
 
@@ -231,6 +250,7 @@ public partial class ExpandedView : UserControl
             _widgets[sc.HomeId] = card;
             HomeGrid.Children.Add(card);
         }
+        if (IsLoaded) AttachGears(); // gears for new script cards, removed cards take theirs along
     }
 
     // ---- Nook scrolling ----
@@ -500,8 +520,10 @@ public partial class ExpandedView : UserControl
         _dragging = true;
         var items = new[] { item };
         DragOutActive?.Invoke(true);
-        var result = DragDrop.DoDragDrop((DependencyObject)sender, Vm.Shelf.CreateDragData(items), DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link);
-        DragOutActive?.Invoke(false);
+        DragDropEffects result;
+        // Always end the drag-out state, also when the drag throws: otherwise the island never collapses or moves again.
+        try { result = DragDrop.DoDragDrop((DependencyObject)sender, Vm.Shelf.CreateDragData(items), DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link); }
+        finally { DragOutActive?.Invoke(false); }
         Vm.Shelf.AfterDragOut(items, result);
     }
 
@@ -521,8 +543,8 @@ public partial class ExpandedView : UserControl
         if (((FrameworkElement)sender).DataContext is not ClipItem item) return;
         _dragging = true;
         DragOutActive?.Invoke(true);
-        DragDrop.DoDragDrop((DependencyObject)sender, ClipboardService.CreateDragData(item), DragDropEffects.Copy);
-        DragOutActive?.Invoke(false);
+        try { DragDrop.DoDragDrop((DependencyObject)sender, ClipboardService.CreateDragData(item), DragDropEffects.Copy); }
+        finally { DragOutActive?.Invoke(false); }
     }
 
     private void ClipItem_MouseUp(object sender, MouseButtonEventArgs e)
@@ -622,14 +644,22 @@ public partial class ExpandedView : UserControl
 
     // ---- widget settings (Alt held = edit mode) ----
 
-    private readonly List<WidgetGear> _gears = new();
+    // Card -> its gear and the adorner layer it sits in (a removed card is out of the tree and can't find its layer anymore).
+    private readonly Dictionary<Border, (System.Windows.Documents.AdornerLayer layer, WidgetGear gear)> _gears = new();
     private IslandViewModel? _gearVm;
+    private bool _gearUnloadHooked;
 
+    /// <summary>One gear per card: new script cards get theirs, removed ones take theirs along (runs again after SyncScriptCards).</summary>
     private void AttachGears()
     {
-        if (_gears.Count > 0) return;
+        foreach (var (card, (oldLayer, oldGear)) in _gears.Where(g => !_widgets.ContainsValue(g.Key)).ToList())
+        {
+            oldLayer.Remove(oldGear);
+            _gears.Remove(card);
+        }
         foreach (var (id, card) in _widgets)
         {
+            if (_gears.ContainsKey(card)) continue;
             var layer = System.Windows.Documents.AdornerLayer.GetAdornerLayer(card);
             if (layer is null) continue;
             string widget = id;
@@ -639,14 +669,19 @@ public partial class ExpandedView : UserControl
                 var (page, group) = Core.Widgets.SettingsOf(widget);
                 vm.OpenSettingsAt(page, group);
             });
+            if (Vm is { AltHeld: true } && card.Visibility == Visibility.Visible) gear.Visibility = Visibility.Visible;
             layer.Add(gear);
-            _gears.Add(gear);
+            _gears[card] = (layer, gear);
         }
         if (_gearVm is null && Vm is { } v)
         {
             _gearVm = v;
             v.PropertyChanged += OnAltChanged;
-            Unloaded += (_, _) => { v.PropertyChanged -= OnAltChanged; _gearVm = null; };
+            if (!_gearUnloadHooked)
+            {
+                _gearUnloadHooked = true;
+                Unloaded += (_, _) => { if (_gearVm is { } g) g.PropertyChanged -= OnAltChanged; _gearVm = null; };
+            }
         }
     }
 
@@ -654,7 +689,7 @@ public partial class ExpandedView : UserControl
     {
         if (e.PropertyName != nameof(IslandViewModel.AltHeld) || Vm is null) return;
         var vis = Vm.AltHeld ? Visibility.Visible : Visibility.Collapsed;
-        foreach (var g in _gears) g.Visibility = ((UIElement)g.AdornedElement).Visibility == Visibility.Visible ? vis : Visibility.Collapsed;
+        foreach (var (card, (_, g)) in _gears) g.Visibility = card.Visibility == Visibility.Visible ? vis : Visibility.Collapsed;
     }
 
     // ---- notes ----
@@ -667,8 +702,19 @@ public partial class ExpandedView : UserControl
     public void ShowNoteSheetForSnapshot(Services.NoteItem note) { _sheetNote = note; NoteSheetBox.Text = note.Text; NoteSheet.Visibility = Visibility.Visible; }
     public void HideNoteSheetForSnapshot() { _sheetNote = null; NoteSheet.Visibility = Visibility.Collapsed; }
 
+    // Set by this view's own "+" right before the command runs: NotesService.Added reaches every island, but only the
+    // one clicked may open the sheet and take the focus (a mirror taking it would close and drop the new note).
+    private bool _addingNote;
+
+    private void NewNote_Click(object sender, RoutedEventArgs e) => _addingNote = true;
+
     /// <summary>A new note (the + or "Kurz etwas notieren"): the card turns into the note sheet.</summary>
-    private void OnNoteAdded(Services.NoteItem note) => OpenSheet(note);
+    private void OnNoteAdded(Services.NoteItem note)
+    {
+        if (!_addingNote) return;
+        _addingNote = false;
+        if (IsVisible) OpenSheet(note);
+    }
 
     /// <summary>A tap on a row opens the whole note on the sheet.</summary>
     private void Note_Open(object sender, MouseButtonEventArgs e)

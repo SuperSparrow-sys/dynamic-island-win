@@ -68,26 +68,46 @@ public sealed partial class AudioService : ObservableObject
     // ---------- mute (Core Audio) ----------
 
     // The default devices rarely change: polling every half second reuses them and asks Windows again every 5 s.
-    private readonly Dictionary<(EDataFlow, ERole), (IAudioEndpointVolume? ep, DateTime at)> _endpoints = new();
+    private readonly Dictionary<(EDataFlow, ERole), (IAudioEndpointVolume? ep, string? id, DateTime at)> _endpoints = new();
+    private string? _micId;
+    private bool _enumeratorLost;
 
-    private IAudioEndpointVolume? Endpoint(EDataFlow flow, ERole role)
+    /// <summary>The Windows audio service restarted and is reachable again (the device notifications must be registered anew).</summary>
+    public event Action? AudioServiceRestarted;
+
+    private IAudioEndpointVolume? Endpoint(EDataFlow flow, ERole role) => Endpoint(flow, role, out _);
+
+    private IAudioEndpointVolume? Endpoint(EDataFlow flow, ERole role, out string? id)
     {
-        if (_endpoints.TryGetValue((flow, role), out var cached) && DateTime.UtcNow - cached.at < TimeSpan.FromSeconds(5)) return cached.ep;
-        var ep = FreshEndpoint(flow, role);
-        _endpoints[(flow, role)] = (ep, DateTime.UtcNow);
+        if (_endpoints.TryGetValue((flow, role), out var cached) && DateTime.UtcNow - cached.at < TimeSpan.FromSeconds(5)) { id = cached.id; return cached.ep; }
+        var ep = FreshEndpoint(flow, role, out id);
+        _endpoints[(flow, role)] = (ep, id, DateTime.UtcNow);
         return ep;
     }
 
-    private IAudioEndpointVolume? FreshEndpoint(EDataFlow flow, ERole role)
+    private IAudioEndpointVolume? FreshEndpoint(EDataFlow flow, ERole role, out string? id)
     {
+        id = null;
         try
         {
-            if (_enumerator is null || _enumerator.GetDefaultAudioEndpoint(flow, role, out var device) != 0 || device is null) return null;
+            _enumerator ??= (IMMDeviceEnumerator)CreateEnumerator();
+            int hr = _enumerator.GetDefaultAudioEndpoint(flow, role, out var device);
+            // No such device (E_NOTFOUND) is normal. Anything else: the audio service restarted, this enumerator is dead.
+            if (hr != 0 && hr != unchecked((int)0x80070490)) { _enumerator = null; _enumeratorLost = true; return null; }
+            if (_enumeratorLost) { _enumeratorLost = false; AudioServiceRestarted?.Invoke(); }
+            if (hr != 0 || device is null) return null;
+            device.GetId(out id);
             var iid = typeof(IAudioEndpointVolume).GUID;
             device.Activate(ref iid, 23 /* CLSCTX_ALL */, IntPtr.Zero, out var obj);
             return obj as IAudioEndpointVolume;
         }
         catch { return null; }
+    }
+
+    /// <summary>A cached device is gone (unplugged, or the audio service restarted): ask Windows again next time.</summary>
+    private void Forget(EDataFlow flow)
+    {
+        foreach (var key in _endpoints.Keys.Where(k => k.Item1 == flow).ToList()) _endpoints.Remove(key);
     }
 
     /// <summary>The default device changed: forget the cached endpoints, so mute and volume act on the new one at once.</summary>
@@ -102,17 +122,28 @@ public sealed partial class AudioService : ObservableObject
         var speaker = Endpoint(EDataFlow.Render, ERole.Multimedia);
         if (speaker is not null)
         {
-            speaker.GetMute(out bool m);
-            speaker.GetMasterVolumeLevelScalar(out float v);
-            SpeakerMuted = m || v < 0.005f; // volume at 0 counts as "sound off" too
-            Volume = (int)Math.Round(v * 100);
+            try
+            {
+                speaker.GetMute(out bool m);
+                speaker.GetMasterVolumeLevelScalar(out float v);
+                SpeakerMuted = m || v < 0.005f; // volume at 0 counts as "sound off" too
+                Volume = (int)Math.Round(v * 100);
+            }
+            catch (COMException) { Forget(EDataFlow.Render); }
         }
-        var mic = Endpoint(EDataFlow.Capture, ERole.Communications) ?? Endpoint(EDataFlow.Capture, ERole.Console);
+        var mic = Endpoint(EDataFlow.Capture, ERole.Communications, out var micId);
+        if (mic is null) mic = Endpoint(EDataFlow.Capture, ERole.Console, out micId);
         if (mic is not null)
         {
-            mic.GetMute(out bool mm);
-            // The first reading is the starting state, not a change.
-            if (mm != MicMuted || !_muteKnown) { bool changed = _muteKnown && mm != MicMuted; MicMuted = mm; _muteKnown = true; if (changed) MicMuteChanged?.Invoke(mm); }
+            try
+            {
+                mic.GetMute(out bool mm);
+                // Another microphone (switched by hand or by the Bluetooth rule): its state is a start, not a change.
+                if (micId != _micId) { _micId = micId; _muteKnown = false; }
+                // The first reading is the starting state, not a change.
+                if (mm != MicMuted || !_muteKnown) { bool changed = _muteKnown && mm != MicMuted; MicMuted = mm; _muteKnown = true; if (changed) MicMuteChanged?.Invoke(mm); }
+            }
+            catch (COMException) { Forget(EDataFlow.Capture); }
         }
     }
 
@@ -132,7 +163,19 @@ public sealed partial class AudioService : ObservableObject
     public void ToggleSpeakerMute()
     {
         var ctx = Guid.Empty;
-        try { Endpoint(EDataFlow.Render, ERole.Multimedia)?.SetMute(!SpeakerMuted, ref ctx); } catch { }
+        try
+        {
+            var speaker = Endpoint(EDataFlow.Render, ERole.Multimedia);
+            if (speaker is not null && SpeakerMuted)
+            {
+                speaker.SetMute(false, ref ctx);
+                // "Off" can also mean volume 0: unmuting alone would stay silent.
+                speaker.GetMasterVolumeLevelScalar(out float v);
+                if (v < 0.005f) speaker.SetMasterVolumeLevelScalar(0.3f, ref ctx);
+            }
+            else speaker?.SetMute(true, ref ctx);
+        }
+        catch { }
         ReadMute();
     }
 
@@ -231,7 +274,7 @@ public sealed partial class AudioService : ObservableObject
     [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDeviceEnumerator
     {
-        int EnumAudioEndpoints(EDataFlow flow, int mask, out IntPtr devices);
+        [PreserveSig] int EnumAudioEndpoints(EDataFlow flow, int mask, out IntPtr devices);
         [PreserveSig] int GetDefaultAudioEndpoint(EDataFlow flow, ERole role, out IMMDevice? device);
     }
 
@@ -239,6 +282,8 @@ public sealed partial class AudioService : ObservableObject
     private interface IMMDevice
     {
         void Activate(ref Guid iid, int clsCtx, IntPtr activationParams, [MarshalAs(UnmanagedType.IUnknown)] out object obj);
+        void OpenPropertyStore(int access, out IntPtr store);
+        void GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
     }
 
     [ComImport, Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

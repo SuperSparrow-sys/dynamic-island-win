@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -54,7 +55,9 @@ public sealed partial class ClaudeService : ObservableObject
     private const string HookMarker = "127.0.0.1:43822/claude";
     private static readonly string ClaudeDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude");
     private readonly DispatcherTimer _scan = new() { Interval = TimeSpan.FromSeconds(5) };
-    private readonly Dictionary<string, ClaudeState> _hookState = new();
+    private readonly Dictionary<string, (ClaudeState State, DateTime At)> _hookState = new();
+    private const int MaxHookStates = 200;
+    private const int MaxHookBody = 1024 * 1024; // PreToolUse carries the tool input (a whole file for Write)
     private HttpListener? _listener;
 
     private readonly AppSettings _settings;
@@ -81,8 +84,7 @@ public sealed partial class ClaudeService : ObservableObject
             _scan.Stop();
             _watcher?.Dispose();
             _watcher = null;
-            _listener?.Close();
-            _listener = null;
+            StopListener();
             Sessions.Clear();
             AnyWorking = AnyWaiting = false;
             _started = false;
@@ -100,7 +102,8 @@ public sealed partial class ClaudeService : ObservableObject
         _scan.Start();
         WatchTranscripts();
         Scan();
-        StartListener();
+        // The loopback listener only runs while the hooks that post to it are installed.
+        if (HooksInstalled) StartListener();
     }
 
     // Transcripts are only searched when one changed (file watcher), while a session works or waits (its state
@@ -174,15 +177,16 @@ public sealed partial class ClaudeService : ObservableObject
                     s.LastPrompt = meta.prompt;
                     s.Updated = r.Updated;
                     // Remote Control: bridge id "cse_X" is reachable at claude.ai/code/session_X
-                    if (meta.bridge.StartsWith("cse_", StringComparison.Ordinal)) s.RemoteUrl = "https://claude.ai/code/session_" + meta.bridge[4..];
+                    if (meta.bridge.StartsWith("cse_", StringComparison.Ordinal)) s.RemoteUrl = SafeRemoteUrl("https://claude.ai/code/session_" + meta.bridge[4..]);
                 }
                 if (s is null) continue;
                 s.ActiveAgents = r.Agents;
                 // Without hooks, "recently written" approximates "working".
-                s.State = _hookState.TryGetValue(r.Id, out var hs) ? hs
+                s.State = _hookState.TryGetValue(r.Id, out var hs) ? hs.State
                     : (DateTime.Now - r.Updated).TotalSeconds < 20 ? ClaudeState.Working : ClaudeState.Idle;
             }
-            foreach (var r in SyncShared()) seen.Add(Key(r.Machine, r.Id));
+            foreach (var r in await SyncSharedAsync()) seen.Add(Key(r.Machine, r.Id));
+            if (!_started) return; // switched off while the shared folder was read
             foreach (var old in Sessions.Where(x => !seen.Contains(Key(x.Machine, x.Id))).ToList()) Sessions.Remove(old);
             // Newest first
             var ordered = Sessions.OrderByDescending(x => x.Updated).ToList();
@@ -225,57 +229,99 @@ public sealed partial class ClaudeService : ObservableObject
     // ---------- sessions of other PCs via a synced folder ----------
 
     private DateTime _lastShareWrite;
+    private string? _lastShareContent;
+
+    /// <summary>A session another PC wrote into the synced folder (already checked).</summary>
+    private sealed record SharedSession(string Machine, string Id, string Title, string Cwd, string? Remote, DateTime Updated, ClaudeState State);
 
     /// <summary>
     /// Writes this PC's session list to {share}\DynamicBay\claude\{PC}.json and merges the lists other PCs wrote
     /// (only metadata: title, project, status, Remote Control link). Returns the merged remote sessions.
+    /// The files are read and written in the background; the collection is only changed here, on the UI thread.
     /// </summary>
-    private List<ClaudeSession> SyncShared()
+    private async Task<List<ClaudeSession>> SyncSharedAsync()
     {
         var result = new List<ClaudeSession>();
         string folder = _settings.ClaudeShareFolder;
-        if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) return result;
+        if (string.IsNullOrWhiteSpace(folder)) return result;
+        string mine = new JsonArray(Sessions.Where(s => s.IsLocal).Select(s => (JsonNode)new JsonObject
+        {
+            ["id"] = s.Id, ["title"] = s.Title, ["cwd"] = s.Cwd, ["updated"] = s.Updated.ToUniversalTime().ToString("o"),
+            ["state"] = s.State.ToString(), ["remote"] = s.RemoteUrl,
+        }).ToArray()).ToJsonString();
+        foreach (var r in await Task.Run(() => ExchangeShared(folder, mine)))
+        {
+            var s = Sessions.FirstOrDefault(x => x.Id == r.Id && x.Machine.Equals(r.Machine, StringComparison.OrdinalIgnoreCase));
+            if (s is null)
+            {
+                s = new ClaudeSession { Id = r.Id, Machine = r.Machine, Cwd = r.Cwd };
+                Sessions.Add(s);
+            }
+            s.Title = r.Title;
+            s.RemoteUrl = r.Remote;
+            s.Updated = r.Updated;
+            s.State = r.State;
+            result.Add(s);
+        }
+        return result;
+    }
+
+    /// <summary>Background part: writes the own file when its content changed, reads (and checks) the other PCs' files.</summary>
+    private List<SharedSession> ExchangeShared(string folder, string mine)
+    {
+        var list = new List<SharedSession>();
+        if (!Directory.Exists(folder)) return list;
         string dir = Path.Combine(folder, "DynamicBay", "claude");
         try
         {
             Directory.CreateDirectory(dir);
-            if ((DateTime.Now - _lastShareWrite).TotalSeconds > 20)
+            string own = Path.Combine(dir, Environment.MachineName + ".json");
+            // At most every 20 s and only on changes; once an hour anyway, other PCs skip files older than a day.
+            double since = (DateTime.Now - _lastShareWrite).TotalSeconds;
+            if (since > 20 && (mine != _lastShareContent || since > 3600 || !File.Exists(own)))
             {
+                File.WriteAllText(own, mine);
                 _lastShareWrite = DateTime.Now;
-                var mine = new JsonArray(Sessions.Where(s => s.IsLocal).Select(s => (JsonNode)new JsonObject
-                {
-                    ["id"] = s.Id, ["title"] = s.Title, ["cwd"] = s.Cwd, ["updated"] = s.Updated.ToUniversalTime().ToString("o"),
-                    ["state"] = s.State.ToString(), ["remote"] = s.RemoteUrl,
-                }).ToArray());
-                File.WriteAllText(Path.Combine(dir, Environment.MachineName + ".json"), mine.ToJsonString());
+                _lastShareContent = mine;
             }
             foreach (var file in Directory.EnumerateFiles(dir, "*.json"))
             {
                 string machine = Path.GetFileNameWithoutExtension(file);
                 if (machine.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase)) continue;
-                if ((DateTime.Now - File.GetLastWriteTime(file)).TotalHours > 24) continue;
+                var info = new FileInfo(file);
+                if ((DateTime.Now - info.LastWriteTime).TotalHours > 24 || info.Length > 256 * 1024) continue;
                 if (JsonNode.Parse(File.ReadAllText(file)) is not JsonArray arr) continue;
                 foreach (var n in arr.Take(4))
                 {
+                    // Anyone with access to the folder can write these files: only well-formed ids and claude.ai links.
                     string id = n?["id"]?.ToString() ?? "";
-                    if (id.Length == 0) continue;
-                    var s = Sessions.FirstOrDefault(x => x.Id == id && x.Machine.Equals(machine, StringComparison.OrdinalIgnoreCase));
-                    if (s is null)
-                    {
-                        s = new ClaudeSession { Id = id, Machine = machine, Cwd = n!["cwd"]?.ToString() ?? "" };
-                        Sessions.Add(s);
-                    }
-                    s.Title = n!["title"]?.ToString() ?? "Claude Code";
-                    s.RemoteUrl = n["remote"]?.ToString();
-                    s.Updated = DateTime.TryParse(n["updated"]?.ToString(), out var u) ? u.ToLocalTime() : File.GetLastWriteTime(file);
-                    s.State = Enum.TryParse<ClaudeState>(n["state"]?.ToString(), out var st) && (DateTime.Now - s.Updated).TotalMinutes < 10 ? st : ClaudeState.Idle;
-                    result.Add(s);
+                    if (!IsSessionId(id)) continue;
+                    var updated = DateTime.TryParse(n!["updated"]?.ToString(), out var u) ? u.ToLocalTime() : info.LastWriteTime;
+                    var state = Enum.TryParse<ClaudeState>(n["state"]?.ToString(), out var st) && (DateTime.Now - updated).TotalMinutes < 10 ? st : ClaudeState.Idle;
+                    list.Add(new SharedSession(machine, id, Clip(n["title"]?.ToString() ?? "Claude Code", 200), Clip(n["cwd"]?.ToString() ?? "", 260),
+                        SafeRemoteUrl(n["remote"]?.ToString()), updated, state));
                 }
             }
         }
         catch (Exception ex) { Log.Error("ClaudeShare", ex); }
-        return result;
+        return list;
     }
+
+    private static string Clip(string s, int max) => s.Length > max ? s[..max] : s;
+
+    /// <summary>Claude Code session ids are GUIDs; anything else never reaches a command line.</summary>
+    internal static bool IsSessionId(string? id) => Guid.TryParseExact(id, "D", out _);
+
+    private static readonly Regex RemoteUrlPattern = new(@"^https://claude\.ai/code/[A-Za-z0-9_\-/]+\z", RegexOptions.CultureInvariant);
+
+    /// <summary>The link if it is a claude.ai/code address, else null (it is opened with the shell).</summary>
+    internal static string? SafeRemoteUrl(string? url) => url is not null && RemoteUrlPattern.IsMatch(url) ? url : null;
+
+    private static readonly char[] UnsafeCwdChars = { '"', ';', '&', '|', '<', '>', '^', '%' };
+
+    /// <summary>A working folder from a hook: only an existing folder without shell metacharacters, else "".</summary>
+    internal static string SafeCwd(string? cwd) =>
+        !string.IsNullOrEmpty(cwd) && cwd.Length < 1024 && cwd.IndexOfAny(UnsafeCwdChars) < 0 && Directory.Exists(cwd) ? cwd : "";
 
     // ---------- questions from other machines (Remote Control) ----------
 
@@ -361,28 +407,32 @@ public sealed partial class ClaudeService : ObservableObject
 
     private void StartListener()
     {
+        if (_listener is not null) return;
         try
         {
-            _listener = new HttpListener();
-            _listener.Prefixes.Add(HookUrl);
-            _listener.Start();
-            _ = Task.Run(ListenLoop);
+            var listener = new HttpListener();
+            listener.Prefixes.Add(HookUrl);
+            listener.Start();
+            _listener = listener;
+            _ = Task.Run(() => ListenLoop(listener));
         }
         catch (Exception ex) { Log.Error("ClaudeHooks", ex); }
     }
 
-    private async Task ListenLoop()
+    private void StopListener()
     {
-        while (_listener is { IsListening: true })
+        _listener?.Close();
+        _listener = null;
+    }
+
+    private async Task ListenLoop(HttpListener listener)
+    {
+        while (listener.IsListening)
         {
             try
             {
-                var ctx = await _listener.GetContextAsync();
-                string body;
-                using (var r = new StreamReader(ctx.Request.InputStream, Encoding.UTF8)) body = await r.ReadToEndAsync();
-                ctx.Response.StatusCode = 204;
-                ctx.Response.Close();
-                var json = JsonNode.Parse(body);
+                var ctx = await listener.GetContextAsync();
+                var json = await ReadHookAsync(ctx);
                 if (json is null) continue;
                 _ = Application.Current.Dispatcher.BeginInvoke(() => OnHook(json));
             }
@@ -390,11 +440,39 @@ public sealed partial class ClaudeService : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Only takes what curl in a hook sends: a POST without an Origin header (browsers always send one, so web pages
+    /// cannot post here) and a bounded body (max. 1 MB).
+    /// </summary>
+    private static async Task<JsonNode?> ReadHookAsync(HttpListenerContext ctx)
+    {
+        var req = ctx.Request;
+        try
+        {
+            if (req.Headers["Origin"] is not null || req.Headers["Sec-Fetch-Site"] is not null) { ctx.Response.StatusCode = 403; return null; }
+            if (req.HttpMethod != "POST") { ctx.Response.StatusCode = 405; return null; }
+            if (req.ContentLength64 > MaxHookBody) { ctx.Response.StatusCode = 413; return null; }
+            using var body = new MemoryStream();
+            var chunk = new byte[16 * 1024];
+            int n;
+            while ((n = await req.InputStream.ReadAsync(chunk)) > 0)
+            {
+                body.Write(chunk, 0, n);
+                if (body.Length > MaxHookBody) { ctx.Response.StatusCode = 413; return null; }
+            }
+            var json = JsonNode.Parse(Encoding.UTF8.GetString(body.GetBuffer(), 0, (int)body.Length));
+            ctx.Response.StatusCode = 204;
+            return json;
+        }
+        catch { ctx.Response.StatusCode = 400; return null; }
+        finally { try { ctx.Response.Close(); } catch { } }
+    }
+
     private void OnHook(JsonNode json)
     {
         string id = json["session_id"]?.ToString() ?? "";
         string ev = json["hook_event_name"]?.ToString() ?? "";
-        if (id.Length == 0) return;
+        if (!IsSessionId(id)) return;
         var state = ev switch
         {
             "UserPromptSubmit" or "PreToolUse" or "SubagentStart" => ClaudeState.Working,
@@ -403,15 +481,25 @@ public sealed partial class ClaudeService : ObservableObject
             _ => (ClaudeState?)null,
         };
         if (state is null) return;
-        var previous = _hookState.TryGetValue(id, out var p) ? p : ClaudeState.Idle;
-        _hookState[id] = state.Value;
+        var previous = _hookState.TryGetValue(id, out var p) ? p.State : ClaudeState.Idle;
+        RememberHook(id, state.Value);
         Scan();
         var session = Sessions.FirstOrDefault(s => s.Id == id)
-                      ?? new ClaudeSession { Id = id, Cwd = json["cwd"]?.ToString() ?? "", Title = "Claude Code" };
+                      ?? new ClaudeSession { Id = id, Cwd = SafeCwd(json["cwd"]?.ToString()), Title = "Claude Code" };
         session.State = state.Value;
         UpdateSummary();
         if (ev == "Stop" && previous == ClaudeState.Working) Finished?.Invoke(session);
         if (ev == "Notification") NeedsInput?.Invoke(session, json["message"]?.ToString() ?? "");
+    }
+
+    /// <summary>Keeps at most 200 hook states; the oldest idle ones go first.</summary>
+    private void RememberHook(string id, ClaudeState state)
+    {
+        _hookState[id] = (state, DateTime.UtcNow);
+        if (_hookState.Count <= MaxHookStates) return;
+        foreach (var old in _hookState.OrderBy(kv => kv.Value.State == ClaudeState.Idle ? 0 : 1).ThenBy(kv => kv.Value.At)
+                     .Take(_hookState.Count - MaxHookStates).Select(kv => kv.Key).ToList())
+            _hookState.Remove(old);
     }
 
     // ---------- hook installation (opt-in) ----------
@@ -450,6 +538,7 @@ public sealed partial class ClaudeService : ObservableObject
             root["hooks"] = hooks;
             File.WriteAllText(SettingsPath, root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
             HooksInstalled = true;
+            if (_started) StartListener();
         }
         catch (Exception ex) { Log.Error("ClaudeHooksInstall", ex); }
     }
@@ -470,6 +559,7 @@ public sealed partial class ClaudeService : ObservableObject
             if (hooks.Count == 0) root.Remove("hooks");
             File.WriteAllText(SettingsPath, root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
             HooksInstalled = false;
+            StopListener();
         }
         catch (Exception ex) { Log.Error("ClaudeHooksRemove", ex); }
     }
@@ -480,8 +570,8 @@ public sealed partial class ClaudeService : ObservableObject
     [RelayCommand]
     public void OpenRemote(ClaudeSession? s)
     {
-        if (s?.RemoteUrl is null) return;
-        try { Process.Start(new ProcessStartInfo(s.RemoteUrl) { UseShellExecute = true }); } catch (Exception ex) { Log.Error("ClaudeRemote", ex); }
+        if (SafeRemoteUrl(s?.RemoteUrl) is not { } url) return;
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch (Exception ex) { Log.Error("ClaudeRemote", ex); }
     }
 
     /// <summary>Local sessions resume in a terminal; sessions of other PCs open via Remote Control.</summary>
@@ -490,15 +580,25 @@ public sealed partial class ClaudeService : ObservableObject
     {
         if (s is null) return;
         if (!s.IsLocal) { OpenRemote(s); return; }
+        if (!IsSessionId(s.Id)) return;
         string dir = Directory.Exists(s.Cwd) ? s.Cwd : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         try
         {
-            // Windows Terminal if present, else a classic console.
-            Process.Start(new ProcessStartInfo("wt.exe", $"-d \"{dir}\" cmd /k claude --resume {s.Id}") { UseShellExecute = true });
+            // Windows Terminal if present, else a classic console. Arguments go one by one, never as a shell string;
+            // wt splits its command line at ';' (new tab), so a ';' in the folder is escaped as '\;'.
+            var wt = new ProcessStartInfo("wt.exe") { UseShellExecute = false, WorkingDirectory = dir };
+            foreach (var a in new[] { "-d", dir.Replace(";", "\\;"), "cmd", "/k", "claude", "--resume", s.Id }) wt.ArgumentList.Add(a);
+            Process.Start(wt);
         }
         catch
         {
-            try { Process.Start(new ProcessStartInfo("cmd.exe", $"/k cd /d \"{dir}\" && claude --resume {s.Id}") { UseShellExecute = true }); }
+            try
+            {
+                // The folder is the working directory, not part of the command line cmd parses.
+                var cmd = new ProcessStartInfo("cmd.exe") { UseShellExecute = false, WorkingDirectory = dir };
+                foreach (var a in new[] { "/k", "claude", "--resume", s.Id }) cmd.ArgumentList.Add(a);
+                Process.Start(cmd);
+            }
             catch (Exception ex) { Log.Error("ClaudeResume", ex); }
         }
     }
@@ -518,5 +618,5 @@ public sealed partial class ClaudeService : ObservableObject
     [RelayCommand]
     public void OpenWeb() => Process.Start(new ProcessStartInfo("https://claude.ai/code") { UseShellExecute = true });
 
-    public void Stop() => _listener?.Close();
+    public void Stop() => StopListener();
 }

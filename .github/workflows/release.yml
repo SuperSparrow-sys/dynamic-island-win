@@ -22,8 +22,10 @@ jobs:
         id: v
         shell: pwsh
         run: |
+          # Only real version tags (v1.2.3 or v1.2.3-beta.1) build a release; a manual run on a branch has no version.
+          if ("${{ github.ref_type }}" -ne "tag") { throw "Run this workflow on a version tag (v1.2.3), not on a branch." }
           $v = "${{ github.ref_name }}".TrimStart('v')
-          if (-not ($v -match '^\d+\.\d+\.\d+')) { $v = "1.0.0" }
+          if (-not ($v -match '^\d+\.\d+\.\d+(-[\w.]+)?$')) { throw "Tag '${{ github.ref_name }}' is not a version (v1.2.3 or v1.2.3-beta.1)." }
           "version=$v" >> $env:GITHUB_OUTPUT
 
       - name: Test

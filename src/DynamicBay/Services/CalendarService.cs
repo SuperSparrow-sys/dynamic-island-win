@@ -126,6 +126,8 @@ public sealed partial class CalendarService : ObservableObject
         _minute.Tick += (_, _) => Recompute();
         _refresh.Start();
         _minute.Start();
+        // Events are turned into local times when read: another time zone reads them again.
+        ClockService.TimeZoneChanged += () => _ = RefreshAsync();
         _settings.PropertyChanged += async (_, e) =>
         {
             if (e.PropertyName is nameof(AppSettings.CalendarAccounts) or nameof(AppSettings.CalendarEnabled)) await RefreshAsync();
@@ -229,8 +231,11 @@ public sealed partial class CalendarService : ObservableObject
         {
             case CalendarKind.Ics:
             {
-                var ics = await _http.GetStringAsync(a.Url.Trim().Replace("webcal://", "https://"));
-                return Parse(ics, from, to, null);
+                var url = a.Url.Trim();
+                if (url.StartsWith("webcal://", StringComparison.OrdinalIgnoreCase)) url = "https://" + url["webcal://".Length..];
+                var ics = await _http.GetStringAsync(url);
+                // Big calendars with many repeating events take a while to expand: not on the UI thread.
+                return await Task.Run(() => Parse(ics, from, to, null));
             }
             case CalendarKind.ICloud:
             {
@@ -255,10 +260,13 @@ public sealed partial class CalendarService : ObservableObject
                     try { return (cal, items: await client.FetchAsync(cal.Url, from, to)); }
                     finally { gate.Release(); }
                 }));
-                var list = new List<CalendarEvent>();
-                foreach (var (cal, items) in blobs)
-                    foreach (var blob in items) list.AddRange(Parse(blob, from, to, cal.Color));
-                return list;
+                return await Task.Run(() =>
+                {
+                    var list = new List<CalendarEvent>();
+                    foreach (var (cal, items) in blobs)
+                        foreach (var blob in items) list.AddRange(Parse(blob, from, to, cal.Color));
+                    return list;
+                });
             }
             case CalendarKind.Google:
             {
@@ -309,21 +317,39 @@ public sealed partial class CalendarService : ObservableObject
         }
         FillDay();
         var now = DateTime.Now;
-        var today = _all.Where(e => e.End > now && e.Start.Date <= DateTime.Today).Take(6).ToList();
+        var current = _all.Where(e => e.End > now && e.Start.Date <= DateTime.Today).ToList();
         Upcoming.Clear();
-        foreach (var e in today) Upcoming.Add(e);
-        Next = today.FirstOrDefault(e => !e.AllDay);
+        foreach (var e in current.Take(6)) Upcoming.Add(e);
+        Next = PickNext(current, now, _settings.CalendarPeekMinutes);
 
         if (Next is not null)
         {
             var mins = (Next.Start - now).TotalMinutes;
             IsSoon = mins <= _settings.CalendarPeekMinutes && mins > -5;
             SoonText = mins <= 0 ? Loc.T("Cal.Now") : Loc.F("Cal.InMinutes", (int)Math.Ceiling(mins));
-            string key = Next.Title + Next.Start.ToString("O");
-            if (IsSoon && mins > 0 && _announced.Add(key)) EventStartingSoon?.Invoke(Next);
         }
         else IsSoon = false;
+        // Every event about to start is announced once - also one right after another, while the first still runs.
+        foreach (var e in StartingSoon(_all, now, _settings.CalendarPeekMinutes))
+            if (_announced.Add(e.Title + e.Start.ToString("O"))) EventStartingSoon?.Invoke(e);
     }
+
+    /// <summary>
+    /// The event the island shows: one starting within the peek time comes first (back-to-back meetings), then the
+    /// first one ahead or started at most 5 minutes ago; one running for longer (a meeting spanning days) only if
+    /// nothing else is left today.
+    /// </summary>
+    internal static CalendarEvent? PickNext(IEnumerable<CalendarEvent> events, DateTime now, int peekMinutes)
+    {
+        var timed = events.Where(e => !e.AllDay && e.End > now).OrderBy(e => e.Start).ToList();
+        return StartingSoon(timed, now, peekMinutes).FirstOrDefault()
+               ?? timed.FirstOrDefault(e => now - e.Start <= TimeSpan.FromMinutes(5))
+               ?? timed.FirstOrDefault();
+    }
+
+    /// <summary>Timed events that start within the next peekMinutes.</summary>
+    internal static IEnumerable<CalendarEvent> StartingSoon(IEnumerable<CalendarEvent> events, DateTime now, int peekMinutes) =>
+        events.Where(e => !e.AllDay && e.Start > now && e.Start - now <= TimeSpan.FromMinutes(peekMinutes)).OrderBy(e => e.Start);
 
     /// <summary>For design snapshots only.</summary>
     public void LoadDemo()

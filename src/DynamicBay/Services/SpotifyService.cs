@@ -53,7 +53,9 @@ public sealed partial class SpotifyService : ObservableObject
                                   "user-library-read user-library-modify user-read-private playlist-read-private playlist-read-collaborative";
 
     private readonly AppSettings _settings;
-    private readonly HttpClient _http = new() { BaseAddress = new Uri("https://api.spotify.com/v1/") };
+    private readonly HttpClient _http = new() { BaseAddress = new Uri("https://api.spotify.com/v1/"), Timeout = TimeSpan.FromSeconds(15) };
+    private static readonly HttpClient Auth = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private readonly SemaphoreSlim _tokenGate = new(1, 1);
     private readonly string _tokenFile = Path.Combine(AppSettings.Folder, "spotify.bin");
     private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromSeconds(3) };
     private string? _accessToken;
@@ -204,12 +206,21 @@ public sealed partial class SpotifyService : ObservableObject
         try { File.Delete(_tokenFile); } catch { }
     }
 
+    /// <summary>Spotify refused the token request; <see cref="Error"/> is its OAuth error code ("invalid_grant", ...).</summary>
+    private sealed class TokenException(HttpStatusCode status, string? error, string message) : InvalidOperationException(message)
+    {
+        public HttpStatusCode Status { get; } = status;
+        public string? Error { get; } = error;
+    }
+
     private async Task TokenRequestAsync(Dictionary<string, string> form)
     {
-        using var auth = new HttpClient();
-        var res = await auth.PostAsync("https://accounts.spotify.com/api/token", new FormUrlEncodedContent(form));
-        var json = JsonNode.Parse(await res.Content.ReadAsStringAsync());
-        if (!res.IsSuccessStatusCode) throw new InvalidOperationException(json?["error_description"]?.ToString() ?? res.StatusCode.ToString());
+        using var res = await Auth.PostAsync("https://accounts.spotify.com/api/token", new FormUrlEncodedContent(form));
+        var text = await res.Content.ReadAsStringAsync();
+        JsonNode? json = null;
+        try { json = JsonNode.Parse(text); } catch when (!res.IsSuccessStatusCode) { } // e.g. an HTML error page
+        if (!res.IsSuccessStatusCode)
+            throw new TokenException(res.StatusCode, json?["error"]?.ToString(), json?["error_description"]?.ToString() ?? res.StatusCode.ToString());
         _accessToken = json!["access_token"]!.ToString();
         _expiresAt = DateTime.UtcNow.AddSeconds(json["expires_in"]!.GetValue<int>() - 60);
         // Spotify may rotate the refresh token; keep the old one if none is returned.
@@ -221,8 +232,12 @@ public sealed partial class SpotifyService : ObservableObject
     {
         if (_accessToken is not null && DateTime.UtcNow < _expiresAt) return true;
         if (_refreshToken is null) return false;
+        // One refresh at a time: Spotify may rotate the refresh token, a second parallel request would use the old one.
+        await _tokenGate.WaitAsync();
         try
         {
+            if (_accessToken is not null && DateTime.UtcNow < _expiresAt) return true; // refreshed while we waited
+            if (_refreshToken is null) return false;
             await TokenRequestAsync(new Dictionary<string, string>
             {
                 ["grant_type"] = "refresh_token",
@@ -231,12 +246,19 @@ public sealed partial class SpotifyService : ObservableObject
             });
             return true;
         }
-        catch (HttpRequestException) { return false; } // offline: try again later, keep login
-        catch
+        catch (TokenException ex) when (ex.Status == HttpStatusCode.BadRequest && ex.Error is "invalid_grant" or "invalid_client")
         {
-            Disconnect(); // refresh token revoked
+            Log.Info($"Spotify login no longer valid ({ex.Error}): {ex.Message}");
+            Disconnect(); // refresh token revoked or the Client ID is gone
             return false;
         }
+        catch (Exception ex)
+        {
+            // Offline, timeout, server trouble: keep the login and try again later.
+            Log.Info($"Spotify token refresh failed: {ex.Message}");
+            return false;
+        }
+        finally { _tokenGate.Release(); }
     }
 
     private void SaveTokens()
@@ -245,7 +267,10 @@ public sealed partial class SpotifyService : ObservableObject
         {
             Directory.CreateDirectory(AppSettings.Folder);
             var raw = JsonSerializer.SerializeToUtf8Bytes(new { r = _refreshToken });
-            File.WriteAllBytes(_tokenFile, ProtectedData.Protect(raw, null, DataProtectionScope.CurrentUser));
+            // Written next to it and swapped in, so a crash mid-write never leaves a broken token file.
+            var tmp = _tokenFile + ".tmp";
+            File.WriteAllBytes(tmp, ProtectedData.Protect(raw, null, DataProtectionScope.CurrentUser));
+            File.Move(tmp, _tokenFile, overwrite: true);
         }
         catch { }
     }

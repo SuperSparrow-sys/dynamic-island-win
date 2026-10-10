@@ -19,11 +19,10 @@ public static class Hotkey
                 case "shift": case "umschalt": modifiers |= Native.MOD_SHIFT; break;
                 case "win": modifiers |= Native.MOD_WIN; break;
                 default:
-                    if (!Enum.TryParse<Key>(raw, true, out var key))
-                    {
-                        if (raw.Length == 1 && char.IsDigit(raw[0])) key = Key.D0 + (raw[0] - '0');
-                        else return false;
-                    }
+                    // Digits first: Enum.TryParse would read "3" as (Key)3 (Tab) and "0" as Key.None.
+                    Key key;
+                    if (raw.Length == 1 && raw[0] is >= '0' and <= '9') key = Key.D0 + (raw[0] - '0');
+                    else if (!char.IsLetter(raw[0]) || !Enum.TryParse(raw, true, out key) || !Enum.IsDefined(key)) return false;
                     vk = (uint)KeyInterop.VirtualKeyFromKey(key);
                     break;
             }

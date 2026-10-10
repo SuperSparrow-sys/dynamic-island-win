@@ -55,6 +55,8 @@ german.LaunchApp=DynamicBay jetzt starten
 german.CloseApp=DynamicBay läuft noch. Bitte über das Tray-Symbol beenden und dann OK klicken.
 english.LaunchApp=Launch DynamicBay now
 english.CloseApp=DynamicBay is still running. Please quit it from the tray icon, then click OK.
+german.CloseAppUninstall=DynamicBay läuft noch. Bitte über das Tray-Symbol beenden und dann Wiederholen klicken.
+english.CloseAppUninstall=DynamicBay is still running. Please quit it from the tray icon, then click Retry.
 
 [Tasks]
 Name: "notifications"; Description: "{cm:TaskNotifications}"
@@ -78,7 +80,8 @@ Filename: "{app}\DynamicBay.exe"; Description: "{cm:LaunchApp}"; Flags: nowait p
 [UninstallRun]
 ; Restore Windows banners, autostart, Claude hooks and remove the identity package.
 Filename: "{app}\DynamicBay.exe"; Parameters: "--uninstall"; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayCleanup"
-Filename: "{sys}\certutil.exe"; Parameters: "-delstore TrustedPeople ""DynamicBay Open Source"""; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayCert"
+; Every copy of the signing certificate (each update may have added another one), only this exact subject in this store.
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -Command ""Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object {{ $_.Subject -eq 'CN=DynamicBay Open Source' } | Remove-Item -Force"""; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayCert"
 
 [Code]
 function IsUpdate: Boolean;
@@ -92,11 +95,14 @@ var
 begin
   Result := True;
   // Auto-update: DynamicBay launched this setup and is shutting down - give it a moment to exit.
-  i := 0;
-  while CheckForMutexes('DynamicBay.SingleInstance') and (i < 40) do
+  if IsUpdate then
   begin
-    Sleep(250);
-    i := i + 1;
+    i := 0;
+    while CheckForMutexes('DynamicBay.SingleInstance') and (i < 40) do
+    begin
+      Sleep(250);
+      i := i + 1;
+    end;
   end;
   if CheckForMutexes('DynamicBay.SingleInstance') and not WizardSilent then
     Result := MsgBox(CustomMessage('CloseApp'), mbConfirmation, MB_OKCANCEL) = IDOK;
@@ -114,6 +120,31 @@ begin
     if not Exec(ExpandConstant('{win}\explorer.exe'), AddQuotes(ExpandConstant('{app}\DynamicBay.exe')), '', SW_SHOWNORMAL, ewNoWait, Code) then
       Log('Restart via explorer failed: ' + IntToStr(Code));
   end;
+end;
+
+// A running DynamicBay keeps its files open and would switch the banners off again: ask to quit it first.
+// No AppMutex entry - that would also stop the silent auto-update, which DynamicBay starts while still running.
+function InitializeUninstall: Boolean;
+var
+  i: Integer;
+begin
+  Result := True;
+  if UninstallSilent then
+  begin
+    i := 0;
+    while CheckForMutexes('DynamicBay.SingleInstance') and (i < 40) do
+    begin
+      Sleep(250);
+      i := i + 1;
+    end;
+    exit;
+  end;
+  while CheckForMutexes('DynamicBay.SingleInstance') do
+    if MsgBox(CustomMessage('CloseAppUninstall'), mbError, MB_RETRYCANCEL) = IDCANCEL then
+    begin
+      Result := False;
+      exit;
+    end;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);

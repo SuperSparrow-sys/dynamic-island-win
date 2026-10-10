@@ -100,7 +100,18 @@ public sealed partial class NotificationService : ObservableObject
         catch { return false; }
     }
 
+    private bool _polling;
+
+    /// <summary>One poll at a time: a slow one (many logos to load) must not overlap the next tick and show items twice.</summary>
     private async Task PollAsync()
+    {
+        if (_polling) return;
+        _polling = true;
+        try { await PollCoreAsync(); }
+        finally { _polling = false; }
+    }
+
+    private async Task PollCoreAsync()
     {
         if (_listener is null) return;
         // Nothing needs them: neither the island (switched off) nor the Claude question detection.

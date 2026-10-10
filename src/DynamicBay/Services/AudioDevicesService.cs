@@ -50,6 +50,7 @@ public sealed partial class AudioDevicesService : ObservableObject
     private string? _defaultOutput;
     private bool _defaultOutputWasHeadphones;
     private string? _allowedBluetoothMic; // the user chose the headset microphone (for a call): leave it until it disconnects
+    private string? _lastPcMic;           // the last default microphone that was not Bluetooth: the one to go back to
 
     public ObservableCollection<AudioDeviceItem> Outputs { get; } = new();
     public ObservableCollection<AudioDeviceItem> Inputs { get; } = new();
@@ -66,7 +67,7 @@ public sealed partial class AudioDevicesService : ObservableObject
     {
         _settings = settings;
         _media = media;
-        _debounce.Tick += (_, _) => { _debounce.Stop(); _ = RefreshAsync(); };
+        _debounce.Tick += (_, _) => { _debounce.Stop(); DefaultChanged?.Invoke(); _ = RefreshAsync(); };
         _settings.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AppSettings.InMeeting) && _settings.InMeeting) _ = CallStartedAsync(); };
     }
 
@@ -86,26 +87,59 @@ public sealed partial class AudioDevicesService : ObservableObject
             AudioEndpoints.SetMute(headphones.Id, false);
             Log.Info($"Audio: call - listening on {headphones.Device}");
         }
+        // Only a Bluetooth headset microphone is replaced: a microphone of the PC (built-in, USB) chosen by the user stays.
         var inId = AudioEndpoints.DefaultId(AudioFlow.Input, 2);
-        var pcMic = list.FirstOrDefault(e => e.Flow == AudioFlow.Input && e.Active && !e.Bluetooth);
-        if (pcMic is not null && pcMic.Id != inId && inId != _allowedBluetoothMic && AudioEndpoints.SetDefault(pcMic.Id))
+        if (list.FirstOrDefault(e => e.Id == inId) is { Bluetooth: true } && inId != _allowedBluetoothMic
+            && PcMic(list, _lastPcMic) is { } pcMic && AudioEndpoints.SetDefault(pcMic.Id))
             Log.Info($"Audio: call - speaking into {ShortName(pcMic)}");
         DefaultChanged?.Invoke();
         await RefreshAsync();
+    }
+
+    /// <summary>Names of input devices that are no microphone: loopbacks, virtual cables, streaming tools.</summary>
+    private static readonly string[] VirtualMics = { "stereo mix", "stereomix", "what u hear", "virtual", "vb-audio", "cable", "steam", "voicemeeter", "nvidia broadcast" };
+
+    /// <summary>
+    /// The PC's own microphone to use instead of a Bluetooth one: the one last used as the default, otherwise the first
+    /// real one (no loopback or virtual cable). Null if there is none - then nothing is switched.
+    /// </summary>
+    internal static AudioEndpointInfo? PcMic(IEnumerable<AudioEndpointInfo> list, string? lastPcMic)
+    {
+        var mics = list.Where(e => e.Flow == AudioFlow.Input && e.Active && !e.Bluetooth).ToList();
+        return mics.FirstOrDefault(e => e.Id == lastPcMic)
+               ?? mics.FirstOrDefault(e => !VirtualMics.Any(v => (e.Name + " " + e.Device).Contains(v, StringComparison.OrdinalIgnoreCase)));
     }
 
     public void Start()
     {
         if (_started) return;
         _started = true;
+        Register();
+        _ = RefreshAsync();
+    }
+
+    private void Register()
+    {
         try
         {
             _enumerator = (AudioEndpoints.IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
-            _notifier = new Notifier(() => _ui.BeginInvoke(() => { _debounce.Stop(); _debounce.Start(); DefaultChanged?.Invoke(); }));
-            _enumerator.RegisterEndpointNotificationCallback(_notifier);
+            // A burst of callbacks (a headset connecting) ends in one reading, see the debounce timer.
+            _notifier ??= new Notifier(() => _ui.BeginInvoke(() => { _debounce.Stop(); _debounce.Start(); }));
+            int hr = _enumerator.RegisterEndpointNotificationCallback(_notifier);
+            if (hr != 0) Log.Info($"Audio devices: notifications 0x{hr:X8}");
         }
         catch (Exception ex) { Log.Error("Audio devices", ex); }
-        _ = RefreshAsync();
+    }
+
+    /// <summary>The Windows audio service restarted: the old enumerator reports nothing any more - register again.</summary>
+    public void Reconnect()
+    {
+        if (!_started) return;
+        try { if (_notifier is not null) _enumerator?.UnregisterEndpointNotificationCallback(_notifier); } catch { }
+        Log.Info("Audio devices: audio service restarted - listening again");
+        Register();
+        _debounce.Stop();
+        _debounce.Start();
     }
 
     public void Stop()
@@ -202,10 +236,12 @@ public sealed partial class AudioDevicesService : ObservableObject
 
         // 3. A Bluetooth headset as microphone: use the PC's microphone, so the headset keeps its good sound.
         if (_allowedBluetoothMic is not null && !inputs.Any(i => i.Id == _allowedBluetoothMic)) _allowedBluetoothMic = null;
+        if (inputs.FirstOrDefault(i => i.Id == inId) is { Bluetooth: false } pcDefault) _lastPcMic = pcDefault.Id;
+        else if (inputs.FirstOrDefault(i => i.Id == commId) is { Bluetooth: false } pcComm) _lastPcMic = pcComm.Id;
         if (_settings.AudioAvoidBluetoothMic)
         {
             var btMic = inputs.FirstOrDefault(i => (i.Id == inId || i.Id == commId) && i.HandsFree && i.Id != _allowedBluetoothMic);
-            var pcMic = inputs.FirstOrDefault(i => !i.Bluetooth);
+            var pcMic = PcMic(inputs, _lastPcMic);
             if (btMic is not null && pcMic is not null && AudioEndpoints.SetDefault(pcMic.Id))
             {
                 Log.Info($"Audio: avoided the Bluetooth microphone of {btMic.Device}, using {ShortName(pcMic)}");
@@ -239,8 +275,8 @@ public sealed partial class AudioDevicesService : ObservableObject
         if (item is null || item.IsDefault) return;
         if (item.Flow == AudioFlow.Input)
         {
-            if (item.Bluetooth) _allowedBluetoothMic = item.Id; // chosen on purpose (for a call)
             if (!AudioEndpoints.SetDefault(item.Id)) return;
+            if (item.Bluetooth) _allowedBluetoothMic = item.Id; // chosen on purpose (for a call)
             Log.Info($"Audio: microphone -> {item.Name}");
             foreach (var i in Inputs) i.IsDefault = i == item;
             DefaultChanged?.Invoke();
@@ -306,8 +342,8 @@ public sealed partial class AudioDevicesService : ObservableObject
     {
         var mic = AudioEndpoints.List().FirstOrDefault(e => e.Flow == AudioFlow.Input && e.Active && e.Bluetooth && e.Device == device);
         if (mic is null) return;
+        if (!AudioEndpoints.SetDefault(mic.Id)) return;
         _allowedBluetoothMic = mic.Id;
-        AudioEndpoints.SetDefault(mic.Id);
         _ = RefreshAsync();
     }
 

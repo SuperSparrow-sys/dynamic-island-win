@@ -97,6 +97,8 @@ public sealed partial class MicrosoftAccount : ObservableObject
                 ["client_id"] = clientId, ["grant_type"] = "authorization_code", ["code"] = q["code"]!,
                 ["redirect_uri"] = redirect, ["code_verifier"] = verifier, ["scope"] = scopes,
             });
+            _tokenFailures = 0;
+            _retryAt = default;
             if (withPresence) _settings.MicrosoftPresence = true;
             await LoadProfileAsync();
             IsConnected = true;
@@ -140,9 +142,12 @@ public sealed partial class MicrosoftAccount : ObservableObject
     {
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
         var res = await http.PostAsync($"{Authority}/token", new FormUrlEncodedContent(form));
-        var json = JsonNode.Parse(await res.Content.ReadAsStringAsync());
+        var text = await res.Content.ReadAsStringAsync();
+        JsonNode? json = null;
+        try { json = JsonNode.Parse(text); } catch when (!res.IsSuccessStatusCode) { } // e.g. an HTML error page
         if (!res.IsSuccessStatusCode)
-            throw new InvalidOperationException(FirstLine(json?["error_description"]?.ToString()) ?? json?["error"]?.ToString() ?? res.StatusCode.ToString());
+            throw new TokenException(json?["error"]?.ToString(),
+                FirstLine(json?["error_description"]?.ToString()) ?? json?["error"]?.ToString() ?? res.StatusCode.ToString());
         _accessToken = json!["access_token"]!.ToString();
         _expires = DateTime.UtcNow.AddSeconds((json["expires_in"]?.GetValue<int>() ?? 3600) - 120);
         if (json["refresh_token"]?.ToString() is { Length: > 0 } rt) SecretStore.Set("ms:refresh", rt);
@@ -174,7 +179,15 @@ public sealed partial class MicrosoftAccount : ObservableObject
         catch { return null; } // personal-account access tokens are not readable JWTs
     }
 
+    /// <summary>The token endpoint refused; <see cref="Error"/> is the OAuth error code ("invalid_grant", ...).</summary>
+    private sealed class TokenException(string? error, string message) : InvalidOperationException(message)
+    {
+        public string? Error { get; } = error;
+    }
+
     private readonly SemaphoreSlim _tokenGate = new(1, 1);
+    private int _tokenFailures;
+    private DateTime _retryAt;
 
     private async Task<bool> EnsureTokenAsync()
     {
@@ -183,6 +196,7 @@ public sealed partial class MicrosoftAccount : ObservableObject
         try
         {
             if (_accessToken is not null && DateTime.UtcNow < _expires) return true;
+            if (DateTime.UtcNow < _retryAt) return false; // the last attempt failed: wait before the next one
             var rt = SecretStore.Get("ms:refresh");
             if (rt is null || _settings.MicrosoftClientId.Length == 0) { IsConnected = false; return false; }
             string scopes = _settings.MicrosoftPresence ? BaseScopes + " " + PresenceScopes : BaseScopes;
@@ -193,12 +207,29 @@ public sealed partial class MicrosoftAccount : ObservableObject
                     ["client_id"] = _settings.MicrosoftClientId.Trim(), ["grant_type"] = "refresh_token",
                     ["refresh_token"] = rt, ["scope"] = scopes,
                 });
+                if (_tokenFailures > 0) Status = "";
+                _tokenFailures = 0;
+                _retryAt = default;
                 return true;
+            }
+            catch (TokenException ex) when (ex.Error == "invalid_grant")
+            {
+                // Sign-in expired or revoked: show "connect" again instead of retrying with every poll.
+                Log.Info($"Microsoft sign-in no longer valid: {ex.Message}");
+                _accessToken = null;
+                IsConnected = false;
+                Status = Loc.German ? "Microsoft bitte neu verbinden" : "Please reconnect Microsoft";
+                return false;
             }
             catch (Exception ex)
             {
-                Log.Error("Microsoft token", ex);
-                Status = Loc.German ? "Microsoft bitte neu verbinden" : "Please reconnect Microsoft";
+                // Offline or server trouble: try again after 1, 2, 4 ... at most 30 minutes; the full error only once.
+                _tokenFailures++;
+                var wait = TimeSpan.FromMinutes(Math.Min(30, 1 << Math.Min(_tokenFailures - 1, 5)));
+                _retryAt = DateTime.UtcNow + wait;
+                if (_tokenFailures == 1) Log.Error("Microsoft token", ex);
+                else Log.Info($"Microsoft token failed again ({ex.Message}), next try in {wait.TotalMinutes:0} min");
+                Status = Loc.German ? "Microsoft gerade nicht erreichbar" : "Microsoft unreachable right now";
                 return false;
             }
         }

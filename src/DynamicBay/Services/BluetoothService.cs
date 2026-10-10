@@ -65,7 +65,8 @@ public sealed partial class BluetoothService : ObservableObject
             w.Added += (_, d) =>
             {
                 lock (_paired) _paired[d.Id] = (d.Name, le);
-                if (IsConnected(d.Properties)) SetConnected(d.Id, true);
+                // Also "not connected": after a watcher restart this clears devices that went while it was down.
+                SetConnected(d.Id, IsConnected(d.Properties));
             };
             w.Updated += (_, u) => { if (u.Properties.ContainsKey(ConnectedKey)) SetConnected(u.Id, IsConnected(u.Properties)); };
             w.Removed += (_, u) => SetConnected(u.Id, false);
@@ -73,6 +74,17 @@ public sealed partial class BluetoothService : ObservableObject
             {
                 if (Interlocked.Increment(ref _enumerated) == 2)
                     lock (_paired) Log.Info($"Bluetooth: {_paired.Count} paired, connected: {string.Join(", ", _connected.Select(id => _paired.GetValueOrDefault(id).name))}");
+            };
+            // Windows aborts a watcher now and then (Bluetooth stack restarted, radio switched off and on): start it again.
+            w.Stopped += (s, _) =>
+            {
+                if (s.Status != DeviceWatcherStatus.Aborted) return;
+                Log.Info("Bluetooth: watcher aborted - restarting in 5 s");
+                _ = Task.Delay(TimeSpan.FromSeconds(5)).ContinueWith(_ =>
+                {
+                    try { if (s.Status is DeviceWatcherStatus.Aborted or DeviceWatcherStatus.Stopped) s.Start(); }
+                    catch (Exception ex) { Log.Error("Bluetooth", ex); }
+                });
             };
             w.Start();
             _watchers.Add(w);
@@ -85,38 +97,44 @@ public sealed partial class BluetoothService : ObservableObject
 
     private async void SetConnected(string id, bool connected)
     {
-        (string name, bool le) p;
-        lock (_paired)
+        try
         {
-            if (connected ? !_connected.Add(id) : !_connected.Remove(id)) return; // no change
-            p = _paired.GetValueOrDefault(id, ("Bluetooth", false));
-        }
-        bool announce = _enumerated >= 2; // devices already connected at startup are listed, not announced
-        if (!connected)
-        {
-            _ui?.Invoke(() =>
+            (string name, bool le) p;
+            lock (_paired)
             {
-                var gone = Devices.FirstOrDefault(d => d.Id == id);
-                if (gone is not null) Devices.Remove(gone);
-                HasDevices = Devices.Count > 0;
-                if (announce && gone is not null && !gone.IsInput) DeviceChanged?.Invoke(gone, false);
+                if (connected ? !_connected.Add(id) : !_connected.Remove(id)) return; // no change
+                p = _paired.GetValueOrDefault(id, ("Bluetooth", false));
+            }
+            bool announce = _enumerated >= 2; // devices already connected at startup are listed, not announced
+            if (!connected)
+            {
+                _ui?.BeginInvoke(() =>
+                {
+                    var gone = Devices.FirstOrDefault(d => d.Id == id);
+                    if (gone is not null) Devices.Remove(gone);
+                    HasDevices = Devices.Count > 0;
+                    if (announce && gone is not null && !gone.IsInput) DeviceChanged?.Invoke(gone, false);
+                });
+                if (announce) Log.Info($"Bluetooth: {p.name} disconnected");
+                return;
+            }
+            var info = await DescribeAsync(id, p.name, p.le);
+            if (string.IsNullOrWhiteSpace(info.Name)) return; // nameless LE endpoints (e.g. a phone's second identity)
+            Log.Info($"Bluetooth: {info.Name} connected ({info.Kind}{(info.Battery is int b ? $", battery {b} %" : "")})");
+            _ui?.BeginInvoke(() =>
+            {
+                // Disconnected again while it was being described: its removal has already run, do not list it.
+                lock (_paired) if (!_connected.Contains(id)) return;
+                if (Devices.Any(d => d.Id == id)) return;
+                // Same physical device over classic and LE: show it once.
+                if (Devices.Any(d => d.Name == info.Name)) return;
+                Devices.Add(info);
+                HasDevices = true;
+                if (announce && !info.IsInput) DeviceChanged?.Invoke(info, true);
+                CheckLow(info);
             });
-            if (announce) Log.Info($"Bluetooth: {p.name} disconnected");
-            return;
         }
-        var info = await DescribeAsync(id, p.name, p.le);
-        if (string.IsNullOrWhiteSpace(info.Name)) return; // nameless LE endpoints (e.g. a phone's second identity)
-        Log.Info($"Bluetooth: {info.Name} connected ({info.Kind}{(info.Battery is int b ? $", battery {b} %" : "")})");
-        _ui?.Invoke(() =>
-        {
-            if (Devices.Any(d => d.Id == id)) return;
-            // Same physical device over classic and LE: show it once.
-            if (Devices.Any(d => d.Name == info.Name)) return;
-            Devices.Add(info);
-            HasDevices = true;
-            if (announce && !info.IsInput) DeviceChanged?.Invoke(info, true);
-            CheckLow(info);
-        });
+        catch (Exception ex) { Log.Error("Bluetooth", ex); }
     }
 
     private async Task RefreshBatteriesAsync()

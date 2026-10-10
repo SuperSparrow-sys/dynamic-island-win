@@ -66,10 +66,11 @@ public sealed class GoogleCalendarClient
         });
     }
 
+    private static readonly HttpClient Auth = new() { Timeout = TimeSpan.FromSeconds(20) };
+
     private async Task TokenAsync(Dictionary<string, string> form)
     {
-        using var http = new HttpClient();
-        var res = await http.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(form));
+        using var res = await Auth.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(form));
         var json = JsonNode.Parse(await res.Content.ReadAsStringAsync());
         if (!res.IsSuccessStatusCode) throw new InvalidOperationException(json?["error_description"]?.ToString() ?? json?["error"]?.ToString() ?? res.StatusCode.ToString());
         _accessToken = json!["access_token"]!.ToString();

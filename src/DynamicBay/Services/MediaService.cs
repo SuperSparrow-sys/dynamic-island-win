@@ -417,7 +417,11 @@ public sealed partial class MediaService : ObservableObject
     private void OfferCover(byte[] bytes, string title)
     {
         string hash = Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(bytes));
-        if (!_artTitles.TryGetValue(hash, out var titles)) _artTitles[hash] = titles = new HashSet<string>();
+        if (!_artTitles.TryGetValue(hash, out var titles))
+        {
+            if (_artTitles.Count > 64) _artTitles.Clear(); // every cover lands here: keep it small (learned icons are kept apart)
+            _artTitles[hash] = titles = new HashSet<string>();
+        }
         titles.Add(title);
         if (titles.Count > 1 && _placeholderArt.Add(hash))
         {

@@ -1,5 +1,7 @@
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -16,14 +18,22 @@ public sealed record ScriptResult(JsonNode? Widget, string? Error, DateTime Next
 /// <summary>
 /// Runs a user script in a sandbox. Jint is a JavaScript interpreter written in .NET; it gets no access to .NET,
 /// Windows or other files (CLR interop stays off). The only ways out are a few host functions: HTTP(S) requests
-/// (size and time limited), files inside the script's own data folder, and logging. Each run is limited in time,
+/// to public internet addresses (size and time limited), files inside the script's own data folder, and logging. Each run is limited in time,
 /// memory, statements and recursion depth.
 /// </summary>
 public static class ScriptEngine
 {
     public const int MaxResponseBytes = 2 * 1024 * 1024;
     public const int MaxFileBytes = 1024 * 1024;
-    private static readonly HttpClient Http = new(new SocketsHttpHandler { AllowAutoRedirect = true, MaxAutomaticRedirections = 5 }) { Timeout = TimeSpan.FromSeconds(20) };
+    // Every connection (redirects too) goes through ConnectPublicAsync: scripts reach the internet, never this PC or
+    // the local network. No proxy: the check has to see the real target.
+    private static readonly HttpClient Http = new(new SocketsHttpHandler
+    {
+        AllowAutoRedirect = true, MaxAutomaticRedirections = 5, UseProxy = false, ConnectCallback = ConnectPublicAsync,
+    }) { Timeout = TimeSpan.FromSeconds(20) };
+
+    /// <summary>For tests with a local server only.</summary>
+    internal static bool AllowLocalAddresses { get; set; }
     private static readonly Lazy<string> Prelude = new(() =>
     {
         using var s = Assembly.GetExecutingAssembly().GetManifestResourceStream("DynamicBay.Scripting.Prelude.js")!;
@@ -159,5 +169,51 @@ public static class ScriptEngine
         catch (Exception ex) { return Error(ex.InnerException?.Message ?? ex.Message); }
 
         static string Error(string m) => JsonSerializer.Serialize(new { status = 0, body = "", error = m });
+    }
+
+    /// <summary>Resolves the host itself and connects only to public addresses (the checked one, so DNS cannot switch).</summary>
+    private static async ValueTask<Stream> ConnectPublicAsync(SocketsHttpConnectionContext context, CancellationToken ct)
+    {
+        var host = context.DnsEndPoint.Host;
+        var addresses = IPAddress.TryParse(host.Trim('[', ']'), out var literal) ? new[] { literal! } : await Dns.GetHostAddressesAsync(host, ct);
+        var allowed = addresses.Where(a => AllowLocalAddresses || !IsBlockedAddress(a)).ToArray();
+        if (allowed.Length == 0)
+            throw new HttpRequestException(Loc.German ? "Adressen in diesem PC oder im lokalen Netz sind gesperrt" : "Addresses on this PC or the local network are blocked");
+        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+        try
+        {
+            await socket.ConnectAsync(allowed, context.DnsEndPoint.Port, ct);
+            return new NetworkStream(socket, ownsSocket: true);
+        }
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// True for addresses a script must not reach: loopback, private networks (10/8, 172.16/12, 192.168/16),
+    /// link-local (169.254/16, fe80::/10), carrier-grade NAT (100.64/10), unique local (fc00::/7), multicast,
+    /// "this network" (0/8, ::) and reserved ranges; IPv4 inside IPv6 (mapped, 6to4, NAT64) is checked as IPv4.
+    /// </summary>
+    public static bool IsBlockedAddress(IPAddress ip)
+    {
+        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+        var b = ip.GetAddressBytes();
+        if (ip.AddressFamily == AddressFamily.InterNetwork)
+            return b[0] is 0 or 10 or 127
+                || (b[0] == 172 && (b[1] & 0xF0) == 16)
+                || (b[0] == 192 && b[1] == 168)
+                || (b[0] == 169 && b[1] == 254)
+                || (b[0] == 100 && (b[1] & 0xC0) == 64)
+                || b[0] >= 224; // multicast 224/4, reserved 240/4, broadcast
+        if (ip.AddressFamily != AddressFamily.InterNetworkV6) return true;
+        if (b.Take(12).All(x => x == 0)) return true; // ::, ::1 and the old IPv4-compatible form
+        if (ip.IsIPv6LinkLocal || ip.IsIPv6SiteLocal || ip.IsIPv6Multicast || (b[0] & 0xFE) == 0xFC) return true;
+        if (b[0] == 0x20 && b[1] == 0x02) return IsBlockedAddress(new IPAddress(b[2..6])); // 6to4
+        if (b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xFF && b[3] == 0x9B && b.Skip(4).Take(8).All(x => x == 0))
+            return IsBlockedAddress(new IPAddress(b[12..16])); // NAT64
+        return false;
     }
 }

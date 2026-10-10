@@ -13,6 +13,7 @@ public sealed class TrayIcon : IDisposable
     private readonly AppSettings _settings;
     private readonly ToolStripMenuItem _toggle, _dnd, _update;
     private readonly ToolStripSeparator _updateSep = new();
+    private readonly System.Windows.Forms.Timer _clickDelay = new();
 
     public TrayIcon(AppSettings settings, Action openSettings, Action toggleHidden, Action resetPosition, Action quit)
     {
@@ -47,8 +48,17 @@ public sealed class TrayIcon : IDisposable
             Visible = true,
             ContextMenuStrip = menu,
         };
-        _icon.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) toggleHidden(); };
-        _icon.MouseDoubleClick += (_, e) => { if (e.Button == MouseButtons.Left) openSettings(); };
+        // A single click shows/hides the island, a double click opens the settings. The single click waits for the
+        // double-click time, so a double click doesn't also hide the island first.
+        _clickDelay.Interval = Math.Max(1, SystemInformation.DoubleClickTime);
+        _clickDelay.Tick += (_, _) => { _clickDelay.Stop(); toggleHidden(); };
+        _icon.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left && !_clickDelay.Enabled) _clickDelay.Start(); };
+        _icon.MouseDoubleClick += (_, e) =>
+        {
+            if (e.Button != MouseButtons.Left) return;
+            _clickDelay.Stop();
+            openSettings();
+        };
         _settings.PropertyChanged += OnSettingsChanged;
         Sync();
     }
@@ -78,6 +88,7 @@ public sealed class TrayIcon : IDisposable
     public void Dispose()
     {
         _settings.PropertyChanged -= OnSettingsChanged;
+        _clickDelay.Dispose();
         _icon.Visible = false;
         _icon.Dispose();
     }

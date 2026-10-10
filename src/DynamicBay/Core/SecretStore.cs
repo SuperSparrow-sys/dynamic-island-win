@@ -21,7 +21,10 @@ public static class SecretStore
         {
             if (string.IsNullOrEmpty(value)) { File.Delete(FileFor(key)); return; }
             Directory.CreateDirectory(Folder);
-            File.WriteAllBytes(FileFor(key), ProtectedData.Protect(Encoding.UTF8.GetBytes(value), null, DataProtectionScope.CurrentUser));
+            // Written next to it and swapped in: a crash mid-write never leaves half a secret (e.g. a lost refresh token).
+            string file = FileFor(key), tmp = $"{file}.{Guid.NewGuid():N}.tmp";
+            File.WriteAllBytes(tmp, ProtectedData.Protect(Encoding.UTF8.GetBytes(value), null, DataProtectionScope.CurrentUser));
+            File.Move(tmp, file, overwrite: true);
         }
         catch (Exception ex) { Log.Error("SecretStore", ex); }
     }

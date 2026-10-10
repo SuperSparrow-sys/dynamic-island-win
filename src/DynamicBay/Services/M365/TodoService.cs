@@ -89,7 +89,7 @@ public sealed partial class TodoService : ObservableObject
                 foreach (var t in tasks)
                 {
                     if (t is null || t["status"]?.ToString() == "completed") continue;
-                    DateTime? due = DateTime.TryParse(t["dueDateTime"]?["dateTime"]?.ToString(), out var d) ? d.Date : null;
+                    DateTime? due = DueDate(t["dueDateTime"]);
                     all.Add(new TodoItem
                     {
                         Id = t["id"]!.ToString(), ListId = listId, Title = t["title"]?.ToString() ?? "",
@@ -136,6 +136,20 @@ public sealed partial class TodoService : ObservableObject
                 return new();
             }
         }
+    }
+
+    /// <summary>
+    /// The due day of a task. To Do stores a due date as midnight of that day (timeZone mostly "UTC"): the date in the
+    /// string is the day, converting it would move it to the day before west of UTC. Other times (set by other apps)
+    /// are converted from their zone into local time.
+    /// </summary>
+    internal static DateTime? DueDate(JsonNode? due)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        if (!DateTime.TryParse(due?["dateTime"]?.ToString(), inv, System.Globalization.DateTimeStyles.None, out var d)) return null;
+        if (d.TimeOfDay == TimeSpan.Zero || d.Kind != DateTimeKind.Unspecified) return d.Date;
+        try { return TimeZoneInfo.ConvertTime(d, TimeZoneInfo.FindSystemTimeZoneById(due?["timeZone"]?.ToString() ?? "UTC"), TimeZoneInfo.Local).Date; }
+        catch { return d.Date; }
     }
 
     /// <summary>"Aufgaben" for the default list, "Gekennzeichnete E-Mails" for flagged mails, else the list's own name.</summary>

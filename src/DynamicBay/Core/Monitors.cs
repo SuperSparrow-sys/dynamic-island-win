@@ -39,13 +39,9 @@ public static class Monitors
         Describe(Native.MonitorFromPoint(new Native.POINT { X = x, Y = y }, Native.MONITOR_DEFAULTTONEAREST));
 
     /// <summary>The monitor with this device name, or the primary one if it is not connected.</summary>
-    public static MonitorInfo ByDevice(string? device)
-    {
-        if (!string.IsNullOrEmpty(device))
-        {
-            var match = All().FirstOrDefault(m => string.Equals(m.Device, device, StringComparison.OrdinalIgnoreCase));
-            if (match is not null) return match;
-        }
-        return Primary();
-    }
+    public static MonitorInfo ByDevice(string? device) => FindDevice(device) ?? Primary();
+
+    /// <summary>The monitor with this device name, or null if it is not connected (no fallback).</summary>
+    public static MonitorInfo? FindDevice(string? device) =>
+        string.IsNullOrEmpty(device) ? null : All().FirstOrDefault(m => string.Equals(m.Device, device, StringComparison.OrdinalIgnoreCase));
 }

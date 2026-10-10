@@ -85,8 +85,13 @@ public static class AudioEndpoints
         try
         {
             var policy = (IPolicyConfig)new PolicyConfigClient();
-            foreach (int role in new[] { 0, 1, 2 }) policy.SetDefaultEndpoint(id, role);
-            return true;
+            bool ok = true;
+            foreach (int role in new[] { 0, 1, 2 })
+            {
+                int hr = policy.SetDefaultEndpoint(id, role);
+                if (hr != 0) { Core.Log.Info($"Set default audio device (role {role}): 0x{hr:X8}"); ok = false; }
+            }
+            return ok;
         }
         catch (Exception ex) { Core.Log.Info($"Set default audio device: {ex.Message}"); return false; }
     }

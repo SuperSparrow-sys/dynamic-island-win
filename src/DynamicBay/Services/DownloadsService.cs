@@ -40,21 +40,68 @@ public sealed partial class DownloadsService : ObservableObject
 
     public void SetEnabled(bool enabled)
     {
-        if (enabled == (_watcher is not null)) return;
-        if (!enabled) { _watcher?.Dispose(); _watcher = null; _tick.Stop(); _active.Clear(); Update(); return; }
+        if (enabled == _enabled) return;
+        _enabled = enabled;
+        if (!enabled) { _retry.Stop(); StopWatching(); _tick.Stop(); _active.Clear(); Update(); return; }
+        _tick.Tick -= OnTick;
+        _tick.Tick += OnTick;
+        _retry.Tick -= OnRetry;
+        _retry.Tick += OnRetry;
+        if (!Watch()) RetryIn(TimeSpan.FromSeconds(30));
+    }
+
+    private bool _enabled;
+    private readonly DispatcherTimer _retry = new();
+
+    private bool Watch()
+    {
+        FileSystemWatcher? w = null;
         try
         {
-            _watcher = new FileSystemWatcher(KnownFolders.Downloads) { IncludeSubdirectories = false, NotifyFilter = NotifyFilters.FileName };
-            _watcher.Created += (_, e) => _ui.BeginInvoke(() => OnCreated(e.FullPath));
-            _watcher.Renamed += (_, e) => _ui.BeginInvoke(() => OnRenamed(e.OldFullPath, e.FullPath));
-            _watcher.Deleted += (_, e) => _ui.BeginInvoke(() => { if (_active.Remove(e.FullPath)) Update(); });
-            _watcher.EnableRaisingEvents = true;
-            _tick.Tick -= OnTick;
-            _tick.Tick += OnTick;
-            // Downloads already running when the island starts.
-            foreach (var f in Directory.EnumerateFiles(KnownFolders.Downloads).Where(IsPartial)) OnCreated(f);
+            // 64 KB: a browser starting many downloads at once (or an unzip into Downloads) no longer overflows it.
+            var created = new FileSystemWatcher(KnownFolders.Downloads) { IncludeSubdirectories = false, NotifyFilter = NotifyFilters.FileName, InternalBufferSize = 64 * 1024 };
+            w = created;
+            w.Created += (_, e) => _ui.BeginInvoke(() => OnCreated(e.FullPath));
+            w.Renamed += (_, e) => _ui.BeginInvoke(() => OnRenamed(e.OldFullPath, e.FullPath));
+            w.Deleted += (_, e) => _ui.BeginInvoke(() => { if (_active.Remove(e.FullPath)) Update(); });
+            w.Error += (_, e) => _ui.BeginInvoke(() => OnWatcherError(created, e.GetException()));
+            w.EnableRaisingEvents = true;
+            _watcher = w;
         }
+        catch (Exception ex) { w?.Dispose(); Log.Error("Downloads", ex); return false; }
+        // Downloads already running when the island starts (or that began while the watcher was down).
+        try { foreach (var f in Directory.EnumerateFiles(KnownFolders.Downloads).Where(IsPartial)) OnCreated(f); }
         catch (Exception ex) { Log.Error("Downloads", ex); }
+        return true;
+    }
+
+    private void StopWatching()
+    {
+        _watcher?.Dispose();
+        _watcher = null;
+    }
+
+    /// <summary>Buffer overflow, or the Downloads folder (on a network drive) went away: the watcher stops for good, so start a new one.</summary>
+    private void OnWatcherError(FileSystemWatcher w, Exception ex)
+    {
+        if (w != _watcher) return;
+        Log.Error("Downloads watcher", ex);
+        StopWatching();
+        RetryIn(TimeSpan.FromSeconds(2));
+    }
+
+    private void RetryIn(TimeSpan delay)
+    {
+        _retry.Stop();
+        _retry.Interval = delay;
+        _retry.Start();
+    }
+
+    private void OnRetry(object? sender, EventArgs e)
+    {
+        _retry.Stop();
+        if (!_enabled || _watcher is not null) return;
+        if (!Watch()) RetryIn(TimeSpan.FromSeconds(30));
     }
 
     private void OnCreated(string path)

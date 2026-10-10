@@ -215,6 +215,12 @@ public sealed partial class AppSettings : ObservableObject
             if (!CompactItems.Contains(Widgets.TimeTrack)) CompactItems.Add(Widgets.TimeTrack);
             SettingsVersion = 7;
         }
+        // v8: downloads in the island (size, speed, the finished file) - on once, can be switched off.
+        if (SettingsVersion < 8)
+        {
+            if (!CompactItems.Contains(Widgets.Downloads)) CompactItems.Add(Widgets.Downloads);
+            SettingsVersion = 8;
+        }
         // v9: second page "System": sound and devices move there, the Nook keeps the rest.
         if (SettingsVersion < 9)
         {
@@ -222,11 +228,11 @@ public sealed partial class AppSettings : ObservableObject
                 if (HomeWidgets.Remove(id) && !SystemWidgets.Contains(id)) SystemWidgets.Add(id);
             SettingsVersion = 9;
         }
-        // v8: downloads in the island (size, speed, the finished file) - on once, can be switched off.
-        if (SettingsVersion < 8)
+        // v10: 1.0.15 ran v9 before v8, so updates from v6/v7 never got the downloads - they get them once now.
+        if (SettingsVersion < 10)
         {
             if (!CompactItems.Contains(Widgets.Downloads)) CompactItems.Add(Widgets.Downloads);
-            SettingsVersion = 8;
+            SettingsVersion = 10;
         }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });
@@ -362,15 +368,36 @@ public sealed partial class AppSettings : ObservableObject
         Converters = { new JsonStringEnumConverter() },
     };
 
+    /// <summary>Snapshot runs and the like: Save and SaveSoon do nothing, the user's file stays as it is.</summary>
+    public static bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// Reads settings.json. A broken file is copied aside (settings.corrupt-{time}.json) and the backup of the last
+    /// good save is used instead; only without one the defaults apply.
+    /// </summary>
     public static AppSettings Load()
+    {
+        if (File.Exists(FilePath))
+        {
+            if (TryRead(FilePath) is { } s) return s;
+            AtomicFile.SetAside(FilePath);
+        }
+        if (File.Exists(FilePath + ".bak") && TryRead(FilePath + ".bak") is { } backup)
+        {
+            Log.Info("Settings: using the backup of the last save");
+            return backup;
+        }
+        return new AppSettings();
+    }
+
+    private static AppSettings? TryRead(string path)
     {
         try
         {
-            if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), Json) ?? new();
+            return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path), Json)
+                   ?? throw new JsonException("empty settings file");
         }
-        catch { /* corrupt file: fall back to defaults */ }
-        return new AppSettings();
+        catch (Exception ex) { Log.Error("Settings load " + Path.GetFileName(path), ex); return null; }
     }
 
     private System.Windows.Threading.DispatcherTimer? _saveTimer;
@@ -378,6 +405,7 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>Debounced save so slider drags don't hammer the disk.</summary>
     public void SaveSoon()
     {
+        if (ReadOnly) return;
         _saveTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
         _saveTimer.Stop();
         _saveTimer.Tick -= OnSaveTick;
@@ -393,11 +421,12 @@ public sealed partial class AppSettings : ObservableObject
 
     public void Save()
     {
+        if (ReadOnly) return;
         try
         {
-            Directory.CreateDirectory(Folder);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, Json));
+            // Temp file first, then swapped in: a crash while saving can't leave a half written file behind.
+            AtomicFile.WriteAllText(FilePath, JsonSerializer.Serialize(this, Json));
         }
-        catch { /* settings are best effort */ }
+        catch (Exception ex) { Log.Error("Settings save", ex); /* settings are best effort */ }
     }
 }

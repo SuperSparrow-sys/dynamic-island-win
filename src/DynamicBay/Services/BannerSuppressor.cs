@@ -22,6 +22,8 @@ public static class BannerSuppressor
 
     private static Dictionary<string, int?>? _backup;
     private static bool _active;
+    /// <summary>The old backup was unreadable and set aside: a 0 found now is ours from before, Windows' default is "on".</summary>
+    private static bool _assumeDefaults;
     private static HashSet<string> _except = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
@@ -34,7 +36,8 @@ public static class BannerSuppressor
         {
             _active = s.SuppressBanners && islandShowsNotifications && s.NotificationsEnabled && !s.Hidden;
             _except = s.BannerExceptions.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var backup = _backup ??= LoadBackup();
+            // The backup is unreadable: silencing now would save ShowBanner=0 as the "original" - banners stay as they are.
+            if ((_backup ??= LoadBackup()) is not { } backup) { Log.Info("Banner backup unreadable: Windows banners left alone"); return; }
 
             var wanted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (_active)
@@ -44,10 +47,7 @@ public static class BannerSuppressor
                 wanted.Add(SoundKey);
             }
             foreach (var app in backup.Keys.Where(a => !wanted.Contains(a)).ToList())
-            {
-                Restore(app, backup[app]);
-                backup.Remove(app);
-            }
+                if (Restore(app, backup[app])) backup.Remove(app);
             foreach (var app in wanted.Where(a => !backup.ContainsKey(a)).ToList()) Silence(app, backup);
             SaveBackup(backup);
             Log.Info(_active ? $"Windows banners off for {backup.Count - 1} apps" : "Windows banners as configured by the user");
@@ -62,8 +62,7 @@ public static class BannerSuppressor
     public static void Seen(string appId)
     {
         if (!_active || appId.Length == 0 || _except.Contains(appId)) return;
-        var backup = _backup ??= LoadBackup();
-        if (backup.ContainsKey(appId)) return;
+        if ((_backup ??= LoadBackup()) is not { } backup || backup.ContainsKey(appId)) return;
         try { Silence(appId, backup); SaveBackup(backup); }
         catch (Exception ex) { Log.Error("BannerSuppressor", ex); }
     }
@@ -71,11 +70,13 @@ public static class BannerSuppressor
     /// <summary>Puts every app back the way it was (app exit, uninstall: DynamicBay.exe --restore-banners).</summary>
     public static void RestoreAll()
     {
-        var backup = _backup ?? LoadBackup();
-        foreach (var (app, original) in backup) Restore(app, original);
-        backup.Clear();
         _active = false;
-        try { File.Delete(BackupFile); } catch { }
+        // Unreadable: keep the file, it is the only record of the user's values.
+        if ((_backup ?? LoadBackup()) is not { } backup) return;
+        foreach (var app in backup.Keys.ToList())
+            if (Restore(app, backup[app])) backup.Remove(app);
+        // Only what could not be put back stays in the file (deleted once everything is restored).
+        SaveBackup(backup);
     }
 
     /// <summary>Remembers the original value first (null = Windows default "on"), then switches it off.</summary>
@@ -84,16 +85,16 @@ public static class BannerSuppressor
         if (app == SoundKey)
         {
             using var root = Registry.CurrentUser.CreateSubKey(Root);
-            backup[app] = root.GetValue(SoundValue) is int s ? s : null;
+            backup[app] = root.GetValue(SoundValue) is int s && !(s == 0 && _assumeDefaults) ? s : null;
             root.SetValue(SoundValue, 0, RegistryValueKind.DWord);
             return;
         }
         using var key = Registry.CurrentUser.CreateSubKey($@"{Root}\{app}");
-        backup[app] = key.GetValue("ShowBanner") is int v ? v : null;
+        backup[app] = key.GetValue("ShowBanner") is int v && !(v == 0 && _assumeDefaults) ? v : null;
         key.SetValue("ShowBanner", 0, RegistryValueKind.DWord);
     }
 
-    private static void Restore(string app, int? original)
+    private static bool Restore(string app, int? original)
     {
         try
         {
@@ -101,21 +102,28 @@ public static class BannerSuppressor
             string name = app == SoundKey ? SoundValue : "ShowBanner";
             if (original is int v) key.SetValue(name, v, RegistryValueKind.DWord);
             else key.DeleteValue(name, false);
+            return true;
         }
-        catch (Exception ex) { Log.Error("BannerRestore", ex); }
+        catch (Exception ex) { Log.Error("BannerRestore", ex); return false; }
     }
 
-    private static Dictionary<string, int?> LoadBackup()
+    /// <summary>
+    /// An unreadable file is copied aside and replaced by an empty backup in which a 0 counts as Windows' default
+    /// ("on"). null: not even the copy worked - then nothing may be silenced or overwritten.
+    /// </summary>
+    private static Dictionary<string, int?>? LoadBackup()
     {
+        if (!File.Exists(BackupFile)) return new(StringComparer.OrdinalIgnoreCase);
         try
         {
-            if (File.Exists(BackupFile))
-            {
-                var loaded = JsonSerializer.Deserialize<Dictionary<string, int?>>(File.ReadAllText(BackupFile));
-                if (loaded is not null) return new(loaded, StringComparer.OrdinalIgnoreCase);
-            }
+            var loaded = JsonSerializer.Deserialize<Dictionary<string, int?>>(File.ReadAllText(BackupFile));
+            if (loaded is not null) return new(loaded, StringComparer.OrdinalIgnoreCase);
+            Log.Info("Banner backup is empty");
         }
-        catch { }
+        catch (Exception ex) { Log.Error("BannerBackup", ex); }
+        if (!AtomicFile.SetAside(BackupFile)) return null;
+        try { File.Delete(BackupFile); } catch { return null; }
+        _assumeDefaults = true;
         return new(StringComparer.OrdinalIgnoreCase);
     }
 
@@ -123,11 +131,10 @@ public static class BannerSuppressor
     {
         try
         {
-            Directory.CreateDirectory(AppSettings.Folder);
             if (backup.Count == 0) File.Delete(BackupFile);
-            else File.WriteAllText(BackupFile, JsonSerializer.Serialize(backup));
+            else AtomicFile.WriteAllText(BackupFile, JsonSerializer.Serialize(backup), backup: false);
         }
-        catch { }
+        catch (Exception ex) { Log.Error("BannerBackup", ex); }
     }
 
     /// <summary>Friendly name for an app id in the settings list.</summary>

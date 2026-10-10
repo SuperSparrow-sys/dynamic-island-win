@@ -50,8 +50,20 @@ public partial class AppPickerWindow : Window
         foreach (var item in _all)
         {
             var i = item;
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, () => i.Icon = ShellThumbnail.Get(i.Path, 48, iconOnly: true));
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+            {
+                if (_closed) return; // still queued after the dialog closed: nothing to show them in
+                i.Icon = ShellThumbnail.Get(i.Path, 48, iconOnly: true);
+            });
         }
+    }
+
+    private bool _closed;
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _closed = true;
+        base.OnClosed(e);
     }
 
     private void Search_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)

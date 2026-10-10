@@ -15,6 +15,7 @@ public partial class App : Application
 {
     private static Mutex? _single;
     private TaildropService? _taildrop;
+    private NotificationService? _notifications;
     private MessageWindow? _msg;
     private TrayIcon? _tray;
     private IslandManager? _islands;
@@ -23,6 +24,9 @@ public partial class App : Application
     private Settings.SettingsWindow? _settingsWindow;
     private const int HotkeyId = 0xB001;
     private bool _snapshotMode;
+    // Set once the user's settings are loaded in the one real instance. Maintenance runs, a second launch and
+    // snapshots end before that and must neither write default settings nor touch the running instance's banners.
+    private bool _running;
 
     public static string Version => typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
 
@@ -67,11 +71,28 @@ public partial class App : Application
             Log.Error("UI", ex.Exception);
             ex.Handled = true;
         };
-        AppDomain.CurrentDomain.UnhandledException += (_, ex) => Log.Error("Domain", ex.ExceptionObject as Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
+        {
+            Log.Error("Domain", ex.ExceptionObject as Exception);
+            // The process is going down without OnExit: best effort, Windows banners back and settings kept.
+            if (ex.IsTerminating) SaveAndRestore();
+        };
         TaskScheduler.UnobservedTaskException += (_, ex) => { Log.Error("Task", ex.Exception); ex.SetObserved(); };
+        // Signing out or shutting down: write everything right away, there may be no time for OnExit.
+        SessionEnding += (_, _) => OnSessionEnding();
 
-        _settings = snapshotDir is null ? AppSettings.Load() : new AppSettings { Hidden = false };
-        if (snapshotDir is null) { _settings.Migrate(); _settings.Save(); }
+        if (snapshotDir is null)
+        {
+            _settings = AppSettings.Load();
+            _settings.Migrate();
+            _settings.Save();
+            _running = true;
+        }
+        else
+        {
+            AppSettings.ReadOnly = true; // demo settings, never written to the user's file
+            _settings = new AppSettings { Hidden = false };
+        }
         Loc.Init(_settings.Language);
         // Without the graphics card for the whole process (see IslandWindow.ApplyRenderMode): no Direct3D device at all,
         // which saves another ~70 MB. Switching back takes effect after a restart; the island itself switches live.
@@ -84,6 +105,9 @@ public partial class App : Application
         // First start after installation: register the identity package, then restart once to run with it.
         if (snapshotDir is null && await SparsePackage.EnsureRegisteredAsync(_settings))
         {
+            // Settings are kept; the banners stay as they are (this run never changed them, the new one takes over).
+            _settings.Save();
+            _running = false;
             _single?.ReleaseMutex();
             _single?.Dispose();
             _single = null;
@@ -95,7 +119,7 @@ public partial class App : Application
         var media = new MediaService();
         var clipboard = new ClipboardService(_settings);
         var shelf = new ShelfService(_settings);
-        var notifications = new NotificationService(_settings);
+        var notifications = _notifications = new NotificationService(_settings);
         var timer = new TimerService(_settings);
         var calendar = new CalendarService(_settings);
         var battery = new BatteryService(_settings);
@@ -161,43 +185,59 @@ public partial class App : Application
         var warmIcons = Task.Run(() => AppIcons.Count);
 
         // Services start one by one after the island is visible, yielding in between so it stays responsive.
+        // Each one on its own: a service that fails to start must not keep the others from starting.
         async Task Next() => await Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+        IslandViewModel vm = _vm;
+        TaildropService taildrop = _taildrop;
         await Next();
-        await media.InitAsync();
+        await SafeAsync("Media", media.InitAsync);
         await Next();
-        clipboard.Start(_msg);
-        shelf.Load();
+        Safe("Clipboard", () => clipboard.Start(_msg));
+        Safe("Shelf", shelf.Load);
         await Next();
-        battery.Start();
-        if (_settings.AudioEnabled) _vm.Audio.Start();
-        _vm.Work.Start();
-        _vm.Time.WatchSession();
-        _vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads));
-        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.CompactItems)) _vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads)); };
-        bluetooth.Start();
-        _vm.AudioDevices.Start();
-        calendar.Start();
-        _vm.Scripts.Start();
+        Safe("Battery", battery.Start);
+        if (_settings.AudioEnabled) Safe("Audio", vm.Audio.Start);
+        Safe("Work", vm.Work.Start);
+        Safe("Time", vm.Time.WatchSession);
+        Safe("Downloads", () => vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads)));
+        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.CompactItems)) vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads)); };
+        Safe("Bluetooth", bluetooth.Start);
+        Safe("AudioDevices", vm.AudioDevices.Start);
+        vm.Audio.AudioServiceRestarted += vm.AudioDevices.Reconnect; // Windows Audio restarted: register for device changes again
+        Safe("Calendar", calendar.Start);
+        Safe("Scripts", vm.Scripts.Start);
         await Next();
-        await notifications.StartAsync();
+        await SafeAsync("Notifications", notifications.StartAsync);
         // Windows stays silent and shows nothing in the corner: the island shows the notifications (only with access to them).
-        if (!_snapshotMode) BannerSuppressor.Apply(_settings, notifications.Access == NotificationAccess.Allowed);
+        if (!_snapshotMode) Safe("Banners", () => BannerSuppressor.Apply(_settings, notifications.Access == NotificationAccess.Allowed));
         await Next();
-        _vm.Claude.SetEnabled(_settings.ClaudeEnabled);
-        _taildrop.SetEnabled(_settings.TaildropEnabled);
-        _vm.Todo!.Start();
-        _vm.Presence!.Start();
-        _vm.Contacts!.Start();
-        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.TaildropEnabled)) _taildrop.SetEnabled(_settings.TaildropEnabled); };
-        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) _vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
-        await spotify.InitAsync();
+        Safe("Claude", () => vm.Claude.SetEnabled(_settings.ClaudeEnabled));
+        Safe("Taildrop", () => taildrop.SetEnabled(_settings.TaildropEnabled));
+        Safe("Todo", vm.Todo!.Start);
+        Safe("Presence", vm.Presence!.Start);
+        Safe("Contacts", vm.Contacts!.Start);
+        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.TaildropEnabled)) taildrop.SetEnabled(_settings.TaildropEnabled); };
+        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
+        await SafeAsync("Spotify", spotify.InitAsync);
         Log.Info($"Services started in {clock.ElapsedMilliseconds} ms");
-        await Task.WhenAll(warmApps, warmIcons);
-        _vm.Shortcuts.Rebuild();
+        await SafeAsync("WarmUp", () => Task.WhenAll(warmApps, warmIcons));
+        Safe("Shortcuts", vm.Shortcuts.Rebuild);
         Log.Info($"Background warm-up done after {clock.ElapsedMilliseconds} ms");
-        if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands, Quit);
+        if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands, Quit, () => _settings.CheckForUpdates);
         // CPU and memory in the log every 90 s (no trimming: smooth animations matter more than a small working set).
-        MemoryTrim.Start();
+        Safe("MemoryTrim", MemoryTrim.Start);
+    }
+
+    private static void Safe(string name, Action start)
+    {
+        try { start(); }
+        catch (Exception ex) { Log.Error("Start " + name, ex); }
+    }
+
+    private static async Task SafeAsync(string name, Func<Task> start)
+    {
+        try { await start(); }
+        catch (Exception ex) { Log.Error("Start " + name, ex); }
     }
 
     private static string? GetArg(string[] args, string name)
@@ -506,7 +546,7 @@ public partial class App : Application
         {
             if (_settings.ShelfEnabled) shelf.Add(files, announce: false);
             string first = files[0];
-            long bytes = files.Sum(f => { try { return new FileInfo(f).Length; } catch { return 0L; } });
+            long bytes = files.Sum(f => FileSize(f));
             bool image = files.All(f => ImageExtensions.Contains(Path.GetExtension(f)));
             island.ShowPeek(new PeekItem
             {
@@ -540,7 +580,7 @@ public partial class App : Application
             Image = ShellThumbnail.Get(path, 96),
             Icon = Icon("Icon.Download"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
             Title = Path.GetFileName(path),
-            Subtitle = (Loc.German ? "Download fertig · " : "Download complete · ") + FormatSize(new FileInfo(path).Length),
+            Subtitle = (Loc.German ? "Download fertig · " : "Download complete · ") + FormatSize(FileSize(path)),
             DragPayload = new[] { path },
             Seconds = 4,
             OnClick = () => { try { Process.Start("explorer.exe", $"/select,\"{path}\""); } catch { } },
@@ -567,6 +607,13 @@ public partial class App : Application
     }
 
     private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".heic", ".heif", ".gif", ".webp", ".bmp", ".tif", ".tiff" };
+
+    /// <summary>Size of a file that may already be moved or deleted again (0 then).</summary>
+    private static long FileSize(string path)
+    {
+        try { return new FileInfo(path).Length; }
+        catch { return 0; }
+    }
 
     private static string FormatSize(long bytes) => bytes switch
     {
@@ -624,8 +671,18 @@ public partial class App : Application
 
     private static void SignalRunningInstance()
     {
+        // The first instance may still be starting (no message window yet): look again for up to 3 s.
         var target = Native.FindWindow(null, "DynamicBay.Messages");
-        if (target != IntPtr.Zero) Native.PostMessage(target, ShowSettingsMessage, IntPtr.Zero, IntPtr.Zero);
+        for (int i = 0; target == IntPtr.Zero && i < 30; i++)
+        {
+            Thread.Sleep(100);
+            target = Native.FindWindow(null, "DynamicBay.Messages");
+        }
+        if (target == IntPtr.Zero) return;
+        // We were started by the user and may hand the foreground on: the settings come up in front, not just flashing.
+        Native.GetWindowThreadProcessId(target, out uint pid);
+        if (pid != 0) Native.AllowSetForegroundWindow(pid);
+        Native.PostMessage(target, ShowSettingsMessage, IntPtr.Zero, IntPtr.Zero);
     }
 
     // ---------------- windows ----------------
@@ -659,6 +716,7 @@ public partial class App : Application
 
     private void Quit()
     {
+        FlushAll();
         _settings.Save();
         _taildrop?.Dispose(); // ends the Tailscale event stream
         _tray?.Dispose();
@@ -668,14 +726,48 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        // Snapshot runs use throwaway settings; never overwrite the user's file with demo placements.
-        if (!_snapshotMode)
+        // Snapshot runs use throwaway settings and maintenance runs or a second launch never loaded the user's:
+        // only the real instance writes its settings and gives the Windows banners back.
+        if (_running)
         {
-            _settings.Save();
-            BannerSuppressor.RestoreAll(); // Windows banners come back as soon as DynamicBay isn't running
+            SaveAndRestore();
             _taildrop?.Dispose();
         }
         _tray?.Dispose();
         base.OnExit(e);
+    }
+
+    /// <summary>Settings to disk and Windows banners back (they come back as soon as DynamicBay isn't running).</summary>
+    private void SaveAndRestore()
+    {
+        if (!_running) return;
+        FlushAll();
+        try { _settings.Save(); } catch (Exception ex) { Log.Error("Exit save", ex); }
+        try { BannerSuppressor.RestoreAll(); } catch (Exception ex) { Log.Error("Exit banners", ex); }
+    }
+
+    /// <summary>Pending writes (notes, clipboard history) to disk now and Teams back to the status from before focus.</summary>
+    private void FlushAll()
+    {
+        if (_snapshotMode) return;
+        try { _vm?.Notes.Flush(); } catch (Exception ex) { Log.Error("Exit notes", ex); }
+        try { _vm?.Clipboard.Flush(); } catch (Exception ex) { Log.Error("Exit clipboard", ex); }
+        try { _vm?.Presence?.RestoreBeforeExit(); } catch (Exception ex) { Log.Error("Exit presence", ex); }
+    }
+
+    private void OnSessionEnding()
+    {
+        SaveAndRestore();
+        // The sign-out can still be cancelled by another app: if we are still running a minute later, silence the
+        // Windows banners again (they were given back above).
+        if (!_running || _notifications is null) return;
+        var again = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+        again.Tick += (_, _) =>
+        {
+            again.Stop();
+            try { BannerSuppressor.Apply(_settings, _notifications.Access == NotificationAccess.Allowed); }
+            catch (Exception ex) { Log.Error("Banners", ex); }
+        };
+        again.Start();
     }
 }

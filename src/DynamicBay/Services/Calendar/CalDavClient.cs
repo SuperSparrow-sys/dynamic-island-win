@@ -17,6 +17,7 @@ public sealed class CalDavClient : IDisposable
     private static readonly XNamespace A = "http://apple.com/ns/ical/";
     private readonly HttpClient _http;
     private readonly Uri _server;
+    private readonly AuthenticationHeaderValue _auth;
 
     public sealed record RemoteCalendar(Uri Url, string Name, string? Color);
 
@@ -25,12 +26,26 @@ public sealed class CalDavClient : IDisposable
         _server = new Uri(server);
         var handler = new HttpClientHandler { AllowAutoRedirect = true };
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(25) };
-        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
-            Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{password}")));
+        // The password goes on each request to the server itself (see MaySendCredentials), not on every request.
+        _auth = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{password}")));
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("DynamicBay/" + App.Version);
     }
 
     public void Dispose() => _http.Dispose();
+
+    /// <summary>
+    /// Credentials only over https and only to the server's own host - or a sibling host of the same domain, as iCloud
+    /// hands out its partitions (caldav.icloud.com -> p42-caldav.icloud.com). An href pointing anywhere else gets none.
+    /// </summary>
+    internal static bool MaySendCredentials(Uri server, Uri target)
+    {
+        if (target.Scheme != Uri.UriSchemeHttps || server.Scheme != Uri.UriSchemeHttps) return false;
+        string host = target.IdnHost, own = server.IdnHost;
+        if (host.Equals(own, StringComparison.OrdinalIgnoreCase)) return true;
+        int dot = own.IndexOf('.');
+        string parent = dot < 0 ? "" : own[(dot + 1)..];
+        return parent.Contains('.') && host.EndsWith("." + parent, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// iCloud answers 503/429 when it is busy or gets too many requests at once: wait (as long as the server asks,
@@ -38,6 +53,8 @@ public sealed class CalDavClient : IDisposable
     /// </summary>
     private async Task<XDocument> SendAsync(string method, Uri url, string body, int depth)
     {
+        if (_server.Scheme != Uri.UriSchemeHttps)
+            throw new HttpRequestException(Core.Loc.German ? "Der Kalender-Server braucht eine https-Adresse" : "The calendar server needs an https address");
         HttpResponseMessage res;
         for (int attempt = 0; ; attempt++)
         {
@@ -45,6 +62,7 @@ public sealed class CalDavClient : IDisposable
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/xml"),
             };
+            if (MaySendCredentials(_server, url)) req.Headers.Authorization = _auth;
             req.Headers.Add("Depth", depth.ToString());
             res = await _http.SendAsync(req);
             bool busy = res.StatusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests;

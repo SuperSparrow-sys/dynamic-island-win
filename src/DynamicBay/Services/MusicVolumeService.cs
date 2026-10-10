@@ -17,7 +17,8 @@ public sealed partial class MusicVolumeService : ObservableObject
     private readonly SpotifyService _spotify;
     private readonly DispatcherTimer _read = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly DispatcherTimer _send = new() { Interval = TimeSpan.FromMilliseconds(150) };
-    private bool _panelOpen, _dragging, _spotifyDirty, _demo;
+    private bool _panelOpen, _dragging, _spotifyDirty, _spotifySending, _demo;
+    private List<AppVolume.ISimpleAudioVolume>? _dragSessions;
     private DateTime _setAt;
 
     [ObservableProperty] private double _level = 50;   // 0..100
@@ -72,7 +73,12 @@ public sealed partial class MusicVolumeService : ObservableObject
         }
     }
 
-    public void BeginDrag() => _dragging = true;
+    /// <summary>The app's mixer sessions are looked up once per drag, not on every mouse move.</summary>
+    public void BeginDrag()
+    {
+        _dragging = true;
+        _dragSessions = UsesSpotifyApi ? null : AppVolume.Sessions(_media.SourceAppId);
+    }
 
     /// <summary>While dragging: Windows takes every step at once, Spotify gets the newest value at most every 150 ms.</summary>
     public void Set(double percent)
@@ -85,21 +91,28 @@ public sealed partial class MusicVolumeService : ObservableObject
             _spotifyDirty = true;
             if (!_send.IsEnabled) { FlushSpotify(); _send.Start(); }
         }
+        else if (_dragSessions is not null) AppVolume.Set(_dragSessions, (float)(Level / 100));
         else AppVolume.Set(_media.SourceAppId, (float)(Level / 100));
     }
 
     public void EndDrag()
     {
         _dragging = false;
+        _dragSessions = null;
         _setAt = DateTime.UtcNow;
         FlushSpotify();
     }
 
-    private void FlushSpotify()
+    /// <summary>One request at a time: while one is on its way, the newest value waits for the next tick.</summary>
+    private async void FlushSpotify()
     {
+        if (_spotifySending) return;
         if (!_spotifyDirty) { _send.Stop(); return; }
         _spotifyDirty = false;
-        _ = _spotify.SetVolumeAsync((int)Level);
+        _spotifySending = true;
+        try { await _spotify.SetVolumeAsync((int)Level); }
+        catch (Exception ex) { Log.Info($"Spotify volume: {ex.Message}"); }
+        finally { _spotifySending = false; }
     }
 
     /// <summary>For design snapshots only.</summary>
@@ -132,10 +145,13 @@ public static class AppVolume
         return null;
     }
 
-    public static void Set(string appId, float level)
+    public static void Set(string appId, float level) => Set(Sessions(appId), level);
+
+    /// <summary>Sets sessions found before (a drag looks them up once).</summary>
+    public static void Set(IEnumerable<ISimpleAudioVolume> sessions, float level)
     {
         var ctx = Guid.Empty;
-        foreach (var v in Sessions(appId))
+        foreach (var v in sessions)
         {
             try
             {
@@ -154,7 +170,7 @@ public static class AppVolume
         return key;
     }
 
-    private static List<ISimpleAudioVolume> Sessions(string appId)
+    public static List<ISimpleAudioVolume> Sessions(string appId)
     {
         var found = new List<ISimpleAudioVolume>();
         if (string.IsNullOrWhiteSpace(appId)) return found;
@@ -203,7 +219,7 @@ public static class AppVolume
     [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDeviceEnumerator
     {
-        int EnumAudioEndpoints(int flow, int mask, out IntPtr devices);
+        [PreserveSig] int EnumAudioEndpoints(int flow, int mask, out IntPtr devices);
         [PreserveSig] int GetDefaultAudioEndpoint(int flow, int role, out IMMDevice? device);
     }
 

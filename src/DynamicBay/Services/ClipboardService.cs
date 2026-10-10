@@ -90,6 +90,7 @@ public sealed partial class ClipboardService : ObservableObject
     {
         Directory.CreateDirectory(_folder);
         if (_settings.ClipboardPersist) _ = LoadIndexAsync();
+        else { _loaded = true; DeleteOrphans(); } // nothing kept: images from the last run (or a crash) go
         Native.AddClipboardFormatListener(msg.Handle);
         msg.Message += (m, _, _) =>
         {
@@ -107,10 +108,15 @@ public sealed partial class ClipboardService : ObservableObject
         _ = Task.Run(() => ScreenshotFolders().ToList()).ContinueWith(t => _ui.BeginInvoke(() => WatchScreenshotFolder(t.Result)), TaskContinuationOptions.OnlyOnRanToCompletion);
     }
 
-    private void OnClipboardChanged()
+    /// <summary>CLIPBRD_E_CANT_OPEN: another app holds the clipboard open right now.</summary>
+    private const int ClipboardCantOpen = unchecked((int)0x800401D0);
+
+    private void OnClipboardChanged() => OnClipboardChanged(0);
+
+    private void OnClipboardChanged(int attempt)
     {
         if (!_settings.ClipboardEnabled) return;
-        if (_suppressNext) { _suppressNext = false; return; }
+        if (attempt == 0 && _suppressNext) { _suppressNext = false; return; }
         try
         {
             if (Native.IsClipboardFormatAvailable(_fmtExclude) || Native.IsClipboardFormatAvailable(_fmtIgnore)) return;
@@ -151,7 +157,18 @@ public sealed partial class ClipboardService : ObservableObject
                 Insert(new ClipItem { Kind = ClipKind.Text, Text = text, SourceApp = owner });
             }
         }
+        catch (System.Runtime.InteropServices.ExternalException ex) when (ex.HResult == ClipboardCantOpen && attempt < 2)
+        {
+            // Still held open by the app that wrote it: read again in a moment instead of losing the copy.
+            _ = RetryAsync(attempt + 1);
+        }
         catch { /* clipboard is often locked by another process; skip this change */ }
+    }
+
+    private async Task RetryAsync(int attempt)
+    {
+        await Task.Delay(100); // back on the UI thread afterwards
+        OnClipboardChanged(attempt);
     }
 
     private static BitmapSource? ReadImage()
@@ -316,13 +333,14 @@ public sealed partial class ClipboardService : ObservableObject
         if (item is null) return;
         try
         {
-            _suppressNext = true;
-            if (item.IsText) { Clipboard.SetText(item.Text ?? ""); _lastText = item.Text; }
+            // Only skip our own change when there is one (an image that no longer loads sets nothing).
+            if (item.IsText) { _suppressNext = true; Clipboard.SetText(item.Text ?? ""); _lastText = item.Text; }
             else if (item.ImagePath is not null && ImageTools.Load(item.ImagePath) is { } img)
             {
                 var data = new DataObject();
                 data.SetImage(img);
                 data.SetFileDropList(new StringCollection { item.ImagePath });
+                _suppressNext = true;
                 Clipboard.SetDataObject(data, true);
             }
             // Move to top like a recently used item.
@@ -416,6 +434,10 @@ public sealed partial class ClipboardService : ObservableObject
     // ---- persistence ----
 
     private DispatcherTimer? _saveTimer;
+    /// <summary>The saved history is in (or there is none to load): before that a save would drop it.</summary>
+    private bool _loaded;
+    /// <summary>index.json could not be read and not be copied aside either: it is not overwritten.</summary>
+    private bool _keepIndex;
 
     private void SaveIndexSoon()
     {
@@ -423,10 +445,43 @@ public sealed partial class ClipboardService : ObservableObject
         _saveTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(800), DispatcherPriority.Background, (_, _) =>
         {
             _saveTimer!.Stop();
-            try { File.WriteAllText(IndexPath, JsonSerializer.Serialize(Items.ToList())); } catch { }
+            SaveIndex();
         }, _ui);
         _saveTimer.Stop();
         _saveTimer.Start();
+    }
+
+    private void SaveIndex()
+    {
+        if (!_settings.ClipboardPersist || !_loaded || _keepIndex) return;
+        try { AtomicFile.WriteAllText(IndexPath, JsonSerializer.Serialize(Items.ToList()), backup: false); }
+        catch (Exception ex) { Log.Error("Clipboard save", ex); }
+    }
+
+    /// <summary>Saves a change still waiting for its delay right away (app exit).</summary>
+    public void Flush()
+    {
+        if (_saveTimer?.IsEnabled != true) return;
+        _saveTimer.Stop();
+        SaveIndex();
+    }
+
+    /// <summary>Images in the clipboard folder no entry points to (not kept, a crash, an old index): deleted in the background.</summary>
+    private void DeleteOrphans()
+    {
+        try
+        {
+            var used = Items.Where(i => i.ImagePath is not null).Select(i => Path.GetFullPath(i.ImagePath!)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            // Listed here (on the UI thread), so an image saved a moment later is never in the list.
+            var orphans = Directory.EnumerateFiles(_folder, "*.png").Where(f => !used.Contains(Path.GetFullPath(f))).ToList();
+            if (orphans.Count == 0) return;
+            _ = Task.Run(() =>
+            {
+                foreach (var f in orphans) try { File.Delete(f); } catch { }
+                Log.Info($"Clipboard: {orphans.Count} unused images deleted");
+            });
+        }
+        catch (Exception ex) { Log.Error("Clipboard cleanup", ex); }
     }
 
     /// <summary>Reads the history and decodes thumbnails off the UI thread (images are frozen, so they can cross threads).</summary>
@@ -452,8 +507,18 @@ public sealed partial class ClipboardService : ObservableObject
             });
             foreach (var i in list) Items.Add(i);
             _lastText = Items.FirstOrDefault(i => i.IsText)?.Text;
+            _loaded = true;
+            DeleteOrphans();
+            SaveIndexSoon(); // copies made while loading
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Log.Error("Clipboard load", ex);
+            // A broken index is copied aside first; its images stay (no cleanup) until the next start.
+            _keepIndex = !AtomicFile.SetAside(IndexPath);
+            _loaded = true;
+            SaveIndexSoon();
+        }
     }
 
     /// <summary>For design snapshots only.</summary>

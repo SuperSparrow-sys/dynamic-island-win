@@ -32,7 +32,8 @@ $msix = Join-Path $Out "DynamicBay.msix"
 & $makeappx pack /d $stage /p $msix /nv /o | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "makeappx failed" }
 
-if (-not $Pfx) {
+$generated = -not $Pfx
+if ($generated) {
     $cert = New-SelfSignedCertificate -Type Custom -Subject $publisher -KeyUsage DigitalSignature -FriendlyName "DynamicBay package signing" `
         -CertStoreLocation "Cert:\CurrentUser\My" -NotAfter (Get-Date).AddYears(10) `
         -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
@@ -42,6 +43,9 @@ if (-not $Pfx) {
     Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)"
 }
 & $signtool sign /fd SHA256 /f $Pfx /p $PfxPassword $msix | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "signtool failed" }
+$signed = $LASTEXITCODE
+# A key made here (with the default password) is never needed again: only the .cer ships.
+if ($generated) { Remove-Item $Pfx -Force -ErrorAction SilentlyContinue }
+if ($signed -ne 0) { throw "signtool failed" }
 Remove-Item $stage -Recurse -Force
 Write-Output "Built $msix (version $v)"

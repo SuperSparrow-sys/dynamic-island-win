@@ -24,6 +24,8 @@ public sealed partial class NotesService : ObservableObject
     private static string FilePath => Path.Combine(AppSettings.Folder, "notes.json");
     private readonly DispatcherTimer _save = new() { Interval = TimeSpan.FromMilliseconds(600) };
     private bool _demo;
+    /// <summary>notes.json could not be read and not be copied aside either: it is not overwritten.</summary>
+    private bool _keepFile;
 
     public ObservableCollection<NoteItem> Items { get; } = new();
     [ObservableProperty] private bool _isEmpty = true;
@@ -47,7 +49,12 @@ public sealed partial class NotesService : ObservableObject
             foreach (var s in list.Where(s => !string.IsNullOrWhiteSpace(s.Text)))
                 Hook(new NoteItem { Id = s.Id, Created = s.Created, Text = s.Text });
         }
-        catch (Exception ex) { Log.Error("Notes load", ex); }
+        catch (Exception ex)
+        {
+            Log.Error("Notes load", ex);
+            // The next save would overwrite the notes for good: keep a copy of the broken file first.
+            _keepFile = !AtomicFile.SetAside(FilePath);
+        }
     }
 
     private void Hook(NoteItem n, int index = -1)
@@ -58,14 +65,21 @@ public sealed partial class NotesService : ObservableObject
 
     private void Save()
     {
-        if (_demo) return;
+        if (_demo || _keepFile) return;
         try
         {
-            Directory.CreateDirectory(AppSettings.Folder);
             var list = Items.Where(n => !string.IsNullOrWhiteSpace(n.Text)).Select(n => new Stored(n.Id, n.Created, n.Text)).ToList();
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(list, new JsonSerializerOptions { WriteIndented = true }));
+            AtomicFile.WriteAllText(FilePath, JsonSerializer.Serialize(list, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception ex) { Log.Error("Notes save", ex); }
+    }
+
+    /// <summary>Saves a change still waiting for its delay right away (app exit).</summary>
+    public void Flush()
+    {
+        if (!_save.IsEnabled) return;
+        _save.Stop();
+        Save();
     }
 
     [RelayCommand]

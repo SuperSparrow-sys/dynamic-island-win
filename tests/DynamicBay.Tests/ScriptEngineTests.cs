@@ -152,7 +152,11 @@ public class ScriptEngineTests : IDisposable
         var code = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Samples", "Beispiel.js"), Encoding.UTF8)
             .Replace("https://example.com/api/werte", $"http://127.0.0.1:{port}/api/werte");
 
-        var r = Run(code, family);
+        // The test server runs on 127.0.0.1, which scripts may not reach otherwise.
+        ScriptEngine.AllowLocalAddresses = true;
+        ScriptResult r;
+        try { r = Run(code, family); }
+        finally { ScriptEngine.AllowLocalAddresses = false; }
         Assert.Null(r.Error);
         var texts = Texts(r.Widget).ToList();
         Assert.Contains(expectedText, texts);

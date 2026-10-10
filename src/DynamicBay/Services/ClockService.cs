@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DynamicBay.Core;
+using Microsoft.Win32;
 
 namespace DynamicBay.Services;
 
@@ -10,6 +11,11 @@ public sealed partial class ClockService : ObservableObject
 {
     private readonly AppSettings _settings;
     private readonly DispatcherTimer _tick = new() { Interval = TimeSpan.FromMilliseconds(250) };
+    private readonly Dispatcher _ui = Dispatcher.CurrentDispatcher;
+    private string _zone = Zone();
+
+    /// <summary>The time zone of Windows changed (travel, by hand): times shown elsewhere must be worked out again.</summary>
+    public static event Action? TimeZoneChanged;
 
     [ObservableProperty] private string _time = "";
     [ObservableProperty] private string _seconds = "";
@@ -26,8 +32,23 @@ public sealed partial class ClockService : ObservableObject
         {
             if (e.PropertyName is nameof(AppSettings.Clock24h) or nameof(AppSettings.ClockSeconds)) Update();
         };
+        // .NET keeps the time zone it read first: without this the clock stayed in the old zone until a restart.
+        SystemEvents.TimeChanged += (_, _) => _ui.BeginInvoke(OnTimeChanged);
         Update();
         _tick.Start();
+    }
+
+    private static string Zone() => TimeZoneInfo.Local.Id + "|" + TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow);
+
+    private void OnTimeChanged()
+    {
+        TimeZoneInfo.ClearCachedData();
+        Update();
+        var zone = Zone();
+        if (zone == _zone) return; // only the clock was set (time sync)
+        _zone = zone;
+        Log.Info($"Time zone now {TimeZoneInfo.Local.Id}");
+        TimeZoneChanged?.Invoke();
     }
 
     /// <summary>Next tick right after the next second (with seconds) or minute (without) - no busy 250 ms polling.</summary>

@@ -4,13 +4,14 @@ using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
+using System.Windows.Threading;
 using DynamicBay.Core;
 using DynamicBay.Island;
 
 namespace DynamicBay.Services;
 
 /// <summary>
-/// Looks for a newer GitHub release at startup and <b>asks</b> before installing: the island shows
+/// Looks for a newer GitHub release at startup and once a day and <b>asks</b> before installing: the island shows
 /// "Update x.y.z verfügbar" with "Installieren" / "Später"; the tray menu and the settings offer it too.
 /// Installing downloads the setup, verifies GitHub's SHA-256 digest, asks Windows for elevation and runs the
 /// installer silently (/UPDATE) - it waits for DynamicBay to exit and starts the new version afterwards.
@@ -29,30 +30,66 @@ public static class UpdateCheck
     private static Action? _shutdown;
     private static bool _installing;
 
-    public static async Task RunAsync(IslandManager island, Action shutdown)
+    private static DispatcherTimer? _daily;
+
+    /// <summary>Checks shortly after the start and then once a day (it only asks, it never installs by itself).</summary>
+    public static async Task RunAsync(IslandManager island, Action shutdown, Func<bool> enabled)
     {
         _island = island;
         _shutdown = shutdown;
+        if (_daily is null)
+        {
+            _daily = new DispatcherTimer { Interval = TimeSpan.FromHours(24) };
+            _daily.Tick += async (_, _) => { if (enabled()) await CheckAndAskAsync(); };
+            _daily.Start();
+        }
+        await Task.Delay(TimeSpan.FromSeconds(8));
+        await CheckAndAskAsync();
+    }
+
+    private static async Task CheckAndAskAsync()
+    {
+        if (_installing) return;
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(8));
             var release = await GetLatestAsync();
-            if (release is null || !IsNewer(release.Version, App.Version)) return;
-            Log.Info($"Update available: {release.Tag}");
+            bool newer = release is not null && IsNewer(release.Tag, App.Version);
+            CleanupDownloads(newer ? release : null);
+            if (!newer) return;
+            Log.Info($"Update available: {release!.Tag}");
             Pending = release;
             PendingChanged?.Invoke();
             Ask();
         }
-        catch (Exception ex) { Log.Error("Update", ex); } // offline / rate limited: try next start
+        catch (Exception ex) { Log.Error("Update", ex); } // offline / rate limited: try again tomorrow or next start
     }
 
     /// <summary>Manual check from the settings. Returns true if a newer version was found.</summary>
     public static async Task<bool> CheckNowAsync()
     {
         var release = await GetLatestAsync();
-        Pending = release is not null && IsNewer(release.Version, App.Version) ? release : null;
+        Pending = release is not null && IsNewer(release.Tag, App.Version) ? release : null;
+        CleanupDownloads(Pending);
         PendingChanged?.Invoke();
         return Pending is not null;
+    }
+
+    private static string DownloadFolder => Path.Combine(Path.GetTempPath(), "DynamicBay-Update");
+
+    private static string SetupPath(Release r) => Path.Combine(DownloadFolder, $"DynamicBay-Setup-{r.Version.ToString(3)}.exe");
+
+    /// <summary>Removes setups of earlier updates from %TEMP%\DynamicBay-Update (keeps the one still to install).</summary>
+    private static void CleanupDownloads(Release? keep)
+    {
+        try
+        {
+            if (!Directory.Exists(DownloadFolder)) return;
+            string? keepFile = keep is null ? null : SetupPath(keep);
+            foreach (var f in Directory.EnumerateFiles(DownloadFolder, "DynamicBay-Setup-*.exe"))
+                if (!string.Equals(f, keepFile, StringComparison.OrdinalIgnoreCase))
+                    try { File.Delete(f); } catch { } // still running or locked: next time
+        }
+        catch (Exception ex) { Log.Error("Update.Cleanup", ex); }
     }
 
     /// <summary>Shows the question in the island.</summary>
@@ -110,12 +147,17 @@ public static class UpdateCheck
         _installing = true;
         try
         {
+            // Without GitHub's checksum the download cannot be verified: don't run it.
+            if (release.Sha256 is null) throw new InvalidDataException(Loc.German ? "Update ohne Prüfsumme, nicht installiert" : "Update has no checksum, not installed");
             _island?.ShowPeek(Info(Loc.F("Update.Downloading", release.Version.ToString(3)), Loc.T("Update.InstallingHint"), 6));
-            var setup = await DownloadAsync(release);
+            // Stays open (others may only read) until the installer runs: the checked file is the one that starts.
+            using var verified = await DownloadAsync(release);
+            string setup = verified.Name;
             try
             {
                 var setupLog = Path.Combine(Path.GetDirectoryName(setup)!, "setup.log");
-                var proc = Process.Start(new ProcessStartInfo(setup, $"/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE /TASKS=notifications /LOG=\"{setupLog}\"")
+                // No /TASKS: Inno keeps the tasks chosen at the first install (UsePreviousTasks).
+                var proc = Process.Start(new ProcessStartInfo(setup, $"/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE /LOG=\"{setupLog}\"")
                 {
                     UseShellExecute = true,
                     Verb = "runas", // Windows confirmation: the app is installed for all users
@@ -154,11 +196,14 @@ public static class UpdateCheck
             asset?["size"]?.GetValue<long>() ?? 0);
     }
 
-    private static async Task<string> DownloadAsync(Release r)
+    /// <summary>
+    /// Downloads the setup and checks size and SHA-256. Returns the file opened for reading with FileShare.Read: while
+    /// it is open nobody can change or swap it, and the hash is computed over exactly this handle.
+    /// </summary>
+    private static async Task<FileStream> DownloadAsync(Release r)
     {
-        string dir = Path.Combine(Path.GetTempPath(), "DynamicBay-Update");
-        Directory.CreateDirectory(dir);
-        string file = Path.Combine(dir, $"DynamicBay-Setup-{r.Version.ToString(3)}.exe");
+        Directory.CreateDirectory(DownloadFolder);
+        string file = SetupPath(r);
         using (var http = Client())
         {
             http.Timeout = TimeSpan.FromMinutes(10);
@@ -166,30 +211,73 @@ public static class UpdateCheck
             using var dst = File.Create(file);
             await src.CopyToAsync(dst);
         }
-        var info = new FileInfo(file);
-        if (r.Size > 0 && info.Length != r.Size) throw new InvalidDataException(Loc.German ? "Download unvollständig" : "Incomplete download");
-        if (r.Sha256 is not null)
+        var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+        try
         {
-            using var fs = File.OpenRead(file);
+            if (r.Size > 0 && fs.Length != r.Size) throw new InvalidDataException(Loc.German ? "Download unvollständig" : "Incomplete download");
             string hash = Convert.ToHexString(await SHA256.HashDataAsync(fs));
-            if (!hash.Equals(r.Sha256, StringComparison.OrdinalIgnoreCase))
+            if (r.Sha256 is null || !hash.Equals(r.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidDataException(Loc.German ? "Prüfsumme stimmt nicht" : "Checksum mismatch");
+            Log.Info($"Update downloaded ({fs.Length / 1048576.0:0.0} MB, checksum ok)");
+            return fs;
         }
-        Log.Info($"Update downloaded ({info.Length / 1048576.0:0.0} MB, checksum {(r.Sha256 is null ? "n/a" : "ok")})");
-        return file;
+        catch
+        {
+            fs.Dispose();
+            throw;
+        }
     }
 
-    /// <summary>"v1.2.3", "1.2.3-beta.1" -> 1.2.3 (pre-release suffix ignored).</summary>
+    /// <summary>"v1.2.3", "1.2.3.4", "1.2.3-beta.1" -> 1.2.3(.4) (the pre-release suffix is compared in <see cref="Compare"/>).</summary>
     public static bool TryParse(string tag, out Version version)
     {
         var core = tag.Trim().TrimStart('v', 'V').Split('-', '+')[0];
-        if (Version.TryParse(core, out var v)) { version = new Version(v.Major, v.Minor, Math.Max(0, v.Build)); return true; }
+        if (Version.TryParse(core, out var v))
+        {
+            version = v.Revision > 0 ? new Version(v.Major, v.Minor, Math.Max(0, v.Build), v.Revision) : new Version(v.Major, v.Minor, Math.Max(0, v.Build));
+            return true;
+        }
         version = new Version(0, 0, 0);
         return false;
     }
 
-    public static bool IsNewer(Version candidate, string current) =>
-        TryParse(current, out var cur) && candidate > cur;
+    public static bool IsNewer(Version candidate, string current) => IsNewer(candidate.ToString(), current);
+
+    /// <summary>True if the tag <paramref name="candidate"/> is a later version than <paramref name="current"/>.</summary>
+    public static bool IsNewer(string candidate, string current) =>
+        TryParse(candidate, out _) && TryParse(current, out _) && Compare(candidate, current) > 0;
+
+    /// <summary>
+    /// Compares two version tags: the numbers first (missing parts count as 0, so 1.0.16 = 1.0.16.0), then a release
+    /// beats a pre-release of the same number (1.0.16 > 1.0.16-beta), pre-releases among themselves part by part
+    /// (beta.2 > beta.1, rc > beta). Build metadata after '+' is ignored.
+    /// </summary>
+    public static int Compare(string a, string b)
+    {
+        TryParse(a, out var va);
+        TryParse(b, out var vb);
+        int c = Full(va).CompareTo(Full(vb));
+        if (c != 0) return c;
+        string pa = PreRelease(a), pb = PreRelease(b);
+        if (pa.Length == 0 || pb.Length == 0) return pa.Length == pb.Length ? 0 : pa.Length == 0 ? 1 : -1;
+        var xa = pa.Split('.');
+        var xb = pb.Split('.');
+        for (int i = 0; i < Math.Min(xa.Length, xb.Length); i++)
+        {
+            bool na = int.TryParse(xa[i], out int ia), nb = int.TryParse(xb[i], out int ib);
+            int p = na && nb ? ia.CompareTo(ib) : na ? -1 : nb ? 1 : string.CompareOrdinal(xa[i], xb[i]);
+            if (p != 0) return Math.Sign(p);
+        }
+        return xa.Length.CompareTo(xb.Length);
+
+        static Version Full(Version v) => new(v.Major, v.Minor, Math.Max(0, v.Build), Math.Max(0, v.Revision));
+        static string PreRelease(string tag)
+        {
+            var t = tag.Trim().Split('+')[0];
+            int dash = t.IndexOf('-');
+            return dash < 0 ? "" : t[(dash + 1)..].ToLowerInvariant();
+        }
+    }
 
     private static HttpClient Client()
     {

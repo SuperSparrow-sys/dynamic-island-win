@@ -63,7 +63,7 @@ public sealed class TaildropService : IDisposable
     public static async Task<List<(string Name, bool Online)>> TargetsAsync()
     {
         var list = new List<(string, bool)>();
-        var (code, output) = await RunAsync("file cp --targets", TimeSpan.FromSeconds(8));
+        var (code, output) = await RunAsync(new[] { "file", "cp", "--targets" }, TimeSpan.FromSeconds(8));
         if (code != 0) return list;
         foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
@@ -78,7 +78,10 @@ public sealed class TaildropService : IDisposable
     /// <summary>Sends files to a device; it shows up there in Taildrop (iPhone/iPad: Files app, Tailscale folder).</summary>
     public static async Task<bool> SendAsync(IReadOnlyList<string> files, string target)
     {
-        string args = "file cp " + string.Join(" ", files.Select(f => "\"" + f + "\"")) + " \"" + target + ":\"";
+        // One argument per file (no command string to break out of with quotes in a name).
+        var args = new List<string> { "file", "cp" };
+        args.AddRange(files);
+        args.Add(target + ":");
         var (code, output) = await RunAsync(args, TimeSpan.FromMinutes(30));
         string name = files.Count == 1 ? Path.GetFileName(files[0]) : (Loc.German ? $"{files.Count} Dateien" : $"{files.Count} files");
         string? error = code == 0 ? null : (output.Trim().Split('\n').LastOrDefault()?.Trim() is { Length: > 0 } e ? e : $"Fehler {code}");
@@ -87,17 +90,18 @@ public sealed class TaildropService : IDisposable
         return error is null;
     }
 
-    private static async Task<(int code, string output)> RunAsync(string args, TimeSpan timeout)
+    private static async Task<(int code, string output)> RunAsync(IEnumerable<string> args, TimeSpan timeout)
     {
         var exe = TailscaleExe();
         if (exe is null) return (-1, "Tailscale ist nicht installiert");
         try
         {
-            var psi = new ProcessStartInfo(exe, args)
+            var psi = new ProcessStartInfo(exe)
             {
                 UseShellExecute = false, CreateNoWindow = true,
                 RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
             };
+            foreach (var a in args) psi.ArgumentList.Add(a);
             psi.Environment["NO_COLOR"] = "1";
             using var p = Process.Start(psi)!;
             var stdout = p.StandardOutput.ReadToEndAsync();
@@ -271,12 +275,18 @@ public sealed class TaildropService : IDisposable
     private void OnDownloadsFile(string path)
     {
         if (!_ui.CheckAccess()) { _ui.BeginInvoke(() => OnDownloadsFile(path)); return; }
-        if (_announced.Contains(path)) return;
+        if (_announced.Contains(path) || Path.GetFileName(path).Contains(':')) return; // not a stream like our own Zone.Identifier
         var key = MatchExpected(Path.GetFileName(path));
+        if (key is null)
+        {
+            // Safety net: right after "files waiting", a new file without the browser's download mark (Zone.Identifier).
+            if (!(DateTime.UtcNow < _waitingUntil && File.Exists(path) && !HasDownloadMark(path)
+                  && !TempExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))) return;
+            // When Tailscale named the files it is receiving, only one with the extension of such a name.
+            key = _expected.Keys.FirstOrDefault(n => Path.GetExtension(n).Equals(Path.GetExtension(path), StringComparison.OrdinalIgnoreCase));
+            if (key is null && _expected.Count > 0) return;
+        }
         if (key is not null) _expected.Remove(key);
-        // Safety net: right after "files waiting", a new file without the browser's download mark (Zone.Identifier).
-        else if (!(DateTime.UtcNow < _waitingUntil && File.Exists(path) && !HasDownloadMark(path)
-                   && !TempExtensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))) return;
         _announced.Add(path);
         if (_announced.Count > 200) _announced.Clear();
         _ = ArriveAsync(path);
@@ -298,6 +308,7 @@ public sealed class TaildropService : IDisposable
             }
             catch (Exception ex) { Log.Error("Taildrop move", ex); final = path; }
         }
+        MarkFromInternet(final);
         _batch.Add(final);
         _batchTimer.Stop();
         _batchTimer.Start();
@@ -311,6 +322,20 @@ public sealed class TaildropService : IDisposable
         _batch.Clear();
         Log.Info($"Taildrop: delivered {files.Count} file(s): {string.Join(", ", files.Select(Path.GetFileName))}");
         Received?.Invoke(files);
+    }
+
+    /// <summary>
+    /// Mark of the Web (Zone.Identifier, internet zone) like a browser download: SmartScreen and Office's protected
+    /// view check a received program or document before it opens.
+    /// </summary>
+    private static void MarkFromInternet(string path)
+    {
+        try
+        {
+            if (File.Exists(path) && !HasDownloadMark(path))
+                File.WriteAllText(path + ":Zone.Identifier", "[ZoneTransfer]\r\nZoneId=3\r\n", Encoding.ASCII);
+        }
+        catch (Exception ex) { Log.Info($"Taildrop: no download mark for {Path.GetFileName(path)} ({ex.Message})"); }
     }
 
     private static bool HasDownloadMark(string path)

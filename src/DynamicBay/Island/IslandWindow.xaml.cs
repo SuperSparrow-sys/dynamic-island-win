@@ -84,7 +84,7 @@ public partial class IslandWindow : Window
 
         _x = _moveAnim.Add(new Spring(0, 0.5, 0.86));
         _y = _moveAnim.Add(new Spring(0, 0.5, 0.86));
-        _moveAnim.Updated += () => MoveWindowPx((int)Math.Round(_x.Value), (int)Math.Round(_y.Value));
+        _moveAnim.Updated += OnMoveUpdated;
 
         foreach (var layer in new FrameworkElement[] { CompactLayer, PeekLayer, DropLayer, ExpandedLayer })
             _layers[layer] = _layerAnim.Add(new Spring(0, 0.3, 1.0));
@@ -102,6 +102,7 @@ public partial class IslandWindow : Window
         HitPad.MouseLeftButtonDown += OnPress;
         HitPad.MouseMove += OnPressMove;
         HitPad.MouseLeftButtonUp += OnRelease;
+        // Capture taken away mid-drag (Alt+Tab, a dialog). OnRelease clears _dragging before it lets go, so it isn't finished twice.
         HitPad.LostMouseCapture += (_, _) => { if (_dragging) FinishDrag(); _pressed = false; };
         HitPad.DragEnter += OnDragEnter;
         HitPad.DragOver += (_, e) => { _dropLeaveTimer.Stop(); e.Effects = DragDropEffects.Copy; e.Handled = true; };
@@ -237,6 +238,7 @@ public partial class IslandWindow : Window
     private void ReplaceIfGeometryChanged()
     {
         _replaceDebounce.Stop();
+        if (!MirrorMonitorPresent()) return;
         var m = TargetMonitor();
         string key = $"{m.Device}|{m.Work.Left},{m.Work.Top},{m.Work.Right},{m.Work.Bottom}|{m.Scale}";
         if (key == _geometryKey && !_forceReplace) return;
@@ -271,6 +273,33 @@ public partial class IslandWindow : Window
         return _settings.Displays == DisplayMode.Single ? Monitors.ByDevice(_settings.Monitor) : Monitors.Primary();
     }
 
+    private bool _mirrorLost;
+
+    /// <summary>
+    /// A mirror whose monitor was unplugged hides at once instead of jumping onto the main monitor (TargetMonitor falls
+    /// back to the primary one) until the manager closes it; it comes back if the monitor returns first.
+    /// </summary>
+    private bool MirrorMonitorPresent()
+    {
+        if (_mirrorDevice is null) return true;
+        if (Monitors.FindDevice(_mirrorDevice) is null)
+        {
+            if (!_mirrorLost)
+            {
+                _mirrorLost = true;
+                Log.Info($"Mirror monitor {_mirrorDevice} gone: island hidden");
+                if (IsVisible) Hide();
+            }
+            return false;
+        }
+        if (_mirrorLost)
+        {
+            _mirrorLost = false;
+            if (!_closed && !_settings.Hidden && !_suppressed && !IsVisible) Show();
+        }
+        return true;
+    }
+
     private (Native.RECT work, Native.RECT bounds, double scale) Target()
     {
         var m = TargetMonitor();
@@ -303,6 +332,7 @@ public partial class IslandWindow : Window
     {
         if (_hwnd == IntPtr.Zero) return;
         if (_dragging) return; // WM_DPICHANGED while dragging across monitors
+        if (!MirrorMonitorPresent()) return;
         var (wa, bounds, s) = Target();
         bool vertical = _settings.Edge is IslandEdge.Left or IslandEdge.Right;
         if (vertical != _vertical || Width != WinSize(vertical).Width * U)
@@ -396,6 +426,8 @@ public partial class IslandWindow : Window
         IslandAlign.End => VerticalAlignment.Bottom,
         _ => VerticalAlignment.Center,
     };
+
+    private void OnMoveUpdated() => MoveWindowPx((int)Math.Round(_x.Value), (int)Math.Round(_y.Value));
 
     private void MoveWindowPx(int x, int y, bool resize = false)
     {
@@ -697,6 +729,17 @@ public partial class IslandWindow : Window
         Refresh();
     }
 
+    /// <summary>
+    /// Closes the panel directly (hiding, grabbing it to move): no peek bookkeeping, but the Alt polling ends with it -
+    /// left running it would keep overwriting the shared AltHeld that the other islands use too.
+    /// </summary>
+    private void CloseExpandedState()
+    {
+        _expanded = false;
+        _altPoll.Stop();
+        _vm.AltHeld = false;
+    }
+
     public void Toggle() { if (!ShowsQuestion) SetExpanded(!_expanded); }
 
     private bool ShowsQuestion => _peek.Peek?.HasActions == true;
@@ -773,7 +816,17 @@ public partial class IslandWindow : Window
         }
         else
         {
-            if (item.Priority > _peek.Peek.Priority) { _peekQueue.Clear(); _peek.Peek = null; ShowPeek(item); return; }
+            if (item.Priority > _peek.Peek.Priority)
+            {
+                // Plain messages make way for the more important one; questions (buttons) stay queued, also a shown one.
+                var keep = _peekQueue.Where(p => p.HasActions).ToList();
+                if (_peek.Peek.HasActions) keep.Insert(0, _peek.Peek);
+                _peekQueue.Clear();
+                foreach (var p in keep.Take(4)) _peekQueue.Enqueue(p);
+                _peek.Peek = null;
+                ShowPeek(item);
+                return;
+            }
             if (_peekQueue.Count < 4) _peekQueue.Enqueue(item);
         }
     }
@@ -813,12 +866,23 @@ public partial class IslandWindow : Window
     {
         _peekTimer.Stop();
         _peek.Peek = null;
-        if (_peekQueue.Count > 0)
-        {
-            var next = _peekQueue.Dequeue();
-            Dispatcher.BeginInvoke(async () => { await Task.Delay(260); ShowPeek(next); });
-        }
+        ShowNextQueuedSoon();
         Refresh();
+    }
+
+    /// <summary>
+    /// The next waiting peek after a short pause. If the panel opened meanwhile (the peek's action, a click) or another
+    /// peek came up, it stays queued: closing the panel or ending that peek continues the queue.
+    /// </summary>
+    private void ShowNextQueuedSoon()
+    {
+        if (_peekQueue.Count == 0) return;
+        Dispatcher.BeginInvoke(async () =>
+        {
+            await Task.Delay(260);
+            if (_closed || _expanded || _peek.Peek is not null || _peekQueue.Count == 0) return;
+            ShowPeek(_peekQueue.Dequeue());
+        });
     }
 
     private void OnPeekClick(object sender, MouseButtonEventArgs e)
@@ -836,6 +900,7 @@ public partial class IslandWindow : Window
         _peekTimer.Stop();
         if (action is not null) action();
         else SetExpanded(true);
+        ShowNextQueuedSoon(); // waiting peeks must not hang after a click
         Refresh();
         return true;
     }
@@ -892,8 +957,11 @@ public partial class IslandWindow : Window
                 _pressed = false;
                 HitPad.ReleaseMouseCapture();
                 _peekTimer.Stop();
+                // Our own file passes over the island: no drop mode, it must not land in the shelf a second time.
+                _dragOut = true;
                 try { DragDrop.DoDragDrop(HitPad, new DataObject(DataFormats.FileDrop, files), DragDropEffects.Copy | DragDropEffects.Move); }
                 catch (Exception ex) { Log.Error("PeekDrag", ex); }
+                finally { _dragOut = false; }
                 _peekTimer.Start();
                 return;
             }
@@ -905,7 +973,7 @@ public partial class IslandWindow : Window
             _x.Response = _y.Response = DragResponse;
             _x.Damping = _y.Damping = 1.0;
             bool wasExpanded = _expanded;
-            _expanded = false;
+            CloseExpandedState();
             Refresh();
             // Grabbed in the open panel: the island shrinks to its small shape - keep that one under the cursor
             // instead of where the big panel was grabbed (that left the cursor far away from the island).
@@ -999,6 +1067,7 @@ public partial class IslandWindow : Window
         if (!_pressed) return;
         _pressed = false;
         bool wasDragging = _dragging;
+        _dragging = false; // before releasing: LostMouseCapture must not finish the drag as well
         HitPad.ReleaseMouseCapture();
         if (wasDragging) { FinishDrag(); return; }
         // A click: open/close. (Clicks on buttons inside never reach here.)
@@ -1139,7 +1208,7 @@ public partial class IslandWindow : Window
         if (_settings.Hidden != hidden) { _settings.Hidden = hidden; _settings.SaveSoon(); return; }
         if (hidden)
         {
-            _expanded = false;
+            CloseExpandedState();
             _peek.Peek = null;
             FadeOut();
         }
@@ -1173,13 +1242,18 @@ public partial class IslandWindow : Window
         ExpandedLayer.Detach();
         _watchdog.Stop(); _altPoll.Stop();
         _shapeAnim.Updated -= ApplyShape;
+        _moveAnim.Updated -= OnMoveUpdated;
+        _layerAnim.Updated -= ApplyLayers;
+        CompositionTarget.Rendering -= UncloakAfterFrames;
         _peekTimer.Stop(); _hoverTimer.Stop(); _collapseTimer.Stop();
+        _replaceDebounce.Stop(); _dropLeaveTimer.Stop();
+        _hwnd = IntPtr.Zero; // the handle is gone: nothing may position it anymore
         base.OnClosed(e);
     }
 
     private void FadeIn()
     {
-        if (_closed) return;
+        if (_closed || _mirrorLost) return;
         if (!IsVisible) Show();
         ApplyLayer();
         BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(1, TimeSpan.FromMilliseconds(220)));
@@ -1215,7 +1289,7 @@ public partial class IslandWindow : Window
             bool desk = cls is "WorkerW" or "Progman" || fg == Native.GetShellWindow();
             if (desk != _desktopForeground) { _desktopForeground = desk; ApplyLayer(); }
         }
-        else if (IsVisible && !_suppressed)
+        else if (IsVisible && !_suppressed && _hwnd != IntPtr.Zero)
         {
             // Other topmost windows (taskbar, overlays, fullscreen games that make themselves topmost) can bury us; reassert cheaply.
             Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
@@ -1246,6 +1320,8 @@ public partial class IslandWindow : Window
         // Maximized windows also cover the monitor but keep their caption; real fullscreen windows don't.
         long style = Native.GetWindowLongPtr(fg, Native.GWL_STYLE).ToInt64();
         if ((style & Native.WS_CAPTION) == Native.WS_CAPTION) return false;
+        // Borderless apps (Spotify, Discord, VS Code) maximized cover the monitor too when the taskbar auto-hides: still no fullscreen.
+        if (Native.IsZoomed(fg)) return false;
         if (!Native.GetWindowRect(fg, out var r)) return false;
         var (_, bounds, _) = Target();
         return r.Left <= bounds.Left && r.Top <= bounds.Top && r.Right >= bounds.Right && r.Bottom >= bounds.Bottom;

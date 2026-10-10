@@ -908,7 +908,7 @@
                         <DockPanel>
                             <DockPanel DockPanel.Dock="Top" Height="22">
                                 <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" VerticalAlignment="Center" Command="{Binding Notes.NewCommand}"
-                                        ToolTip="{core:L De='Neue Notiz', En='New note'}">
+                                        Click="NewNote_Click" ToolTip="{core:L De='Neue Notiz', En='New note'}">
                                     <c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" Foreground="{StaticResource B.Text2}" />
                                 </Button>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -918,7 +918,7 @@
                             </DockPanel>
                             <Grid Margin="0,8,0,0">
                                 <Button Style="{StaticResource Btn.Chip}" Background="{StaticResource B.Fill2}" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="12,6"
-                                        Command="{Binding Notes.NewCommand}" Visibility="{Binding Notes.IsEmpty, Converter={StaticResource Vis}}">
+                                        Command="{Binding Notes.NewCommand}" Click="NewNote_Click" Visibility="{Binding Notes.IsEmpty, Converter={StaticResource Vis}}">
                                     <StackPanel Orientation="Horizontal">
                                         <c:Icon Data="{StaticResource Icon.Plus}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
                                         <TextBlock Margin="6,0,0,0" FontWeight="Normal" Text="{core:L De='Kurz etwas notieren', En='Jot something down'}" />
@@ -1224,6 +1224,14 @@
                                             </Button>
                                             <!-- status: orange pulsing = working, amber = waiting for you, grey = idle -->
                                             <Ellipse x:Name="Dot" Width="7" Height="7" Margin="1,5,8,0" VerticalAlignment="Top" Fill="{StaticResource B.Text3}" />
+                                            <!-- working: the pulsing dot (c:Loop: it only runs while the panel is really visible) -->
+                                            <Ellipse x:Name="PulseDot" Width="7" Height="7" Margin="1,5,8,0" VerticalAlignment="Top" Fill="#FFD97757" Visibility="Collapsed">
+                                                <c:Loop.Storyboard>
+                                                    <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.3" Duration="0:0:0.8" />
+                                                    </Storyboard>
+                                                </c:Loop.Storyboard>
+                                            </Ellipse>
                                             <StackPanel Grid.Column="1">
                                                 <TextBlock Style="{StaticResource T.Title}" FontSize="11.5" Text="{Binding Title}" />
                                                 <TextBlock Style="{StaticResource T.Section}" FontWeight="Medium">
@@ -1233,18 +1241,12 @@
                                         </Grid>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding IsWorking}" Value="True">
-                                                <Setter TargetName="Dot" Property="Fill" Value="#FFD97757" />
-                                                <DataTrigger.EnterActions>
-                                                    <BeginStoryboard x:Name="Pulse">
-                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                                            <DoubleAnimation Storyboard.TargetName="Dot" Storyboard.TargetProperty="Opacity" From="1" To="0.3" Duration="0:0:0.8" />
-                                                        </Storyboard>
-                                                    </BeginStoryboard>
-                                                </DataTrigger.EnterActions>
-                                                <DataTrigger.ExitActions><StopStoryboard BeginStoryboardName="Pulse" /></DataTrigger.ExitActions>
+                                                <Setter TargetName="Dot" Property="Visibility" Value="Collapsed" />
+                                                <Setter TargetName="PulseDot" Property="Visibility" Value="Visible" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding IsWaiting}" Value="True">
                                                 <Setter TargetName="Dot" Property="Fill" Value="{StaticResource B.Orange}" />
+                                                <Setter TargetName="PulseDot" Property="Fill" Value="{StaticResource B.Orange}" />
                                             </DataTrigger>
                                         </DataTemplate.Triggers>
                                     </DataTemplate>

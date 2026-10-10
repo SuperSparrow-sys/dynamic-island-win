@@ -121,7 +121,10 @@ public static class Native
     {
         if (hwnd == IntPtr.Zero) return null;
         GetWindowThreadProcessId(hwnd, out uint pid);
-        try { return System.Diagnostics.Process.GetProcessById((int)pid).ProcessName; }
+        try { using var p = System.Diagnostics.Process.GetProcessById((int)pid); return p.ProcessName; }
         catch { return null; }
     }
+
+    [DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool AllowSetForegroundWindow(uint processId);
 }
