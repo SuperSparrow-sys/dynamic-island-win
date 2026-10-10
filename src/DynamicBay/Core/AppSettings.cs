@@ -8,7 +8,8 @@ namespace DynamicBay.Core;
 
 public enum IslandEdge { Top, Bottom, Left, Right }
 public enum IslandAlign { Start, Center, End }
-public enum LayerMode { Floating, Desktop }
+/// <summary>Floating: above all windows. Desktop: behind them. AboveAll: also above fullscreen films and games (borderless).</summary>
+public enum LayerMode { Floating, Desktop, AboveAll }
 public enum IdleStyle { Bar, Clock, Hidden }
 
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>

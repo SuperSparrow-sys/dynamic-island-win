@@ -247,7 +247,7 @@ public partial class IslandWindow : Window
     private void ApplyLayer()
     {
         if (_hwnd == IntPtr.Zero) return;
-        if (_settings.Layer == LayerMode.Floating)
+        if (_settings.Layer is LayerMode.Floating or LayerMode.AboveAll)
         {
             Topmost = true;
             Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
@@ -1133,7 +1133,9 @@ public partial class IslandWindow : Window
         // Fullscreen apps and excluded apps hide the island; it comes back afterwards.
         bool suppress = false;
         var fg = Native.GetForegroundWindow();
-        if (_settings.HideInFullscreen && IsFullscreen(fg) && !_snapshotMode) suppress = true;
+        // "Above everything": stays over fullscreen films and games instead of making way for them.
+        bool fullscreen = !_snapshotMode && IsFullscreen(fg);
+        if (_settings.HideInFullscreen && fullscreen && _settings.Layer != LayerMode.AboveAll) suppress = true;
         if (!suppress && _settings.ExcludedApps.Count > 0)
         {
             if (!IsOwnWindow(fg) && ExcludedApps.Matches(_settings.ExcludedApps, Native.ProcessName(fg), () => TaskbarIdentity.Read(fg)))
@@ -1156,9 +1158,12 @@ public partial class IslandWindow : Window
         }
         else if (IsVisible && !_suppressed)
         {
-            // Other topmost windows (taskbar, overlays) can bury us; reassert cheaply.
+            // Other topmost windows (taskbar, overlays, fullscreen games that make themselves topmost) can bury us; reassert cheaply.
             Native.SetWindowPos(_hwnd, Native.HWND_TOPMOST, 0, 0, 0, 0, Native.SWP_NOMOVE | Native.SWP_NOSIZE | Native.SWP_NOACTIVATE);
         }
+        // Above a fullscreen app the island checks four times as often: games raise themselves again on every focus change.
+        var interval = TimeSpan.FromMilliseconds(_settings.Layer == LayerMode.AboveAll && fullscreen ? 225 : 900);
+        if (_watchdog.Interval != interval) _watchdog.Interval = interval;
 
         // Auto-hide to a thin line after inactivity.
         if (_settings.AutoHide && !_minimized && _mode is IslandMode.Idle or IslandMode.Compact &&

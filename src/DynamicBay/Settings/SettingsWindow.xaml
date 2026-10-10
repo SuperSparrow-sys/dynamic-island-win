@@ -359,10 +359,11 @@
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Wo die Insel liegt', En='Where the island lives'}"
-                                            ToolTip="{core:L De='Schwebend: immer über allen Fenstern. Nur Desktop: wie ein Widget hinter allen Fenstern.', En='Floating: always above all windows. Desktop only: like a widget behind all windows.'}">
+                                            ToolTip="{core:L De='Schwebend: über allen Fenstern, macht im Vollbild Platz. Über allem: auch über Filmen und Spielen im Vollbild (randlos, z. B. Minecraft mit F11; echtes exklusives Vollbild lässt Windows nicht zu). Nur Desktop: wie ein Widget hinter allen Fenstern.', En='Floating: above all windows, makes way in fullscreen. Above all: also above fullscreen films and games (borderless, e.g. Minecraft with F11; Windows does not allow true exclusive fullscreen). Desktop only: like a widget behind all windows.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Schwebend', En='Floating'}" IsChecked="{Binding S.Layer, Converter={StaticResource EqBool}, ConverterParameter=Floating}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Über allem', En='Above all'}" IsChecked="{Binding S.Layer, Converter={StaticResource EqBool}, ConverterParameter=AboveAll}" />
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Nur Desktop', En='Desktop only'}" IsChecked="{Binding S.Layer, Converter={StaticResource EqBool}, ConverterParameter=Desktop}" />
                                     </StackPanel>
                                 </Border>
