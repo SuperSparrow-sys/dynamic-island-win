@@ -54,6 +54,7 @@ public partial class ExpandedView : UserControl
             Vm?.System.SetActive(IsVisible && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
             Vm?.Spotify.SetPanelOpen(IsVisible);
             Vm?.Media.SetPanelOpen(IsVisible);
+            Vm?.MusicVolume.SetPanelOpen(IsVisible);
             if (IsVisible) { Vm?.Todo?.PanelOpened(); _ = Vm?.Presence?.RefreshAsync(); }
             if (IsVisible) Vm?.Shelf.PruneMissing();
         };
@@ -326,6 +327,52 @@ public partial class ExpandedView : UserControl
         Timeline.ReleaseMouseCapture();
         e.Handled = true;
         await Vm.Media.SeekAsync(TimelineSeconds(e));
+    }
+
+    // ---- music volume: click or drag, like the timeline ----
+
+    private double _volumeBeforeMute = 50;
+
+    private double VolumeAt(MouseEventArgs e) => Math.Clamp(e.GetPosition(VolumeBar).X / Math.Max(1, VolumeBar.ActualWidth), 0, 1) * 100;
+
+    private void Volume_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true; // never start moving the island from here
+        if (Vm is null) return;
+        VolumeBar.CaptureMouse();
+        Vm.MusicVolume.BeginDrag();
+        Vm.MusicVolume.Set(VolumeAt(e));
+    }
+
+    private void Volume_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (VolumeBar.IsMouseCaptured && Vm is not null) Vm.MusicVolume.Set(VolumeAt(e));
+    }
+
+    private void Volume_MouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!VolumeBar.IsMouseCaptured || Vm is null) return;
+        VolumeBar.ReleaseMouseCapture();
+        e.Handled = true;
+        Vm.MusicVolume.EndDrag();
+    }
+
+    private void Volume_Wheel(object sender, MouseWheelEventArgs e)
+    {
+        e.Handled = true;
+        if (Vm is null) return;
+        Vm.MusicVolume.Set(Vm.MusicVolume.Level + Math.Sign(e.Delta) * 5);
+        Vm.MusicVolume.EndDrag();
+    }
+
+    /// <summary>The speaker mutes the music; a second click brings the old volume back.</summary>
+    private void VolumeMute_Click(object sender, RoutedEventArgs e)
+    {
+        if (Vm is null) return;
+        var v = Vm.MusicVolume;
+        if (v.Level > 0) { _volumeBeforeMute = v.Level; v.Set(0); }
+        else v.Set(_volumeBeforeMute > 0 ? _volumeBeforeMute : 50);
+        v.EndDrag();
     }
 
     private async void Devices_Click(object sender, RoutedEventArgs e)

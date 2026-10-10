@@ -12,11 +12,16 @@ anderen Player. Die optionale Anmeldung ergänzt Lieblingssongs, Gerätewahl, Sh
 Seit Februar 2026 verlangt Spotify für solche Apps ein Premium-Konto des Erstellers (bis zu 5 Nutzer pro App).
 Die Anmeldung bleibt gespeichert (Refresh-Token, DPAPI-verschlüsselt), bis du sie trennst.
 
+Der Lautstärkeregler unter dem Cover ändert nur die Musik. Mit Anmeldung stellt er Spotifys eigene Lautstärke
+(auch wenn Spotify auf dem Handy oder einem Lautsprecher spielt), ohne Anmeldung die Lautstärke der Spotify-App im
+Windows-Lautstärkemixer.
+
 ## Apple Music
 
 Anzeige und Steuerung funktionieren ohne Anmeldung über die Windows-Medienschnittstelle. Eine Anmeldung (Lieblingssongs,
 Mediathek) würde ein kostenpflichtiges Apple-Entwicklerkonto mit geheimem Schlüssel voraussetzen und ist deshalb nicht
-eingebaut.
+eingebaut. Der Lautstärkeregler unter dem Cover stellt die Lautstärke von Apple Music im Windows-Lautstärkemixer,
+der Rest des PCs bleibt gleich laut.
 
 ## Kalender
 

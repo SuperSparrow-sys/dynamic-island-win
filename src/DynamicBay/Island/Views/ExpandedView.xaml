@@ -19,6 +19,8 @@
         <c:EqualsToVis x:Key="EqVis" />
         <c:EqualsToBool x:Key="EqBool" />
         <c:RatioConverter x:Key="Ratio" />
+        <c:PercentToWidth x:Key="PercentWidth" />
+        <c:BoolPick x:Key="VolumeGlyph" True="{StaticResource Icon.VolumeOff}" False="{StaticResource Icon.Volume}" />
         <c:Percent01 x:Key="Percent01" />
         <c:BoolPick x:Key="PlayPauseGlyph" True="{StaticResource Glyph.Pause}" False="{StaticResource Glyph.Play}" />
         <c:BoolPick x:Key="LikeBrush" True="{StaticResource B.Pink}" False="{StaticResource B.Text2}" />
@@ -253,6 +255,56 @@
                                 </Border>
                             </Grid>
 
+                            <!-- Music volume (only the player, not the PC): under the cover, level with the transport buttons.
+                                 Click or drag the bar, scroll over it; the speaker mutes the music. -->
+                            <DockPanel x:Name="VolumeRow" Width="96" Height="42" VerticalAlignment="Bottom" Margin="0,0,0,2"
+                                       Visibility="{Binding MusicVolume.IsAvailable, Converter={StaticResource Vis}}"
+                                       ToolTip="{Binding MusicVolume.Tip}">
+                                <Button DockPanel.Dock="Left" Style="{StaticResource Btn.Icon}" Width="20" Height="20" Margin="-3,0,3,0" Click="VolumeMute_Click">
+                                    <c:Icon Width="13" Height="13" Foreground="{StaticResource B.Text2}"
+                                            Data="{Binding MusicVolume.IsMuted, Converter={StaticResource VolumeGlyph}}" />
+                                </Button>
+                                <Grid x:Name="VolumeBar" Height="16" Background="Transparent" Cursor="Hand"
+                                      MouseLeftButtonDown="Volume_MouseDown" MouseMove="Volume_MouseMove" MouseLeftButtonUp="Volume_MouseUp" MouseWheel="Volume_Wheel">
+                                    <Border x:Name="VolumeTrack" Height="4" CornerRadius="3" Background="{StaticResource B.Fill3}" VerticalAlignment="Center" />
+                                    <Canvas ClipToBounds="False">
+                                        <Grid Height="16">
+                                            <Grid.Width>
+                                                <MultiBinding Converter="{StaticResource PercentWidth}">
+                                                    <Binding Path="MusicVolume.Level" />
+                                                    <Binding Path="ActualWidth" ElementName="VolumeBar" />
+                                                </MultiBinding>
+                                            </Grid.Width>
+                                            <Border x:Name="VolumeFill" Height="4" CornerRadius="3" Background="{StaticResource B.Text2}" VerticalAlignment="Center" />
+                                            <Border x:Name="VolumeKnob" Width="12" Height="12" CornerRadius="6" Margin="0,0,-6,0" Background="{StaticResource B.Text}"
+                                                    HorizontalAlignment="Right" VerticalAlignment="Center" Opacity="0">
+                                                <Border.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.5" /></Border.Effect>
+                                            </Border>
+                                        </Grid>
+                                    </Canvas>
+                                    <Grid.Triggers>
+                                        <EventTrigger RoutedEvent="MouseEnter">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="VolumeKnob" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.15" />
+                                                    <DoubleAnimation Storyboard.TargetName="VolumeTrack" Storyboard.TargetProperty="Height" To="6" Duration="0:0:0.15" />
+                                                    <DoubleAnimation Storyboard.TargetName="VolumeFill" Storyboard.TargetProperty="Height" To="6" Duration="0:0:0.15" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                        <EventTrigger RoutedEvent="MouseLeave">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="VolumeKnob" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.25" />
+                                                    <DoubleAnimation Storyboard.TargetName="VolumeTrack" Storyboard.TargetProperty="Height" To="4" Duration="0:0:0.25" />
+                                                    <DoubleAnimation Storyboard.TargetName="VolumeFill" Storyboard.TargetProperty="Height" To="4" Duration="0:0:0.25" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Grid.Triggers>
+                                </Grid>
+                            </DockPanel>
+
                             <Grid Grid.Column="1" Margin="14,0,0,0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -327,6 +379,12 @@
                                 <!-- Transport -->
                                 <!-- Like | previous, play, next | devices: own columns, so nothing overlaps on a narrow card -->
                                 <Grid Grid.Row="3" Margin="0,2,0,0">
+                                    <!-- Slimmer side buttons, so all seven fit in the narrow card (upright island) without cutting off the last one -->
+                                    <Grid.Resources>
+                                        <Style TargetType="Button" BasedOn="{StaticResource Btn.Icon}" x:Key="Btn.Side">
+                                            <Setter Property="Width" Value="26" />
+                                        </Style>
+                                    </Grid.Resources>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
@@ -335,12 +393,12 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}">
-                                        <Button Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.ToggleShuffleCommand}"
+                                        <Button Style="{StaticResource Btn.Side}" Command="{Binding Spotify.ToggleShuffleCommand}"
                                                 Opacity="{Binding Spotify.CanShuffle, Converter={StaticResource DimIfFalse}}"
                                                 ToolTip="{Binding Spotify.Shuffle, Converter={StaticResource ShuffleTip}}">
                                             <c:Icon Width="16" Height="16" Data="{StaticResource Icon.Shuffle}" Foreground="{Binding Spotify.Shuffle, Converter={StaticResource OnBrush}}" />
                                         </Button>
-                                        <Button Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.ToggleLikeCommand}"
+                                        <Button Style="{StaticResource Btn.Side}" Command="{Binding Spotify.ToggleLikeCommand}"
                                                 ToolTip="{Binding Spotify.IsLiked, Converter={StaticResource LikeTip}}">
                                             <c:Icon Width="16" Height="16" Data="{Binding Spotify.IsLiked, Converter={StaticResource LikeGlyph}}"
                                                     Filled="{Binding Spotify.IsLiked}" Foreground="{Binding Spotify.IsLiked, Converter={StaticResource LikeBrush}}" />
@@ -350,7 +408,7 @@
                                         <Button Style="{StaticResource Btn.Media}" Command="{Binding Media.PreviousCommand}">
                                             <c:Icon Data="{StaticResource Glyph.Previous}" Filled="True" Width="20" Height="20" />
                                         </Button>
-                                        <Button Style="{StaticResource Btn.Media}" Width="42" Height="42" Margin="6,0" Command="{Binding Media.PlayPauseCommand}">
+                                        <Button Style="{StaticResource Btn.Media}" Width="42" Height="42" Margin="4,0" Command="{Binding Media.PlayPauseCommand}">
                                             <c:Icon Data="{Binding Media.IsPlaying, Converter={StaticResource PlayPauseGlyph}}" Filled="True" Width="26" Height="26" />
                                         </Button>
                                         <Button Style="{StaticResource Btn.Media}" Command="{Binding Media.NextCommand}">
@@ -358,12 +416,12 @@
                                         </Button>
                                     </StackPanel>
                                     <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}">
-                                        <Button Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.CycleRepeatCommand}" ToolTip="{Binding Spotify.Repeat, Converter={StaticResource RepeatTip}}"
+                                        <Button Style="{StaticResource Btn.Side}" Command="{Binding Spotify.CycleRepeatCommand}" ToolTip="{Binding Spotify.Repeat, Converter={StaticResource RepeatTip}}"
                                                 Opacity="{Binding Spotify.CanRepeat, Converter={StaticResource DimIfFalse}}">
                                             <c:Icon Width="16" Height="16" Data="{Binding Spotify.Repeat, Converter={StaticResource RepeatGlyph}}"
                                                     Foreground="{Binding Spotify.Repeat, Converter={StaticResource RepeatBrush}}" />
                                         </Button>
-                                        <Button Style="{StaticResource Btn.Icon}" Click="Devices_Click" ToolTip="{core:T Media.Devices}">
+                                        <Button Style="{StaticResource Btn.Side}" Click="Devices_Click" ToolTip="{core:T Media.Devices}">
                                             <c:Icon Data="{StaticResource Icon.Devices}" Width="16" Height="16" Foreground="{StaticResource B.Text2}" />
                                         </Button>
                                     </StackPanel>

@@ -35,6 +35,8 @@ public sealed partial class MediaService : ObservableObject
     /// <summary>One shared brush for the music symbol, the waveform and the peek: its colour fades on a song change.</summary>
     public SolidColorBrush AccentBrush { get; } = new(Color.FromRgb(0x30, 0xD1, 0x58));
     [ObservableProperty] private string _sourceApp = "";
+    /// <summary>App id of the playing session (for its own volume).</summary>
+    [ObservableProperty] private string _sourceAppId = "";
     [ObservableProperty] private bool _isSpotify;
     [ObservableProperty] private bool _isAppleMusic;
     [ObservableProperty] private double _positionSeconds;
@@ -123,6 +125,7 @@ public sealed partial class MediaService : ObservableObject
         if (SourceApp != FriendlyName(_session.SourceAppUserModelId))
             Log.Info($"Media session: {_session.SourceAppUserModelId}");
         SourceApp = FriendlyName(_session.SourceAppUserModelId);
+        SourceAppId = _session.SourceAppUserModelId ?? "";
         IsSpotify = IsSpotifyId(_session.SourceAppUserModelId);
         IsAppleMusic = IsAppleMusicId(_session.SourceAppUserModelId);
         _ = RefreshMediaAsync();

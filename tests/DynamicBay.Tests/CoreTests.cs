@@ -442,6 +442,17 @@ public class TextRecognitionTests
     }
 }
 
+public class MusicVolumeTests
+{
+    [Theory]
+    [InlineData("Spotify.exe", "Spotify")]
+    [InlineData("SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", "SpotifyAB.SpotifyMusic")]
+    [InlineData("AppleInc.AppleMusicWin_nzyj5cx40ttqa!App", "AppleInc.AppleMusicWin")]
+    [InlineData("Chrome", "Chrome")]
+    public void Media_app_id_matches_its_audio_session(string appId, string key) =>
+        Assert.Equal(key, AppVolume.MatchKey(appId));
+}
+
 public class TimeTrackingTests
 {
     [Theory]

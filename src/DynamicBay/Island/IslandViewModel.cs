@@ -63,6 +63,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public CalendarService Calendar { get; }
     public BatteryService Battery { get; }
     public SpotifyService Spotify { get; }
+    /// <summary>Volume of the music alone (Spotify's own or the player's in the Windows mixer).</summary>
+    public MusicVolumeService MusicVolume { get; }
 
     [ObservableProperty] private int _tab;           // 0 home, 1 tray, 2 notifications
     [ObservableProperty] private bool _isVertical;
@@ -111,6 +113,7 @@ public sealed partial class IslandViewModel : ObservableObject
     {
         Settings = settings; Media = media; Clipboard = clipboard; Shelf = shelf; Notifications = notifications;
         Timer = timer; Calendar = calendar; Battery = battery; Spotify = spotify;
+        MusicVolume = new MusicVolumeService(media, spotify);
         Clock = new ClockService(settings);
         System = new SystemService();
         Shortcuts = new ShortcutsService(settings);

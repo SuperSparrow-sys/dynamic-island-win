@@ -27,7 +27,7 @@ Musik, Zwischenablage, Dateiablage, Mitteilungen, Kalender, Timer, Claude und me
 | ![Eigene Widgets](docs/images/top-12-script-widgets.png) | **Eigene Widgets per Skript:** Widgets selbst in JavaScript schreiben – mit derselben Schnittstelle wie Scriptable auf dem iPhone, z. B. für eigene Daten wie Strompreise, Smart Home oder Server-Status. Wahlweise als große oder kleine Karte oder als Mini-Zeile in der Insel. Skripte laufen in einer geschützten Umgebung ohne Zugriff auf Windows oder deine Dateien. Anleitung: [docs/SCRIPTS.md](docs/SCRIPTS.md). |
 | ![Hochformat](docs/images/left-4-home.png) | **Überall platzierbar:** Insel mit der Maus verschieben – sie rastet magnetisch ein und passt Form und Aufklapp-Richtung an (oben, unten, Ecken, senkrecht an den Seiten). Auf einen anderen Bildschirm ziehen oder auf allen Bildschirmen spiegeln. |
 
-**Außerdem:** Spotify, Apple Music und alle anderen Player ohne Anmeldung (optional Spotify-Login für Lieblingssongs und Gerätewahl) · Kalender aus iCloud, Google und Outlook · Timer und Pomodoro · Akku- und Bluetooth-Anzeigen · Claude-Code-Sitzungen mit Live-Status und Remote Control · schwebend über allem oder nur auf dem Desktop · Verstecken per Tastenkürzel, Auto-Hide, im Vollbild · Deutsch und Englisch.
+**Außerdem:** Spotify, Apple Music und alle anderen Player ohne Anmeldung (optional Spotify-Login für Lieblingssongs und Gerätewahl), Lautstärkeregler nur für die Musik · Kalender aus iCloud, Google und Outlook · Timer und Pomodoro · Akku- und Bluetooth-Anzeigen · Claude-Code-Sitzungen mit Live-Status und Remote Control · schwebend über allem oder nur auf dem Desktop · Verstecken per Tastenkürzel, Auto-Hide, im Vollbild · Deutsch und Englisch.
 
 ## Installation
 

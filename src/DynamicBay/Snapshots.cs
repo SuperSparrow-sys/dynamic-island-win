@@ -421,6 +421,7 @@ public static class Snapshots
     {
         // DYNAMICBAY_SNAPSHOT_TITLE: check how a long track title fits.
         vm.Media.LoadDemo(DemoCover(), Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_TITLE") ?? "Midnight Drive", "Neon Harbor");
+        vm.MusicVolume.LoadDemo(65);
         vm.Timer.LoadDemo();
         vm.Calendar.LoadDemo();
         vm.Battery.LoadDemo(84, true);

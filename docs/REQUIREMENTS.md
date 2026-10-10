@@ -87,3 +87,4 @@ dann die optionale Zeiterfassung (Paket C).
 | 47 | Kontakte-Widget: häufige Kontakte (Microsoft-Kontakte und Personen, mit denen man oft arbeitet) mit Knöpfen für Teams-Chat, Teams-Anruf und Telefon | offen |
 | 48 | Telefonanrufe über Smartphone-Link starten (tel:-Links gehen an das verknüpfte Handy) | offen |
 | 49 | Eingehende Anrufe (Smartphone-Link, Teams) als Einblendung in der Insel; ein Telefonat zählt wie ein Meeting (still) | offen |
+| 50 | Lautstärkeregler nur für die Musik in der Medienkarte: Spotify über die eigene Lautstärke (Web API), Apple Music und andere Player über die App-Lautstärke im Windows-Mixer | fertig (Live-Test) |
