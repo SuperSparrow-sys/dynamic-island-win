@@ -9,6 +9,9 @@ anderen Player. Die optionale Anmeldung ergänzt Lieblingssongs, Gerätewahl, Sh
 2. Redirect URI: `http://127.0.0.1:43821/callback`, API: *Web API*.
 3. Client ID in Einstellungen → Medien und Spotify eintragen → *Verbinden*.
 
+Für Warteschlange und Playlists braucht die Anmeldung die Berechtigung für Playlists: Wer vor Version 1.0.15 verbunden
+hat, trennt und verbindet Spotify einmal neu.
+
 Seit Februar 2026 verlangt Spotify für solche Apps ein Premium-Konto des Erstellers (bis zu 5 Nutzer pro App).
 Die Anmeldung bleibt gespeichert (Refresh-Token, DPAPI-verschlüsselt), bis du sie trennst.
 
@@ -60,6 +63,22 @@ schickt, erscheinen sofort als Einblendung und in der Ablage. Ein Klick öffnet 
 direkt aus der Einblendung herausziehen. Tailscale legt sie unter Windows immer in den Downloads ab; unter
 Einstellungen → Dateiablage → *Speichern in* verschiebt DynamicBay sie in einen eigenen Ordner. Dafür muss „Send Files“
 in der Tailscale-Verwaltung eingeschaltet sein.
+
+**Senden:** Der Pfeil-Knopf auf einer Datei in der Ablage schickt sie per Taildrop an ein anderes Gerät (Liste aus
+`tailscale file cp --targets`). Auf iPhone und iPad landet sie in der Dateien-App im Ordner Tailscale. Text und Links
+kann Taildrop nicht übertragen.
+
+## Audio und Bluetooth
+
+Das Widget „Audio“ wechselt Ausgabe und Mikrofon (Windows-Standardgerät für alles) und verbindet gekoppelte
+Bluetooth-Kopfhörer und -Lautsprecher mit einem Klick (wie „Verbinden“ in den Windows-Soundeinstellungen; klappt auch
+mit Intels Bluetooth-Audio-Offload). Einstellungen → Akku und Bluetooth → *Kopfhörer und Mikrofon*:
+
+- Kopfhörer werden beim Verbinden sofort die Ausgabe.
+- Wird das Mikrofon von Bluetooth-Kopfhörern benutzt, schalten sie in den Telefonmodus (Mono, dumpfer Ton). Die Insel
+  nimmt dann das Mikrofon des PCs; für einen Call holt die Einblendung das Headset-Mikrofon mit einem Klick zurück.
+  Teams nutzt das, wenn dort als Gerät „Standard“ eingestellt ist.
+- Werden die Kopfhörer getrennt, pausiert die Musik.
 
 Screenshot-Ordner aller OneDrive-Konten werden automatisch überwacht.
 

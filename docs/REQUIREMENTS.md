@@ -88,3 +88,22 @@ dann die optionale Zeiterfassung (Paket C).
 | 48 | Telefonanrufe über Smartphone-Link starten (tel:-Links gehen an das verknüpfte Handy) | fertig (Live-Test) |
 | 49 | Eingehende Anrufe (Smartphone-Link, Teams) als Einblendung in der Insel; ein Telefonat zählt wie ein Meeting (still) | fertig (Live-Test) |
 | 50 | Lautstärkeregler nur für die Musik in der Medienkarte: Spotify über die eigene Lautstärke (Web API), Apple Music und andere Player über die App-Lautstärke im Windows-Mixer | fertig (Live-Test) |
+
+## Paket E: Alltag, Audio und Ordnung
+
+| # | Anforderung | Status |
+|---|---|---|
+| 51 | Zeiterfassung zeigt nur Stunden und Minuten; außen in der kleinen Insel ein- und ausblendbar | fertig (Live-Test) |
+| 52 | Audio-Widget: Ausgabe und Mikrofon mit einem Klick, Bluetooth-Kopfhörer (AirPods) verbinden und trennen; Kopfhörer sofort als Ausgabe, Headset-Mikrofon meiden (guter Ton), Musik pausieren beim Trennen, Einblendung mit „Verbinden“ | fertig (Live-Test) |
+| 53 | Taildrop: Dateien aus der Ablage an andere Tailscale-Geräte senden (Text und Links kann Taildrop nicht) | fertig (Live-Test) |
+| 54 | Zeiterfassung im eigenen Fenster: Einträge bearbeiten und löschen, Zeit mit Beschreibung nachtragen, Projekte umbenennen; ein versehentlicher Klick bucht nichts; Erinnerungen nach 4 h und abends, Pause nach gesperrtem PC, Projektvorschlag aus dem Termin | fertig (Live-Test) |
+| 55 | Teams-Status: alle Punkte funktionieren (Ring zeigt die Wahl), „Als offline anzeigen“, Zurücksetzen; automatisch Nicht stören bei Fokus und Bildschirmfreigabe | fertig (Live-Test) |
+| 56 | To Do: Liste in den Einstellungen wählbar | fertig (Live-Test) |
+| 57 | Notizen-Widget: kurze Mitschriften, schnell angelegt und gelöscht | fertig (Live-Test) |
+| 58 | Spotify: Warteschlange (Song anspringen) und Playlists (abspielen) | fertig (Live-Test) |
+| 59 | Downloads in der Insel: Größe und Tempo, Einblendung mit der fertigen Datei | fertig (Live-Test) |
+| 60 | Ebene „Über allem“: auch über Filmen und Spielen im randlosen Vollbild | fertig (Live-Test) |
+| 61 | Bearbeiten-Modus: Alt halten zeigt auf jedem Widget ein Zahnrad zu seinen Einstellungen | fertig (Live-Test) |
+| 62 | Zweite Seite „System“ neben dem Nook; in den Einstellungen per Ziehen oder Auswahl verteilen, Tippen öffnet die Widget-Einstellungen | fertig (Live-Test) |
+| 63 | Notch-Design: wächst aus dem Bildschirmrand wie beim MacBook, in den Einstellungen wählbar | fertig (Live-Test) |
+| 64 | Einheitliche Formatierung: Kopfzeilen, Zeilenhöhen, Abstände und Radien | fertig |
