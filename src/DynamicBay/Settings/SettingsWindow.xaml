@@ -703,6 +703,23 @@
                             </ContentControl>
                         </StackPanel>
                     </Border>
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Kopfhörer und Mikrofon', En='Headphones and microphone'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Kopfhörer sofort als Ausgabe', En='Headphones become the output'}"
+                                            ToolTip="{core:L De='Sobald AirPods oder andere Kopfhörer verbunden sind, kommt der Ton aus ihnen.', En='As soon as AirPods or other headphones connect, the sound plays through them.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioSwitchToHeadphones}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Guter Ton statt Headset-Mikrofon', En='Good sound instead of headset mic'}"
+                                            ToolTip="{core:L De='Wird das Mikrofon von Bluetooth-Kopfhörern benutzt, schalten sie in den Telefonmodus: Mono und dumpfer Ton. Stattdessen nimmt die Insel das Mikrofon des PCs. Für einen Call holst du das Headset-Mikrofon mit einem Klick zurück.', En='When the microphone of Bluetooth headphones is used, they switch into phone mode: mono and dull sound. The island uses the PC microphone instead. For a call, one click brings the headset mic back.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioAvoidBluetoothMic}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Musik pausieren, wenn Kopfhörer getrennt werden', En='Pause music when headphones disconnect'}"
+                                            ToolTip="{core:L De='Wie beim iPhone: Die Musik läuft nicht plötzlich über die Lautsprecher weiter.', En='Like on the iPhone: the music does not suddenly carry on through the speakers.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioPauseOnDisconnect}" />
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <!-- 9 Timer and calendar -->

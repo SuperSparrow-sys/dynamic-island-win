@@ -170,6 +170,7 @@ public partial class App : Application
         if (_settings.AudioEnabled) _vm.Audio.Start();
         _vm.Work.Start();
         bluetooth.Start();
+        _vm.AudioDevices.Start();
         calendar.Start();
         _vm.Scripts.Start();
         await Next();
@@ -288,6 +289,20 @@ public partial class App : Application
         bluetooth.DeviceChanged += (dev, connected) =>
         {
             if (!_settings.BluetoothEnabled) return;
+            // Headphones or a speaker dropped out: offer to connect them again right there.
+            if (!connected && dev.IsAudio && _vm!.AudioDevices.CanConnect(dev.Name))
+            {
+                island.ShowPeek(new PeekItem
+                {
+                    Icon = Icon(dev.Kind == DeviceKind.Speaker ? "Icon.Speaker" : "Icon.Headphones"),
+                    IconBrush = Res("B.Text2"), IconBackground = Tint("B.Text", 0x26),
+                    Title = dev.Name, Subtitle = Loc.T("Bt.Disconnected"),
+                    ActionText = Loc.German ? "Verbinden" : "Connect", DismissText = "OK",
+                    Action = () => _ = _vm.AudioDevices.ConnectAsync(dev.Name),
+                    Seconds = 7,
+                });
+                return;
+            }
             island.ShowPeek(new PeekItem
             {
                 Icon = Icon(dev.Kind switch { DeviceKind.Speaker => "Icon.Speaker", DeviceKind.Headphones => "Icon.Headphones", DeviceKind.Phone => "Icon.Phone", _ => "Icon.Bluetooth" }),
@@ -393,6 +408,16 @@ public partial class App : Application
                 Seconds = 8,
             });
         };
+        // AirPods and co. as microphone switch into call mode (mono, telephone sound): the PC's microphone took over.
+        _vm.AudioDevices.BluetoothMicAvoided += (headset, mic) => island.ShowPeek(new PeekItem
+        {
+            Icon = Icon("Icon.Headphones"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+            Title = Loc.German ? $"Guter Ton auf {headset}" : $"Good sound on {headset}",
+            Subtitle = Loc.German ? $"Mikrofon: {mic}" : $"Microphone: {mic}",
+            ActionText = Loc.German ? "Headset-Mikro" : "Headset mic", DismissText = "OK",
+            Action = () => _vm.AudioDevices.UseBluetoothMic(headset),
+            Seconds = 6,
+        });
         _vm.Audio.MicMuteChanged += muted =>
         {
             if (!_settings.AudioEnabled) return;

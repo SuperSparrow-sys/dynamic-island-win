@@ -300,6 +300,11 @@ public static class Snapshots
                     foreach (var w in new[] { Widgets.Calendar, Widgets.Contacts, Widgets.TimeTrack, Widgets.Clock, Widgets.Teams }) settings.HomeWidgets.Add(w);
                     await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8c-office.png"), compact: true);
                 }
+                // Audio widget: outputs, microphone, Bluetooth headsets.
+                vm.AudioDevices.LoadDemo();
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.Media, Widgets.Audio, Widgets.Devices }) settings.HomeWidgets.Add(w);
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8d-audio.png"), compact: true);
                 settings.AppIcons = AppIconStyle.Mono;
                 await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-9-compact-clock.png"), compact: true);
 

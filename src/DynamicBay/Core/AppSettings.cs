@@ -14,7 +14,7 @@ public enum IdleStyle { Bar, Clock, Hidden }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts";
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio";
     public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts };
     public const string Battery = "battery";
     public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic, TimeTrack };
@@ -285,6 +285,12 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _batteryEnabled = true;
     [ObservableProperty] private int _batteryLowThreshold = 20;
     [ObservableProperty] private bool _bluetoothEnabled = true;
+    /// <summary>Headphones that connect become the sound output right away.</summary>
+    [ObservableProperty] private bool _audioSwitchToHeadphones = true;
+    /// <summary>A Bluetooth headset as microphone forces its call mode (mono, telephone quality): use the PC's microphone instead.</summary>
+    [ObservableProperty] private bool _audioAvoidBluetoothMic = true;
+    /// <summary>Music pauses when the headphones drop out, instead of carrying on through the speakers.</summary>
+    [ObservableProperty] private bool _audioPauseOnDisconnect = true;
 
     // Timer / Calendar
     [ObservableProperty] private bool _timerEnabled = true;

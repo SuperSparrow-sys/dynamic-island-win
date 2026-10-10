@@ -330,6 +330,14 @@ public sealed partial class MediaService : ObservableObject
         try { await _session.TryTogglePlayPauseAsync(); } catch { }
     }
 
+    /// <summary>Pauses (never starts) playback - for headphones that drop out.</summary>
+    public async Task PauseAsync()
+    {
+        if (_session is null || !IsPlaying) return;
+        IsPlaying = false;
+        try { await _session.TryPauseAsync(); } catch { }
+    }
+
     [RelayCommand]
     private async Task Next()
     {
