@@ -335,7 +335,7 @@ public sealed partial class TimeTrackingService : ObservableObject
         }
         catch (IOException)
         {
-            Status = Loc.German ? "Datei ist geöffnet (z. B. in Excel) – wird später geschrieben" : "File is open (e.g. in Excel) - will be written later";
+            Status = Loc.German ? "Datei in Excel offen, wird später gespeichert" : "File open in Excel, saved later";
         }
         catch (Exception ex) { Log.Error("TimeTracking write", ex); Status = ex.Message; }
     }

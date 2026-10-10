@@ -117,7 +117,7 @@
             <Border Style="{StaticResource S.Card}" Padding="6">
                 <Grid>
                     <TextBlock x:Name="EmptyText" Style="{StaticResource ST.Desc}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
-                               Text="{core:L De='An diesem Tag ist noch nichts erfasst. Trag unten Zeit nach oder starte ein Projekt.', En='Nothing recorded on this day yet. Add time below or start a project.'}" />
+                               Text="{core:L De='Noch nichts erfasst.', En='Nothing recorded yet.'}" />
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <ItemsControl x:Name="EntryList">
                             <ItemsControl.ItemTemplate>

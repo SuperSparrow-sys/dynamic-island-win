@@ -83,7 +83,7 @@ public sealed partial class PresenceService : ObservableObject
         catch (GraphException ex) when (ex.Status == System.Net.HttpStatusCode.Forbidden)
         {
             IsKnown = false;
-            Status = Loc.German ? "Teams-Status freischalten (Einstellungen → Microsoft)" : "Allow Teams status (Settings → Microsoft)";
+            Status = Loc.German ? "Teams-Status freischalten" : "Allow Teams status";
         }
         catch (Exception ex) { Log.Error("Teams presence", ex); }
     }
@@ -147,7 +147,7 @@ public sealed partial class PresenceService : ObservableObject
         }
         catch (GraphException ex) when (ex.Status == System.Net.HttpStatusCode.Forbidden)
         {
-            Status = Loc.German ? "Teams-Status setzen ist nicht freigegeben (Einstellungen → Microsoft)" : "Setting the Teams status is not allowed (Settings → Microsoft)";
+            Status = Loc.German ? "Teams-Status nicht freigegeben" : "Teams status not allowed";
         }
         catch (Exception ex)
         {

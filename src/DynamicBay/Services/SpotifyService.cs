@@ -470,7 +470,7 @@ public sealed partial class SpotifyService : ObservableObject
         if (res?["error"] is { } err)
         {
             Log.Info($"Spotify playlists: {err["status"]} {err["message"]}");
-            PlaylistHint = Loc.German ? "Für Playlists Spotify einmal neu verbinden (Einstellungen → Medien und Spotify)." : "Reconnect Spotify once for playlists (Settings → Media and Spotify).";
+            PlaylistHint = Loc.German ? "Spotify neu verbinden für Playlists" : "Reconnect Spotify for playlists";
             return;
         }
         PlaylistHint = "";

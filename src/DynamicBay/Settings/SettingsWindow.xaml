@@ -123,7 +123,7 @@
                                 </StackPanel>
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Bildrate', En='Frame rate'}"
-                                            ToolTip="{core:L De='Wie viele Bilder pro Sekunde die Bewegungen der Insel haben. Maximal ist am flüssigsten, 30 oder 60 sparen Strom.', En='Frames per second of the island’s motion. Maximum is smoothest; 30 or 60 save power.'}">
+                                            ToolTip="{core:L De='Maximal ist am flüssigsten, 30 oder 60 sparen Strom.', En='Maximum is smoothest, 30 or 60 save power.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource S.Segment}" Content="30" IsChecked="{Binding S.FrameRate, Converter={StaticResource EqBool}, ConverterParameter=30}" />
@@ -133,7 +133,7 @@
                                 </Border>
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Uhr-Widget', En='Clock widget'}"
-                                            ToolTip="{core:L De='Ziffern oder ein Zifferblatt wie beim iPhone. Ein Klick auf die Uhr in der Insel wechselt ebenfalls.', En='Digits or a dial like on the iPhone. Clicking the clock in the island switches too.'}">
+                                            ToolTip="{core:L De='Ziffern oder Zifferblatt. Auch per Klick auf die Uhr.', En='Digits or dial. Also by clicking the clock.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Ziffern', En='Digits'}" IsChecked="{Binding S.ClockAnalog, Converter={StaticResource EqBool}, ConverterParameter=False}" />
@@ -142,7 +142,7 @@
                                 </Border>
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Form', En='Shape'}"
-                                            ToolTip="{core:L De='Insel: schwebt mit Abstand zum Rand. Notch: wächst direkt aus dem oberen (oder unteren) Bildschirmrand, wie die Kamera-Aussparung beim MacBook.', En='Island: floats with a gap to the edge. Notch: grows straight out of the top (or bottom) screen edge, like the MacBook camera notch.'}">
+                                            ToolTip="{core:L De='Notch wächst aus dem Bildschirmrand wie beim MacBook.', En='Notch grows out of the screen edge like on a MacBook.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Insel', En='Island'}" IsChecked="{Binding S.ShapeStyle, Converter={StaticResource EqBool}, ConverterParameter=Island}" />
@@ -161,7 +161,7 @@
                                 </Border>
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Grafikkarte verwenden', En='Use graphics card'}"
-                                            ToolTip="{core:L De='Aus: Die Insel zeichnet ohne Grafikkarte. Das braucht deutlich weniger Arbeitsspeicher und Strom. Nur einschalten, wenn die Insel bei dir ruckelt.', En='Off: the island draws without the graphics card, which needs far less memory and power. Only turn on if the island stutters for you.'}">
+                                            ToolTip="{core:L De='Aus spart Speicher und Strom. Nur einschalten, wenn es ruckelt.', En='Off saves memory and power. Only turn on if it stutters.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.GpuRendering}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Schatten', En='Shadow'}"
@@ -176,7 +176,7 @@
                 <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=11}">
                     <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Widgets und Module', En='Widgets and modules'}" />
                     <TextBlock Style="{StaticResource ST.Group}" Margin="4,0,0,8" Text="{core:L De='Widgets in der aufgeklappten Insel', En='Widgets in the open island'}" />
-                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" TextWrapping="Wrap" Text="{core:L De='Zwei Seiten: Nook und System (zum Beispiel Ton und Geräte), damit der Nook nicht zu voll wird. Zieh die Widgets zwischen den Spalten hin und her und in die richtige Reihenfolge, oder wähle unten pro Widget. Passt nicht alles hinein, scrollst du in der Insel weiter.', En='Two pages: Nook and System (for example sound and devices), so the Nook does not get crowded. Drag the widgets between the columns and into order, or choose per widget below. If they do not fit, you scroll in the island.'}" />
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" TextWrapping="Wrap" Text="{core:L De='Widgets zwischen Nook, System und Aus ziehen. Tippen öffnet ihre Einstellungen.', En='Drag widgets between Nook, System and Off. Tap to open their settings.'}" />
                     <Grid x:Name="WidgetBoard" Margin="0,0,0,14" />
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel x:Name="WidgetRows" />
@@ -184,7 +184,7 @@
 
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Eigene Widgets (Skripte)', En='Own widgets (scripts)'}" />
                     <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" TextWrapping="Wrap"
-                               Text="{core:L De='Widgets in JavaScript, aufgebaut wie bei Scriptable auf dem iPhone. Ein Skript kommt nicht an Windows oder deine Dateien, nur ans Internet und an einen eigenen Ordner. Nach dem Speichern im Editor ist das Widget sofort aktuell. Nur als Mini-Zeile: oben in der Liste die Karte ausschalten.', En='Widgets in JavaScript, built like Scriptable on the iPhone. A script cannot reach Windows or your files, only the internet and its own folder. After saving in the editor the widget updates at once. Mini line only: switch the card off in the list above.'}" />
+                               Text="{core:L De='Eigene Widgets in JavaScript, wie Scriptable. Ohne Zugriff auf deine Dateien.', En='Own widgets in JavaScript, like Scriptable. No access to your files.'}" />
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <StackPanel x:Name="ScriptRows" />
@@ -249,11 +249,11 @@
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Claude Code anzeigen', En='Show Claude Code'}"
-                                            ToolTip="{core:L De='Zeigt deine Claude-Code-Sitzungen und ob Claude gerade arbeitet oder auf dich wartet. Ausgeschaltet liest DynamicBay davon nichts.', En='Shows your Claude Code sessions and whether Claude is working or waiting for you. When off, DynamicBay reads none of it.'}">
+                                            ToolTip="{core:L De='Deine Claude-Code-Sitzungen und ihr Status.', En='Your Claude Code sessions and their status.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.ClaudeEnabled}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.ClaudeEnabled}" Tag="{core:L De='Sofort Bescheid geben', En='Instant updates'}"
-                                            ToolTip="{core:L De='Claude Code meldet der Insel dann selbst, wenn es arbeitet, fertig ist oder eine Freigabe braucht. Ohne das schaut DynamicBay nur alle paar Sekunden nach. Deine settings.json wird vorher gesichert.', En='Claude Code then tells the island itself when it is working, done or needs your approval. Without it DynamicBay only checks every few seconds. Your settings.json is backed up first.'}">
+                                            ToolTip="{core:L De='Claude meldet sich sofort statt alle paar Sekunden. settings.json wird gesichert.', En='Claude reports at once instead of every few seconds. settings.json is backed up.'}">
                                 <Grid>
                                     <Button Style="{StaticResource S.AccentButton}" Command="{Binding I.Claude.InstallHooksCommand}" Content="{core:L De='Einrichten', En='Set up'}"
                                             Visibility="{Binding I.Claude.HooksInstalled, Converter={StaticResource NotVis}}" />
@@ -262,7 +262,7 @@
                                 </Grid>
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.ClaudeEnabled}" Tag="{core:L De='Sitzungen anderer PCs', En='Sessions on other PCs'}"
-                                            ToolTip="{core:L De='Jeder PC mit DynamicBay legt Titel, Projekt, Status und Link seiner Sitzungen in diesen Cloud-Ordner. So siehst du auch die Sitzungen deiner anderen Rechner und öffnest sie im Browser. Zugangsdaten werden nicht gespeichert.', En='Every PC running DynamicBay puts title, project, status and link of its sessions into this cloud folder. You then also see the sessions of your other computers and open them in the browser. No credentials are stored.'}">
+                                            ToolTip="{core:L De='Zeigt auch die Sitzungen deiner anderen PCs.', En='Also shows the sessions of your other PCs.'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="ClaudeShareText" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" Margin="0,0,10,0" MaxWidth="220" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                     <Button Style="{StaticResource S.Button}" Click="PickClaudeShare_Click" Content="{core:L De='Ordner wählen', En='Choose folder'}" />
@@ -275,7 +275,7 @@
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Mikrofon, Kamera und Ton anzeigen', En='Show microphone, camera and sound'}"
-                                            ToolTip="{core:L De='Oranger Punkt, wenn eine App das Mikrofon nutzt, grüne Kamera bei Videoaufnahme, Lautsprecher-Symbol bei Ton aus.', En='Orange dot while an app uses the microphone, green camera while recording video, speaker icon when sound is off.'}">
+                                            ToolTip="{core:L De='Mikrofon, Kamera und Ton aus als kleine Symbole.', En='Microphone, camera and sound off as small symbols.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioEnabled}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.AudioEnabled}"
@@ -343,7 +343,7 @@
                             <StackPanel Margin="22,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Ankerpunkt wählen', En='Choose an anchor'}" />
                                 <TextBlock Style="{StaticResource ST.Desc}" Margin="0,4,0,0"
-                                           Text="{core:L De='Du kannst die Insel auch einfach mit der Maus ziehen. In der Nähe der Punkte rastet sie magnetisch ein. An den Seiten wird sie senkrecht und klappt zur Seite auf. Auf einen anderen Bildschirm ziehen funktioniert auch.', En='You can also just drag the island with the mouse. It snaps magnetically near the points. On the sides it turns vertical and opens sideways. Dragging it to another display works too.'}" />
+                                           Text="{core:L De='Oder einfach mit der Maus ziehen.', En='Or simply drag it with the mouse.'}" />
                                 <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Margin="0,12,0,0" Click="ResetPosition_Click"
                                         Content="{core:L De='Position zurücksetzen', En='Reset position'}" />
                             </StackPanel>
@@ -354,7 +354,7 @@
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Anzeige bei mehreren Bildschirmen', En='With multiple displays'}"
-                                            ToolTip="{core:L De='Ein Bildschirm: Ziehe die Insel einfach auf einen anderen Bildschirm, sie merkt sich den Platz. Gespiegelt: eine Insel auf jedem Bildschirm mit denselben Inhalten.', En='One display: just drag the island to another display, it remembers the spot. Mirrored: one island on every display with the same content.'}">
+                                            ToolTip="{core:L De='Eine Insel oder auf jedem Bildschirm eine.', En='One island, or one on every display.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Ein Bildschirm', En='One display'}" IsChecked="{Binding S.Displays, Converter={StaticResource EqBool}, ConverterParameter=Single}" />
@@ -369,7 +369,7 @@
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Wo die Insel liegt', En='Where the island lives'}"
-                                            ToolTip="{core:L De='Schwebend: über allen Fenstern, macht im Vollbild Platz. Über allem: auch über Filmen und Spielen im Vollbild (randlos, z. B. Minecraft mit F11; echtes exklusives Vollbild lässt Windows nicht zu). Nur Desktop: wie ein Widget hinter allen Fenstern.', En='Floating: above all windows, makes way in fullscreen. Above all: also above fullscreen films and games (borderless, e.g. Minecraft with F11; Windows does not allow true exclusive fullscreen). Desktop only: like a widget behind all windows.'}">
+                                            ToolTip="{core:L De='Über allem bleibt auch im Vollbild sichtbar.', En='Above all stays visible in fullscreen too.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Schwebend', En='Floating'}" IsChecked="{Binding S.Layer, Converter={StaticResource EqBool}, ConverterParameter=Floating}" />
@@ -379,11 +379,11 @@
                                 </Border>
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Magnetisch einrasten', En='Magnetic snapping'}"
-                                            ToolTip="{core:L De='An: Die Insel rastet beim Loslassen am nächsten von zwölf festen Punkten ein (Anfang, Mitte und Ende jeder Kante). Aus: Sie bleibt genau dort, wo du sie loslässt.', En='On: when released, the island snaps to the nearest of twelve fixed spots (start, middle and end of each edge). Off: it stays exactly where you let go.'}">
+                                            ToolTip="{core:L De='Rastet an zwölf festen Punkten ein.', En='Snaps to twelve fixed spots.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MagneticSnap}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Position je Bildschirm-Anordnung merken', En='Remember position per display setup'}"
-                                            ToolTip="{core:L De='Zum Beispiel am Laptop oben mittig, am Büro-Monitor links: Beim An- und Abdocken kehrt die Insel an ihren Platz für diese Bildschirme zurück.', En='For example top centre on the laptop, left on the office monitor: when you dock or undock, the island returns to its place for those displays.'}">
+                                            ToolTip="{core:L De='Eigener Platz für Laptop und Büro-Monitor.', En='Own spot for laptop and office monitor.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.DockProfiles}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Abstand zum Rand', En='Distance from edge'}">
@@ -440,19 +440,19 @@
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.HideInFullscreen}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Nicht stören', En='Do not disturb'}"
-                                            ToolTip="{core:L De='Die Insel bleibt klein und zeigt nur Musik und den Timer. Mitteilungen sammeln sich still, aufklappen geht per Klick.', En='The island stays small and only shows music and the timer. Notifications collect quietly; click to open.'}">
+                                            ToolTip="{core:L De='Nur Musik und Timer, Mitteilungen still.', En='Only music and timer, notifications quiet.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.DoNotDisturb}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='In Teams- und Zoom-Calls still', En='Quiet in Teams and Zoom calls'}"
-                                            ToolTip="{core:L De='Sobald Teams oder Zoom das Mikrofon nutzt: Nicht stören, die Insel zeigt den Call und seine Dauer. Danach wie vorher.', En='As soon as Teams or Zoom uses the microphone: do not disturb, the island shows the call and its duration. Afterwards as before.'}">
+                                            ToolTip="{core:L De='Bei Teams- und Zoom-Calls still, mit Calldauer.', En='Quiet during Teams and Zoom calls, with call time.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MeetingMode}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Beim Teilen des Bildschirms ausblenden', En='Hide while sharing the screen'}"
-                                            ToolTip="{core:L De='Bei Bildschirmfreigabe oder PowerPoint-Präsentation wird die Insel zum Strich, auch wenn Musik läuft. Mitteilungen zeigen keinen Text.', En='While sharing the screen or presenting in PowerPoint the island shrinks to its bar, even with music playing. Notifications show no text.'}">
+                                            ToolTip="{core:L De='Beim Teilen nur ein Strich, Mitteilungen ohne Text.', En='Just a line while sharing, notifications without text.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.HideWhenSharing}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Fokus-Sitzung mit Nicht stören', En='Focus session with do not disturb'}"
-                                            ToolTip="{core:L De='Während einer Pomodoro-Fokus-Sitzung ist die Insel still. Die Timer-Karte zeigt, wie viele Sitzungen du heute geschafft hast.', En='The island stays quiet during a Pomodoro focus session. The timer card shows how many sessions you did today.'}">
+                                            ToolTip="{core:L De='Während einer Fokus-Sitzung still.', En='Quiet during a focus session.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.FocusQuiet}" />
                             </ContentControl>
                         </StackPanel>
@@ -519,7 +519,7 @@
                                     <TextBlock Style="{StaticResource ST.Label}" Visibility="{Binding I.Spotify.IsConnected, Converter={StaticResource Vis}}">
                                         <Run Text="{core:L De='Verbunden als', En='Connected as'}" /> <Run Text="{Binding I.Spotify.UserName, Mode=OneWay}" FontWeight="SemiBold" />
                                     </TextBlock>
-                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Mit Anmeldung kommen dazu: Songs als Lieblingssong speichern, Gerät wechseln, Zufallswiedergabe und Wiederholen. Die Anmeldung bleibt, bis du sie trennst.', En='With login: like songs, switch devices, shuffle and repeat. The login stays saved until you disconnect.'}" />
+                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Dazu: Lieblingssongs, Playlists, Warteschlange, Geräte.', En='Adds liked songs, playlists, queue, devices.'}" />
                                     <TextBlock Style="{StaticResource ST.Desc}" Foreground="{DynamicResource S.Orange}" Text="{Binding I.Spotify.Status}"
                                                Visibility="{Binding I.Spotify.Status, Converter={StaticResource Vis}}" />
                                 </StackPanel>
@@ -531,7 +531,7 @@
 
                             <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Einrichtung in 2 Minuten', En='Setup in 2 minutes'}" />
                             <TextBlock Style="{StaticResource ST.Desc}" Margin="0,4,0,10"
-                                       Text="{core:L De='Spotify verlangt seit 2026 für eigene Apps ein Premium-Konto des Erstellers. Ohne Premium funktionieren Anzeige und Steuerung trotzdem über Windows.', En='Since 2026 Spotify requires a Premium account for the creator of a developer app. Without Premium, display and controls still work through Windows.'}" />
+                                       Text="{core:L De='Spotify verlangt dafür ein Premium-Konto.', En='Spotify requires a Premium account for this.'}" />
                             <StackPanel>
                                 <TextBlock Style="{StaticResource ST.Base}" FontSize="12.5" Margin="0,0,0,6"><Run FontWeight="SemiBold">1.</Run> <Run Text="{core:L De='Öffne das Spotify Developer Dashboard und melde dich an.', En='Open the Spotify Developer Dashboard and sign in.'}" /></TextBlock>
                                 <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Margin="18,0,0,10" Click="OpenSpotifyDashboard_Click">
@@ -615,11 +615,11 @@
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Taildrop empfangen', En='Receive via Taildrop'}"
-                                            ToolTip="{core:L De='Von jedem Gerät mit Tailscale (iPhone, iPad, Android, Mac, Linux, Windows): Datei teilen, Tailscale und diesen PC wählen. Sie erscheint sofort in der Insel und in der Ablage. Dafür muss „Send Files“ in der Tailscale-Verwaltung eingeschaltet sein.', En='From any device with Tailscale (iPhone, iPad, Android, Mac, Linux, Windows): share a file, pick Tailscale and this PC. It shows up in the island and the shelf right away. Send Files must be turned on in the Tailscale admin console.'}">
+                                            ToolTip="{core:L De='Dateien per Taildrop landen sofort in der Ablage.', En='Files sent via Taildrop land in the shelf at once.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.TaildropEnabled}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.TaildropEnabled}" Tag="{core:L De='Speichern in', En='Save to'}"
-                                            ToolTip="{core:L De='Tailscale legt Dateien immer in den Downloads ab. DynamicBay verschiebt sie auf Wunsch in einen eigenen Ordner.', En='Tailscale always puts files into Downloads. DynamicBay can move them to a folder of your choice.'}">
+                                            ToolTip="{core:L De='Standard sind die Downloads.', En='Downloads by default.'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="TaildropFolderText" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" MaxWidth="260" TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
                                     <Button Style="{StaticResource S.Button}" Click="PickTaildropFolder_Click" Content="{core:L De='Ordner wählen…', En='Choose folder…'}" />
@@ -659,7 +659,7 @@
                                 <CheckBox DockPanel.Dock="Right" Style="{StaticResource S.Switch}" IsChecked="{Binding S.SuppressBanners}" VerticalAlignment="Center" />
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Nur in der Insel zeigen', En='Show only in the island'}" />
-                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Windows zeigt unten rechts nichts mehr an und spielt keinen Ton. Alles landet weiter in der Mitteilungszentrale. Beim Beenden stellt DynamicBay deine Windows-Einstellungen wieder her.', En='Windows shows nothing in the corner and plays no sound. Everything still lands in the notification center. DynamicBay restores your Windows settings when it exits.'}" />
+                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Keine Windows-Banner und kein Ton, alles kommt in die Insel.', En='No Windows banners or sound, everything goes to the island.'}" />
                                 </StackPanel>
                             </DockPanel>
                             <StackPanel IsEnabled="{Binding S.SuppressBanners}">
@@ -709,7 +709,7 @@
                                 </StackPanel>
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Bluetooth-Geräte', En='Bluetooth devices'}"
-                                            ToolTip="{core:L De='Zeigt an, wenn Kopfhörer und andere Geräte verbunden oder getrennt werden, mit Akkustand wenn verfügbar.', En='Shows when headphones and other devices connect or disconnect, with battery level when available.'}">
+                                            ToolTip="{core:L De='Verbinden, Trennen und Akkustand.', En='Connect, disconnect and battery.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.BluetoothEnabled}" />
                             </ContentControl>
                         </StackPanel>
@@ -718,15 +718,15 @@
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Kopfhörer sofort als Ausgabe', En='Headphones become the output'}"
-                                            ToolTip="{core:L De='Sobald AirPods oder andere Kopfhörer verbunden sind, kommt der Ton aus ihnen.', En='As soon as AirPods or other headphones connect, the sound plays through them.'}">
+                                            ToolTip="{core:L De='Verbundene Kopfhörer spielen sofort.', En='Connected headphones play at once.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioSwitchToHeadphones}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Guter Ton statt Headset-Mikrofon', En='Good sound instead of headset mic'}"
-                                            ToolTip="{core:L De='Wird das Mikrofon von Bluetooth-Kopfhörern benutzt, schalten sie in den Telefonmodus: Mono und dumpfer Ton. Stattdessen nimmt die Insel das Mikrofon des PCs. Für einen Call holst du das Headset-Mikrofon mit einem Klick zurück.', En='When the microphone of Bluetooth headphones is used, they switch into phone mode: mono and dull sound. The island uses the PC microphone instead. For a call, one click brings the headset mic back.'}">
+                                            ToolTip="{core:L De='Nimmt das PC-Mikrofon, damit AirPods gut klingen.', En='Uses the PC microphone so AirPods sound good.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioAvoidBluetoothMic}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Musik pausieren, wenn Kopfhörer getrennt werden', En='Pause music when headphones disconnect'}"
-                                            ToolTip="{core:L De='Wie beim iPhone: Die Musik läuft nicht plötzlich über die Lautsprecher weiter.', En='Like on the iPhone: the music does not suddenly carry on through the speakers.'}">
+                                            ToolTip="{core:L De='Wie beim iPhone.', En='Like on the iPhone.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AudioPauseOnDisconnect}" />
                             </ContentControl>
                         </StackPanel>
@@ -776,7 +776,7 @@
                     <Border Style="{StaticResource S.Card}" Padding="16,12">
                         <StackPanel>
                             <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap" Margin="0,0,0,8"
-                                       Text="{core:L De='Alle Projekte landen in einer Datei (CSV, öffnet in Excel), in Viertelstunden gerundet. Während ein Projekt läuft, wird sie alle 15 Minuten aktualisiert. Projekte legst du hier oder mit dem + im Widget an.', En='All projects go into one file (CSV, opens in Excel), rounded to quarter hours. While a project runs it is updated every 15 minutes. Add projects here or with the + in the widget.'}" />
+                                       Text="{core:L De='Eine CSV-Datei für alle Projekte, in Viertelstunden.', En='One CSV file for all projects, in quarter hours.'}" />
                             <DockPanel Margin="0,0,0,10">
                                 <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="PickTimeFile_Click" Content="{core:L De='Datei wählen…', En='Choose file…'}" />
                                 <TextBlock x:Name="TimeFileText" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -800,7 +800,7 @@
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Erinnern und nachfragen', En='Remind and ask'}" />
                                     <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap"
-                                               Text="{core:L De='Nach 4 Stunden und ab 19 Uhr fragt die Insel, ob das Projekt noch läuft. Nach einer Pause mit gesperrtem PC bietet sie an, die Zeit abzuziehen. Steht ein Projektname im Termin, schlägt sie vor, es zu starten.', En='After 4 hours and from 7 pm the island asks whether the project still runs. After a break with the PC locked it offers to take the time off. If a meeting names a project, it suggests starting it.'}" />
+                                               Text="{core:L De='Fragt nach 4 Stunden, abends und nach Pausen.', En='Asks after 4 hours, in the evening and after breaks.'}" />
                                 </StackPanel>
                             </DockPanel>
                         </StackPanel>
@@ -810,13 +810,13 @@
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Teams-Status automatisch', En='Automatic Teams status'}"
-                                            ToolTip="{core:L De='Während einer Fokus-Sitzung und beim Teilen des Bildschirms steht Teams auf Nicht stören, danach wieder wie vorher.', En='During a focus session and while sharing the screen Teams is set to do not disturb, afterwards back to what it was.'}">
+                                            ToolTip="{core:L De='Nicht stören bei Fokus und Bildschirmfreigabe.', En='Do not disturb during focus and screen sharing.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.TeamsAutoStatus}" />
                             </ContentControl>
                             <Border BorderBrush="{DynamicResource S.Divider}" BorderThickness="0,1,0,0" Padding="16,12">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Liste im Widget Aufgaben', En='List in the tasks widget'}" />
-                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Welche Liste aus Microsoft To Do die Insel zeigt. Mein Tag gibt Microsoft nicht für andere Apps frei.', En='Which Microsoft To Do list the island shows. Microsoft does not share My Day with other apps.'}" />
+                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Welche To-Do-Liste die Insel zeigt.', En='Which To Do list the island shows.'}" />
                                     <WrapPanel x:Name="TodoListChoices" Margin="0,10,0,0" />
                                 </StackPanel>
                             </Border>
@@ -829,7 +829,7 @@
                             <!-- not connected: setup -->
                             <StackPanel Visibility="{Binding I.Microsoft.IsConnected, Converter={StaticResource NotVis}}">
                                 <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap" Margin="0,0,0,8"
-                                           Text="{core:L De='Eine Anmeldung für Outlook-Kalender, Aufgaben (To Do) und Teams-Status. Geht mit Firmen- und privaten Konten. Einmalig nötig: eine eigene App-Kennung bei Microsoft (5 Minuten, siehe Anleitung).', En='One sign-in for Outlook calendar, tasks (To Do) and Teams status. Works with work and personal accounts. Needed once: your own app ID at Microsoft (5 minutes, see the guide).'}" />
+                                           Text="{core:L De='Für Outlook, To Do und Teams. Einmal eine App-Kennung anlegen (Anleitung).', En='For Outlook, To Do and Teams. Create an app ID once (guide).'}" />
                                 <WrapPanel Margin="0,0,0,10">
                                     <Button Style="{StaticResource S.Button}" Margin="0,0,8,0" Click="OpenMicrosoftGuide_Click" Content="{core:L De='Anleitung', En='Guide'}" />
                                     <Button Style="{StaticResource S.Button}" Click="OpenEntra_Click">
@@ -860,11 +860,11 @@
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Teams-Status', En='Teams status'}" />
                                         <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap"
-                                                   Text="{core:L De='Für das Widget Teams-Status: Microsoft fragt einmal nach der Erlaubnis. Manche Firmen verlangen dafür eine Freigabe durch die IT.', En='For the Teams status widget: Microsoft asks for permission once. Some companies require approval by IT.'}" />
+                                                   Text="{core:L De='Microsoft fragt einmal nach der Erlaubnis.', En='Microsoft asks for permission once.'}" />
                                     </StackPanel>
                                 </DockPanel>
                                 <TextBlock Style="{StaticResource ST.Desc}" Margin="0,12,0,0" TextWrapping="Wrap"
-                                           Text="{core:L De='Die Widgets Aufgaben und Teams-Status fügst du unter Widgets und Module hinzu. Der Outlook-Kalender steht unten bei den Kalender-Konten.', En='Add the Tasks and Teams status widgets under Widgets and modules. The Outlook calendar is listed below with the calendar accounts.'}" />
+                                           Text="{core:L De='Widgets fügst du unter Widgets und Module hinzu.', En='Add the widgets under Widgets and modules.'}" />
                             </StackPanel>
                             <TextBlock Style="{StaticResource ST.Desc}" Foreground="{DynamicResource S.Orange}" TextWrapping="Wrap" Margin="0,8,0,0"
                                        Text="{Binding I.Microsoft.Status}" Visibility="{Binding I.Microsoft.Status, Converter={StaticResource Vis}}" />
@@ -891,7 +891,7 @@
                             <StackPanel x:Name="ICloudForm" Visibility="Collapsed" Margin="0,10,0,0">
                                 <Border Height="1" Background="{DynamicResource S.Divider}" Margin="0,0,0,12" />
                                 <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='iCloud- oder CalDAV-Kalender (GMX, web.de, ...)', En='iCloud or CalDAV calendar (GMX, web.de, ...)'}" />
-                                <TextBlock Style="{StaticResource ST.Desc}" Margin="0,2,0,8" Text="{core:L De='Apple verlangt ein app-spezifisches Passwort, nicht dein normales Apple-ID-Passwort. Erstelle es auf appleid.apple.com unter Anmeldung und Sicherheit, App-spezifische Passwörter.', En='Apple requires an app-specific password, not your normal Apple ID password. Create it at appleid.apple.com under Sign-In and Security, App-Specific Passwords.'}" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Margin="0,2,0,8" Text="{core:L De='Ein app-spezifisches Passwort von appleid.apple.com, nicht dein Apple-ID-Passwort.', En='An app-specific password from appleid.apple.com, not your Apple ID password.'}" />
                                 <Button Style="{StaticResource S.Link}" HorizontalAlignment="Left" Margin="0,0,0,10" Click="OpenAppleId_Click" Content="appleid.apple.com" />
                                 <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Server (für iCloud so lassen; GMX: https://caldav.gmx.net, web.de: https://caldav.web.de)', En='Server (keep for iCloud; GMX: https://caldav.gmx.net, web.de: https://caldav.web.de)'}" />
                                 <TextBox x:Name="ICloudServer" Style="{StaticResource S.TextBox}" Margin="0,2,0,8" Text="https://caldav.icloud.com/" />
