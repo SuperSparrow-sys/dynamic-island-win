@@ -18,8 +18,10 @@ public partial class IslandWindow : Window
 {
     // Distance (DIP, before user scale) from the window edge to the shape edge: window margin + hit padding.
     private const double EdgeOffset = 34;
-    private static readonly Size WindowH = new(790, 360);
-    private static readonly Size WindowV = new(480, 560);
+    // One window size for both orientations: resizing the transparent window costs 50-120 ms (its bitmap is rebuilt),
+    // which made the switch between the wide and the tall shape while dragging stutter and jump.
+    private static readonly Size WindowH = new(790, 560);
+    private static readonly Size WindowV = WindowH;
     private static readonly Size ExpandedH = new(660, 264);
     private static readonly Size ExpandedV = new(384, 472);
 
@@ -307,12 +309,11 @@ public partial class IslandWindow : Window
             _vertical = vertical;
             _vm.IsVertical = vertical;
             CompactLayer.SetVertical(vertical);
-            ExpandedLayer.SetVertical(vertical);
         }
         var win = WinSize(vertical);
         Width = win.Width * U;
         Height = win.Height * U;
-        SizeExpandedLayer();
+        SyncExpandedOrientation();
         AlignShape();
 
         var (x, y) = WindowOrigin(wa, s);
@@ -337,6 +338,17 @@ public partial class IslandWindow : Window
     private static Size WinSize(bool vertical) => vertical ? WindowV : WindowH;
 
     private static PxRect ToPx(Native.RECT r) => new(r.Left, r.Top, r.Right, r.Bottom);
+
+    private bool? _expandedVertical;
+
+    /// <summary>Brings the (hidden) panel to the island's orientation - after a drag, or right before it opens.</summary>
+    private void SyncExpandedOrientation()
+    {
+        if (_expandedVertical == _vertical) return;
+        _expandedVertical = _vertical;
+        ExpandedLayer.SetVertical(_vertical);
+        SizeExpandedLayer();
+    }
 
     /// <summary>The panel is laid out at its final size so content never reflows while the shape morphs.</summary>
     private void SizeExpandedLayer()
@@ -606,6 +618,7 @@ public partial class IslandWindow : Window
     public void SetExpanded(bool expanded)
     {
         if (_expanded == expanded) return;
+        if (expanded) SyncExpandedOrientation();
         _expanded = expanded;
         _altPoll.Tick -= PollAlt;
         if (expanded) { _altPoll.Tick += PollAlt; _altPoll.Start(); }
@@ -820,7 +833,8 @@ public partial class IslandWindow : Window
         var wa = mon.Work;
         // Take the side-edge (vertical) or top/bottom (horizontal) shape already while dragging.
         bool wantVertical = PlacementMath.LiveVertical(c.X, c.Y, ToPx(wa), _vertical, mon.Scale);
-        if (wantVertical != _vertical) { ReshapeWhileDragging(wantVertical, c); dx = 0; dy = 0; }
+        if (wantVertical != _vertical) ReshapeWhileDragging(wantVertical);
+        if (_glideUntil != default && DateTime.UtcNow > _glideUntil) { _glideUntil = default; _x.Response = _y.Response = DragResponse; }
         int nx = _pressWindow.Left + dx, ny = _pressWindow.Top + dy;
         var shape = ShapeScreenRect(nx, ny);
         if (shape.Left < wa.Left) nx += wa.Left - shape.Left;
@@ -862,37 +876,32 @@ public partial class IslandWindow : Window
         _pressCursor = cursor;
         _pressWindow.Left = wx + (int)Math.Round(cursor.X - (wx + cx * s));
         _pressWindow.Top = wy + (int)Math.Round(cursor.Y - (wy + cy * s));
+        // Glide there as fast as the panel shrinks (the stiff drag spring would fling the still-big panel across).
+        _x.Response = _y.Response = ShrinkGlide;
+        _glideUntil = DateTime.UtcNow.AddMilliseconds(380);
     }
+
+    private const double ShrinkGlide = 0.3;
+    private DateTime _glideUntil;
 
     /// <summary>
     /// Switches between the horizontal and the vertical shape mid-drag. The window changes size, so it is moved to keep
     /// the shape centred under the cursor; the shape itself morphs with its springs.
     /// </summary>
-    private void ReshapeWhileDragging(bool vertical, Native.POINT cursor)
+    private void ReshapeWhileDragging(bool vertical)
     {
+        var cursor = Native.CursorPos();
         _vertical = vertical;
         _vm.IsVertical = vertical;
         _settings.PropertyChanged -= OnSettingChanged;
         _settings.Edge = vertical ? (cursor.X < (TargetMonitor().Work.Left + TargetMonitor().Work.Right) / 2 ? IslandEdge.Left : IslandEdge.Right)
                                   : (cursor.Y < (TargetMonitor().Work.Top + TargetMonitor().Work.Bottom) / 2 ? IslandEdge.Top : IslandEdge.Bottom);
         _settings.PropertyChanged += OnSettingChanged;
+        // Only the small shape morphs, in place: the window keeps following the cursor and the shape keeps its anchor
+        // in the window until the drop. Re-anchoring here would move the window by hundreds of pixels while Windows
+        // still shows the previous frame - a visible jump. The hidden panel follows after the drop (SyncExpandedOrientation).
         CompactLayer.SetVertical(vertical);
-        ExpandedLayer.SetVertical(vertical);
-        var win = WinSize(vertical);
-        Width = win.Width * U;
-        Height = win.Height * U;
-        SizeExpandedLayer();
-        AlignShape();
         Refresh();
-        UpdateLayout();
-        double s = WindowScale;
-        var p = Shape.TransformToAncestor(this).Transform(new Point(0, 0));
-        double cx = (p.X + _w.Target * U / 2) * s, cy = (p.Y + _h.Target * U / 2) * s;
-        int wx = (int)(cursor.X - cx), wy = (int)(cursor.Y - cy);
-        MoveWindowPx(wx, wy, resize: true);
-        _x.Snap(wx); _y.Snap(wy);
-        _pressCursor = cursor;
-        _pressWindow.Left = wx; _pressWindow.Top = wy;
     }
 
     private void _moveAnim_Stop()
@@ -947,6 +956,7 @@ public partial class IslandWindow : Window
     {
         _dragging = false;
         _x.Response = _y.Response = 0.5;
+        _glideUntil = default;
         _x.Damping = _y.Damping = 0.86;
         var r = ShapeScreenRect((int)_x.Value, (int)_y.Value);
         var oldShapePos = (r.Left, r.Top);
@@ -982,14 +992,19 @@ public partial class IslandWindow : Window
             _vertical = vertical;
             _vm.IsVertical = vertical;
             CompactLayer.SetVertical(vertical);
-            ExpandedLayer.SetVertical(vertical);
         }
         var win = WinSize(vertical);
         Width = win.Width * U;
         Height = win.Height * U;
-        SizeExpandedLayer();
+        var oldAlign = (HitPad.HorizontalAlignment, HitPad.VerticalAlignment);
         AlignShape();
+        // The shape gets a new anchor in the window, and the window moves to keep it in place. Windows would show the
+        // old picture at the new window position for one frame (the island flashes elsewhere): hide the window at the
+        // compositor until the new picture is out.
+        if (oldAlign != (HitPad.HorizontalAlignment, HitPad.VerticalAlignment)) CloakForOneFrame();
         UpdateLayout();
+        // The hidden panel takes the new orientation once the glide is done (its layout costs a frame or two).
+        Dispatcher.BeginInvoke(SyncExpandedOrientation, DispatcherPriority.ApplicationIdle);
 
         var (tx, ty) = WindowOrigin(wa, s);
         (tx, ty) = ClampToMonitor(tx, ty, monitor.Bounds, s);
@@ -1002,6 +1017,34 @@ public partial class IslandWindow : Window
         _x.Target = tx; _y.Target = ty;
         _moveAnim.Kick();
         Refresh();
+    }
+
+    private const int DWMWA_CLOAK = 13;
+    private int _cloakFrames;
+
+    /// <summary>Hides the window at the compositor (instantly, no repaint) and shows it again after two rendered frames.</summary>
+    private void CloakForOneFrame()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        int on = 1;
+        if (Native.DwmSetWindowAttribute(_hwnd, DWMWA_CLOAK, ref on, sizeof(int)) != 0) return;
+        if (_cloakFrames == 0) CompositionTarget.Rendering += UncloakAfterFrames;
+        _cloakFrames = 2;
+        // Safety net: never leave the island invisible.
+        Dispatcher.BeginInvoke(async () => { await Task.Delay(250); Uncloak(); });
+    }
+
+    private void UncloakAfterFrames(object? sender, EventArgs e)
+    {
+        if (--_cloakFrames <= 0) Uncloak();
+    }
+
+    private void Uncloak()
+    {
+        CompositionTarget.Rendering -= UncloakAfterFrames;
+        _cloakFrames = 0;
+        int off = 0;
+        if (_hwnd != IntPtr.Zero) Native.DwmSetWindowAttribute(_hwnd, DWMWA_CLOAK, ref off, sizeof(int));
     }
 
     // ================= Hide / fullscreen / auto-hide =================
@@ -1146,6 +1189,7 @@ public partial class IslandWindow : Window
         _snapshotMode = true;
         if (_suppressed) { _suppressed = false; FadeIn(); }
         _expanded = mode == IslandMode.Expanded;
+        if (_expanded) SyncExpandedOrientation();
         _dropActive = mode == IslandMode.Drop;
         _minimized = mode == IslandMode.Minimized;
         if (mode != IslandMode.Peek) _peek.Peek = null;

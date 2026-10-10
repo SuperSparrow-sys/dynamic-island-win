@@ -31,7 +31,26 @@ public static class Snapshots
         // Live: DYNAMICBAY_SNAPSHOT=live - the island runs normally (throwaway settings) for 30 s, so a script can drive the mouse.
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "live")
         {
+            // Frame pacing while the mouse button is down (dragging), summarised on every release.
+            var gaps = new List<double>();
+            double last = -1;
+            bool down = false;
+            EventHandler onFrame = (_, e) =>
+            {
+                double t = ((System.Windows.Media.RenderingEventArgs)e).RenderingTime.TotalMilliseconds;
+                bool now = System.Windows.Input.Mouse.LeftButton == System.Windows.Input.MouseButtonState.Pressed;
+                if (now && down && last > 0) gaps.Add(t - last);
+                if (!now && down && gaps.Count > 0)
+                {
+                    var sorted = gaps.OrderBy(g => g).ToList();
+                    Log.Info($"LIVE drag: {gaps.Count} frames, median {sorted[sorted.Count / 2]:0.0} ms, over 25 ms: {gaps.Count(g => g > 25)}, max {sorted[^1]:0.0} ms, big: {string.Join(" ", gaps.Select((g, i) => (g, i)).Where(x => x.g > 25).Select(x => $"#{x.i}={x.g:0}"))}");
+                    gaps.Clear();
+                }
+                down = now; last = t;
+            };
+            System.Windows.Media.CompositionTarget.Rendering += onFrame;
             await Task.Delay(30000);
+            System.Windows.Media.CompositionTarget.Rendering -= onFrame;
             return;
         }
         // Leak check: DYNAMICBAY_SNAPSHOT=leak - opens and closes the settings window five times; memory must not grow.

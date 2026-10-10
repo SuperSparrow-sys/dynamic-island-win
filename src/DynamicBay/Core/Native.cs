@@ -24,6 +24,7 @@ public static class Native
     public static readonly IntPtr HWND_BOTTOM = new(1);
 
     public const int WM_WINDOWPOSCHANGING = 0x0046;
+    public const int WM_WINDOWPOSCHANGED = 0x0047;
     public const int WM_HOTKEY = 0x0312;
     public const int WM_CLIPBOARDUPDATE = 0x031D;
     public const int WM_DISPLAYCHANGE = 0x007E;
