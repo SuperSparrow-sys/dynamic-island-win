@@ -323,6 +323,14 @@ public static class Snapshots
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.Media, Widgets.Audio, Widgets.Devices }) settings.HomeWidgets.Add(w);
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8d-audio.png"), compact: true);
+                // Second page "System": sound and devices live there
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.Media, Widgets.Calendar }) settings.HomeWidgets.Add(w);
+                foreach (var w in new[] { Widgets.Audio, Widgets.Devices }) settings.SystemWidgets.Add(w);
+                vm.Tab = 3;
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8g-system-tab.png"), compact: true);
+                vm.Tab = 0;
+                settings.SystemWidgets.Clear();
                 // Work widgets side by side: headers, rows and radii must line up.
                 vm.Notes.LoadDemo();
                 settings.TimeProjects.Clear();

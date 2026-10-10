@@ -92,6 +92,9 @@ public sealed partial class AppSettings : ObservableObject
     private ObservableCollection<string> _shortcuts = new();
 
     public ObservableCollection<string> HomeWidgets { get => _homeWidgets; set => Hook(ref _homeWidgets, value, nameof(HomeWidgets)); }
+    /// <summary>Widgets on the second page "System" (sound, devices …), so the Nook does not get crowded. Empty = no System tab.</summary>
+    public ObservableCollection<string> SystemWidgets { get => _systemWidgets; set => Hook(ref _systemWidgets, value, nameof(SystemWidgets)); }
+    private ObservableCollection<string> _systemWidgets = new();
     public ObservableCollection<string> CompactItems { get => _compactItems; set => Hook(ref _compactItems, value, nameof(CompactItems)); }
     public ObservableCollection<string> Shortcuts { get => _shortcuts; set => Hook(ref _shortcuts, value, nameof(Shortcuts)); }
     private ObservableCollection<string> _timeProjects = new() { "Allgemein" };
@@ -109,6 +112,7 @@ public sealed partial class AppSettings : ObservableObject
     public AppSettings()
     {
         _homeWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HomeWidgets));
+        _systemWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SystemWidgets));
         _compactItems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CompactItems));
         _shortcuts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Shortcuts));
         _timeProjects.CollectionChanged += (_, _) => OnPropertyChanged(nameof(TimeProjects));
@@ -189,6 +193,13 @@ public sealed partial class AppSettings : ObservableObject
         {
             if (!CompactItems.Contains(Widgets.TimeTrack)) CompactItems.Add(Widgets.TimeTrack);
             SettingsVersion = 7;
+        }
+        // v9: second page "System": sound and devices move there, the Nook keeps the rest.
+        if (SettingsVersion < 9)
+        {
+            foreach (var id in new[] { Widgets.Audio, Widgets.Devices, Widgets.System })
+                if (HomeWidgets.Remove(id) && !SystemWidgets.Contains(id)) SystemWidgets.Add(id);
+            SettingsVersion = 9;
         }
         // v8: downloads in the island (size, speed, the finished file) - on once, can be switched off.
         if (SettingsVersion < 8)

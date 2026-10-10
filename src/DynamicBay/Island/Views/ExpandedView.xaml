@@ -195,6 +195,13 @@
                         <TextBlock Style="{StaticResource TabText}" Text="{core:T Tab.Home}" />
                     </StackPanel>
                 </RadioButton>
+                <RadioButton x:Name="SystemTab" Style="{StaticResource Tab.Segment}" GroupName="tabs" Margin="2,0,0,0" Visibility="Collapsed"
+                             IsChecked="{Binding Tab, Converter={StaticResource EqBool}, ConverterParameter=3}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <c:Icon Data="{StaticResource Icon.Sliders}" Width="14" Height="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+                        <TextBlock Style="{StaticResource TabText}" Text="System" />
+                    </StackPanel>
+                </RadioButton>
                 <RadioButton Style="{StaticResource Tab.Segment}" GroupName="tabs" Margin="2,0,0,0"
                              Visibility="{Binding Settings.ShowTrayTab, Converter={StaticResource Vis}}"
                              IsChecked="{Binding Tab, Converter={StaticResource EqBool}, ConverterParameter=1}">
@@ -262,7 +269,7 @@
 
             <!-- Home: media, calendar, timer -->
             <!-- Nook page scrolls when the chosen widgets need more room than the island has -->
-            <ScrollViewer x:Name="HomeScroll" Visibility="{Binding Tab, Converter={StaticResource EqVis}, ConverterParameter=0}"
+            <ScrollViewer x:Name="HomeScroll"
                           HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
                           PreviewMouseWheel="HomeScroll_Wheel" SizeChanged="HomeScroll_SizeChanged">
             <Grid x:Name="HomeGrid">

@@ -167,7 +167,8 @@
                 <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=11}">
                     <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Widgets und Module', En='Widgets and modules'}" />
                     <TextBlock Style="{StaticResource ST.Group}" Margin="4,0,0,8" Text="{core:L De='Widgets in der aufgeklappten Insel', En='Widgets in the open island'}" />
-                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" Text="{core:L De='Die Pfeile ändern die Reihenfolge. Passt nicht alles hinein, scrollst du in der Insel seitlich weiter.', En='The arrows change the order. If they do not fit, you scroll sideways in the island.'}" />
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" TextWrapping="Wrap" Text="{core:L De='Zwei Seiten: Nook und System (zum Beispiel Ton und Geräte), damit der Nook nicht zu voll wird. Zieh die Widgets zwischen den Spalten hin und her und in die richtige Reihenfolge, oder wähle unten pro Widget. Passt nicht alles hinein, scrollst du in der Insel weiter.', En='Two pages: Nook and System (for example sound and devices), so the Nook does not get crowded. Drag the widgets between the columns and into order, or choose per widget below. If they do not fit, you scroll in the island.'}" />
+                    <Grid x:Name="WidgetBoard" Margin="0,0,0,14" />
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel x:Name="WidgetRows" />
                     </Border>

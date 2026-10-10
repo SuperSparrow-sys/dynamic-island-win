@@ -191,54 +191,158 @@ public partial class SettingsWindow : Window
     // Rows by widget id, so switches and arrows can update them in place (no flicker, no jumping list).
     private readonly Dictionary<string, (Border row, Button up, Button down)> _widgetRows = new();
 
+    /// <summary>Where a widget is: "home" (Nook), "system" or "" (not shown).</summary>
+    private string PlaceOf(string id) => _ctx.S.HomeWidgets.Contains(id) ? "home" : _ctx.S.SystemWidgets.Contains(id) ? "system" : "";
+
+    /// <summary>Puts a widget on a page (or nowhere) at a position (-1 = at the end).</summary>
+    private void Place(string id, string place, int index = -1)
+    {
+        var s = _ctx.S;
+        var target = place == "home" ? s.HomeWidgets : place == "system" ? s.SystemWidgets : null;
+        int old = target?.IndexOf(id) ?? -1;
+        if (target is not null && old >= 0 && index >= 0)
+        {
+            // within the same page: just move it
+            if (index > old) index--;
+            index = Math.Clamp(index, 0, target.Count - 1);
+            if (index != old) target.Move(old, index);
+        }
+        else
+        {
+            s.HomeWidgets.Remove(id);
+            s.SystemWidgets.Remove(id);
+            if (target is not null)
+            {
+                if (index < 0 || index > target.Count) target.Add(id); else target.Insert(index, id);
+            }
+        }
+        BuildWidgetRows();
+    }
+
     private void BuildWidgetRows()
     {
         var s = _ctx.S;
         var infos = AllWidgetInfo();
         WidgetRows.Children.Clear();
         _widgetRows.Clear();
-        // Enabled widgets first (in their order), then the rest.
-        var ordered = s.HomeWidgets.Where(id => infos.Any(w => w.id == id))
-            .Concat(infos.Select(w => w.id).Where(id => !s.HomeWidgets.Contains(id))).ToList();
+        // Nook widgets first (in their order), then System, then the rest.
+        var ordered = s.HomeWidgets.Concat(s.SystemWidgets).Where(id => infos.Any(w => w.id == id))
+            .Concat(infos.Select(w => w.id).Where(id => !s.HomeWidgets.Contains(id) && !s.SystemWidgets.Contains(id))).ToList();
         for (int i = 0; i < ordered.Count; i++)
         {
             var info = infos.First(w => w.id == ordered[i]);
-            bool on = s.HomeWidgets.Contains(info.id);
-            int pos = s.HomeWidgets.IndexOf(info.id);
-
-            var sw = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = on, VerticalAlignment = VerticalAlignment.Center };
-            sw.IsEnabled = true; // no limit: the Nook page scrolls when widgets need more room
             string id = info.id;
-            sw.Click += (_, _) =>
+            string place = PlaceOf(id);
+            var list = place == "home" ? s.HomeWidgets : place == "system" ? s.SystemWidgets : null;
+            int pos = list?.IndexOf(id) ?? -1;
+
+            // Off | Nook | System
+            var segs = new StackPanel { Orientation = Orientation.Horizontal };
+            foreach (var (key, text) in new[] { ("", Loc.German ? "Aus" : "Off"), ("home", "Nook"), ("system", "System") })
             {
-                if (sw.IsChecked == true && !s.HomeWidgets.Contains(id)) s.HomeWidgets.Add(id);
-                else if (sw.IsChecked != true) s.HomeWidgets.Remove(id);
-                UpdateWidgetArrows();
-            };
+                var rb = new RadioButton { Style = (Style)FindResource("S.Segment"), Content = text, GroupName = "w_" + id, IsChecked = place == key };
+                string k = key;
+                rb.Checked += (_, _) => { if (PlaceOf(id) != k) Dispatcher.BeginInvoke(() => Place(id, k)); };
+                segs.Children.Add(rb);
+            }
+            var seg = new Border { Style = (Style)FindResource("S.Segments"), Child = segs };
 
             var controls = new StackPanel { Orientation = Orientation.Horizontal };
-            var up = ArrowButton("Icon.ChevronUp", on && pos > 0, () => Move(id, -1));
-            var down = ArrowButton("Icon.ChevronDown", on && pos >= 0 && pos < s.HomeWidgets.Count - 1, () => Move(id, +1));
+            var up = ArrowButton("Icon.ChevronUp", list is not null && pos > 0, () => Place(id, place, pos - 1));
+            var down = ArrowButton("Icon.ChevronDown", list is not null && pos >= 0 && pos < list!.Count - 1, () => Place(id, place, pos + 2));
             controls.Children.Add(up);
             controls.Children.Add(down);
             controls.Children.Add(new Border { Width = 12 });
-            controls.Children.Add(sw);
+            controls.Children.Add(seg);
 
             var row = (Border)Row(info.icon, Loc.German ? info.de : info.en, Loc.German ? info.descDe : info.descEn, controls, i > 0);
             _widgetRows[id] = (row, up, down);
             WidgetRows.Children.Add(row);
         }
+        BuildWidgetBoard();
     }
 
-    private void UpdateWidgetArrows()
+    // ---- board: drag widgets between Nook, System and Off ----
+
+    private const string WidgetFormat = "DynamicBay.Widget";
+
+    private void BuildWidgetBoard()
     {
-        var list = _ctx.S.HomeWidgets;
-        foreach (var (id, (_, up, down)) in _widgetRows)
+        var s = _ctx.S;
+        var infos = AllWidgetInfo();
+        WidgetBoard.Children.Clear();
+        WidgetBoard.ColumnDefinitions.Clear();
+        var columns = new[]
         {
-            int pos = list.IndexOf(id);
-            up.IsEnabled = pos > 0;
-            down.IsEnabled = pos >= 0 && pos < list.Count - 1;
+            ("home", "Nook", s.HomeWidgets.Where(id => infos.Any(w => w.id == id)).ToList()),
+            ("system", "System", s.SystemWidgets.Where(id => infos.Any(w => w.id == id)).ToList()),
+            ("", Loc.German ? "Aus" : "Off", infos.Select(w => w.id).Where(id => !s.HomeWidgets.Contains(id) && !s.SystemWidgets.Contains(id)).ToList()),
+        };
+        for (int c = 0; c < columns.Length; c++)
+        {
+            var (place, title, ids) = columns[c];
+            WidgetBoard.ColumnDefinitions.Add(new ColumnDefinition());
+            var list = new StackPanel { MinHeight = 60 };
+            var card = new Border
+            {
+                // "S.Card" is both a style and a brush here (the theme brush wins in code): set the card look directly.
+                CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(1),
+                BorderBrush = (System.Windows.Media.Brush)FindResource("S.CardBorder"), Background = (System.Windows.Media.Brush)FindResource("S.Card"),
+                Padding = new Thickness(10, 8, 10, 10), Margin = new Thickness(c == 0 ? 0 : 6, 0, c == 2 ? 0 : 6, 0), AllowDrop = true,
+            };
+            var dock = new DockPanel();
+            var head = new TextBlock { Style = (Style)FindResource("ST.Label"), Text = title, Margin = new Thickness(2, 0, 0, 8) };
+            DockPanel.SetDock(head, Dock.Top);
+            dock.Children.Add(head);
+            dock.Children.Add(list);
+            card.Child = dock;
+            foreach (var id in ids)
+            {
+                var info = infos.First(w => w.id == id);
+                list.Children.Add(BoardChip(id, info.icon, Loc.German ? info.de : info.en));
+            }
+            string target = place;
+            card.DragOver += (_, e) => { e.Effects = e.Data.GetDataPresent(WidgetFormat) ? DragDropEffects.Move : DragDropEffects.None; e.Handled = true; };
+            card.Drop += (_, e) =>
+            {
+                if (e.Data.GetData(WidgetFormat) is not string id) return;
+                // Position in the column from the mouse: before the first chip whose middle is below it.
+                int index = -1;
+                var y = e.GetPosition(list).Y;
+                for (int k = 0; k < list.Children.Count; k++)
+                    if (list.Children[k] is FrameworkElement fe && y < fe.TranslatePoint(new Point(0, 0), list).Y + fe.ActualHeight / 2) { index = k; break; }
+                Dispatcher.BeginInvoke(() => Place(id, target, target.Length == 0 ? -1 : index));
+                e.Handled = true;
+            };
+            Grid.SetColumn(card, c);
+            WidgetBoard.Children.Add(card);
         }
+    }
+
+    private Border BoardChip(string id, string icon, string name)
+    {
+        var chip = new Border
+        {
+            CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(0, 0, 0, 6), Cursor = Cursors.SizeAll,
+            Background = (System.Windows.Media.Brush)FindResource("S.Field"), BorderBrush = (System.Windows.Media.Brush)FindResource("S.FieldBorder"), BorderThickness = new Thickness(1),
+            ToolTip = Loc.German ? "Ziehen: verschieben" : "Drag to move",
+        };
+        var row = new StackPanel { Orientation = Orientation.Horizontal };
+        row.Children.Add(new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Width = 14, Height = 14, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Base"), FontSize = 12.5, Text = name, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap, VerticalAlignment = VerticalAlignment.Center });
+        chip.Child = row;
+        Point start = default;
+        chip.PreviewMouseLeftButtonDown += (_, e) => start = e.GetPosition(chip);
+        chip.PreviewMouseMove += (_, e) =>
+        {
+            if (e.LeftButton != MouseButtonState.Pressed) return;
+            var d = e.GetPosition(chip) - start;
+            if (Math.Abs(d.X) < 4 && Math.Abs(d.Y) < 4) return;
+            chip.Opacity = 0.5;
+            DragDrop.DoDragDrop(chip, new DataObject(WidgetFormat, id), DragDropEffects.Move);
+            chip.Opacity = 1;
+        };
+        return chip;
     }
 
     // ---- script widgets ----
@@ -339,34 +443,6 @@ public partial class SettingsWindow : Window
     private void ScriptHelp_Click(object sender, RoutedEventArgs e)
     {
         try { Process.Start(new ProcessStartInfo("https://github.com/SuperSparrow-sys/dynamic-island-win/blob/main/docs/SCRIPTS.md") { UseShellExecute = true }); } catch { }
-    }
-
-    private void Move(string id, int delta)
-    {
-        var list = _ctx.S.HomeWidgets;
-        int i = list.IndexOf(id), j = i + delta;
-        if (i < 0 || j < 0 || j >= list.Count) return;
-        list.Move(i, j);
-        // Move just these two rows; everything else stays where it is.
-        var ia = WidgetRows.Children.IndexOf(_widgetRows[id].row);
-        var other = list[i];
-        if (_widgetRows.TryGetValue(other, out var o))
-        {
-            var ib = WidgetRows.Children.IndexOf(o.row);
-            if (ia >= 0 && ib >= 0)
-            {
-                int lo = Math.Min(ia, ib), hi = Math.Max(ia, ib);
-                var eLo = WidgetRows.Children[lo];
-                var eHi = WidgetRows.Children[hi];
-                WidgetRows.Children.RemoveAt(hi);
-                WidgetRows.Children.RemoveAt(lo);
-                WidgetRows.Children.Insert(lo, eHi);
-                WidgetRows.Children.Insert(hi, eLo);
-                for (int k = 0; k < WidgetRows.Children.Count; k++)
-                    if (WidgetRows.Children[k] is Border b) b.BorderThickness = new Thickness(0, k > 0 ? 1 : 0, 0, 0);
-            }
-        }
-        UpdateWidgetArrows();
     }
 
     private Button ArrowButton(string icon, bool enabled, Action click)

@@ -45,6 +45,12 @@ public partial class ExpandedView : UserControl
         };
         DataContextChanged += (_, _) =>
         {
+            if (Vm is { } tabVm)
+            {
+                tabVm.PropertyChanged -= OnTabChanged;
+                tabVm.PropertyChanged += OnTabChanged;
+                Dispatcher.BeginInvoke(() => { UpdateSystemTab(); ApplyTab(); });
+            }
             if (_notesVm is not null) _notesVm.Notes.Added -= OnNoteAdded;
             _notesVm = Vm;
             if (_notesVm is not null) _notesVm.Notes.Added += OnNoteAdded;
@@ -72,6 +78,7 @@ public partial class ExpandedView : UserControl
 
     private void OnSettingsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(Core.AppSettings.SystemWidgets)) { UpdateSystemTab(); LayoutHome(); }
         if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled) or nameof(Core.AppSettings.ScriptWidgets)
             or nameof(Core.AppSettings.MediaEnabled) or nameof(Core.AppSettings.TimerEnabled) or nameof(Core.AppSettings.CalendarEnabled)) LayoutHome();
         if (e.PropertyName is nameof(Core.AppSettings.ShelfEnabled)) SetVertical(_vertical);
@@ -90,7 +97,8 @@ public partial class ExpandedView : UserControl
     private void EnsureVisibleTab()
     {
         if (Vm is null) return;
-        if ((Vm.Tab == 1 && !Vm.Settings.ShowTrayTab) || (Vm.Tab == 2 && !Vm.Settings.ShowNotificationsTab)) Vm.Tab = 0;
+        if ((Vm.Tab == 1 && !Vm.Settings.ShowTrayTab) || (Vm.Tab == 2 && !Vm.Settings.ShowNotificationsTab)
+            || (Vm.Tab == 3 && Vm.Settings.SystemWidgets.Count == 0)) Vm.Tab = 0;
     }
 
     /// <summary>
@@ -100,7 +108,9 @@ public partial class ExpandedView : UserControl
     private void LayoutHome()
     {
         SyncScriptCards();
-        var enabled = (Vm?.Settings.HomeWidgets ?? new System.Collections.ObjectModel.ObservableCollection<string> { "media", "calendar", "timer" })
+        // Nook and System share the grid and the cards: the open page decides which widgets it shows.
+        var source = Vm is { Tab: 3 } v3 ? v3.Settings.SystemWidgets : Vm?.Settings.HomeWidgets;
+        var enabled = (source ?? new System.Collections.ObjectModel.ObservableCollection<string> { "media", "calendar", "timer" })
             .Where(_widgets.ContainsKey).Where(ModuleOn).Distinct().ToList();
         foreach (var (id, card) in _widgets) card.Visibility = enabled.Contains(id) ? Visibility.Visible : Visibility.Collapsed;
         HomeGrid.ColumnDefinitions.Clear();
@@ -535,6 +545,36 @@ public partial class ExpandedView : UserControl
     {
         if (NewTimeProject.Text.Trim().Length > 0) Vm?.Time.AddProject(NewTimeProject.Text);
         NewTimeProject.Visibility = Visibility.Collapsed;
+    }
+
+    // ---- pages: Nook and System share the widget grid ----
+
+    private int _shownPage = -1;
+
+    private void OnTabChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(IslandViewModel.Tab)) ApplyTab();
+    }
+
+    private void ApplyTab()
+    {
+        if (Vm is null) return;
+        bool grid = Vm.Tab is 0 or 3;
+        HomeScroll.Visibility = grid ? Visibility.Visible : Visibility.Collapsed;
+        if (grid && _shownPage != Vm.Tab)
+        {
+            _shownPage = Vm.Tab;
+            LayoutHome();
+            HomeScroll.ScrollToHorizontalOffset(0);
+            HomeScroll.ScrollToVerticalOffset(0);
+        }
+    }
+
+    private void UpdateSystemTab()
+    {
+        if (Vm is null) return;
+        SystemTab.Visibility = Vm.Settings.SystemWidgets.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        EnsureVisibleTab();
     }
 
     // ---- widget settings (Alt held = edit mode) ----
