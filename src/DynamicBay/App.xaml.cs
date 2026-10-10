@@ -108,7 +108,7 @@ public partial class App : Application
         _vm = new IslandViewModel(_settings, media, clipboard, shelf, notifications, timer, calendar, battery, spotify)
         {
             Bluetooth = bluetooth, Microsoft = microsoft,
-            Todo = new Services.M365.TodoService(microsoft), Presence = new Services.M365.PresenceService(microsoft),
+            Todo = new Services.M365.TodoService(microsoft, _settings), Presence = new Services.M365.PresenceService(microsoft, _settings),
             Contacts = new Services.M365.ContactsService(microsoft),
         };
         // First sign-in: the Outlook calendar joins the calendar card right away.

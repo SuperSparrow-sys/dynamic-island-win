@@ -66,6 +66,14 @@ public partial class SettingsWindow : Window
         UpdateTaildropFolderText();
         BuildProjectRows();
         UpdateTimeFileText();
+        BuildTodoListChoices();
+        if (vm.Todo is { } todo)
+        {
+            System.Collections.Specialized.NotifyCollectionChangedEventHandler listsChanged = (_, _) => Dispatcher.BeginInvoke(BuildTodoListChoices);
+            todo.Lists.CollectionChanged += listsChanged;
+            Closed += (_, _) => todo.Lists.CollectionChanged -= listsChanged;
+            if (todo.Lists.Count == 0) _ = todo.RefreshAsync();
+        }
         _ctx.S.PropertyChanged += OnTimeProjectsChanged;
         Closed += (_, _) => _ctx.S.PropertyChanged -= OnTimeProjectsChanged;
         UpdateUpdateRow();
@@ -399,6 +407,30 @@ public partial class SettingsWindow : Window
     {
         _ctx.S.TaildropFolder = "";
         UpdateTaildropFolderText();
+    }
+
+    // ---- To Do list ----
+
+    /// <summary>"Alle Listen" plus one chip per To Do list; the chosen one is highlighted.</summary>
+    private void BuildTodoListChoices()
+    {
+        TodoListChoices.Children.Clear();
+        var lists = _ctx.I.Todo?.Lists.ToList() ?? new();
+        if (lists.Count == 0)
+        {
+            TodoListChoices.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Desc"),
+                Text = _ctx.I.Microsoft?.IsConnected == true ? (Loc.German ? "Listen werden geladen …" : "Loading lists …") : (Loc.German ? "Erst mit Microsoft verbinden (unten)." : "Connect Microsoft first (below).") });
+            return;
+        }
+        void Add(string id, string name)
+        {
+            bool on = _ctx.S.TodoListId == id;
+            var b = new Button { Style = (Style)FindResource(on ? "S.AccentButton" : "S.Button"), Content = name, Margin = new Thickness(0, 0, 8, 8), Padding = new Thickness(12, 5, 12, 5) };
+            b.Click += (_, _) => { _ctx.S.TodoListId = id; _ctx.S.TodoListName = id.Length == 0 ? "" : name; BuildTodoListChoices(); };
+            TodoListChoices.Children.Add(b);
+        }
+        Add("", Loc.German ? "Alle Listen" : "All lists");
+        foreach (var l in lists) Add(l.Id, l.Name);
     }
 
     // ---- time tracking projects ----

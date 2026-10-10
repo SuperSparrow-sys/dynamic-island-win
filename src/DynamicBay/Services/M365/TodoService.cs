@@ -23,13 +23,18 @@ public sealed partial class TodoItem : ObservableObject
         : d.ToString(Loc.German ? "ddd, d. MMM" : "ddd, MMM d");
 }
 
+/// <summary>A Microsoft To Do list, for choosing the one the widget shows.</summary>
+public sealed record TodoList(string Id, string Name);
+
 /// <summary>
-/// Microsoft To Do: open tasks of all lists, overdue and today's first; tick them off in the island.
-/// Refreshed every five minutes and whenever the panel opens.
+/// Microsoft To Do: open tasks of the chosen list (or all lists), overdue and today's first; tick them off in the island.
+/// Refreshed every five minutes and whenever the panel opens. A list that cannot be read (Graph refuses filters on
+/// some of them) is read unfiltered or skipped - it no longer breaks the whole widget.
 /// </summary>
 public sealed partial class TodoService : ObservableObject
 {
     private readonly MicrosoftAccount _account;
+    private readonly AppSettings _settings;
     private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromMinutes(5) };
     private DateTime _lastRefresh;
     private bool _loading;
@@ -39,9 +44,14 @@ public sealed partial class TodoService : ObservableObject
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private int _openCount;
 
-    public TodoService(MicrosoftAccount account)
+    /// <summary>All lists of the account (read with every refresh).</summary>
+    public ObservableCollection<TodoList> Lists { get; } = new();
+
+    public TodoService(MicrosoftAccount account, AppSettings settings)
     {
         _account = account;
+        _settings = settings;
+        _settings.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AppSettings.TodoListId)) _ = RefreshAsync(); };
         _refresh.Tick += async (_, _) => await RefreshAsync();
         _account.Connected += () => _ = RefreshAsync();
         Items.CollectionChanged += (_, _) => { IsEmpty = Items.Count == 0; OpenCount = Items.Count(i => !i.Done); };
@@ -65,19 +75,20 @@ public sealed partial class TodoService : ObservableObject
         _loading = true;
         try
         {
-            var lists = await _account.GetAsync("me/todo/lists?$select=id,displayName,wellknownListName");
+            var lists = await _account.GetAsync("me/todo/lists");
             if (lists is null) return;
-            var pages = await Task.WhenAll((lists["value"]?.AsArray() ?? new JsonArray()).Select(async l =>
-            {
-                string id = l!["id"]!.ToString();
-                var tasks = await _account.GetAsync($"me/todo/lists/{Uri.EscapeDataString(id)}/tasks?$filter=status ne 'completed'&$top=50");
-                return (id, tasks);
-            }));
+            var found = (lists["value"]?.AsArray() ?? new JsonArray())
+                .Select(l => new TodoList(l!["id"]!.ToString(), ListName(l)))
+                .ToList();
+            if (!found.SequenceEqual(Lists)) { Lists.Clear(); foreach (var l in found) Lists.Add(l); }
+            var chosen = found.Where(l => _settings.TodoListId.Length == 0 || l.Id == _settings.TodoListId).ToList();
+            if (chosen.Count == 0) chosen = found; // the chosen list was deleted: show all
+            var pages = await Task.WhenAll(chosen.Select(async l => (l.Id, tasks: await ReadTasksAsync(l))));
             var all = new List<TodoItem>();
             foreach (var (listId, tasks) in pages)
-                foreach (var t in tasks?["value"]?.AsArray() ?? new JsonArray())
+                foreach (var t in tasks)
                 {
-                    if (t is null) continue;
+                    if (t is null || t["status"]?.ToString() == "completed") continue;
                     DateTime? due = DateTime.TryParse(t["dueDateTime"]?["dateTime"]?.ToString(), out var d) ? d.Date : null;
                     all.Add(new TodoItem
                     {
@@ -102,6 +113,38 @@ public sealed partial class TodoService : ObservableObject
         }
         finally { _loading = false; }
     }
+
+    /// <summary>Open tasks of one list; without the filter if Graph refuses it for this list; nothing if it cannot be read.</summary>
+    private async Task<List<JsonNode?>> ReadTasksAsync(TodoList list)
+    {
+        string path = $"me/todo/lists/{Uri.EscapeDataString(list.Id)}/tasks";
+        try
+        {
+            var res = await _account.GetAsync(path + "?$filter=status ne 'completed'&$top=50");
+            return res?["value"]?.AsArray().ToList() ?? new();
+        }
+        catch (GraphException first)
+        {
+            try
+            {
+                var res = await _account.GetAsync(path + "?$top=100");
+                return res?["value"]?.AsArray().ToList() ?? new();
+            }
+            catch (GraphException ex)
+            {
+                Log.Info($"To Do list '{list.Name}' skipped: {first.Message} / {ex.Message}");
+                return new();
+            }
+        }
+    }
+
+    /// <summary>"Aufgaben" for the default list, "Gekennzeichnete E-Mails" for flagged mails, else the list's own name.</summary>
+    private static string ListName(JsonNode l) => l["wellknownListName"]?.ToString() switch
+    {
+        "defaultList" => Loc.German ? "Aufgaben" : "Tasks",
+        "flaggedEmails" => Loc.German ? "Gekennzeichnete E-Mails" : "Flagged emails",
+        _ => l["displayName"]?.ToString() ?? "",
+    };
 
     /// <summary>Ticks a task off (it fades out of the list a moment later).</summary>
     [RelayCommand]

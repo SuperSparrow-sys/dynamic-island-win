@@ -795,6 +795,23 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Teams und To Do', En='Teams and To Do'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Teams-Status automatisch', En='Automatic Teams status'}"
+                                            ToolTip="{core:L De='Während einer Fokus-Sitzung und beim Teilen des Bildschirms steht Teams auf Nicht stören, danach wieder wie vorher.', En='During a focus session and while sharing the screen Teams is set to do not disturb, afterwards back to what it was.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.TeamsAutoStatus}" />
+                            </ContentControl>
+                            <Border BorderBrush="{DynamicResource S.Divider}" BorderThickness="0,1,0,0" Padding="16,12">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Liste im Widget Aufgaben', En='List in the tasks widget'}" />
+                                    <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Welche Liste aus Microsoft To Do die Insel zeigt. Mein Tag gibt Microsoft nicht für andere Apps frei.', En='Which Microsoft To Do list the island shows. Microsoft does not share My Day with other apps.'}" />
+                                    <WrapPanel x:Name="TodoListChoices" Margin="0,10,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Microsoft 365 (Outlook, Teams, To Do)', En='Microsoft 365 (Outlook, Teams, To Do)'}" />
                     <Border Style="{StaticResource S.Card}" Padding="16,12">
                         <StackPanel>

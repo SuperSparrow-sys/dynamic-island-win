@@ -21,6 +21,7 @@
         <c:RatioConverter x:Key="Ratio" />
         <c:PercentToWidth x:Key="PercentWidth" />
         <c:InverseBool x:Key="Not" />
+        <c:TextOr x:Key="TodoTitle" Fallback="{core:L De='Aufgaben', En='Tasks'}" />
         <c:BoolPick x:Key="OutputGlyph" True="{StaticResource Icon.Headphones}" False="{StaticResource Icon.Speaker}" />
         <c:BoolPick x:Key="DefaultBg" True="{StaticResource B.Fill2}" False="{x:Static Brushes.Transparent}" />
         <c:BoolPick x:Key="ConnectText" True="{core:L De='Trennen', En='Disconnect'}" False="{core:L De='Verbinden', En='Connect'}" />
@@ -708,7 +709,7 @@
                             </Button>
                             <StackPanel Orientation="Horizontal">
                                 <c:Icon Data="{StaticResource Icon.Check}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" />
-                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:L De='Aufgaben', En='Tasks'}" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" Text="{Binding Settings.TodoListName, Converter={StaticResource TodoTitle}}" />
                             </StackPanel>
                         </DockPanel>
                         <Grid Margin="0,6,0,0">
@@ -770,12 +771,17 @@
                                                     </MultiBinding>
                                                 </Ellipse.Visibility>
                                             </Ellipse>
-                                            <Ellipse Width="13" Height="13" Fill="{Binding Brush}" Stroke="{Binding Brush}" StrokeThickness="2"
-                                                     Visibility="{Binding Hollow, Converter={StaticResource NotVis}}" />
-                                            <Ellipse Width="13" Height="13" Stroke="{Binding Brush}" StrokeThickness="2.5"
-                                                     Visibility="{Binding Hollow, Converter={StaticResource Vis}}" />
-                                            <!-- do not disturb: white bar, automatic: small arrow -->
-                                            <Rectangle Width="7" Height="2" RadiusX="1" RadiusY="1" Fill="White" Visibility="{Binding Bar, Converter={StaticResource Vis}}" />
+                                            <Grid Visibility="{Binding Reset, Converter={StaticResource NotVis}}">
+                                                <Ellipse Width="13" Height="13" Fill="{Binding Brush}" Stroke="{Binding Brush}" StrokeThickness="2"
+                                                         Visibility="{Binding Hollow, Converter={StaticResource NotVis}}" />
+                                                <Ellipse Width="13" Height="13" Stroke="{Binding Brush}" StrokeThickness="2.5"
+                                                         Visibility="{Binding Hollow, Converter={StaticResource Vis}}" />
+                                                <!-- do not disturb: white bar -->
+                                                <Rectangle Width="7" Height="2" RadiusX="1" RadiusY="1" Fill="White" Visibility="{Binding Bar, Converter={StaticResource Vis}}" />
+                                            </Grid>
+                                            <!-- reset: Teams decides again -->
+                                            <c:Icon Data="{StaticResource Icon.Reset}" Width="12" Height="12" StrokeWidth="2.4" Foreground="{StaticResource B.Text2}"
+                                                    Visibility="{Binding Reset, Converter={StaticResource Vis}}" />
                                         </Grid>
                                     </Button>
                                 </DataTemplate>

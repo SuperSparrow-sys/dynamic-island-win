@@ -293,6 +293,14 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _audioPauseOnDisconnect = true;
     /// <summary>Time tracking asks after 4 hours and in the evening whether the project still runs.</summary>
     [ObservableProperty] private bool _timeReminders = true;
+    /// <summary>Teams status chosen in the island, and until when it holds (Teams keeps it a working day).</summary>
+    [ObservableProperty] private string _teamsChosen = "";
+    [ObservableProperty] private DateTime _teamsChosenUntil;
+    /// <summary>"Do not disturb" in Teams during a focus session and while sharing the screen.</summary>
+    [ObservableProperty] private bool _teamsAutoStatus = true;
+    /// <summary>Microsoft To Do list shown in the widget ("" = all lists).</summary>
+    [ObservableProperty] private string _todoListId = "";
+    [ObservableProperty] private string _todoListName = "";
 
     // Timer / Calendar
     [ObservableProperty] private bool _timerEnabled = true;
