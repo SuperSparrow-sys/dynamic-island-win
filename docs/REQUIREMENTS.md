@@ -1,4 +1,4 @@
-# Anforderungen und Status
+fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |fertig (Live-Test) |# Anforderungen und Status
 
 Alle Wünsche aus der Planung und Entwicklung, mit Stand der Umsetzung.
 Legende: **fertig**, **in Arbeit**, **offen**, **Live-Test** (gebaut, wird zum Schluss gemeinsam mit echten Konten geprüft).

@@ -40,6 +40,56 @@ public sealed class IslandManager
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(AppSettings.Displays)) SyncMirrors(force: true);
+        // The user placed the island (drag, settings): remember it for this arrangement of displays.
+        if (!_applyingProfile && e.PropertyName is nameof(AppSettings.Edge) or nameof(AppSettings.Align) or nameof(AppSettings.Along)
+                or nameof(AppSettings.Inset) or nameof(AppSettings.Monitor))
+            RememberPlacement();
+    }
+
+    // ---------- dock profiles ----------
+
+    private bool _applyingProfile;
+    private string _profileKey = "";
+
+    /// <summary>Displays by name and resolution (not position): the same office monitor gives the same profile.</summary>
+    private static string ProfileKey(IEnumerable<MonitorInfo> monitors) =>
+        string.Join("|", monitors.OrderBy(m => m.Device, StringComparer.OrdinalIgnoreCase).Select(m => $"{m.Device}:{m.Bounds.Width}x{m.Bounds.Height}{(m.IsPrimary ? "*" : "")}"));
+
+    private void RememberPlacement()
+    {
+        if (!_settings.DockProfiles || _profileKey.Length == 0) return;
+        _settings.DockProfileMap[_profileKey] = new DockProfile
+        {
+            Edge = _settings.Edge, Align = _settings.Align, Along = _settings.Along, Inset = _settings.Inset, Monitor = _settings.Monitor,
+        };
+        _settings.SaveSoon();
+    }
+
+    /// <summary>Displays changed (docked, undocked, monitor switched on): put the island where it was last time with these displays.</summary>
+    private void ApplyProfile(string key, bool arrangementChanged)
+    {
+        _profileKey = key;
+        if (!_settings.DockProfiles) return;
+        if (!_settings.DockProfileMap.TryGetValue(key, out var p))
+        {
+            // First time with these displays: start from the current placement.
+            RememberPlacement();
+            return;
+        }
+        if (!arrangementChanged) return;
+        if (p.Edge == _settings.Edge && p.Align == _settings.Align && Math.Abs(p.Along - _settings.Along) < 0.001
+            && Math.Abs(p.Inset - _settings.Inset) < 0.01 && string.Equals(p.Monitor, _settings.Monitor, StringComparison.OrdinalIgnoreCase)) return;
+        _applyingProfile = true;
+        try
+        {
+            _settings.Monitor = p.Monitor;
+            _settings.Edge = p.Edge;
+            _settings.Align = p.Align;
+            _settings.Along = p.Along;
+            _settings.Inset = p.Inset;
+        }
+        finally { _applyingProfile = false; }
+        Log.Info($"Dock profile applied: {p.Edge}/{p.Align} on {(p.Monitor.Length == 0 ? "primary" : p.Monitor)}");
     }
 
     private void SyncMirrors(bool force = false)
@@ -47,7 +97,9 @@ public sealed class IslandManager
         var monitors = Monitors.All();
         string signature = string.Join("|", monitors.Select(m => $"{m.Device}:{m.Bounds.Left},{m.Bounds.Top},{m.Bounds.Width}x{m.Bounds.Height}"));
         if (!force && signature == _monitorSignature) return;
+        bool changed = _monitorSignature.Length > 0 && signature != _monitorSignature;
         _monitorSignature = signature;
+        ApplyProfile(ProfileKey(monitors), changed);
 
         var wanted = _settings.Displays == DisplayMode.Mirror
             ? monitors.Where(m => !m.IsPrimary).Select(m => m.Device).ToHashSet(StringComparer.OrdinalIgnoreCase)

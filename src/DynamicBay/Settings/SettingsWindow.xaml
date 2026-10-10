@@ -361,6 +361,10 @@
                                             ToolTip="{core:L De='An: Die Insel rastet beim Loslassen am nächsten von zwölf festen Punkten ein (Anfang, Mitte und Ende jeder Kante). Aus: Sie bleibt genau dort, wo du sie loslässt.', En='On: when released, the island snaps to the nearest of twelve fixed spots (start, middle and end of each edge). Off: it stays exactly where you let go.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MagneticSnap}" />
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Position je Bildschirm-Anordnung merken', En='Remember position per display setup'}"
+                                            ToolTip="{core:L De='Zum Beispiel am Laptop oben mittig, am Büro-Monitor links: Beim An- und Abdocken kehrt die Insel an ihren Platz für diese Bildschirme zurück.', En='For example top centre on the laptop, left on the office monitor: when you dock or undock, the island returns to its place for those displays.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.DockProfiles}" />
+                            </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Abstand zum Rand', En='Distance from edge'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource ST.Desc}" Width="44" VerticalAlignment="Center" Text="{Binding S.Inset, StringFormat={}{0:0} px}" />

@@ -28,6 +28,16 @@ public enum CalendarKind { Ics, ICloud, Google }
 public enum ScriptSize { Small, Large }
 
 /// <summary>A user script widget (JavaScript, Scriptable-style API) - see docs/SCRIPTS.md. The code lives in scripts{File}.</summary>
+/// <summary>Where the island sits for one arrangement of displays (see IslandManager: dock profiles).</summary>
+public sealed class DockProfile
+{
+    public IslandEdge Edge { get; set; }
+    public IslandAlign Align { get; set; }
+    public double Along { get; set; }
+    public double Inset { get; set; }
+    public string Monitor { get; set; } = "";
+}
+
 public sealed class ScriptWidgetConfig
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N")[..10];
@@ -211,6 +221,9 @@ public sealed partial class AppSettings : ObservableObject
     // Placement. Monitor = device name ("" = primary); used in Single mode only.
     [ObservableProperty] private DisplayMode _displays = DisplayMode.Single;
     [ObservableProperty] private string _monitor = "";
+    /// <summary>Remember the placement per arrangement of displays (laptop alone, docked at the office, ...).</summary>
+    [ObservableProperty] private bool _dockProfiles = true;
+    public Dictionary<string, DockProfile> DockProfileMap { get; set; } = new();
     [ObservableProperty] private IslandEdge _edge = IslandEdge.Top;
     [ObservableProperty] private IslandAlign _align = IslandAlign.Center;
     [ObservableProperty] private double _along = 0.5;
