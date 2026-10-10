@@ -61,6 +61,9 @@ public sealed partial class SpotifyService : ObservableObject
     [ObservableProperty] private string _repeat = "off"; // off, context, track
     /// <summary>Short message in the player when a Spotify action failed (cleared after a few seconds).</summary>
     [ObservableProperty] private string _playerError = "";
+    /// <summary>Spotify allows it for what is playing right now (not e.g. for autoplay/radio after a playlist ended).</summary>
+    [ObservableProperty] private bool _canShuffle = true;
+    [ObservableProperty] private bool _canRepeat = true;
     [ObservableProperty] private string _deviceName = "";
     [ObservableProperty] private int _volume = 50;
     [ObservableProperty] private bool _supportsVolume;
@@ -278,18 +281,28 @@ public sealed partial class SpotifyService : ObservableObject
             var res = await _http.SendAsync(req);
             if (res.IsSuccessStatusCode) return true;
             var text = await res.Content.ReadAsStringAsync();
-            Log.Info($"Spotify {method} {path.Split('?')[0]} -> {(int)res.StatusCode} {text[..Math.Min(text.Length, 200)]}");
+            // Spotify answers {"error":{"status":403,"message":"Player command failed: Restriction violated","reason":"UNKNOWN"}}
+            string message = "", reason = "";
+            try { var err = JsonNode.Parse(text)?["error"]; message = err?["message"]?.ToString() ?? ""; reason = err?["reason"]?.ToString() ?? ""; } catch { }
+            Log.Info($"Spotify {method} {path.Split('?')[0]} -> {(int)res.StatusCode} {reason} {message}".TrimEnd());
             if (res.StatusCode == HttpStatusCode.Unauthorized) _accessToken = null;
-            ShowPlayerError(res.StatusCode switch
-            {
-                HttpStatusCode.Forbidden => Loc.German ? "Spotify erlaubt das nur mit Premium" : "Spotify allows this with Premium only",
-                HttpStatusCode.NotFound => Loc.German ? "Kein aktives Spotify-Gerät" : "No active Spotify device",
-                HttpStatusCode.Unauthorized => Loc.German ? "Spotify bitte neu verbinden" : "Please reconnect Spotify",
-                _ => (Loc.German ? "Spotify-Fehler " : "Spotify error ") + (int)res.StatusCode,
-            });
+            ShowPlayerError(ExplainError(res.StatusCode, reason, message));
         }
         catch (Exception ex) { Log.Info($"Spotify {method} {path.Split('?')[0]} failed: {ex.Message}"); ShowPlayerError(Loc.German ? "Spotify nicht erreichbar" : "Spotify unreachable"); }
         return false;
+    }
+
+    /// <summary>A short, plain reason for the player; 403 is also "not allowed for what is playing", not only "no Premium".</summary>
+    private static string ExplainError(HttpStatusCode status, string reason, string message)
+    {
+        bool de = Loc.German;
+        if (reason == "PREMIUM_REQUIRED") return de ? "Spotify erlaubt das nur mit Premium" : "Spotify allows this with Premium only";
+        if (reason == "NO_ACTIVE_DEVICE" || status == HttpStatusCode.NotFound) return de ? "Kein aktives Spotify-Gerät" : "No active Spotify device";
+        if (status == HttpStatusCode.Unauthorized) return de ? "Spotify bitte neu verbinden" : "Please reconnect Spotify";
+        if (message.Contains("Restriction violated", StringComparison.OrdinalIgnoreCase) || reason is "UNKNOWN" or "DISALLOWED")
+            return de ? "Bei dieser Wiedergabe nicht möglich" : "Not possible for what is playing";
+        if (status == HttpStatusCode.TooManyRequests) return de ? "Spotify: zu viele Anfragen, gleich nochmal" : "Spotify: too many requests, try again";
+        return (de ? "Spotify-Fehler " : "Spotify error ") + (int)status;
     }
 
     private System.Windows.Threading.DispatcherTimer? _errorTimer;
@@ -316,6 +329,10 @@ public sealed partial class SpotifyService : ObservableObject
         if (st is null) return;
         Shuffle = st["shuffle_state"]?.GetValue<bool>() ?? false;
         Repeat = st["repeat_state"]?.ToString() ?? "off";
+        // What Spotify allows right now (autoplay/radio after the end of a playlist, for example, cannot be shuffled).
+        var disallows = st["actions"]?["disallows"];
+        CanShuffle = disallows?["toggling_shuffle"]?.GetValue<bool>() != true;
+        CanRepeat = disallows?["toggling_repeat_context"]?.GetValue<bool>() != true || disallows?["toggling_repeat_track"]?.GetValue<bool>() != true;
         DeviceName = st["device"]?["name"]?.ToString() ?? "";
         SupportsVolume = st["device"]?["supports_volume"]?.GetValue<bool>() ?? false;
         Volume = st["device"]?["volume_percent"]?.GetValue<int>() ?? Volume;
@@ -343,6 +360,7 @@ public sealed partial class SpotifyService : ObservableObject
     [RelayCommand]
     public async Task ToggleShuffle()
     {
+        if (!CanShuffle) { ShowPlayerError(Loc.German ? "Zufall ist bei dieser Wiedergabe nicht möglich" : "Shuffle isn't possible for what is playing"); return; }
         bool on = !Shuffle;
         Shuffle = on;
         if (!await SendActionAsync(HttpMethod.Put, $"me/player/shuffle?state={(on ? "true" : "false")}")) Shuffle = !on;
@@ -351,6 +369,7 @@ public sealed partial class SpotifyService : ObservableObject
     [RelayCommand]
     public async Task CycleRepeat()
     {
+        if (!CanRepeat) { ShowPlayerError(Loc.German ? "Wiederholen ist bei dieser Wiedergabe nicht möglich" : "Repeat isn't possible for what is playing"); return; }
         string before = Repeat;
         Repeat = Repeat switch { "off" => "context", "context" => "track", _ => "off" };
         if (!await SendActionAsync(HttpMethod.Put, $"me/player/repeat?state={Repeat}")) Repeat = before;

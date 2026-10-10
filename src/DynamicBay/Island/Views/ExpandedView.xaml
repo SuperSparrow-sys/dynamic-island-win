@@ -24,6 +24,7 @@
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
         <c:BoolPick x:Key="OnBrush" True="{StaticResource B.Green}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="LikeTip" True="{core:L De='Aus Lieblingssongs entfernen', En='Remove from Liked Songs'}" False="{core:L De='Zu Lieblingssongs hinzufügen', En='Save to Liked Songs'}" />
+        <c:BoolPick x:Key="DimIfFalse"><c:BoolPick.True><sys:Double>1</sys:Double></c:BoolPick.True><c:BoolPick.False><sys:Double>0.35</sys:Double></c:BoolPick.False></c:BoolPick>
         <c:BoolPick x:Key="ShuffleTip" True="{core:L De='Zufallswiedergabe aus', En='Shuffle off'}" False="{core:L De='Zufallswiedergabe an', En='Shuffle on'}" />
         <c:RepeatPick x:Key="RepeatGlyph" Off="{StaticResource Icon.Repeat}" Context="{StaticResource Icon.Repeat}" Track="{StaticResource Icon.RepeatOne}" />
         <c:RepeatPick x:Key="RepeatBrush" Off="{StaticResource B.Text2}" Context="{StaticResource B.Green}" Track="{StaticResource B.Green}" />
@@ -325,6 +326,7 @@
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}">
                                         <Button Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.ToggleShuffleCommand}"
+                                                Opacity="{Binding Spotify.CanShuffle, Converter={StaticResource DimIfFalse}}"
                                                 ToolTip="{Binding Spotify.Shuffle, Converter={StaticResource ShuffleTip}}">
                                             <c:Icon Width="16" Height="16" Data="{StaticResource Icon.Shuffle}" Foreground="{Binding Spotify.Shuffle, Converter={StaticResource OnBrush}}" />
                                         </Button>
@@ -346,7 +348,8 @@
                                         </Button>
                                     </StackPanel>
                                     <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}">
-                                        <Button Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.CycleRepeatCommand}" ToolTip="{Binding Spotify.Repeat, Converter={StaticResource RepeatTip}}">
+                                        <Button Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.CycleRepeatCommand}" ToolTip="{Binding Spotify.Repeat, Converter={StaticResource RepeatTip}}"
+                                                Opacity="{Binding Spotify.CanRepeat, Converter={StaticResource DimIfFalse}}">
                                             <c:Icon Width="16" Height="16" Data="{Binding Spotify.Repeat, Converter={StaticResource RepeatGlyph}}"
                                                     Foreground="{Binding Spotify.Repeat, Converter={StaticResource RepeatBrush}}" />
                                         </Button>
