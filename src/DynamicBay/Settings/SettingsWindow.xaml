@@ -141,6 +141,15 @@
                                     </StackPanel>
                                 </Border>
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Form', En='Shape'}"
+                                            ToolTip="{core:L De='Insel: schwebt mit Abstand zum Rand. Notch: wächst direkt aus dem oberen (oder unteren) Bildschirmrand, wie die Kamera-Aussparung beim MacBook.', En='Island: floats with a gap to the edge. Notch: grows straight out of the top (or bottom) screen edge, like the MacBook camera notch.'}">
+                                <Border Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Insel', En='Island'}" IsChecked="{Binding S.ShapeStyle, Converter={StaticResource EqBool}, ConverterParameter=Island}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="Notch" IsChecked="{Binding S.ShapeStyle, Converter={StaticResource EqBool}, ConverterParameter=Notch}" />
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Im Leerlauf', En='When idle'}"
                                             ToolTip="{core:L De='Was die Insel zeigt, wenn nichts passiert.', En='What the island shows when nothing is going on.'}">
                                 <Border Style="{StaticResource S.Segments}">

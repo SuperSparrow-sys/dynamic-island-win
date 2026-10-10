@@ -11,6 +11,8 @@ public enum IslandAlign { Start, Center, End }
 /// <summary>Floating: above all windows. Desktop: behind them. AboveAll: also above fullscreen films and games (borderless).</summary>
 public enum LayerMode { Floating, Desktop, AboveAll }
 public enum IdleStyle { Bar, Clock, Hidden }
+/// <summary>Island: a floating pill. Notch: grows out of the screen edge like the MacBook camera notch (top or bottom edge).</summary>
+public enum IslandShape { Island, Notch }
 
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
@@ -101,6 +103,7 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>Off (default): the island draws in software - much less RAM and CPU for its transparent window.</summary>
     [ObservableProperty] private bool _gpuRendering;
     [ObservableProperty] private IdleStyle _idle = IdleStyle.Bar;
+    [ObservableProperty] private IslandShape _shapeStyle = IslandShape.Island;
     /// <summary>Frames per second of the island animations; 0 = as many as the display offers.</summary>
     [ObservableProperty] private int _frameRate;
 

@@ -362,7 +362,7 @@ public partial class IslandWindow : Window
     private (int x, int y) WindowOrigin(Native.RECT wa, double s)
     {
         var size = WinSize(_vertical);
-        var placement = new Placement(_settings.Edge, _settings.Align, _settings.Along, _settings.Inset);
+        var placement = new Placement(_settings.Edge, _settings.Align, _settings.Along, Notch ? 0 : _settings.Inset);
         var (x, y) = PlacementMath.WindowOrigin(placement, ToPx(wa),
             size.Width * U * s, size.Height * U * s, EdgeOffset * U * s, s);
         return ((int)Math.Round(x), (int)Math.Round(y));
@@ -461,6 +461,9 @@ public partial class IslandWindow : Window
             case nameof(AppSettings.Shadow): SoftShadow.Visibility = _settings.Shadow ? Visibility.Visible : Visibility.Collapsed; ApplyShape(); break;
             case nameof(AppSettings.GpuRendering): ApplyRenderMode(); break;
             case nameof(AppSettings.Hidden): SetHidden(_settings.Hidden); break;
+            case nameof(AppSettings.ShapeStyle):
+                if (!_dragging) Place(animate: true);
+                Refresh(); ApplyShape(); break;
             case nameof(AppSettings.Idle):
             case nameof(AppSettings.AutoHide):
                 _lastActivity = DateTime.Now; _minimized = false; Refresh(); break;
@@ -501,7 +504,7 @@ public partial class IslandWindow : Window
             IslandMode.Expanded => 32,
             IslandMode.Drop => 30,
             IslandMode.Peek => 22,
-            _ => Math.Min(target.Width, target.Height) / 2,
+            _ => Notch ? Math.Min(10, target.Height / 2) : Math.Min(target.Width, target.Height) / 2,
         };
 
         double speed = Math.Clamp(_settings.AnimationSpeed, 0.5, 2);
@@ -544,9 +547,12 @@ public partial class IslandWindow : Window
             case IslandMode.Compact:
                 CompactLayer.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 var d = CompactLayer.DesiredSize;
+                if (Notch) return new Size(Math.Max(190, d.Width + 24), 32);
                 return v ? new Size(32, Math.Max(110, d.Height)) : new Size(Math.Max(150, d.Width), 28);
-            case IslandMode.Minimized: return v ? new Size(5, 84) : new Size(84, 5);
+            // Notch: when nothing happens it stays a small black notch, like the camera cut-out of a MacBook.
+            case IslandMode.Minimized: return Notch ? new Size(150, 8) : v ? new Size(5, 84) : new Size(84, 5);
             default:
+                if (Notch) return _settings.Idle == IdleStyle.Hidden ? new Size(150, 8) : new Size(180, 26);
                 if (_settings.Idle == IdleStyle.Hidden) return v ? new Size(5, 84) : new Size(84, 5);
                 return v ? new Size(12, 190) : new Size(210, 12);
         }
@@ -569,12 +575,65 @@ public partial class IslandWindow : Window
         ApplyLayers();
     }
 
+    /// <summary>Notch style is on and the island sits at the top or bottom edge (at the sides it stays an island).</summary>
+    private bool Notch => _settings.ShapeStyle == IslandShape.Notch && _settings.Edge is IslandEdge.Top or IslandEdge.Bottom;
+
+    /// <summary>
+    /// The notch outline: straight along the screen edge, rounded corners away from it, and small inward curves
+    /// (radius <paramref name="e"/>) outside the shape that blend it into the edge. Built for the top edge; the
+    /// bottom edge mirrors it.
+    /// </summary>
+    private static Geometry NotchGeometry(double w, double h, double r, double e, bool bottom, bool ears)
+    {
+        r = Math.Clamp(r, 0, Math.Min(w / 2, h));
+        e = ears ? Math.Clamp(e, 0, h) : 0;
+        double Y(double y) => bottom ? h - y : y;
+        var sweepIn = bottom ? SweepDirection.Clockwise : SweepDirection.Counterclockwise;
+        var sweepOut = bottom ? SweepDirection.Counterclockwise : SweepDirection.Clockwise;
+        var g = new StreamGeometry();
+        using (var c = g.Open())
+        {
+            c.BeginFigure(new Point(-e, Y(0)), true, true);
+            c.LineTo(new Point(w + e, Y(0)), false, false);
+            if (e > 0) c.ArcTo(new Point(w, Y(e)), new Size(e, e), 0, false, sweepIn, false, false);
+            c.LineTo(new Point(w, Y(h - r)), false, false);
+            if (r > 0) c.ArcTo(new Point(w - r, Y(h)), new Size(r, r), 0, false, sweepOut, false, false);
+            c.LineTo(new Point(r, Y(h)), false, false);
+            if (r > 0) c.ArcTo(new Point(0, Y(h - r)), new Size(r, r), 0, false, sweepOut, false, false);
+            c.LineTo(new Point(0, Y(e)), false, false);
+            if (e > 0) c.ArcTo(new Point(-e, Y(0)), new Size(e, e), 0, false, sweepIn, false, false);
+        }
+        g.Freeze();
+        return g;
+    }
+
     private void ApplyShape()
     {
         double w = Math.Max(1, _w.Value), h = Math.Max(1, _h.Value);
         double r = Math.Clamp(_r.Value, 0, Math.Min(w, h) / 2);
         Shape.Width = w;
         Shape.Height = h;
+        if (Notch)
+        {
+            bool bottom = _settings.Edge == IslandEdge.Bottom;
+            double rr = Math.Clamp(_r.Value, 0, Math.Min(w / 2, h));
+            NotchBg.Visibility = Visibility.Visible;
+            NotchBg.Data = NotchGeometry(w, h, rr, Math.Min(10, h * 0.6), bottom, ears: true);
+            // The plain border stays for clicks and drops, but invisible; no rim and no shadow at the edge.
+            ShapeBg.Background = Brushes.Transparent;
+            ShapeBg.CornerRadius = bottom ? new CornerRadius(rr, rr, 0, 0) : new CornerRadius(0, 0, rr, rr);
+            Rim.Visibility = Visibility.Collapsed;
+            SoftShadow.Visibility = Visibility.Collapsed;
+            ShapeContent.Clip = NotchGeometry(w, h, rr, 0, bottom, ears: false);
+            return;
+        }
+        if (NotchBg.Visibility == Visibility.Visible)
+        {
+            NotchBg.Visibility = Visibility.Collapsed;
+            ShapeBg.Background = (Brush)FindResource("B.Island");
+            Rim.Visibility = Visibility.Visible;
+            SoftShadow.Visibility = _settings.Shadow ? Visibility.Visible : Visibility.Collapsed;
+        }
         ShapeBg.CornerRadius = new CornerRadius(r);
         Rim.CornerRadius = new CornerRadius(r);
         if (SoftShadow.Visibility == Visibility.Visible)

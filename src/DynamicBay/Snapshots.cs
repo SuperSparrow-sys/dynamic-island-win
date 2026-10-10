@@ -255,6 +255,17 @@ public static class Snapshots
             return;
         }
 
+        // Notch style: DYNAMICBAY_SNAPSHOT_NOTCH=1 - idle, compact, peek and open at the top edge.
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_NOTCH") == "1")
+        {
+            settings.ShapeStyle = IslandShape.Notch;
+            settings.Edge = IslandEdge.Top; settings.Align = IslandAlign.Center; settings.Along = 0.5;
+            await Task.Delay(900);
+            await Shot(island, vm, IslandMode.Idle, Path.Combine(dir, "notch-1-idle.png"), compact: false);
+            await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, "notch-2-compact.png"), compact: true);
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, "notch-4-home.png"), compact: true);
+            return;
+        }
         foreach (var (name, edge, align, along) in placements)
         {
             settings.Edge = edge;
