@@ -94,6 +94,9 @@ public sealed partial class AppSettings : ObservableObject
     public ObservableCollection<string> CompactItems { get => _compactItems; set => Hook(ref _compactItems, value, nameof(CompactItems)); }
     public ObservableCollection<string> Shortcuts { get => _shortcuts; set => Hook(ref _shortcuts, value, nameof(Shortcuts)); }
     private ObservableCollection<string> _timeProjects = new() { "Allgemein" };
+    /// <summary>The one CSV file time tracking writes to ("" = Documents\Zeiterfassung.csv).</summary>
+    public string TimeTrackingFile { get => _timeTrackingFile; set => SetProperty(ref _timeTrackingFile, value ?? ""); }
+    private string _timeTrackingFile = "";
     /// <summary>Projects of the time tracking widget.</summary>
     public ObservableCollection<string> TimeProjects { get => _timeProjects; set => Hook(ref _timeProjects, value, nameof(TimeProjects)); }
 

@@ -65,6 +65,9 @@ public partial class SettingsWindow : Window
         UpdateClaudeShareText();
         UpdateTaildropFolderText();
         BuildProjectRows();
+        UpdateTimeFileText();
+        _ctx.S.PropertyChanged += OnTimeProjectsChanged;
+        Closed += (_, _) => _ctx.S.PropertyChanged -= OnTimeProjectsChanged;
         UpdateUpdateRow();
         Action updateChanged = () => Dispatcher.BeginInvoke(UpdateUpdateRow);
         Action calendarChanged = () => Dispatcher.BeginInvoke(RefreshCalendarRows);
@@ -389,6 +392,9 @@ public partial class SettingsWindow : Window
         _ctx.S.TaildropFolder = dlg.FolderName;
         UpdateTaildropFolderText();
         BuildProjectRows();
+        UpdateTimeFileText();
+        _ctx.S.PropertyChanged += OnTimeProjectsChanged;
+        Closed += (_, _) => _ctx.S.PropertyChanged -= OnTimeProjectsChanged;
     }
 
     private void ResetTaildropFolder_Click(object sender, RoutedEventArgs e)
@@ -396,6 +402,9 @@ public partial class SettingsWindow : Window
         _ctx.S.TaildropFolder = "";
         UpdateTaildropFolderText();
         BuildProjectRows();
+        UpdateTimeFileText();
+        _ctx.S.PropertyChanged += OnTimeProjectsChanged;
+        Closed += (_, _) => _ctx.S.PropertyChanged -= OnTimeProjectsChanged;
     }
 
     // ---- time tracking projects ----
@@ -418,6 +427,31 @@ public partial class SettingsWindow : Window
         }
     }
 
+    /// <summary>Projects added with the + in the island show up here too.</summary>
+    private void OnTimeProjectsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AppSettings.TimeProjects)) Dispatcher.BeginInvoke(BuildProjectRows);
+    }
+
+    private void UpdateTimeFileText()
+    {
+        TimeFileText.Text = _ctx.I.Time.FilePath;
+        TimeFileText.ToolTip = _ctx.I.Time.FilePath;
+    }
+
+    private void PickTimeFile_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = Loc.German ? "Datei für die Zeiterfassung" : "File for time tracking",
+            Filter = "CSV (Excel)|*.csv", OverwritePrompt = false, FileName = System.IO.Path.GetFileName(_ctx.I.Time.FilePath),
+            InitialDirectory = System.IO.Path.GetDirectoryName(_ctx.I.Time.FilePath),
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        _ctx.S.TimeTrackingFile = dlg.FileName;
+        UpdateTimeFileText();
+    }
+
     private void AddProject_Click(object sender, RoutedEventArgs e) => AddProject();
 
     private void NewProject_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -432,6 +466,9 @@ public partial class SettingsWindow : Window
         _ctx.S.TimeProjects.Add(name);
         NewProject.Text = "";
         BuildProjectRows();
+        UpdateTimeFileText();
+        _ctx.S.PropertyChanged += OnTimeProjectsChanged;
+        Closed += (_, _) => _ctx.S.PropertyChanged -= OnTimeProjectsChanged;
     }
 
     // ---- Microsoft 365 ----

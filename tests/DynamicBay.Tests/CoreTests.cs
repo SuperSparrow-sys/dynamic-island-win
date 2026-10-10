@@ -444,19 +444,32 @@ public class TextRecognitionTests
 
 public class TimeTrackingTests
 {
+    [Theory]
+    [InlineData("07:52", "07:45")]
+    [InlineData("07:53", "08:00")]
+    [InlineData("08:07", "08:00")]
+    [InlineData("08:08", "08:15")]
+    public void Rounds_to_the_nearest_quarter_hour(string time, string expected) =>
+        Assert.Equal(expected, TimeTrackingService.RoundQuarter(DateTime.Parse("2026-10-09 " + time)).ToString("HH:mm"));
+
     [Fact]
-    public void Csv_has_one_line_per_entry_of_the_month_with_hours()
+    public void One_file_with_all_projects_round_trips()
     {
-        var entries = new[]
+        var entries = new List<TimeEntry>
         {
-            new TimeEntry { Project = "Kunde Müller", Start = new DateTime(2026, 10, 9, 9, 0, 0), End = new DateTime(2026, 10, 9, 10, 30, 0) },
-            new TimeEntry { Project = "Intern; Orga", Start = new DateTime(2026, 10, 9, 11, 0, 0), End = new DateTime(2026, 10, 9, 11, 15, 0) },
-            new TimeEntry { Project = "Letzter Monat", Start = new DateTime(2026, 9, 30, 9, 0, 0), End = new DateTime(2026, 9, 30, 10, 0, 0) },
+            new() { Project = "Kunde Müller", Start = new DateTime(2026, 10, 9, 9, 0, 0), End = new DateTime(2026, 10, 9, 10, 30, 0) },
+            new() { Project = "Intern; Orga", Start = new DateTime(2026, 10, 9, 11, 0, 0), End = new DateTime(2026, 10, 9, 11, 15, 0) },
+            new() { Project = "Läuft", Start = new DateTime(2026, 10, 10, 8, 0, 0) },
         };
-        var lines = TimeTrackingService.ToCsv(entries, new DateTime(2026, 10, 1), new DateTime(2026, 11, 1)).Trim().Split(Environment.NewLine);
-        Assert.Equal(3, lines.Length);
-        Assert.StartsWith("2026-10-09;Kunde Müller;09:00;10:30;", lines[1]);
+        var csv = TimeTrackingService.ToCsv(entries);
+        var lines = csv.Trim().Split(Environment.NewLine);
+        Assert.Equal("09.10.2026;Kunde Müller;09:00;10:30;1,50", lines[1]);
         Assert.Contains("\"Intern; Orga\"", lines[2]);
-        Assert.DoesNotContain(lines, l => l.Contains("Letzter Monat"));
+        Assert.Equal("10.10.2026;Läuft;08:00;;", lines[3]);
+        var back = TimeTrackingService.Parse(lines);
+        Assert.Equal(3, back.Count);
+        Assert.Equal("Intern; Orga", back[1].Project);
+        Assert.Null(back[2].End);
+        Assert.Equal(new DateTime(2026, 10, 9, 10, 30, 0), back[0].End);
     }
 }

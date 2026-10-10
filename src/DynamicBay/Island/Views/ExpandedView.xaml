@@ -587,9 +587,13 @@
                                         Visibility="{Binding Time.IsRunning, Converter={StaticResource Vis}}">
                                     <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2" Fill="{StaticResource B.Red}" />
                                 </Button>
-                                <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Time.ExportMonthCommand}"
-                                        ToolTip="{core:L De='Monat als CSV exportieren (Dokumente)', En='Export the month as CSV (Documents)'}">
-                                    <c:Icon Data="{StaticResource Icon.Download}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                                <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Click="AddTimeProject_Click"
+                                        ToolTip="{core:L De='Projekt hinzufügen', En='Add project'}">
+                                    <c:Icon Data="{StaticResource Icon.Plus}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                                </Button>
+                                <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Time.ShowFileCommand}"
+                                        ToolTip="{core:L De='Zeiterfassungs-Datei zeigen', En='Show the time tracking file'}">
+                                    <c:Icon Data="{StaticResource Icon.FileText}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
                                 </Button>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
@@ -599,6 +603,12 @@
                                            ToolTip="{core:L De='Heute insgesamt', En='Today in total'}" />
                             </StackPanel>
                         </DockPanel>
+                        <!-- new project (from the "+") -->
+                        <TextBox x:Name="NewTimeProject" DockPanel.Dock="Top" Margin="0,6,0,0" Visibility="Collapsed" Padding="6,4" FontSize="11.5"
+                                 Background="{StaticResource B.Fill2}" Foreground="{StaticResource B.Text}" CaretBrush="{StaticResource B.Text}" BorderThickness="0"
+                                 KeyDown="NewTimeProject_KeyDown" LostKeyboardFocus="NewTimeProject_LostFocus" />
+                        <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource T.Caption}" FontSize="9.5" Foreground="{StaticResource B.Orange}" TextWrapping="Wrap"
+                                   Text="{Binding Time.Status}" Visibility="{Binding Time.Status, Converter={StaticResource Vis}}" />
                         <!-- running: project and time -->
                         <StackPanel DockPanel.Dock="Top" Margin="0,6,0,0" Visibility="{Binding Time.IsRunning, Converter={StaticResource Vis}}">
                             <TextBlock Style="{StaticResource T.Numeric}" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource B.Blue}" Text="{Binding Time.Elapsed}" />

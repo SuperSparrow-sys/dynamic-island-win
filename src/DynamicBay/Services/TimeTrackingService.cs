@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using System.Text;
-using System.Text.Json;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,7 +14,6 @@ public sealed class TimeEntry
     public string Project { get; set; } = "";
     public DateTime Start { get; set; }
     public DateTime? End { get; set; }
-    [System.Text.Json.Serialization.JsonIgnore] public TimeSpan Duration => (End ?? DateTime.Now) - Start;
 }
 
 public sealed partial class ProjectTotal : ObservableObject
@@ -25,62 +24,89 @@ public sealed partial class ProjectTotal : ObservableObject
 }
 
 /// <summary>
-/// Simple time tracking: start/stop per project in the island, one entry at a time (switching stops the previous one),
-/// today's totals per project, CSV export per month for invoicing. Entries live in %AppData%\DynamicBay\time.json;
-/// a running entry survives a restart.
+/// Time tracking into ONE file the user picks (CSV, opens in Excel): every project, every day, in quarter hours.
+/// Start and end are rounded to the nearest 15 minutes (at least 15 minutes per entry). While a project runs the
+/// file is rewritten every 15 minutes (the open entry has no end yet), and right away on start, switch and stop.
+/// The file is the only store: it is read at start, so edits made in Excel are kept.
 /// </summary>
 public sealed partial class TimeTrackingService : ObservableObject
 {
+    public static readonly TimeSpan Quarter = TimeSpan.FromMinutes(15);
     private readonly AppSettings _settings;
     private readonly DispatcherTimer _tick = new() { Interval = TimeSpan.FromSeconds(1) };
+    private readonly DispatcherTimer _write = new() { Interval = Quarter };
     private readonly List<TimeEntry> _entries = new();
-    private static string FilePath => Path.Combine(AppSettings.Folder, "time.json");
+    private DateTime _runningSince; // exact start, for the live display (the file has the rounded one)
 
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private string _currentProject = "";
     [ObservableProperty] private string _elapsed = "0:00";
     [ObservableProperty] private string _todayTotal = "0:00";
+    [ObservableProperty] private string _status = "";
     public ObservableCollection<ProjectTotal> Projects { get; } = new();
+
+    public static string DefaultFile => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Zeiterfassung.csv");
+    public string FilePath => string.IsNullOrWhiteSpace(_settings.TimeTrackingFile) ? DefaultFile : _settings.TimeTrackingFile;
 
     public TimeTrackingService(AppSettings settings)
     {
         _settings = settings;
         _tick.Tick += (_, _) => Update();
-        _settings.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AppSettings.TimeProjects)) RebuildProjects(); };
+        _write.Tick += (_, _) => Write();
+        _settings.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(AppSettings.TimeProjects)) RebuildProjects();
+            if (e.PropertyName == nameof(AppSettings.TimeTrackingFile)) { Write(); }
+        };
         Load();
         RebuildProjects();
-        if (Running is not null) { IsRunning = true; CurrentProject = Running.Project; _tick.Start(); }
+        if (Running is { } r) { IsRunning = true; CurrentProject = r.Project; _runningSince = r.Start; _tick.Start(); _write.Start(); }
         Update();
     }
 
     private TimeEntry? Running => _entries.LastOrDefault(e => e.End is null);
 
+    /// <summary>To the nearest quarter hour (7:52 → 7:45, 7:53 → 8:00).</summary>
+    public static DateTime RoundQuarter(DateTime t)
+    {
+        long q = Quarter.Ticks;
+        return new DateTime((t.Ticks + q / 2) / q * q, t.Kind);
+    }
+
     // ---------- start / stop ----------
 
-    /// <summary>Starts the project (or stops it if it is the one running); a running other project stops first.</summary>
+    /// <summary>Starts the project, or stops it if it is the one running; another running project stops first.</summary>
     [RelayCommand]
     private void Toggle(string? project)
     {
         if (string.IsNullOrWhiteSpace(project)) return;
-        var running = Running;
-        if (running is not null)
-        {
-            running.End = DateTime.Now;
-            if (running.Project == project) { Stopped(); return; }
-        }
-        _entries.Add(new TimeEntry { Project = project, Start = DateTime.Now });
+        bool same = Running?.Project == project;
+        CloseRunning();
+        if (same) { Stopped(); return; }
+        var now = DateTime.Now;
+        _entries.Add(new TimeEntry { Project = project, Start = RoundQuarter(now) });
+        _runningSince = now;
         CurrentProject = project;
         IsRunning = true;
         _tick.Start();
-        Save();
+        _write.Stop(); _write.Start();
+        Write();
         Update();
     }
 
     [RelayCommand]
     private void Stop()
     {
-        if (Running is { } r) r.End = DateTime.Now;
+        CloseRunning();
         Stopped();
+    }
+
+    /// <summary>Ends the running entry at the nearest quarter hour, at least one quarter after its start.</summary>
+    private void CloseRunning()
+    {
+        if (Running is not { } r) return;
+        var end = RoundQuarter(DateTime.Now);
+        r.End = end - r.Start < Quarter ? r.Start + Quarter : end;
     }
 
     private void Stopped()
@@ -88,8 +114,17 @@ public sealed partial class TimeTrackingService : ObservableObject
         IsRunning = false;
         CurrentProject = "";
         _tick.Stop();
-        Save();
+        _write.Stop();
+        Write();
         Update();
+    }
+
+    /// <summary>A new project from the island's "+" (or the settings).</summary>
+    public void AddProject(string name)
+    {
+        name = name.Trim();
+        if (name.Length == 0 || _settings.TimeProjects.Contains(name)) return;
+        _settings.TimeProjects.Add(name);
     }
 
     // ---------- totals ----------
@@ -103,72 +138,122 @@ public sealed partial class TimeTrackingService : ObservableObject
         Update();
     }
 
+    /// <summary>Booked time of an entry: rounded quarters; a running one counts up to the next quarter so far.</summary>
+    private static TimeSpan Booked(TimeEntry e)
+    {
+        var end = e.End ?? RoundQuarter(DateTime.Now);
+        var t = end - e.Start;
+        return t < Quarter ? Quarter : t;
+    }
+
     private void Update()
     {
         var today = DateTime.Today;
         TimeSpan Sum(string? project) => _entries
-            .Where(e => (project is null || e.Project == project) && (e.End ?? DateTime.Now) > today)
-            .Aggregate(TimeSpan.Zero, (t, e) => t + ((e.End ?? DateTime.Now) - (e.Start < today ? today : e.Start)));
+            .Where(e => (project is null || e.Project == project) && e.Start.Date == today)
+            .Aggregate(TimeSpan.Zero, (t, e) => t + Booked(e));
         foreach (var p in Projects)
         {
             p.Today = Format(Sum(p.Project));
             p.Running = IsRunning && p.Project == CurrentProject;
         }
         TodayTotal = Format(Sum(null));
-        Elapsed = Running is { } r ? Format(r.Duration, seconds: true) : "0:00";
+        Elapsed = IsRunning ? FormatLive(DateTime.Now - _runningSince) : "0:00";
     }
 
-    private static string Format(TimeSpan t, bool seconds = false) =>
-        seconds ? (t.TotalHours >= 1 ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}" : $"{t.Minutes}:{t.Seconds:00}")
-                : $"{(int)t.TotalHours}:{t.Minutes:00}";
+    private static string Format(TimeSpan t) => $"{(int)t.TotalHours}:{t.Minutes:00}";
+    private static string FormatLive(TimeSpan t) => t.TotalHours >= 1 ? $"{(int)t.TotalHours}:{t.Minutes:00}:{t.Seconds:00}" : $"{t.Minutes}:{t.Seconds:00}";
 
-    // ---------- storage and export ----------
+    // ---------- the file ----------
+
+    private static readonly CultureInfo De = new("de-DE");
 
     private void Load()
     {
         try
         {
-            if (File.Exists(FilePath))
-                _entries.AddRange(JsonSerializer.Deserialize<List<TimeEntry>>(File.ReadAllText(FilePath)) ?? new());
+            if (!File.Exists(FilePath)) return;
+            _entries.AddRange(Parse(File.ReadAllLines(FilePath, Encoding.UTF8)));
         }
-        catch (Exception ex) { Log.Error("TimeTracking load", ex); }
+        catch (Exception ex) { Log.Error("TimeTracking load", ex); Status = ex.Message; }
     }
 
-    private void Save()
+    /// <summary>Writes the whole file (sorted). If Excel has it open, it tries again on the next change or quarter.</summary>
+    private void Write()
     {
         try
         {
-            Directory.CreateDirectory(AppSettings.Folder);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(_entries));
+            var dir = Path.GetDirectoryName(FilePath);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            File.WriteAllText(FilePath, ToCsv(_entries), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            Status = "";
         }
-        catch (Exception ex) { Log.Error("TimeTracking save", ex); }
+        catch (IOException)
+        {
+            Status = Loc.German ? "Datei ist geöffnet (z. B. in Excel) – wird später geschrieben" : "File is open (e.g. in Excel) - will be written later";
+        }
+        catch (Exception ex) { Log.Error("TimeTracking write", ex); Status = ex.Message; }
     }
 
-    /// <summary>
-    /// The current month as CSV (semicolons and a BOM so Excel opens it with umlauts and columns right) in Documents,
-    /// then Explorer shows it.
-    /// </summary>
-    [RelayCommand]
-    public void ExportMonth()
-    {
-        var first = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        string file = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"Zeiterfassung {first:yyyy-MM}.csv");
-        File.WriteAllText(file, ToCsv(_entries, first, first.AddMonths(1)), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
-        try { System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{file}\""); } catch { }
-    }
-
-    public static string ToCsv(IEnumerable<TimeEntry> entries, DateTime from, DateTime to)
+    /// <summary>Datum;Projekt;Start;Ende;Stunden - semicolons and a BOM so Excel shows columns and umlauts right.</summary>
+    public static string ToCsv(IEnumerable<TimeEntry> entries)
     {
         var sb = new StringBuilder();
-        sb.AppendLine(Loc.German ? "Datum;Projekt;Start;Ende;Stunden" : "Date;Project;Start;End;Hours");
-        var culture = Loc.German ? new System.Globalization.CultureInfo("de-DE") : System.Globalization.CultureInfo.InvariantCulture;
-        foreach (var e in entries.Where(e => e.Start >= from && e.Start < to).OrderBy(e => e.Start))
+        sb.AppendLine("Datum;Projekt;Start;Ende;Stunden");
+        foreach (var e in entries.OrderBy(e => e.Start))
         {
-            var end = e.End ?? DateTime.Now;
-            string project = e.Project.Contains(';') || e.Project.Contains('"') ? "\"" + e.Project.Replace("\"", "\"\"") + "\"" : e.Project;
-            sb.AppendLine(string.Join(";", e.Start.ToString("yyyy-MM-dd"), project, e.Start.ToString("HH:mm"), end.ToString("HH:mm"),
-                (end - e.Start).TotalHours.ToString("0.00", culture)));
+            string project = e.Project.IndexOfAny(new[] { ';', '"' }) >= 0 ? "\"" + e.Project.Replace("\"", "\"\"") + "\"" : e.Project;
+            string end = e.End?.ToString("HH:mm") ?? "";
+            string hours = e.End is { } en ? Math.Max(0.25, (en - e.Start).TotalHours).ToString("0.00", De) : "";
+            sb.AppendLine(string.Join(";", e.Start.ToString("dd.MM.yyyy"), project, e.Start.ToString("HH:mm"), end, hours));
         }
         return sb.ToString();
+    }
+
+    public static List<TimeEntry> Parse(IEnumerable<string> lines)
+    {
+        var list = new List<TimeEntry>();
+        foreach (var line in lines.Skip(1))
+        {
+            var cols = SplitCsv(line);
+            if (cols.Count < 3) continue;
+            if (!DateTime.TryParseExact(cols[0], new[] { "dd.MM.yyyy", "yyyy-MM-dd" }, De, DateTimeStyles.None, out var day)) continue;
+            if (!TimeSpan.TryParse(cols[2], De, out var start)) continue;
+            var entry = new TimeEntry { Project = cols[1], Start = day + start };
+            if (cols.Count > 3 && TimeSpan.TryParse(cols[3], De, out var end))
+                entry.End = day + end < entry.Start ? day.AddDays(1) + end : day + end; // past midnight
+            list.Add(entry);
+        }
+        return list;
+    }
+
+    private static List<string> SplitCsv(string line)
+    {
+        var cols = new List<string>();
+        var cur = new StringBuilder();
+        bool quoted = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            char c = line[i];
+            if (quoted)
+            {
+                if (c == '"' && i + 1 < line.Length && line[i + 1] == '"') { cur.Append('"'); i++; }
+                else if (c == '"') quoted = false;
+                else cur.Append(c);
+            }
+            else if (c == '"') quoted = true;
+            else if (c == ';') { cols.Add(cur.ToString()); cur.Clear(); }
+            else cur.Append(c);
+        }
+        cols.Add(cur.ToString());
+        return cols;
+    }
+
+    /// <summary>Shows the file in Explorer (writes it first, so it exists).</summary>
+    [RelayCommand]
+    private void ShowFile()
+    {
+        Write();
+        try { System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{FilePath}\""); } catch { }
     }
 }

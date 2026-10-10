@@ -748,7 +748,11 @@
                     <Border Style="{StaticResource S.Card}" Padding="16,12">
                         <StackPanel>
                             <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap" Margin="0,0,0,8"
-                                       Text="{core:L De='Projekte für das Widget Zeiterfassung (unter Widgets und Module hinzufügen). Ein Klick auf ein Projekt startet die Zeit, ein Klick auf ein anderes wechselt.', En='Projects for the time tracking widget (add it under Widgets and modules). Click a project to start, click another one to switch.'}" />
+                                       Text="{core:L De='Alle Projekte landen in einer Datei (CSV, öffnet in Excel), in Viertelstunden gerundet. Während ein Projekt läuft, wird sie alle 15 Minuten aktualisiert. Projekte legst du hier oder mit dem + im Widget an.', En='All projects go into one file (CSV, opens in Excel), rounded to quarter hours. While a project runs it is updated every 15 minutes. Add projects here or with the + in the widget.'}" />
+                            <DockPanel Margin="0,0,0,10">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="PickTimeFile_Click" Content="{core:L De='Datei wählen…', En='Choose file…'}" />
+                                <TextBlock x:Name="TimeFileText" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
                             <StackPanel x:Name="ProjectRows" />
                             <DockPanel Margin="0,4,0,0">
                                 <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="AddProject_Click">
@@ -756,8 +760,8 @@
                                 </Button>
                                 <TextBox x:Name="NewProject" Style="{StaticResource S.TextBox}" KeyDown="NewProject_KeyDown" />
                             </DockPanel>
-                            <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Margin="0,10,0,0" Command="{Binding I.Time.ExportMonthCommand}">
-                                <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Download}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Diesen Monat als CSV exportieren', En='Export this month as CSV'}" /></StackPanel>
+                            <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Margin="0,10,0,0" Command="{Binding I.Time.ShowFileCommand}">
+                                <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.FileText}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Datei im Explorer zeigen', En='Show file in Explorer'}" /></StackPanel>
                             </Button>
                         </StackPanel>
                     </Border>

@@ -289,7 +289,7 @@ public static class Snapshots
                     vm.Contacts?.LoadDemo();
                     settings.HomeWidgets.Clear();
                     settings.ClockAnalog = true;
-                    foreach (var w in new[] { Widgets.Calendar, Widgets.Contacts, Widgets.Todo, Widgets.Clock, Widgets.Teams }) settings.HomeWidgets.Add(w);
+                    foreach (var w in new[] { Widgets.Calendar, Widgets.Contacts, Widgets.TimeTrack, Widgets.Clock, Widgets.Teams }) settings.HomeWidgets.Add(w);
                     await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8c-office.png"), compact: true);
                 }
                 settings.AppIcons = AppIconStyle.Mono;

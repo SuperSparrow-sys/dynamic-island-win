@@ -435,6 +435,35 @@ public partial class ExpandedView : UserControl
         }
     }
 
+    // ---- time tracking: "+" adds a project right in the island ----
+
+    private void AddTimeProject_Click(object sender, RoutedEventArgs e)
+    {
+        NewTimeProject.Visibility = Visibility.Visible;
+        NewTimeProject.Text = "";
+        // The island never takes focus by itself (it must not steal it from the app you type in): ask for it now.
+        if (Window.GetWindow(this) is { } w) { new System.Windows.Interop.WindowInteropHelper(w).EnsureHandle(); w.Activate(); }
+        NewTimeProject.Focus();
+        System.Windows.Input.Keyboard.Focus(NewTimeProject);
+    }
+
+    private void NewTimeProject_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            Vm?.Time.AddProject(NewTimeProject.Text);
+            NewTimeProject.Visibility = Visibility.Collapsed;
+            e.Handled = true;
+        }
+        else if (e.Key == System.Windows.Input.Key.Escape) { NewTimeProject.Visibility = Visibility.Collapsed; e.Handled = true; }
+    }
+
+    private void NewTimeProject_LostFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+    {
+        if (NewTimeProject.Text.Trim().Length > 0) Vm?.Time.AddProject(NewTimeProject.Text);
+        NewTimeProject.Visibility = Visibility.Collapsed;
+    }
+
     /// <summary>The clock card switches between digits and the dial on a click.</summary>
     private void ClockCard_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
