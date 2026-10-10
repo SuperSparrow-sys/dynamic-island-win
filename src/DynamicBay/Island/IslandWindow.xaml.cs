@@ -618,7 +618,7 @@ public partial class IslandWindow : Window
             bool bottom = _settings.Edge == IslandEdge.Bottom;
             double rr = Math.Clamp(_r.Value, 0, Math.Min(w / 2, h));
             NotchBg.Visibility = Visibility.Visible;
-            NotchBg.Data = NotchGeometry(w, h, rr, Math.Min(10, h * 0.6), bottom, ears: true);
+            NotchBg.Data = NotchGeometry(w, h, rr, Math.Min(Math.Clamp(rr * 0.6, 6, 18), h * 0.6), bottom, ears: true);
             // The plain border stays for clicks and drops, but invisible; no rim and no shadow at the edge.
             ShapeBg.Background = Brushes.Transparent;
             ShapeBg.CornerRadius = bottom ? new CornerRadius(rr, rr, 0, 0) : new CornerRadius(0, 0, rr, rr);

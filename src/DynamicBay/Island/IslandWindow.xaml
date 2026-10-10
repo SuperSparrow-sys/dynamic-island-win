@@ -22,7 +22,7 @@
                 </Grid>
                 <Border x:Name="ShapeBg" Background="{StaticResource B.Island}" CornerRadius="6" />
                 <!-- Notch style: flush with the screen edge, rounded away from it, with small inward curves that run into the edge -->
-                <Path x:Name="NotchBg" Fill="{StaticResource B.Island}" Visibility="Collapsed" IsHitTestVisible="False" />
+                <Canvas IsHitTestVisible="False"><Path x:Name="NotchBg" Fill="{StaticResource B.Island}" Visibility="Collapsed" /></Canvas>
 
                 <Grid x:Name="ShapeContent">
                     <v:CompactView x:Name="CompactLayer" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" />
