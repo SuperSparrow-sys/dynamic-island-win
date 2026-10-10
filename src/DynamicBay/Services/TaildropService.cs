@@ -54,6 +54,62 @@ public sealed class TaildropService : IDisposable
 
     public static bool IsTailscaleInstalled => TailscaleExe() is not null;
 
+    // ---------- sending ----------
+
+    /// <summary>A file went out: (file name, device, error or null).</summary>
+    public static event Action<string, string, string?>? Sent;
+
+    /// <summary>Devices that take Taildrop files ("tailscale file cp --targets"): name and whether it is online.</summary>
+    public static async Task<List<(string Name, bool Online)>> TargetsAsync()
+    {
+        var list = new List<(string, bool)>();
+        var (code, output) = await RunAsync("file cp --targets", TimeSpan.FromSeconds(8));
+        if (code != 0) return list;
+        foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            // "100.71.165.50	jonathan-ipad" or "100.105.33.4	jonathan-pc	offline; last seen 96h ago"
+            var cols = line.Split('\t');
+            if (cols.Length < 2) continue;
+            list.Add((cols[1], !(cols.Length > 2 && cols[2].StartsWith("offline", StringComparison.OrdinalIgnoreCase))));
+        }
+        return list.OrderByDescending(t => t.Item2).ThenBy(t => t.Item1).ToList();
+    }
+
+    /// <summary>Sends files to a device; it shows up there in Taildrop (iPhone/iPad: Files app, Tailscale folder).</summary>
+    public static async Task<bool> SendAsync(IReadOnlyList<string> files, string target)
+    {
+        string args = "file cp " + string.Join(" ", files.Select(f => "\"" + f + "\"")) + " \"" + target + ":\"";
+        var (code, output) = await RunAsync(args, TimeSpan.FromMinutes(30));
+        string name = files.Count == 1 ? Path.GetFileName(files[0]) : (Loc.German ? $"{files.Count} Dateien" : $"{files.Count} files");
+        string? error = code == 0 ? null : (output.Trim().Split('\n').LastOrDefault()?.Trim() is { Length: > 0 } e ? e : $"Fehler {code}");
+        Log.Info($"Taildrop send to {target}: {(error ?? "ok")}");
+        Sent?.Invoke(name, target, error);
+        return error is null;
+    }
+
+    private static async Task<(int code, string output)> RunAsync(string args, TimeSpan timeout)
+    {
+        var exe = TailscaleExe();
+        if (exe is null) return (-1, "Tailscale ist nicht installiert");
+        try
+        {
+            var psi = new ProcessStartInfo(exe, args)
+            {
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
+            };
+            psi.Environment["NO_COLOR"] = "1";
+            using var p = Process.Start(psi)!;
+            var stdout = p.StandardOutput.ReadToEndAsync();
+            var stderr = p.StandardError.ReadToEndAsync();
+            using var cts = new CancellationTokenSource(timeout);
+            try { await p.WaitForExitAsync(cts.Token); }
+            catch (OperationCanceledException) { try { p.Kill(); } catch { } return (-2, "Zeitüberschreitung"); }
+            return (p.ExitCode, (await stdout) + "\n" + (await stderr));
+        }
+        catch (Exception ex) { return (-1, ex.Message); }
+    }
+
     public void SetEnabled(bool enabled)
     {
         if (enabled) Start(); else Stop();

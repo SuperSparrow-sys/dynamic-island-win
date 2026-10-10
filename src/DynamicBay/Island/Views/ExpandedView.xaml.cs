@@ -520,6 +520,25 @@ public partial class ExpandedView : UserControl
     }
 
     /// <summary>Opens Explorer where the file lies, with the file selected (shelf files, saved clipboard pictures).</summary>
+    /// <summary>Taildrop: a small menu with the Tailscale devices; the file goes to the one picked.</summary>
+    private async void Taildrop_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is not Button b || b.DataContext is not ShelfItem item || !System.IO.File.Exists(item.Path)) return;
+        var menu = new ContextMenu { PlacementTarget = b, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        menu.Items.Add(new MenuItem { Header = Core.Loc.German ? "Geräte werden gesucht …" : "Looking for devices …", IsEnabled = false });
+        menu.IsOpen = true;
+        var targets = await Services.TaildropService.TargetsAsync();
+        menu.Items.Clear();
+        if (targets.Count == 0) menu.Items.Add(new MenuItem { Header = Core.Loc.German ? "Keine Geräte (Tailscale an?)" : "No devices (Tailscale on?)", IsEnabled = false });
+        foreach (var (name, online) in targets)
+        {
+            var mi = new MenuItem { Header = online ? name : name + (Core.Loc.German ? "  (offline)" : "  (offline)"), IsEnabled = online };
+            mi.Click += (_, _) => _ = Services.TaildropService.SendAsync(new[] { item.Path }, name);
+            menu.Items.Add(mi);
+        }
+    }
+
     private void ShowInFolder_Click(object sender, RoutedEventArgs e)
     {
         e.Handled = true;

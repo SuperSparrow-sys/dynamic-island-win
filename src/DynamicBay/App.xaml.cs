@@ -479,6 +479,14 @@ public partial class App : Application
             });
         };
 
+        TaildropService.Sent += (name, target, error) => Dispatcher.BeginInvoke(() => island.ShowPeek(new PeekItem
+        {
+            Icon = Icon("Icon.Send"), IconBrush = Res(error is null ? "B.Blue" : "B.Red"), IconBackground = Tint(error is null ? "B.Blue" : "B.Red", 0x2E),
+            Title = error is null ? (Loc.German ? $"An {target} gesendet" : $"Sent to {target}") : (Loc.German ? $"Senden an {target} fehlgeschlagen" : $"Sending to {target} failed"),
+            Subtitle = error ?? name,
+            Seconds = error is null ? 2.8 : 6,
+        }));
+
         shelf.FilesAdded += count => island.ShowPeek(new PeekItem
         {
             Icon = Icon("Icon.Inbox"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),

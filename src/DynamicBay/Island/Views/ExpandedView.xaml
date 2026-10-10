@@ -1128,6 +1128,11 @@
                                                         ToolTip="{core:L De='Im Ordner zeigen', En='Show in folder'}">
                                                     <c:Icon Data="{StaticResource Icon.FolderOpen}" Width="10" Height="10" />
                                                 </Button>
+                                                <Button x:Name="Send" Style="{StaticResource TileButton}" Width="18" Height="18" Margin="2,0,0,18"
+                                                        HorizontalAlignment="Left" VerticalAlignment="Bottom" Visibility="Hidden" Click="Taildrop_Click"
+                                                        ToolTip="{core:L De='An Gerät senden (Taildrop)', En='Send to device (Taildrop)'}">
+                                                    <c:Icon Data="{StaticResource Icon.Send}" Width="10" Height="10" />
+                                                </Button>
                                                 <Button x:Name="Remove" Style="{StaticResource TileButton.Danger}" Width="18" Height="18" Margin="0,2,2,0"
                                                         HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Hidden"
                                                         Command="{Binding DataContext.Shelf.RemoveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
@@ -1140,6 +1145,7 @@
                                                     <Setter TargetName="Hover" Property="Background" Value="{StaticResource B.Fill}" />
                                                     <Setter TargetName="Remove" Property="Visibility" Value="Visible" />
                                                     <Setter TargetName="Folder" Property="Visibility" Value="Visible" />
+                                                    <Setter TargetName="Send" Property="Visibility" Value="{Binding DataContext.CanTaildrop, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Vis}}" />
                                                 </Trigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>

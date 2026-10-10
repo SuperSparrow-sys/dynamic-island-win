@@ -67,6 +67,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public MusicVolumeService MusicVolume { get; }
     /// <summary>Sound output, microphone and Bluetooth headsets (the "Audio" widget and its rules).</summary>
     public AudioDevicesService AudioDevices { get; }
+    /// <summary>Tailscale is installed: shelf files can be sent to other devices.</summary>
+    public bool CanTaildrop { get; } = TaildropService.IsTailscaleInstalled;
 
     [ObservableProperty] private int _tab;           // 0 home, 1 tray, 2 notifications
     [ObservableProperty] private bool _isVertical;
