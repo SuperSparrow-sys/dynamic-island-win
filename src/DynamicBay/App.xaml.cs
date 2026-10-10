@@ -109,6 +109,7 @@ public partial class App : Application
         {
             Bluetooth = bluetooth, Microsoft = microsoft,
             Todo = new Services.M365.TodoService(microsoft), Presence = new Services.M365.PresenceService(microsoft),
+            Contacts = new Services.M365.ContactsService(microsoft),
         };
         // First sign-in: the Outlook calendar joins the calendar card right away.
         microsoft.Connected += () =>
@@ -180,6 +181,7 @@ public partial class App : Application
         _taildrop.SetEnabled(_settings.TaildropEnabled);
         _vm.Todo!.Start();
         _vm.Presence!.Start();
+        _vm.Contacts!.Start();
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.TaildropEnabled)) _taildrop.SetEnabled(_settings.TaildropEnabled); };
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) _vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
         await spotify.InitAsync();
@@ -304,12 +306,24 @@ public partial class App : Application
         // the compact island shows the waiting Claude symbol until the notification is opened or dismissed.
         notifications.Seen += n =>
         {
+            // Incoming call (Smartphone-Link, Teams): always shown, also when the island is quiet - but never while sharing the screen.
+            if (IsIncomingCall(n) && !_settings.Sharing)
+                island.ShowPeek(new PeekItem
+                {
+                    Image = n.Logo, Icon = n.Logo is null ? Icon("Icon.Call") : null,
+                    IconBrush = Res("B.Green"), IconBackground = Tint("B.Green", 0x2E),
+                    Title = n.Title, Subtitle = (Loc.German ? "Anruf · " : "Call · ") + n.App,
+                    ActionText = Loc.German ? "Öffnen" : "Open", DismissText = Loc.German ? "Später" : "Later",
+                    Action = () => notifications.Open(n),
+                    Priority = PeekPriority.High, ShowInDnd = true, Seconds = 25,
+                });
             if (!_snapshotMode) BannerSuppressor.Seen(n.AppId);
             if (_settings.ClaudeEnabled && ClaudeService.NeedsAnswer(n.App, n.AppId, n.Title, n.Body)) _vm!.Claude.RemoteAsked(n.Id);
         };
         notifications.Removed += n => _vm?.Claude.RemoteAnswered(n.Id);
         notifications.Arrived += n =>
         {
+            if (IsIncomingCall(n)) return; // shown by Seen above, with buttons
             // The island shows its own screenshot peek (with the picture); the Snipping Tool toast would be a second one.
             if (n.AppId == BannerSuppressor.SnippingTool && _settings.PeekOnScreenshot && _settings.ClipboardEnabled) return;
             island.ShowPeek(new PeekItem
@@ -448,6 +462,16 @@ public partial class App : Application
             Seconds = 2.2,
             OnClick = () => { if (_settings.ShowTrayTab) _vm!.Tab = 1; island.Expand(); },
         });
+    }
+
+    /// <summary>A call notification from Smartphone-Link (YourPhoneCalling) or Teams ("ruft an", "is calling").</summary>
+    private static bool IsIncomingCall(NotificationItem n)
+    {
+        if (n.AppId.Contains("YourPhoneCalling", StringComparison.OrdinalIgnoreCase)) return true;
+        bool teams = n.AppId.Contains("Teams", StringComparison.OrdinalIgnoreCase);
+        string text = n.Title + " " + n.Body;
+        return teams && (text.Contains("ruft an", StringComparison.OrdinalIgnoreCase) || text.Contains("calling", StringComparison.OrdinalIgnoreCase)
+                         || text.Contains("Eingehender Anruf", StringComparison.OrdinalIgnoreCase) || text.Contains("Incoming call", StringComparison.OrdinalIgnoreCase));
     }
 
     private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".heic", ".heif", ".gif", ".webp", ".bmp", ".tif", ".tiff" };

@@ -87,6 +87,7 @@ public sealed partial class IslandViewModel : ObservableObject
     public Services.M365.MicrosoftAccount? Microsoft { get; set; }
     public Services.M365.TodoService? Todo { get; set; }
     public Services.M365.PresenceService? Presence { get; set; }
+    public Services.M365.ContactsService? Contacts { get; set; }
     [ObservableProperty] private bool _showMuted;
     [ObservableProperty] private bool _showMic;
     [ObservableProperty] private bool _showCamera;

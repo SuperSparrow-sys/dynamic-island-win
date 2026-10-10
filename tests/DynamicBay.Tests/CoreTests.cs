@@ -397,6 +397,7 @@ public class WorkModeTests
     [InlineData("Discord +1", "")]
     [InlineData("Chrome +1, Zoom", "Zoom")]
     [InlineData("", "")]
+    [InlineData("Smartphone-Link", "Telefon")]
     public void Recognises_calls_by_the_app_using_the_microphone(string micApps, string expected) =>
         Assert.Equal(expected, WorkModeService.MeetingAppOf(micApps));
 

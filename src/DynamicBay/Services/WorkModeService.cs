@@ -87,6 +87,9 @@ public sealed partial class WorkModeService : ObservableObject
     {
         if (micApps.Contains("Teams", StringComparison.OrdinalIgnoreCase)) return "Teams";
         if (micApps.Contains("Zoom", StringComparison.OrdinalIgnoreCase)) return "Zoom";
+        // A phone call through Smartphone-Link (the PC's microphone is used): quiet like a meeting.
+        if (micApps.Contains("Smartphone-Link", StringComparison.OrdinalIgnoreCase) || micApps.Contains("Phone Link", StringComparison.OrdinalIgnoreCase)
+            || micApps.Contains("YourPhone", StringComparison.OrdinalIgnoreCase)) return Loc.German ? "Telefon" : "Phone";
         return "";
     }
 

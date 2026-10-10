@@ -127,6 +127,7 @@ public partial class SettingsWindow : Window
         (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
         (Widgets.Todo, "Icon.Check", "Aufgaben", "Tasks", "Microsoft To Do: offene Aufgaben abhaken", "Microsoft To Do: tick off open tasks"),
         (Widgets.Teams, "Icon.User", "Teams-Status", "Teams status", "Eigenen Teams-Status sehen und umschalten", "See and change your Teams status"),
+        (Widgets.Contacts, "Icon.User", "Kontakte", "Contacts", "Häufige Kontakte: Teams-Chat, Teams-Anruf, Telefon über Smartphone-Link", "Frequent contacts: Teams chat, Teams call, phone via Phone Link"),
         (Widgets.TimeTrack, "Icon.Clock", "Zeiterfassung", "Time tracking", "Zeit pro Projekt starten und stoppen, CSV-Export", "Start and stop time per project, CSV export"),
     };
 

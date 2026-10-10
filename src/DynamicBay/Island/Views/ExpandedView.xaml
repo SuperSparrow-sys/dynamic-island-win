@@ -24,6 +24,7 @@
         <c:BoolPick x:Key="LikeBrush" True="{StaticResource B.Pink}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
         <c:BoolPick x:Key="OnBrush" True="{StaticResource B.Green}" False="{StaticResource B.Text2}" />
+        <c:BoolPick x:Key="ContactsEmpty" True="{core:L De='Noch keine Kontakte', En='No contacts yet'}" False="{core:L De='In den Einstellungen mit Microsoft verbinden (Timer und Kalender)', En='Connect Microsoft in the settings (Timer and calendar)'}" />
         <c:BoolPick x:Key="TrackBg" True="#330A84FF" False="{StaticResource B.Fill2}" />
         <c:BoolPick x:Key="OverdueBrush" True="{StaticResource B.Red}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="DoneOpacity"><c:BoolPick.True><sys:Double>0.4</sys:Double></c:BoolPick.True><c:BoolPick.False><sys:Double>1</sys:Double></c:BoolPick.False></c:BoolPick>
@@ -531,6 +532,52 @@
 
             <!-- Optional widgets (shown when enabled in settings; laid out in code) -->
             <Grid x:Name="ExtraCards" Visibility="Collapsed">
+                <!-- Contacts: frequent people with Teams chat, Teams call and phone (via Smartphone-Link) -->
+                <Border x:Name="ContactsCard" Style="{StaticResource Card}" Padding="10">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                            <c:Icon Data="{StaticResource Icon.User}" Width="14" Height="14" Foreground="{StaticResource B.Green}" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:L De='Kontakte', En='Contacts'}" />
+                        </StackPanel>
+                        <Grid Margin="0,6,0,0">
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding Contacts.IsEmpty, Converter={StaticResource Vis}}"
+                                       Text="{Binding Microsoft.IsConnected, Converter={StaticResource ContactsEmpty}}" />
+                            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding Contacts.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type ms:ContactItem}">
+                                            <DockPanel Margin="0,0,0,6" ToolTip="{Binding Detail}">
+                                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Button Style="{StaticResource Btn.Icon}" Width="24" Height="24" ToolTip="{core:L De='Teams-Chat', En='Teams chat'}"
+                                                            Visibility="{Binding HasEmail, Converter={StaticResource Vis}}"
+                                                            Command="{Binding DataContext.Contacts.ChatCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                        <c:Icon Data="{StaticResource Icon.Chat}" Width="13" Height="13" Foreground="{StaticResource B.Blue}" />
+                                                    </Button>
+                                                    <Button Style="{StaticResource Btn.Icon}" Width="24" Height="24" ToolTip="{core:L De='Teams-Anruf', En='Teams call'}"
+                                                            Visibility="{Binding HasEmail, Converter={StaticResource Vis}}"
+                                                            Command="{Binding DataContext.Contacts.TeamsCallCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                        <c:Icon Data="{StaticResource Icon.Video}" Width="13" Height="13" Foreground="{StaticResource B.Blue}" />
+                                                    </Button>
+                                                    <Button Style="{StaticResource Btn.Icon}" Width="24" Height="24" ToolTip="{core:L De='Anrufen (Smartphone-Link)', En='Call (Phone Link)'}"
+                                                            Visibility="{Binding HasPhone, Converter={StaticResource Vis}}"
+                                                            Command="{Binding DataContext.Contacts.CallCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                        <c:Icon Data="{StaticResource Icon.Call}" Width="13" Height="13" Foreground="{StaticResource B.Green}" />
+                                                    </Button>
+                                                </StackPanel>
+                                                <Border Width="26" Height="26" CornerRadius="13" Background="{StaticResource B.Fill2}" Margin="0,0,8,0" VerticalAlignment="Center">
+                                                    <TextBlock Style="{StaticResource T.Base}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding Initials}" />
+                                                </Border>
+                                                <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
                 <!-- Time tracking: tap a project to start or switch, tap the running one (or the square) to stop -->
                 <Border x:Name="TimeCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>
