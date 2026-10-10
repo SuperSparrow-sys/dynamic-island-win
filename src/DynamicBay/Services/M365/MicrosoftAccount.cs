@@ -106,7 +106,12 @@ public sealed partial class MicrosoftAccount : ObservableObject
         catch (Exception ex)
         {
             Log.Error("Microsoft sign-in", ex);
-            Status = (Loc.German ? "Anmeldung fehlgeschlagen: " : "Sign-in failed: ") + ex.Message;
+            Status = ex.Message.Contains("AADSTS50194")
+                // App registered for one organisation only: "common" is not allowed, the directory must be named.
+                ? (Loc.German
+                    ? "Die App ist nur für deine Firma registriert. Trag unter „Verzeichnis“ die Verzeichnis-ID (Mandant) von der Übersichtsseite der App ein – oder deine Firmen-Domain, z. B. firma.de."
+                    : "The app is registered for your organisation only. Enter the directory (tenant) ID from the app's overview page under Directory - or your company domain, e.g. contoso.com.")
+                : (Loc.German ? "Anmeldung fehlgeschlagen: " : "Sign-in failed: ") + ex.Message;
         }
         finally { IsBusy = false; }
     }
