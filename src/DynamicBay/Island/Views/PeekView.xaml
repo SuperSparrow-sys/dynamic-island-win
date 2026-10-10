@@ -26,8 +26,8 @@
         </Grid>
 
         <StackPanel Grid.Column="1" Margin="12,0,10,0" VerticalAlignment="Center">
-            <TextBlock Style="{StaticResource T.Title}" Text="{Binding Title}" />
-            <TextBlock Style="{StaticResource T.Caption}" Margin="0,2,0,0" Text="{Binding Subtitle}"
+            <TextBlock Style="{StaticResource T.Title}" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Style="{StaticResource T.Caption}" Margin="0,2,0,0" Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis"
                        Visibility="{Binding HasSubtitle, Converter={StaticResource Vis}}" />
         </StackPanel>
 

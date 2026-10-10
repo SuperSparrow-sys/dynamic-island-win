@@ -49,6 +49,14 @@ public static class Snapshots
                 down = now; last = t;
             };
             System.Windows.Media.CompositionTarget.Rendering += onFrame;
+            // DYNAMICBAY_LIVE_CLOCK=1: the open island with only the analog clock (to watch the second hand).
+            if (Environment.GetEnvironmentVariable("DYNAMICBAY_LIVE_CLOCK") == "1")
+            {
+                settings.ClockAnalog = true;
+                settings.HomeWidgets.Clear();
+                settings.HomeWidgets.Add(Widgets.Clock);
+                island.ForceState(IslandMode.Expanded);
+            }
             // DYNAMICBAY_LIVE_PEEK=1: a clickable peek with a file (like a Taildrop arrival); logs clicks and opening.
             if (Environment.GetEnvironmentVariable("DYNAMICBAY_LIVE_PEEK") == "1")
             {
@@ -411,7 +419,8 @@ public static class Snapshots
 
     private static void LoadDemo(IslandViewModel vm)
     {
-        vm.Media.LoadDemo(DemoCover(), "Midnight Drive", "Neon Harbor");
+        // DYNAMICBAY_SNAPSHOT_TITLE: check how a long track title fits.
+        vm.Media.LoadDemo(DemoCover(), Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_TITLE") ?? "Midnight Drive", "Neon Harbor");
         vm.Timer.LoadDemo();
         vm.Calendar.LoadDemo();
         vm.Battery.LoadDemo(84, true);

@@ -17,16 +17,27 @@ public sealed class AnalogClock : FrameworkElement
     private static readonly Pen Neck = FrozenPen(Color.FromRgb(0x1C, 0x1C, 0x1E), 0.035);
     private static readonly Pen Second = FrozenPen(Color.FromRgb(0xF0, 0x9A, 0x37), 0.016);
     private static readonly Brush Ink = Frozen(new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1E)));
-    private readonly DispatcherTimer _tick = new() { Interval = TimeSpan.FromSeconds(1) };
+    // Normal priority: the default (Background) waits behind every frame of the opening animation, so right after
+    // opening the seconds came late and then caught up.
+    private readonly DispatcherTimer _tick = new(DispatcherPriority.Normal) { Interval = TimeSpan.FromSeconds(1) };
+    private int _shownSecond = -1;
 
     public AnalogClock()
     {
-        _tick.Tick += (_, _) => { AlignTick(); InvalidateVisual(); };
+        _tick.Tick += (_, _) => { AlignTick(); RedrawIfNewSecond(); };
         IsVisibleChanged += (_, _) => { if (IsVisible) { AlignTick(); _tick.Start(); InvalidateVisual(); } else _tick.Stop(); };
     }
 
     /// <summary>Fire just after each full second, so the second hand jumps in time with the real clock.</summary>
-    private void AlignTick() => _tick.Interval = TimeSpan.FromMilliseconds(1000 - DateTime.Now.Millisecond + 5);
+    private void AlignTick() => _tick.Interval = TimeSpan.FromMilliseconds(1000 - DateTime.Now.Millisecond + 20);
+
+    /// <summary>Timers can fire a few ms early: only redraw when the second really changed (no doubled or skipped second).</summary>
+    private void RedrawIfNewSecond()
+    {
+        int s = DateTime.Now.AddMilliseconds(30).Second;
+        if (s == _shownSecond) return;
+        InvalidateVisual();
+    }
 
     private static Brush Frozen(Brush b) { var c = b.Clone(); c.Freeze(); return c; }
 
@@ -59,7 +70,8 @@ public sealed class AnalogClock : FrameworkElement
             double a = i * Math.PI / 6;
             dc.DrawLine(Mark, new Point(Math.Sin(a) * 0.68, -Math.Cos(a) * 0.68), new Point(Math.Sin(a) * 0.84, -Math.Cos(a) * 0.84));
         }
-        var now = DateTime.Now;
+        var now = DateTime.Now.AddMilliseconds(30);
+        _shownSecond = now.Second;
         double sec = now.Second, min = now.Minute + sec / 60, hour = now.Hour % 12 + min / 60;
         DrawThickHand(dc, hour / 12, 0.5);
         DrawThickHand(dc, min / 60, 0.8);

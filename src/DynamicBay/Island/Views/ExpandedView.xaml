@@ -263,9 +263,11 @@
                                 <DockPanel>
                                     <c:Waveform DockPanel.Dock="Right" Width="18" Height="13" Margin="8,2,0,0" VerticalAlignment="Top"
                                                 IsPlaying="{Binding Media.IsPlaying}" BarBrush="{Binding Media.AccentBrush}" />
-                                    <StackPanel>
-                                        <TextBlock Style="{StaticResource T.Headline}" Text="{Binding Media.Title}" />
-                                        <TextBlock Style="{StaticResource T.Body}" Margin="0,1,0,0" FontSize="12.5" Text="{Binding Media.Artist}" />
+                                    <!-- Long titles wrap onto a second line and are then shortened; the text never widens the card. -->
+                                    <StackPanel MaxWidth="280">
+                                        <TextBlock Style="{StaticResource T.Headline}" Text="{Binding Media.Title}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                                   LineHeight="19" LineStackingStrategy="BlockLineHeight" MaxHeight="38" ToolTip="{Binding Media.Title}" />
+                                        <TextBlock Style="{StaticResource T.Body}" Margin="0,1,0,0" FontSize="12.5" Text="{Binding Media.Artist}" TextTrimming="CharacterEllipsis" />
                                     </StackPanel>
                                 </DockPanel>
 
