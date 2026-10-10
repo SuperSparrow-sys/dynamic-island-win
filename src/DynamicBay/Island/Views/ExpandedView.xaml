@@ -644,7 +644,8 @@
                 </Border>
 
                 <!-- Time tracking: tap a project to start or switch, tap the running one (or the square) to stop -->
-                <Border x:Name="TimeCard" Style="{StaticResource Card}" Padding="10">
+                <Border x:Name="TimeCard" Style="{StaticResource Card}" Padding="10" Cursor="Hand" MouseLeftButtonUp="TimeCard_Click"
+                        ToolTip="{core:L De='Klicken: Zeiterfassung öffnen (Einträge, nachtragen, Projekte)', En='Click: open time tracking (entries, add time, projects)'}">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
@@ -656,9 +657,9 @@
                                         ToolTip="{core:L De='Projekt hinzufügen', En='Add project'}">
                                     <c:Icon Data="{StaticResource Icon.Plus}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
                                 </Button>
-                                <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Time.ShowFileCommand}"
-                                        ToolTip="{core:L De='Zeiterfassungs-Datei zeigen', En='Show the time tracking file'}">
-                                    <c:Icon Data="{StaticResource Icon.FileText}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                                <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding OpenTimeTrackingCommand}"
+                                        ToolTip="{core:L De='Zeiterfassung öffnen', En='Open time tracking'}">
+                                    <c:Icon Data="{StaticResource Icon.External}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
                                 </Button>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">

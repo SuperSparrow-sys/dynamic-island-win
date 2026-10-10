@@ -468,19 +468,58 @@ public class TimeTrackingTests
     {
         var entries = new List<TimeEntry>
         {
-            new() { Project = "Kunde Müller", Start = new DateTime(2026, 10, 9, 9, 0, 0), End = new DateTime(2026, 10, 9, 10, 30, 0) },
+            new() { Project = "Kunde Müller", Start = new DateTime(2026, 10, 9, 9, 0, 0), End = new DateTime(2026, 10, 9, 10, 30, 0), Description = "Angebot; Telefonat" },
             new() { Project = "Intern; Orga", Start = new DateTime(2026, 10, 9, 11, 0, 0), End = new DateTime(2026, 10, 9, 11, 15, 0) },
             new() { Project = "Läuft", Start = new DateTime(2026, 10, 10, 8, 0, 0) },
         };
         var csv = TimeTrackingService.ToCsv(entries);
         var lines = csv.Trim().Split(Environment.NewLine);
-        Assert.Equal("09.10.2026;Kunde Müller;09:00;10:30;1,50", lines[1]);
+        Assert.Equal("Datum;Projekt;Start;Ende;Stunden;Beschreibung", lines[0]);
+        Assert.Equal("09.10.2026;Kunde Müller;09:00;10:30;1,50;\"Angebot; Telefonat\"", lines[1]);
         Assert.Contains("\"Intern; Orga\"", lines[2]);
-        Assert.Equal("10.10.2026;Läuft;08:00;;", lines[3]);
+        Assert.Equal("10.10.2026;Läuft;08:00;;;", lines[3]);
         var back = TimeTrackingService.Parse(lines);
         Assert.Equal(3, back.Count);
         Assert.Equal("Intern; Orga", back[1].Project);
         Assert.Null(back[2].End);
         Assert.Equal(new DateTime(2026, 10, 9, 10, 30, 0), back[0].End);
+        Assert.Equal("Angebot; Telefonat", back[0].Description);
+    }
+
+    [Fact]
+    public void Files_from_before_the_description_column_still_load()
+    {
+        var back = TimeTrackingService.Parse(new[] { "Datum;Projekt;Start;Ende;Stunden", "09.10.2026;Intern;09:00;10:00;1,00" });
+        Assert.Single(back);
+        Assert.Equal("", back[0].Description);
+        Assert.Equal(new DateTime(2026, 10, 9, 10, 0, 0), back[0].End);
+    }
+
+    [Fact]
+    public void Entries_added_by_hand_are_rounded_and_projects_can_be_renamed()
+    {
+        string file = Path.Combine(Path.GetTempPath(), $"dynamicbay-time-{Guid.NewGuid():N}.csv");
+        try
+        {
+            var settings = new AppSettings { TimeTrackingFile = file };
+            settings.TimeProjects.Clear();
+            var time = new TimeTrackingService(settings);
+            time.AddEntry("Kunde A", new DateTime(2026, 10, 9, 9, 7, 0), new DateTime(2026, 10, 9, 10, 8, 0), "Workshop");
+            var e = Assert.Single(time.Entries);
+            Assert.Equal(new DateTime(2026, 10, 9, 9, 0, 0), e.Start);
+            Assert.Equal(new DateTime(2026, 10, 9, 10, 15, 0), e.End);
+            Assert.Contains("Kunde A", settings.TimeProjects);
+
+            time.RenameProject("Kunde A", "Kunde Alpha");
+            Assert.Equal("Kunde Alpha", e.Project);
+            Assert.Contains("Kunde Alpha", settings.TimeProjects);
+            Assert.DoesNotContain("Kunde A", settings.TimeProjects);
+            Assert.Contains("Kunde Alpha;09:00;10:15;1,25;Workshop", File.ReadAllText(file));
+
+            time.DeleteEntry(e);
+            Assert.Empty(time.Entries);
+            Assert.DoesNotContain("Workshop", File.ReadAllText(file));
+        }
+        finally { File.Delete(file); }
     }
 }

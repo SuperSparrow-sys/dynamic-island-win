@@ -1,0 +1,198 @@
+<Window x:Class="DynamicBay.Settings.TimeTrackingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="clr-namespace:DynamicBay.Controls"
+        xmlns:core="clr-namespace:DynamicBay.Core"
+        xmlns:s="clr-namespace:DynamicBay.Services"
+        Title="{core:L De='Zeiterfassung', En='Time tracking'}" Width="900" Height="640" MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterScreen" Background="Transparent"
+        FontFamily="{StaticResource Font.UI}" Icon="/Assets/DynamicBay.ico">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="44" GlassFrameThickness="-1" ResizeBorderThickness="6" UseAeroCaptionButtons="True" CornerRadius="0" />
+    </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SettingsStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <c:BoolToVis x:Key="Vis" />
+            <Style TargetType="c:Icon">
+                <Setter Property="Foreground" Value="{DynamicResource S.Text2}" />
+                <Setter Property="Width" Value="14" />
+                <Setter Property="Height" Value="14" />
+            </Style>
+            <!-- small square icon button -->
+            <Style x:Key="T.IconButton" TargetType="Button" BasedOn="{StaticResource S.Button}">
+                <Setter Property="Padding" Value="7" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+            </Style>
+            <!-- project chip in the form -->
+            <Style x:Key="T.Chip" TargetType="Button" BasedOn="{StaticResource S.Button}">
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="Margin" Value="0,0,6,6" />
+                <Setter Property="FontSize" Value="12" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="24,44,24,18">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="20" />
+            <ColumnDefinition Width="270" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ===== Day: entries and the form ===== -->
+        <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
+                    <TextBlock Style="{StaticResource ST.Desc}" HorizontalAlignment="Right" Text="{core:L De='Gebucht an diesem Tag', En='Booked this day'}" />
+                    <TextBlock x:Name="DayTotal" Style="{StaticResource ST.Base}" FontSize="22" FontWeight="Bold" HorizontalAlignment="Right" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource T.IconButton}" Click="PrevDay_Click" ToolTip="{core:L De='Tag davor', En='Previous day'}">
+                        <c:Icon Data="{StaticResource Icon.ChevronLeft}" />
+                    </Button>
+                    <Button Style="{StaticResource T.IconButton}" Click="NextDay_Click" ToolTip="{core:L De='Tag danach', En='Next day'}">
+                        <c:Icon Data="{StaticResource Icon.ChevronRight}" />
+                    </Button>
+                    <TextBlock x:Name="DayTitle" Style="{StaticResource ST.Base}" FontSize="22" FontWeight="Bold" Margin="8,0,12,0" VerticalAlignment="Center" />
+                    <Button x:Name="TodayButton" Style="{StaticResource S.Button}" Padding="10,4" Click="Today_Click" Content="{core:L De='Heute', En='Today'}" />
+                </StackPanel>
+            </DockPanel>
+
+            <!-- form: add time by hand, or change an entry -->
+            <Border DockPanel.Dock="Bottom" Style="{StaticResource S.Card}" Margin="0,12,0,0" Padding="16,12">
+                <StackPanel>
+                    <DockPanel>
+                        <Button x:Name="CancelEdit" DockPanel.Dock="Right" Style="{StaticResource S.Link}" Visibility="Collapsed" Click="CancelEdit_Click"
+                                Content="{core:L De='Abbrechen', En='Cancel'}" VerticalAlignment="Center" />
+                        <TextBlock x:Name="FormTitle" Style="{StaticResource ST.Label}" />
+                    </DockPanel>
+                    <WrapPanel x:Name="ProjectChips" Margin="0,10,0,4" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.6*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="72" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="72" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource ST.Desc}" Margin="2,0,0,3" Text="{core:L De='Projekt', En='Project'}" />
+                            <TextBox x:Name="FormProject" Style="{StaticResource S.TextBox}" Height="32" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource ST.Desc}" Margin="2,0,0,3" Text="{core:L De='Von', En='From'}" />
+                            <TextBox x:Name="FormStart" Style="{StaticResource S.TextBox}" Height="32" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Style="{StaticResource ST.Desc}" Margin="2,0,0,3" Text="{core:L De='Bis', En='To'}" />
+                            <TextBox x:Name="FormEnd" Style="{StaticResource S.TextBox}" Height="32" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="6">
+                            <TextBlock Style="{StaticResource ST.Desc}" Margin="2,0,0,3" Text="{core:L De='Beschreibung (optional)', En='Description (optional)'}" />
+                            <TextBox x:Name="FormDescription" Style="{StaticResource S.TextBox}" Height="32" KeyDown="Form_KeyDown" />
+                        </StackPanel>
+                        <Button x:Name="FormSave" Grid.Column="8" Style="{StaticResource S.AccentButton}" VerticalAlignment="Bottom" Height="32" Click="FormSave_Click" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Style="{StaticResource ST.Desc}" Margin="0,0,8,0" VerticalAlignment="Center" Text="{core:L De='Dauer:', En='Length:'}" />
+                        <Button Style="{StaticResource T.Chip}" Margin="0,0,6,0" Tag="15" Click="Length_Click" Content="15 min" />
+                        <Button Style="{StaticResource T.Chip}" Margin="0,0,6,0" Tag="30" Click="Length_Click" Content="30 min" />
+                        <Button Style="{StaticResource T.Chip}" Margin="0,0,6,0" Tag="60" Click="Length_Click" Content="1 h" />
+                        <Button Style="{StaticResource T.Chip}" Margin="0,0,6,0" Tag="120" Click="Length_Click" Content="2 h" />
+                        <Button Style="{StaticResource T.Chip}" Margin="0,0,6,0" Tag="240" Click="Length_Click" Content="4 h" />
+                    </StackPanel>
+                    <TextBlock x:Name="FormError" Style="{StaticResource ST.Desc}" Foreground="#FFFF6961" Visibility="Collapsed" Margin="2,6,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- entries of the day -->
+            <Border Style="{StaticResource S.Card}" Padding="6">
+                <Grid>
+                    <TextBlock x:Name="EmptyText" Style="{StaticResource ST.Desc}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                               Text="{core:L De='An diesem Tag ist noch nichts erfasst. Trag unten Zeit nach oder starte ein Projekt.', En='Nothing recorded on this day yet. Add time below or start a project.'}" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl x:Name="EntryList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type s:TimeEntry}">
+                                    <Border x:Name="Row" CornerRadius="8" Padding="12,9" Background="Transparent">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource ST.Base}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,10,0" Text="{Binding HoursText}" />
+                                                <Button Style="{StaticResource T.IconButton}" Click="Edit_Click" ToolTip="{core:L De='Bearbeiten', En='Edit'}">
+                                                    <c:Icon Data="{StaticResource Icon.Pencil}" Width="14" Height="14" Foreground="{DynamicResource S.Text2}" />
+                                                </Button>
+                                                <Button Style="{StaticResource T.IconButton}" Click="Delete_Click" ToolTip="{core:L De='Löschen', En='Delete'}">
+                                                    <c:Icon Data="{StaticResource Icon.Trash}" Width="14" Height="14" Foreground="{DynamicResource S.Text2}" />
+                                                </Button>
+                                            </StackPanel>
+                                            <TextBlock DockPanel.Dock="Left" Style="{StaticResource ST.Base}" Width="104" VerticalAlignment="Center" Foreground="{DynamicResource S.Text2}" Text="{Binding TimeText}" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource ST.Label}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Project}" />
+                                                <TextBlock Style="{StaticResource ST.Desc}" Text="{Binding Description}" Visibility="{Binding HasDescription, Converter={StaticResource Vis}}" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Row" Property="Background" Value="{DynamicResource S.Hover}" />
+                                        </Trigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </DockPanel>
+
+        <!-- ===== Week and projects ===== -->
+        <DockPanel Grid.Column="2">
+            <StackPanel DockPanel.Dock="Bottom" Margin="2,10,0,0">
+                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Alles steht in einer Datei (öffnet in Excel):', En='Everything is in one file (opens in Excel):'}" />
+                <TextBlock x:Name="FilePathText" Style="{StaticResource ST.Desc}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                <Button Style="{StaticResource S.Link}" Margin="0,4,0,0" HorizontalAlignment="Left" Click="ShowFile_Click" Content="{core:L De='Im Explorer zeigen', En='Show in Explorer'}" />
+            </StackPanel>
+
+            <TextBlock DockPanel.Dock="Top" x:Name="WeekTitle" Style="{StaticResource ST.Group}" Margin="4,6,0,8" />
+            <Border DockPanel.Dock="Top" Style="{StaticResource S.Card}" Padding="14,10">
+                <StackPanel>
+                    <ItemsControl x:Name="WeekList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,2">
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource ST.Base}" FontSize="12.5" Text="{Binding Hours}" />
+                                    <TextBlock Style="{StaticResource ST.Base}" FontSize="12.5" Foreground="{DynamicResource S.Text2}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Text="{Binding Project}" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border BorderBrush="{DynamicResource S.Divider}" BorderThickness="0,1,0,0" Margin="0,6,0,0" Padding="0,6,0,0">
+                        <DockPanel>
+                            <TextBlock x:Name="WeekTotal" DockPanel.Dock="Right" Style="{StaticResource ST.Label}" />
+                            <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Woche gesamt', En='Week total'}" />
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <TextBlock DockPanel.Dock="Top" Style="{StaticResource ST.Group}" Margin="4,16,0,8" Text="{core:L De='Projekte', En='Projects'}" />
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="6,0,0,0" Padding="10,4" Click="AddProject_Click" Content="{core:L De='Hinzufügen', En='Add'}" />
+                <TextBox x:Name="NewProject" Style="{StaticResource S.TextBox}" Height="30" KeyDown="NewProject_KeyDown" />
+            </DockPanel>
+            <Border Style="{StaticResource S.Card}" Padding="6">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel x:Name="ProjectRows" />
+                </ScrollViewer>
+            </Border>
+        </DockPanel>
+    </Grid>
+</Window>

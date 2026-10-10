@@ -104,6 +104,7 @@ public sealed partial class IslandViewModel : ObservableObject
     [ObservableProperty] private bool _showTimeTrack;
 
     public event Action? OpenSettingsRequested;
+    public event Action? OpenTimeTrackingRequested;
     public event Action? HideRequested;
     public event Action? QuitRequested;
 
@@ -169,6 +170,7 @@ public sealed partial class IslandViewModel : ObservableObject
     }
 
     [RelayCommand] private void OpenSettings() => OpenSettingsRequested?.Invoke();
+    [RelayCommand] private void OpenTimeTracking() => OpenTimeTrackingRequested?.Invoke();
     [RelayCommand] private void Hide() { if (AltHeld) QuitRequested?.Invoke(); else HideRequested?.Invoke(); }
     [RelayCommand] private void Quit() => QuitRequested?.Invoke();
     [RelayCommand] private void TogglePin() => IsPinned = !IsPinned;

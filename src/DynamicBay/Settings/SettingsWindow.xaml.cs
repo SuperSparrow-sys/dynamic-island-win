@@ -393,20 +393,12 @@ public partial class SettingsWindow : Window
         if (dlg.ShowDialog(this) != true) return;
         _ctx.S.TaildropFolder = dlg.FolderName;
         UpdateTaildropFolderText();
-        BuildProjectRows();
-        UpdateTimeFileText();
-        _ctx.S.PropertyChanged += OnTimeProjectsChanged;
-        Closed += (_, _) => _ctx.S.PropertyChanged -= OnTimeProjectsChanged;
     }
 
     private void ResetTaildropFolder_Click(object sender, RoutedEventArgs e)
     {
         _ctx.S.TaildropFolder = "";
         UpdateTaildropFolderText();
-        BuildProjectRows();
-        UpdateTimeFileText();
-        _ctx.S.PropertyChanged += OnTimeProjectsChanged;
-        Closed += (_, _) => _ctx.S.PropertyChanged -= OnTimeProjectsChanged;
     }
 
     // ---- time tracking projects ----
@@ -468,9 +460,6 @@ public partial class SettingsWindow : Window
         _ctx.S.TimeProjects.Add(name);
         NewProject.Text = "";
         BuildProjectRows();
-        UpdateTimeFileText();
-        _ctx.S.PropertyChanged += OnTimeProjectsChanged;
-        Closed += (_, _) => _ctx.S.PropertyChanged -= OnTimeProjectsChanged;
     }
 
     // ---- Microsoft 365 ----

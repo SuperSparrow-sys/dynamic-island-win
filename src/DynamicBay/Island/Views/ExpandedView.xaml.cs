@@ -512,6 +512,14 @@ public partial class ExpandedView : UserControl
         NewTimeProject.Visibility = Visibility.Collapsed;
     }
 
+    /// <summary>A click on the time card (not on a project or button) opens the time tracking window.</summary>
+    private void TimeCard_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        for (var d = e.OriginalSource as DependencyObject; d is not null && d != sender; d = System.Windows.Media.VisualTreeHelper.GetParent(d))
+            if (d is System.Windows.Controls.Primitives.ButtonBase or System.Windows.Controls.TextBox) return;
+        Vm?.OpenTimeTrackingCommand.Execute(null);
+    }
+
     /// <summary>The clock card switches between digits and the dial on a click.</summary>
     private void ClockCard_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {

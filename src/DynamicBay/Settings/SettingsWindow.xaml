@@ -777,9 +777,21 @@
                                 </Button>
                                 <TextBox x:Name="NewProject" Style="{StaticResource S.TextBox}" KeyDown="NewProject_KeyDown" />
                             </DockPanel>
-                            <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Margin="0,10,0,0" Command="{Binding I.Time.ShowFileCommand}">
-                                <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.FileText}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Datei im Explorer zeigen', En='Show file in Explorer'}" /></StackPanel>
-                            </Button>
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button Style="{StaticResource S.AccentButton}" Margin="0,0,8,0" Command="{Binding I.OpenTimeTrackingCommand}"
+                                        Content="{core:L De='Zeiterfassung öffnen (Einträge, nachtragen)', En='Open time tracking (entries, add time)'}" />
+                                <Button Style="{StaticResource S.Button}" Command="{Binding I.Time.ShowFileCommand}">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.FileText}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Datei im Explorer zeigen', En='Show file in Explorer'}" /></StackPanel>
+                                </Button>
+                            </WrapPanel>
+                            <DockPanel Margin="0,14,0,0">
+                                <CheckBox DockPanel.Dock="Right" Style="{StaticResource S.Switch}" IsChecked="{Binding S.TimeReminders}" VerticalAlignment="Center" />
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Erinnern und nachfragen', En='Remind and ask'}" />
+                                    <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap"
+                                               Text="{core:L De='Nach 4 Stunden und ab 19 Uhr fragt die Insel, ob das Projekt noch läuft. Nach einer Pause mit gesperrtem PC bietet sie an, die Zeit abzuziehen. Steht ein Projektname im Termin, schlägt sie vor, es zu starten.', En='After 4 hours and from 7 pm the island asks whether the project still runs. After a break with the PC locked it offers to take the time off. If a meeting names a project, it suggests starting it.'}" />
+                                </StackPanel>
+                            </DockPanel>
                         </StackPanel>
                     </Border>
 

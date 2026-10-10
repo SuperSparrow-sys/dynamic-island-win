@@ -207,6 +207,24 @@ public static class Snapshots
                 await Task.Delay(4000);
             }
             foreach (var app in InstalledApps.All().Take(3)) settings.Shortcuts.Add(app.LaunchPath); // launcher list with tiles
+            // Time tracking window with a demo day (the user's file is not touched).
+            {
+                var d = DateTime.Today;
+                settings.TimeProjects.Clear();
+                foreach (var p in new[] { "Kunde Müller", "Intern", "Angebot Berlin" }) settings.TimeProjects.Add(p);
+                vm.Time.LoadDemo(new[]
+                {
+                    new TimeEntry { Project = "Intern", Start = d.AddHours(8), End = d.AddHours(9), Description = "Mails und Planung" },
+                    new TimeEntry { Project = "Kunde Müller", Start = d.AddHours(9), End = d.AddHours(11.5), Description = "Workshop Speicherauslegung" },
+                    new TimeEntry { Project = "Angebot Berlin", Start = d.AddHours(13), End = d.AddHours(14.25) },
+                    new TimeEntry { Project = "Kunde Müller", Start = d.AddDays(-1).AddHours(9), End = d.AddDays(-1).AddHours(12) },
+                });
+                var tw = new Settings.TimeTrackingWindow(vm.Time, settings);
+                tw.Show();
+                await Task.Delay(900);
+                RenderWindow(tw, Path.Combine(dir, "time-window.png"));
+                tw.Close();
+            }
             var win = new Settings.SettingsWindow(settings, vm);
             win.Show();
             for (int page = 0; page <= 11; page++)

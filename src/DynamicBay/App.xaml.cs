@@ -120,6 +120,7 @@ public partial class App : Application
         };
         _islands = new IslandManager(_vm);
         _vm.OpenSettingsRequested += ShowSettings;
+        _vm.OpenTimeTrackingRequested += ShowTimeTracking;
         _vm.QuitRequested += Quit;
 
         if (snapshotDir is not null)
@@ -169,6 +170,7 @@ public partial class App : Application
         battery.Start();
         if (_settings.AudioEnabled) _vm.Audio.Start();
         _vm.Work.Start();
+        _vm.Time.WatchSession();
         bluetooth.Start();
         _vm.AudioDevices.Start();
         calendar.Start();
@@ -408,6 +410,48 @@ public partial class App : Application
                 Seconds = 8,
             });
         };
+        // Time tracking: still running after hours or in the evening, and back after a break with the PC locked.
+        _vm.Time.Reminder += (kind, running) => island.ShowPeek(new PeekItem
+        {
+            Icon = Icon("Icon.Clock"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+            Title = kind == TimeReminder.Evening
+                ? (Loc.German ? $"{_vm.Time.CurrentProject} läuft noch" : $"{_vm.Time.CurrentProject} is still running")
+                : (Loc.German ? $"{_vm.Time.CurrentProject} seit {TimeTrackingService.Format(running)} h" : $"{_vm.Time.CurrentProject} for {TimeTrackingService.Format(running)} h"),
+            Subtitle = Loc.German ? "Zeiterfassung – noch dabei?" : "Time tracking - still on it?",
+            ActionText = Loc.German ? "Stoppen" : "Stop", DismissText = Loc.German ? "Weiter" : "Keep going",
+            Action = () => _vm.Time.StopCommand.Execute(null),
+            Priority = PeekPriority.High, ShowInDnd = true, Seconds = 30,
+        });
+        _vm.Time.CameBack += (from, to) =>
+        {
+            if (!_settings.TimeReminders) return;
+            int minutes = (int)Math.Round((to - from).TotalMinutes);
+            island.ShowPeek(new PeekItem
+            {
+                Icon = Icon("Icon.Coffee"), IconBrush = Res("B.Orange"), IconBackground = Tint("B.Orange", 0x2E),
+                Title = Loc.German ? $"{minutes} min weg" : $"Away {minutes} min",
+                Subtitle = Loc.German ? $"Als Pause von {_vm.Time.CurrentProject} abziehen?" : $"Take it off {_vm.Time.CurrentProject} as a break?",
+                ActionText = Loc.German ? "Abziehen" : "Take off", DismissText = Loc.German ? "War Arbeit" : "Was work",
+                Action = () => _vm.Time.TakeBreak(from, to),
+                Priority = PeekPriority.High, Seconds = 40,
+            });
+        };
+        // A meeting whose title names a project: offer to start it.
+        calendar.EventStartingSoon += ev =>
+        {
+            var project = _settings.TimeProjects.FirstOrDefault(p => p.Length >= 3 && ev.Title.Contains(p, StringComparison.CurrentCultureIgnoreCase));
+            if (project is null || !_settings.TimeReminders || _vm.Time.CurrentProject == project || !_settings.HomeWidgets.Contains(Widgets.TimeTrack)) return;
+            island.ShowPeek(new PeekItem
+            {
+                Icon = Icon("Icon.Clock"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+                Title = Loc.German ? $"{project} starten?" : $"Start {project}?",
+                Subtitle = $"{ev.Title} · {ev.Start:HH:mm}",
+                ActionText = Loc.German ? "Starten" : "Start", DismissText = Loc.German ? "Nein" : "No",
+                Action = () => _vm.Time.Start(project),
+                Seconds = 20,
+            });
+        };
+
         // AirPods and co. as microphone switch into call mode (mono, telephone sound): the PC's microphone took over.
         _vm.AudioDevices.BluetoothMicAvoided += (headset, mic) => island.ShowPeek(new PeekItem
         {
@@ -584,6 +628,18 @@ public partial class App : Application
         _settingsWindow.Show();
         _settingsWindow.Activate();
         _settingsWindow.Dispatcher.BeginInvoke(() => Log.Info($"Settings window open in {sw.ElapsedMilliseconds} ms"), System.Windows.Threading.DispatcherPriority.ContextIdle);
+    }
+
+    private Settings.TimeTrackingWindow? _timeWindow;
+
+    /// <summary>The time tracking window (one at a time): entries, adding time by hand, projects.</summary>
+    public void ShowTimeTracking()
+    {
+        if (_timeWindow is { IsLoaded: true }) { _timeWindow.Activate(); return; }
+        _timeWindow = new Settings.TimeTrackingWindow(_vm!.Time, _settings);
+        _timeWindow.Closed += (_, _) => _timeWindow = null;
+        _timeWindow.Show();
+        _timeWindow.Activate();
     }
 
     private void Quit()
