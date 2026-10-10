@@ -433,8 +433,11 @@ public partial class IslandWindow : Window
     {
         switch (e.PropertyName)
         {
-            case nameof(AppSettings.DoNotDisturb):
-                if (_settings.DoNotDisturb)
+            case nameof(AppSettings.Sharing):
+                Refresh(); // shrink to the bar while sharing (or back)
+                break;
+            case nameof(AppSettings.Quiet):
+                if (_settings.Quiet)
                 {
                     // Back to the small island: close the panel and drop pending messages.
                     _peekQueue.Clear();
@@ -469,7 +472,8 @@ public partial class IslandWindow : Window
         if (_dropActive) return IslandMode.Drop;
         if (_expanded) return IslandMode.Expanded;
         if (_peek.Peek is not null) return IslandMode.Peek;
-        if (_minimized) return IslandMode.Minimized;
+        // While the screen is shared or a slide show runs: just the bar, whatever plays (it opens on a click).
+        if (_minimized || (_settings.Sharing && _settings.HideWhenSharing)) return IslandMode.Minimized;
         if (_vm.HasCompact) return IslandMode.Compact;
         return IslandMode.Idle;
     }
@@ -649,7 +653,7 @@ public partial class IslandWindow : Window
         if (_minimized) { _minimized = false; Refresh(); }
         // While a question (buttons) is shown, hovering must not open the panel - the buttons must stay reachable.
         // "Nicht stören" keeps the island small: it only opens on a click.
-        if (_settings.ExpandOnHover && !_settings.DoNotDisturb && !_expanded && !_dragging && !ShowsQuestion && !ShowsClickablePeek && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
+        if (_settings.ExpandOnHover && !_settings.Quiet && !_expanded && !_dragging && !ShowsQuestion && !ShowsClickablePeek && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
         {
             _hoverTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(0, _settings.HoverDelayMs));
             _hoverTimer.Start();
@@ -685,7 +689,7 @@ public partial class IslandWindow : Window
     public void ShowPeek(PeekItem item)
     {
         if (_closed) return;
-        if (_settings.DoNotDisturb && !item.ShowInDnd) return;
+        if (_settings.Quiet && !item.ShowInDnd) return;
         if (_settings.Hidden) return;
         if (_suppressed)
         {

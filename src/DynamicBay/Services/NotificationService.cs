@@ -124,7 +124,7 @@ public sealed partial class NotificationService : ObservableObject
             if (!_settings.NotificationsEnabled) continue; // off: not shown in the island at all
             Items.Insert(0, item);
             if (_primed) Log.Info($"Notification from {item.App} ({item.AppId})");
-            if (_primed && _settings.NotificationsEnabled && !_settings.DoNotDisturb) Arrived?.Invoke(item);
+            if (_primed && _settings.NotificationsEnabled && !_settings.Quiet) Arrived?.Invoke(item);
         }
         while (Items.Count > 30) Items.RemoveAt(Items.Count - 1);
         _primed = true;

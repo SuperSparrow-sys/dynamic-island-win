@@ -191,6 +191,20 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private int _autoHideSeconds = 6;
     [ObservableProperty] private bool _hideInFullscreen = true;
     [ObservableProperty] private bool _doNotDisturb;
+    // Work modes (WorkModeService): quiet on their own during calls, screen sharing and focus sessions.
+    [ObservableProperty] private bool _meetingMode = true;
+    [ObservableProperty] private bool _hideWhenSharing = true;
+    [ObservableProperty] private bool _focusQuiet = true;
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _inMeeting;
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _sharing;
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _focusActive;
+
+    /// <summary>"Nicht stören" by hand, or a call, screen sharing or a focus session right now.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public bool Quiet => DoNotDisturb || InMeeting || Sharing || FocusActive;
+    partial void OnDoNotDisturbChanged(bool value) => OnPropertyChanged(nameof(Quiet));
+    partial void OnInMeetingChanged(bool value) => OnPropertyChanged(nameof(Quiet));
+    partial void OnSharingChanged(bool value) => OnPropertyChanged(nameof(Quiet));
+    partial void OnFocusActiveChanged(bool value) => OnPropertyChanged(nameof(Quiet));
     [ObservableProperty] private bool _hidden;
     public ObservableCollection<string> ExcludedApps { get; set; } = new();
 

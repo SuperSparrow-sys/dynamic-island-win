@@ -387,3 +387,27 @@ public class MeetingLinkTests
         Assert.Null(MeetingLinks.Find("https://meet.google.com/abc-defg-hij", "Raum 2.14", null));
     }
 }
+
+public class WorkModeTests
+{
+    [Theory]
+    [InlineData("Microsoft Teams", "Teams")]
+    [InlineData("MSTeams", "Teams")]
+    [InlineData("Zoom", "Zoom")]
+    [InlineData("Discord +1", "")]
+    [InlineData("Chrome +1, Zoom", "Zoom")]
+    [InlineData("", "")]
+    public void Recognises_calls_by_the_app_using_the_microphone(string micApps, string expected) =>
+        Assert.Equal(expected, WorkModeService.MeetingAppOf(micApps));
+
+    [Fact]
+    public void Quiet_combines_all_reasons()
+    {
+        var s = new AppSettings();
+        Assert.False(s.Quiet);
+        s.InMeeting = true; Assert.True(s.Quiet);
+        s.InMeeting = false; s.Sharing = true; Assert.True(s.Quiet);
+        s.Sharing = false; s.FocusActive = true; Assert.True(s.Quiet);
+        s.FocusActive = false; s.DoNotDisturb = true; Assert.True(s.Quiet);
+    }
+}

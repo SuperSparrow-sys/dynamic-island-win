@@ -34,6 +34,19 @@
             </StackPanel>
         </Grid>
 
+        <!-- Teams/Zoom call: app and duration (the microphone symbol in front shows muted or not) -->
+        <Grid Visibility="{Binding ShowMeeting, Converter={StaticResource Vis}}">
+            <StackPanel x:Name="MeetH" Orientation="Horizontal">
+                <c:Icon Data="{StaticResource Icon.Video}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Green}" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Title}" FontSize="12" Foreground="{StaticResource B.Green}" Text="{Binding Work.MeetingApp}" VerticalAlignment="Center" />
+                <TextBlock Margin="6,0,0,0" Style="{StaticResource T.Numeric}" FontSize="12" Text="{Binding Work.MeetingDuration}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel x:Name="MeetV" Visibility="Collapsed">
+                <c:Icon Data="{StaticResource Icon.Video}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Green}" />
+                <TextBlock Margin="0,4,0,0" Style="{StaticResource T.Numeric}" FontSize="9.5" Text="{Binding Work.MeetingDuration}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
         <!-- Music -->
         <Grid x:Name="MediaSeg" Visibility="{Binding ShowMedia, Converter={StaticResource Vis}}">
             <StackPanel x:Name="MediaH" Orientation="Horizontal">

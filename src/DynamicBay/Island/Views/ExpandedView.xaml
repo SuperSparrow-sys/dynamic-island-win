@@ -480,6 +480,9 @@
                                 <c:Icon Data="{StaticResource Icon.Timer}" Width="14" Height="14" Foreground="{StaticResource B.Orange}" />
                                 <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:T Timer.Title}" />
                             </StackPanel>
+                            <!-- Today's focus sessions (only once there is one) -->
+                            <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource T.Caption}" FontSize="10" Margin="0,6,0,0" TextTrimming="CharacterEllipsis"
+                                       Text="{Binding Work.FocusToday}" Visibility="{Binding Work.FocusToday, Converter={StaticResource Vis}}" />
                             <UniformGrid Columns="2" Rows="2" Margin="0,10,0,0" VerticalAlignment="Center">
                                 <Button Style="{StaticResource Btn.Chip}" Margin="0,0,3,3" Padding="0,7" Height="32" Command="{Binding Timer.StartMinutesCommand}">
                                     <Button.CommandParameter><sys:Double>1</sys:Double></Button.CommandParameter>1 min</Button>

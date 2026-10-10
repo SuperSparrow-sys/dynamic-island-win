@@ -79,6 +79,7 @@ public sealed partial class IslandViewModel : ObservableObject
     public ShortcutsService Shortcuts { get; }
     public ClaudeService Claude { get; }
     public AudioService Audio { get; }
+    public WorkModeService Work { get; }
     public Services.Scripting.ScriptWidgetsService Scripts { get; }
     /// <summary>Connected Bluetooth devices for the "Geräte" widget (set by the app right after construction).</summary>
     public BluetoothService? Bluetooth { get; set; }
@@ -88,6 +89,7 @@ public sealed partial class IslandViewModel : ObservableObject
     [ObservableProperty] private bool _showScripts;
     [ObservableProperty] private bool _showStatus;
     [ObservableProperty] private bool _showClaude;
+    [ObservableProperty] private bool _showMeeting;
 
     public event Action? OpenSettingsRequested;
     public event Action? HideRequested;
@@ -108,6 +110,7 @@ public sealed partial class IslandViewModel : ObservableObject
         Shortcuts = new ShortcutsService(settings);
         Claude = new ClaudeService(settings);
         Audio = new AudioService(settings);
+        Work = new WorkModeService(settings, Audio, timer);
         Scripts = new Services.Scripting.ScriptWidgetsService(settings);
         Scripts.CompactChanged += () => { RecomputeCompact(); CompactChanged?.Invoke(); };
 
@@ -126,23 +129,25 @@ public sealed partial class IslandViewModel : ObservableObject
     {
         var s = Settings;
         // "Nicht stören": only music and a running timer stay, everything else leaves the island.
-        bool all = !s.DoNotDisturb;
+        // Quiet (by hand, in a call, while sharing, in a focus session): only music, the timer and the call stay.
+        bool all = !s.Quiet;
+        bool meeting = s.InMeeting;
         bool media = s.MediaEnabled && s.HasCompact(Widgets.Media) && Media.HasSession && Media.IsPlaying;
         bool timer = s.TimerEnabled && s.HasCompact(Widgets.Timer) && Timer.IsActive;
         bool cal = all && s.CalendarEnabled && s.HasCompact(Widgets.Calendar) && Calendar.IsSoon;
         bool low = all && s.BatteryEnabled && s.HasCompact(Widgets.Battery) && Battery.IsLow;
         bool claude = all && s.ClaudeEnabled && s.HasCompact(Widgets.Claude) && (Claude.AnyWorking || Claude.AnyWaiting);
         bool muted = all && s.AudioEnabled && s.HasCompact(Widgets.Muted) && Audio.SpeakerMuted;
-        bool mic = all && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.MicInUse;
-        bool cam = all && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.CameraInUse;
+        bool mic = (all || meeting) && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.MicInUse;
+        bool cam = (all || meeting) && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.CameraInUse;
         bool scripts = all && Scripts.CompactIds.Count > 0;
-        bool activities = media || timer || cal || low || claude || muted || mic || cam || scripts;
+        bool activities = media || timer || cal || low || claude || muted || mic || cam || scripts || meeting;
         // The clock shows either as a permanent segment, or as the idle face when nothing else is going on.
         bool clock = all && (s.HasCompact(Widgets.Clock) || (s.Idle == IdleStyle.Clock && !activities));
         bool any = activities || clock;
         bool changed = media != ShowMedia || timer != ShowTimer || cal != ShowCalendar || low != ShowBatteryLow
-                       || clock != ShowClock || claude != ShowClaude || muted != ShowMuted || mic != ShowMic || cam != ShowCamera || scripts != ShowScripts || any != HasCompact;
-        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; ShowClaude = claude; ShowMuted = muted; ShowMic = mic; ShowCamera = cam; ShowStatus = mic || cam || muted; ShowScripts = scripts; HasCompact = any;
+                       || clock != ShowClock || claude != ShowClaude || muted != ShowMuted || mic != ShowMic || cam != ShowCamera || scripts != ShowScripts || meeting != ShowMeeting || any != HasCompact;
+        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; ShowClaude = claude; ShowMuted = muted; ShowMic = mic; ShowCamera = cam; ShowStatus = mic || cam || muted; ShowScripts = scripts; ShowMeeting = meeting; HasCompact = any;
         if (changed) CompactChanged?.Invoke();
     }
 

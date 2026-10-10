@@ -154,6 +154,7 @@ public partial class App : Application
         await Next();
         battery.Start();
         if (_settings.AudioEnabled) _vm.Audio.Start();
+        _vm.Work.Start();
         bluetooth.Start();
         calendar.Start();
         _vm.Scripts.Start();
@@ -301,7 +302,7 @@ public partial class App : Application
                 Image = n.Logo,
                 Icon = n.Logo is null ? Icon("Icon.Bell") : null,
                 Title = string.Equals(n.Title, n.App, StringComparison.OrdinalIgnoreCase) ? n.App : $"{n.Title}",
-                Subtitle = _settings.NotificationShowBody ? FirstLine(n.Body, n.App) : n.App,
+                Subtitle = _settings.NotificationShowBody && !_settings.Sharing ? FirstLine(n.Body, n.App) : n.App,
                 Seconds = Math.Clamp(_settings.NotificationSeconds, 2, 15),
                 OnClick = () => { _vm?.Claude.RemoteAnswered(n.Id); notifications.Open(n); },
             });

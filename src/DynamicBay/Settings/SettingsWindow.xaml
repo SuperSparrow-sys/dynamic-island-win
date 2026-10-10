@@ -418,6 +418,18 @@
                                             ToolTip="{core:L De='Die Insel bleibt klein und zeigt nur Musik und den Timer. Mitteilungen sammeln sich still, aufklappen geht per Klick.', En='The island stays small and only shows music and the timer. Notifications collect quietly; click to open.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.DoNotDisturb}" />
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='In Teams- und Zoom-Calls still', En='Quiet in Teams and Zoom calls'}"
+                                            ToolTip="{core:L De='Sobald Teams oder Zoom das Mikrofon nutzt: Nicht stören, die Insel zeigt den Call und seine Dauer. Danach wie vorher.', En='As soon as Teams or Zoom uses the microphone: do not disturb, the island shows the call and its duration. Afterwards as before.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MeetingMode}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Beim Teilen des Bildschirms ausblenden', En='Hide while sharing the screen'}"
+                                            ToolTip="{core:L De='Bei Bildschirmfreigabe oder PowerPoint-Präsentation wird die Insel zum Strich, auch wenn Musik läuft. Mitteilungen zeigen keinen Text.', En='While sharing the screen or presenting in PowerPoint the island shrinks to its bar, even with music playing. Notifications show no text.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.HideWhenSharing}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Fokus-Sitzung mit Nicht stören', En='Focus session with do not disturb'}"
+                                            ToolTip="{core:L De='Während einer Pomodoro-Fokus-Sitzung ist die Insel still. Die Timer-Karte zeigt, wie viele Sitzungen du heute geschafft hast.', En='The island stays quiet during a Pomodoro focus session. The timer card shows how many sessions you did today.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.FocusQuiet}" />
+                            </ContentControl>
                         </StackPanel>
                     </Border>
 
