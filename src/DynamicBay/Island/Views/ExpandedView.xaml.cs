@@ -189,7 +189,7 @@ public partial class ExpandedView : UserControl
 
     private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id switch
     {
-        "media" => 300, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "notes" => 190, "shortcuts" => 170, "calendar" => 160, _ => 150,
+        "media" => 372, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "notes" => 190, "shortcuts" => 170, "calendar" => 160, _ => 150,
     };
 
     // ---- script widgets ----
