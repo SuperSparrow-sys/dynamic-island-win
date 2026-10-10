@@ -325,22 +325,33 @@ public partial class SettingsWindow : Window
         {
             CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(0, 0, 0, 6), Cursor = Cursors.SizeAll,
             Background = (System.Windows.Media.Brush)FindResource("S.Field"), BorderBrush = (System.Windows.Media.Brush)FindResource("S.FieldBorder"), BorderThickness = new Thickness(1),
-            ToolTip = Loc.German ? "Ziehen: verschieben" : "Drag to move",
+            ToolTip = Loc.German ? "Tippen: Einstellungen des Widgets · Ziehen: verschieben" : "Tap: widget settings · Drag: move",
         };
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         row.Children.Add(new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Width = 14, Height = 14, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
         row.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Base"), FontSize = 12.5, Text = name, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap, VerticalAlignment = VerticalAlignment.Center });
         chip.Child = row;
         Point start = default;
-        chip.PreviewMouseLeftButtonDown += (_, e) => start = e.GetPosition(chip);
+        bool pressed = false, dragged = false;
+        chip.PreviewMouseLeftButtonDown += (_, e) => { start = e.GetPosition(chip); pressed = true; dragged = false; };
         chip.PreviewMouseMove += (_, e) =>
         {
-            if (e.LeftButton != MouseButtonState.Pressed) return;
+            if (!pressed || e.LeftButton != MouseButtonState.Pressed) return;
             var d = e.GetPosition(chip) - start;
             if (Math.Abs(d.X) < 4 && Math.Abs(d.Y) < 4) return;
+            dragged = true;
+            pressed = false;
             chip.Opacity = 0.5;
             DragDrop.DoDragDrop(chip, new DataObject(WidgetFormat, id), DragDropEffects.Move);
             chip.Opacity = 1;
+        };
+        chip.MouseLeftButtonUp += (_, _) =>
+        {
+            if (!pressed || dragged) return;
+            pressed = false;
+            var (page, group) = Widgets.SettingsOf(id);
+            if (page == 11 && group is null) return; // nothing of its own beyond this page
+            ShowSection(page, group);
         };
         return chip;
     }

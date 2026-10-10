@@ -582,24 +582,6 @@ public partial class ExpandedView : UserControl
     private readonly List<WidgetGear> _gears = new();
     private IslandViewModel? _gearVm;
 
-    /// <summary>Settings page and group heading of each widget (German heading start, as shown in the settings).</summary>
-    private static (int page, string? group)? SettingsOf(string id) => id switch
-    {
-        Core.Widgets.Media => (4, null),
-        Core.Widgets.Calendar => (9, "Kalender-Konten"),
-        Core.Widgets.Timer => (9, null),
-        Core.Widgets.Clock => (11, Core.Loc.German ? "Uhr" : "Clock"),
-        Core.Widgets.Shortcuts => (11, Core.Loc.German ? "Schnellstart" : "Launcher"),
-        Core.Widgets.Claude => (11, "Claude"),
-        Core.Widgets.Messenger => (7, null),
-        Core.Widgets.Devices => (8, null),
-        Core.Widgets.Audio => (8, Core.Loc.German ? "Kopfhörer" : "Headphones"),
-        Core.Widgets.Todo or Core.Widgets.Teams => (9, Core.Loc.German ? "Teams und To Do" : "Teams and To Do"),
-        Core.Widgets.Contacts => (9, "Microsoft 365"),
-        Core.Widgets.TimeTrack => (9, Core.Loc.German ? "Zeiterfassung" : "Time tracking"),
-        _ => (11, null),
-    };
-
     private void AttachGears()
     {
         if (_gears.Count > 0) return;
@@ -611,7 +593,7 @@ public partial class ExpandedView : UserControl
             var gear = new WidgetGear(card, () =>
             {
                 if (Vm is not { } vm) return;
-                var (page, group) = SettingsOf(widget)!.Value;
+                var (page, group) = Core.Widgets.SettingsOf(widget);
                 vm.OpenSettingsAt(page, group);
             });
             layer.Add(gear);

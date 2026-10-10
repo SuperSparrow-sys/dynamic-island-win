@@ -18,6 +18,24 @@ public static class Widgets
     public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads";
     public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts };
     public const string Battery = "battery";
+    /// <summary>Settings page and group heading (start of its text) of each widget - for the gear in the island and the board in the settings.</summary>
+    public static (int page, string? group) SettingsOf(string id) => id switch
+    {
+        Media => (4, null),
+        Calendar => (9, "Kalender-Konten"),
+        Timer => (9, null),
+        Clock => (11, Loc.German ? "Uhr" : "Clock"),
+        Shortcuts => (11, Loc.German ? "Schnellstart" : "Launcher"),
+        Claude => (11, "Claude"),
+        Messenger => (7, null),
+        Devices => (8, null),
+        Audio => (8, Loc.German ? "Kopfhörer" : "Headphones"),
+        Todo or Teams => (9, Loc.German ? "Teams und To Do" : "Teams and To Do"),
+        Contacts => (9, "Microsoft 365"),
+        TimeTrack => (9, Loc.German ? "Zeiterfassung" : "Time tracking"),
+        _ => (11, null),
+    };
+
     public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic, TimeTrack, Downloads };
     /// <summary>Home widget ids of user scripts: "script:{id}".</summary>
     public const string ScriptPrefix = "script:";
