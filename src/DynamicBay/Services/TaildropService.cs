@@ -8,7 +8,7 @@ using DynamicBay.Core;
 namespace DynamicBay.Services;
 
 /// <summary>
-/// Files sent from an iPad, iPhone or another device with Tailscale's Taildrop (Share → Tailscale → this PC).
+/// Files sent from any device with Tailscale (iPhone, iPad, Android, Mac, Linux, Windows) via Taildrop.
 /// Tailscale reports incoming files on its event stream (<c>tailscale debug watch-ipn</c>, no admin rights needed);
 /// its tray app then moves them into Downloads (no setting for another folder on Windows). DynamicBay matches those
 /// arrivals by name - so ordinary browser downloads are never mistaken for them - optionally moves them to a folder

@@ -388,7 +388,7 @@ public partial class App : Application
             OnClick = () => _vm.Claude.Resume(s),
         });
 
-        // Files from the iPad/iPhone (Taildrop): into the shelf and announced with a preview.
+        // Files from other devices (Taildrop): into the shelf and announced with a preview.
         _taildrop!.Received += files =>
         {
             if (_settings.ShelfEnabled) shelf.Add(files, announce: false);

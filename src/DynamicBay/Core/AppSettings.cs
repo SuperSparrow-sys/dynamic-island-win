@@ -221,7 +221,7 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _shelfCopyFiles;
     [ObservableProperty] private bool _shelfRemoveAfterDrag;
 
-    // Taildrop: files from iPad/iPhone via Tailscale (see TaildropService). Folder "" = leave them in Downloads.
+    // Taildrop: files from other devices via Tailscale (see TaildropService). Folder "" = leave them in Downloads.
     [ObservableProperty] private bool _taildropEnabled = true;
     [ObservableProperty] private string _taildropFolder = "";
 

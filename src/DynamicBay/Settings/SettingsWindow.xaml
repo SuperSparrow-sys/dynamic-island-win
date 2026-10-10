@@ -574,11 +574,11 @@
                         </StackPanel>
                     </Border>
 
-                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Vom iPad oder iPhone', En='From iPad or iPhone'}" />
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Von anderen Geräten (Taildrop)', En='From other devices (Taildrop)'}" />
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Taildrop empfangen', En='Receive via Taildrop'}"
-                                            ToolTip="{core:L De='Auf dem iPad oder iPhone: Teilen, dann Tailscale und diesen PC wählen. Die Datei erscheint sofort in der Insel und in der Ablage. Dafür muss Tailscale auf beiden Geräten laufen und „Send Files“ in der Tailscale-Verwaltung eingeschaltet sein.', En='On the iPad or iPhone: Share, then Tailscale and this PC. The file shows up in the island and the shelf right away. Tailscale must run on both devices with Send Files turned on in the Tailscale admin console.'}">
+                                            ToolTip="{core:L De='Von jedem Gerät mit Tailscale (iPhone, iPad, Android, Mac, Linux, Windows): Datei teilen, Tailscale und diesen PC wählen. Sie erscheint sofort in der Insel und in der Ablage. Dafür muss „Send Files“ in der Tailscale-Verwaltung eingeschaltet sein.', En='From any device with Tailscale (iPhone, iPad, Android, Mac, Linux, Windows): share a file, pick Tailscale and this PC. It shows up in the island and the shelf right away. Send Files must be turned on in the Tailscale admin console.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.TaildropEnabled}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.TaildropEnabled}" Tag="{core:L De='Speichern in', En='Save to'}"

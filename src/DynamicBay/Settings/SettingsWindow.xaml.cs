@@ -378,7 +378,7 @@ public partial class SettingsWindow : Window
 
     private void PickTaildropFolder_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Loc.German ? "Ordner für Dateien vom iPad oder iPhone" : "Folder for files from iPad or iPhone" };
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = Loc.German ? "Ordner für Dateien per Taildrop" : "Folder for files received via Taildrop" };
         if (!string.IsNullOrWhiteSpace(_ctx.S.TaildropFolder)) dlg.InitialDirectory = _ctx.S.TaildropFolder;
         if (dlg.ShowDialog(this) != true) return;
         _ctx.S.TaildropFolder = dlg.FolderName;
