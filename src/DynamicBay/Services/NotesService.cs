@@ -95,7 +95,7 @@ public sealed partial class NotesService : ObservableObject
     {
         _demo = true;
         Items.Clear();
-        Hook(new NoteItem { Text = "Rückruf Herr Wagner: 0151 2345678" });
+        Hook(new NoteItem { Text = "Rückruf Herr Wagner: 0151 2345678 – wegen Angebot Speicher und der Frage nach der Lieferzeit" });
         Hook(new NoteItem { Text = "Folie 4: Zahlen von Q3 ergänzen" });
         Hook(new NoteItem { Text = "WLAN Gäste: Sommer2026!" });
     }

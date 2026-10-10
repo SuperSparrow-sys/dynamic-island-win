@@ -902,57 +902,74 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Notes: quick, short notes - written in a second, gone in one click -->
+                <!-- Notes: quick, short notes. Writing turns the whole card into a light note sheet; Enter files it as a row. -->
                 <Border x:Name="NotesCard" Style="{StaticResource Card}" Padding="12,9,12,12">
-                    <DockPanel>
-                        <DockPanel DockPanel.Dock="Top" Height="22">
-                            <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Notes.NewCommand}"
-                                    ToolTip="{core:L De='Neue Notiz', En='New note'}">
-                                <c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" Foreground="{StaticResource B.Text2}" />
-                            </Button>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <c:Icon Data="{StaticResource Icon.Pencil}" Width="14" Height="14" Foreground="{StaticResource B.Orange}" VerticalAlignment="Center" />
-                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Notizen', En='Notes'}" />
-                            </StackPanel>
-                        </DockPanel>
-                        <Grid Margin="0,6,0,0">
-                            <Button Style="{StaticResource Btn.Chip}" Background="{StaticResource B.Fill2}" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="12,6"
-                                    Command="{Binding Notes.NewCommand}" Visibility="{Binding Notes.IsEmpty, Converter={StaticResource Vis}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <c:Icon Data="{StaticResource Icon.Plus}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
-                                    <TextBlock Margin="6,0,0,0" FontWeight="Normal" Text="{core:L De='Kurz etwas notieren', En='Jot something down'}" />
+                    <Grid>
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top" Height="22">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" VerticalAlignment="Center" Command="{Binding Notes.NewCommand}"
+                                        ToolTip="{core:L De='Neue Notiz', En='New note'}">
+                                    <c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" Foreground="{StaticResource B.Text2}" />
+                                </Button>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <c:Icon Data="{StaticResource Icon.Pencil}" Width="14" Height="14" Foreground="{StaticResource B.Orange}" VerticalAlignment="Center" />
+                                    <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Notizen', En='Notes'}" />
                                 </StackPanel>
-                            </Button>
-                            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-                                <ItemsControl x:Name="NoteList" ItemsSource="{Binding Notes.Items}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type s:NoteItem}">
-                                            <Grid Margin="0,0,0,4">
-                                                <TextBox x:Name="NoteBox" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" AcceptsReturn="True"
-                                                         MaxHeight="96" MinHeight="28" VerticalScrollBarVisibility="Auto" Padding="8,6,22,6" FontSize="11.5" FontFamily="{StaticResource Font.UI}"
-                                                         Background="{StaticResource B.Fill2}" Foreground="{StaticResource B.Text}" CaretBrush="{StaticResource B.Text}" BorderThickness="0"
-                                                         LostKeyboardFocus="Note_LostFocus" GotKeyboardFocus="Note_GotFocus">
-                                                    <TextBox.Resources>
-                                                        <Style TargetType="Border"><Setter Property="CornerRadius" Value="8" /></Style>
-                                                    </TextBox.Resources>
-                                                </TextBox>
-                                                <Button x:Name="NoteDelete" Style="{StaticResource Btn.Icon}" Width="18" Height="18" Margin="0,3,3,0" HorizontalAlignment="Right" VerticalAlignment="Top"
-                                                        Visibility="Hidden" ToolTip="{core:L De='Löschen', En='Delete'}"
-                                                        Command="{Binding DataContext.Notes.DeleteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
-                                                    <c:Icon Data="{StaticResource Icon.Close}" Width="10" Height="10" Foreground="{StaticResource B.Text2}" />
-                                                </Button>
-                                            </Grid>
-                                            <DataTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="NoteDelete" Property="Visibility" Value="Visible" />
-                                                </Trigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </Grid>
-                    </DockPanel>
+                            </DockPanel>
+                            <Grid Margin="0,8,0,0">
+                                <Button Style="{StaticResource Btn.Chip}" Background="{StaticResource B.Fill2}" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="12,6"
+                                        Command="{Binding Notes.NewCommand}" Visibility="{Binding Notes.IsEmpty, Converter={StaticResource Vis}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <c:Icon Data="{StaticResource Icon.Plus}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                                        <TextBlock Margin="6,0,0,0" FontWeight="Normal" Text="{core:L De='Kurz etwas notieren', En='Jot something down'}" />
+                                    </StackPanel>
+                                </Button>
+                                <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl x:Name="NoteList" ItemsSource="{Binding Notes.Items}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type s:NoteItem}">
+                                                <!-- a row: two lines at most, then "…"; a tap opens the full note -->
+                                                <Grid Margin="0,0,0,4">
+                                                    <Border CornerRadius="8" Background="{StaticResource B.Fill2}" Padding="9,6,24,6" Cursor="Hand" MouseLeftButtonUp="Note_Open">
+                                                        <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                                                   MaxHeight="32" LineHeight="16" LineStackingStrategy="BlockLineHeight" Text="{Binding Text}" />
+                                                    </Border>
+                                                    <Button x:Name="NoteDelete" Style="{StaticResource Btn.Icon}" Width="18" Height="18" Margin="0,4,4,0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                            Visibility="Hidden" ToolTip="{core:L De='Löschen', En='Delete'}"
+                                                            Command="{Binding DataContext.Notes.DeleteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                        <c:Icon Data="{StaticResource Icon.Close}" Width="10" Height="10" Foreground="{StaticResource B.Text2}" />
+                                                    </Button>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="NoteDelete" Property="Visibility" Value="Visible" />
+                                                    </Trigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </DockPanel>
+
+                        <!-- the note sheet: covers the whole card while writing -->
+                        <Border x:Name="NoteSheet" Visibility="Collapsed" Margin="-12,-9,-12,-12" CornerRadius="20" Background="#FFFFF2B3" Padding="14,10,12,12">
+                            <DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Height="22">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" VerticalAlignment="Center" Click="NoteSheetDone_Click"
+                                            ToolTip="{core:L De='Fertig (Enter)', En='Done (Enter)'}">
+                                        <c:Icon Data="{StaticResource Icon.Check}" Width="13" Height="13" StrokeWidth="2.6" Foreground="#FF7A5B00" />
+                                    </Button>
+                                    <TextBlock Style="{StaticResource T.Title}" Foreground="#FF7A5B00" VerticalAlignment="Center" Text="{core:L De='Notiz', En='Note'}" />
+                                </DockPanel>
+                                <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource T.Caption}" FontSize="9.5" Foreground="#997A5B00" Margin="0,4,0,0"
+                                           TextWrapping="Wrap" Text="{core:L De='Enter speichert · Esc bricht ab', En='Enter saves · Esc cancels'}" ToolTip="{core:L De='Umschalt+Enter: neue Zeile', En='Shift+Enter: new line'}" />
+                                <TextBox x:Name="NoteSheetBox" Margin="0,6,0,0" TextWrapping="Wrap" AcceptsReturn="False" VerticalScrollBarVisibility="Auto"
+                                         Background="Transparent" BorderThickness="0" Foreground="#FF2B2300" CaretBrush="#FF2B2300" FontFamily="{StaticResource Font.UI}" FontSize="13"
+                                         PreviewKeyDown="NoteSheet_KeyDown" LostKeyboardFocus="NoteSheet_LostFocus" />
+                            </DockPanel>
+                        </Border>
+                    </Grid>
                 </Border>
 
                 <!-- Audio: output and microphone with one click, Bluetooth headsets connect with one click -->

@@ -13,6 +13,7 @@ public sealed class WidgetGear : Adorner
 {
     private readonly VisualCollection _visuals;
     private readonly Button _button;
+    private readonly Border _plate;
 
     public WidgetGear(UIElement card, Action open) : base(card)
     {
@@ -20,7 +21,6 @@ public sealed class WidgetGear : Adorner
         {
             Style = (Style)Application.Current.FindResource("Btn.Icon"),
             Width = 26, Height = 26,
-            Background = new SolidColorBrush(Color.FromArgb(0xE6, 0x3A, 0x3A, 0x3C)),
             ToolTip = Core.Loc.German ? "Einstellungen dieses Widgets" : "Settings of this widget",
             Content = new Controls.Icon
             {
@@ -29,7 +29,15 @@ public sealed class WidgetGear : Adorner
             },
         };
         _button.Click += (_, e) => { e.Handled = true; open(); };
-        _visuals = new VisualCollection(this) { _button };
+        // A solid plate under the button: its hover tint is see-through and it shrinks when pressed, which let the
+        // card's own header button (e.g. a cross) show through.
+        _plate = new Border
+        {
+            Width = 28, Height = 28, CornerRadius = new CornerRadius(14),
+            Background = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3C)),
+            Child = _button,
+        };
+        _visuals = new VisualCollection(this) { _plate };
         Visibility = Visibility.Collapsed;
         IsHitTestVisible = true;
     }
@@ -39,7 +47,7 @@ public sealed class WidgetGear : Adorner
 
     protected override Size MeasureOverride(Size constraint)
     {
-        _button.Measure(constraint);
+        _plate.Measure(constraint);
         return AdornedElement.RenderSize;
     }
 
@@ -47,7 +55,7 @@ public sealed class WidgetGear : Adorner
     protected override Size ArrangeOverride(Size finalSize)
     {
         var size = AdornedElement.RenderSize;
-        _button.Arrange(new Rect(size.Width - 26 - 7, 7, 26, 26));
+        _plate.Arrange(new Rect(size.Width - 28 - 6, 6, 28, 28));
         return finalSize;
     }
 }

@@ -350,6 +350,9 @@ public static class Snapshots
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.TimeTrack, Widgets.Notes, Widgets.Audio, Widgets.Todo, Widgets.Devices }) settings.HomeWidgets.Add(w);
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8e-work.png"), compact: true);
+                island.ExpandedLayer.ShowNoteSheetForSnapshot(new NoteItem { Text = "Rückruf Herr Wagner morgen 10 Uhr wegen Angebot Speicher" });
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8h-note-sheet.png"), compact: true);
+                island.ExpandedLayer.HideNoteSheetForSnapshot();
                 // Spotify: up next / playlists / devices over the player
                 vm.Spotify.LoadDemoQueue();
                 settings.HomeWidgets.Clear();

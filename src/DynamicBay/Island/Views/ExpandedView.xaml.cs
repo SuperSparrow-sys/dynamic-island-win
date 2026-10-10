@@ -120,12 +120,15 @@ public partial class ExpandedView : UserControl
         double Weight(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 2.15 : 1)
             : id switch { "media" => 2.15, "messenger" => 1.6, "claude" => 1.6, "shortcuts" => 1.3, "teams" => 0.3, _ => 1 };
 
+        _columns.Clear();
         if (!_vertical)
         {
             HomeGrid.RowDefinitions.Add(new RowDefinition());
             for (int i = 0; i < enabled.Count; i++)
             {
-                // Stars share the width; minimum widths make the page scroll sideways when there are many widgets.
+                // Widths come from the visible width (FitHomeToViewport), never from the content: a long text wraps
+                // inside its card instead of stretching it. Minimum widths make the page scroll sideways.
+                _columns.Add((Weight(enabled[i]), MinWidthOf(enabled[i]) + (i == enabled.Count - 1 ? 0 : 8)));
                 HomeGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Weight(enabled[i]), GridUnitType.Star), MinWidth = MinWidthOf(enabled[i]) });
                 var card = _widgets[enabled[i]];
                 Grid.SetRow(card, 0);
@@ -250,7 +253,21 @@ public partial class ExpandedView : UserControl
         HomeGrid.Height = double.NaN;
         HomeGrid.MinWidth = _vertical ? 0 : Math.Max(0, HomeScroll.ActualWidth - 2 * edge);
         HomeGrid.MinHeight = _vertical ? Math.Max(0, HomeScroll.ActualHeight - edge) : 0;
+        // Wide layout: fixed pixel columns (share of the visible width by weight, at least the minimum).
+        if (!_vertical && _columns.Count == HomeGrid.ColumnDefinitions.Count && _columns.Count > 0)
+        {
+            double avail = Math.Max(0, HomeScroll.ActualWidth - 2 * edge), total = _columns.Sum(c => c.weight);
+            for (int i = 0; i < _columns.Count; i++)
+            {
+                var (weight, min) = _columns[i];
+                HomeGrid.ColumnDefinitions[i].MinWidth = 0;
+                HomeGrid.ColumnDefinitions[i].Width = new GridLength(Math.Max(min, avail * weight / total));
+            }
+        }
     }
+
+    /// <summary>Weight and minimum width (including the 8 px gap) of each column in the wide layout.</summary>
+    private readonly List<(double weight, double min)> _columns = new();
 
     private void HomeScroll_Wheel(object sender, MouseWheelEventArgs e)
     {
@@ -618,32 +635,66 @@ public partial class ExpandedView : UserControl
 
     private IslandViewModel? _notesVm;
 
-    /// <summary>A new note: the cursor goes right into it (the island takes the keyboard only now, never by itself).</summary>
-    private void OnNoteAdded(Services.NoteItem note)
+    private Services.NoteItem? _sheetNote;
+
+    /// <summary>For design snapshots only.</summary>
+    public void ShowNoteSheetForSnapshot(Services.NoteItem note) { _sheetNote = note; NoteSheetBox.Text = note.Text; NoteSheet.Visibility = Visibility.Visible; }
+    public void HideNoteSheetForSnapshot() { _sheetNote = null; NoteSheet.Visibility = Visibility.Collapsed; }
+
+    /// <summary>A new note (the + or "Kurz etwas notieren"): the card turns into the note sheet.</summary>
+    private void OnNoteAdded(Services.NoteItem note) => OpenSheet(note);
+
+    /// <summary>A tap on a row opens the whole note on the sheet.</summary>
+    private void Note_Open(object sender, MouseButtonEventArgs e)
     {
+        if (((FrameworkElement)sender).DataContext is Services.NoteItem n) { e.Handled = true; OpenSheet(n); }
+    }
+
+    private void OpenSheet(Services.NoteItem note)
+    {
+        _sheetNote = note;
+        NoteSheetBox.Text = note.Text;
+        NoteSheet.Visibility = Visibility.Visible;
         Dispatcher.BeginInvoke(() =>
         {
-            NoteList.UpdateLayout();
-            if (NoteList.ItemContainerGenerator.ContainerFromItem(note) is ContentPresenter cp
-                && cp.ContentTemplate.FindName("NoteBox", cp) is TextBox box)
-            {
-                if (Window.GetWindow(this) is { } w) w.Activate();
-                box.Focus();
-                Keyboard.Focus(box);
-                box.CaretIndex = box.Text.Length;
-            }
+            // The island takes the keyboard only now, never by itself.
+            if (Window.GetWindow(this) is { } w) w.Activate();
+            NoteSheetBox.Focus();
+            Keyboard.Focus(NoteSheetBox);
+            NoteSheetBox.CaretIndex = NoteSheetBox.Text.Length;
         }, System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
-    private void Note_GotFocus(object sender, KeyboardFocusChangedEventArgs e)
+    /// <summary>Saves (or, left empty, drops) the note; the sheet becomes a row again.</summary>
+    private void CloseSheet(bool save)
     {
-        if (Window.GetWindow(this) is { IsActive: false } w) w.Activate();
+        if (_sheetNote is not { } note) return;
+        _sheetNote = null;
+        if (save) note.Text = NoteSheetBox.Text.Trim();
+        NoteSheet.Visibility = Visibility.Collapsed;
+        Vm?.Notes.DropIfEmpty(note);
     }
 
-    private void Note_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    private void NoteSheet_KeyDown(object sender, KeyEventArgs e)
     {
-        if (((FrameworkElement)sender).DataContext is Services.NoteItem n) Vm?.Notes.DropIfEmpty(n);
+        if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Shift) != 0)
+        {
+            int i = NoteSheetBox.CaretIndex;
+            NoteSheetBox.Text = NoteSheetBox.Text.Insert(i, Environment.NewLine);
+            NoteSheetBox.CaretIndex = i + Environment.NewLine.Length;
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Enter) { CloseSheet(save: true); e.Handled = true; }
+        else if (e.Key == Key.Escape) { CloseSheet(save: false); e.Handled = true; }
     }
+
+    private void NoteSheet_LostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        // Clicking elsewhere keeps what was written.
+        if (NoteSheet.IsVisible && !NoteSheet.IsKeyboardFocusWithin) CloseSheet(save: true);
+    }
+
+    private void NoteSheetDone_Click(object sender, RoutedEventArgs e) => CloseSheet(save: true);
 
     /// <summary>A click on the time card (not on a project or button) opens the time tracking window.</summary>
     private void TimeCard_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
