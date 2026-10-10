@@ -56,6 +56,9 @@ public sealed partial class AudioDevicesService : ObservableObject
     public ObservableCollection<BluetoothAudioItem> Headsets { get; } = new();
     [ObservableProperty] private bool _hasHeadsets;
 
+    /// <summary>The default output or microphone changed (the mute/volume reading must follow at once).</summary>
+    public event Action? DefaultChanged;
+
     /// <summary>The Bluetooth microphone was replaced: (headset, microphone now used).</summary>
     public event Action<string, string>? BluetoothMicAvoided;
 
@@ -73,7 +76,7 @@ public sealed partial class AudioDevicesService : ObservableObject
         try
         {
             _enumerator = (AudioEndpoints.IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
-            _notifier = new Notifier(() => _ui.BeginInvoke(() => { _debounce.Stop(); _debounce.Start(); }));
+            _notifier = new Notifier(() => _ui.BeginInvoke(() => { _debounce.Stop(); _debounce.Start(); DefaultChanged?.Invoke(); }));
             _enumerator.RegisterEndpointNotificationCallback(_notifier);
         }
         catch (Exception ex) { Log.Error("Audio devices", ex); }
@@ -161,6 +164,7 @@ public sealed partial class AudioDevicesService : ObservableObject
             var fresh = outputs.FirstOrDefault(o => o.Bluetooth && IsHeadphones(o) && !_activeOutputs.Contains(o.Id));
             if (fresh is not null && fresh.Id != outId && AudioEndpoints.SetDefault(fresh.Id))
             {
+                AudioEndpoints.Unmute(fresh.Id);
                 Log.Info($"Audio: {fresh.Device} connected - now the output");
                 outId = fresh.Id;
                 foreach (var o in Outputs) o.IsDefault = o.Id == outId;
@@ -204,6 +208,10 @@ public sealed partial class AudioDevicesService : ObservableObject
         if (item is null) return;
         if (item.Flow == AudioFlow.Input && item.Bluetooth) _allowedBluetoothMic = item.Id; // chosen on purpose (for a call)
         if (!AudioEndpoints.SetDefault(item.Id)) return;
+        var before = AudioEndpoints.Unmute(item.Id);
+        Log.Info($"Audio: {(item.Flow == AudioFlow.Output ? "output" : "microphone")} -> {item.Name}" +
+                 (before is { } b ? $" (was {(b.muted ? "muted, now on" : "on")}, volume {(int)Math.Round(b.level * 100)} %)" : ""));
+        DefaultChanged?.Invoke();
         var list = item.Flow == AudioFlow.Output ? Outputs : Inputs;
         foreach (var i in list) i.IsDefault = i == item;
     }

@@ -91,6 +91,28 @@ public static class AudioEndpoints
         catch (Exception ex) { Core.Log.Info($"Set default audio device: {ex.Message}"); return false; }
     }
 
+    /// <summary>
+    /// Makes sure a device can be heard after switching to it: a speaker that was not in use is often left muted
+    /// (sound only came back after toggling mute by hand). Returns the state found before, for the log.
+    /// </summary>
+    public static (bool muted, float level)? Unmute(string id)
+    {
+        try
+        {
+            var en = (IMMDeviceEnumerator)CreateEnumerator();
+            en.GetDevice(id, out var dev);
+            var iid = typeof(IAudioEndpointVolume).GUID;
+            dev.Activate(ref iid, 23, IntPtr.Zero, out var obj);
+            if (obj is not IAudioEndpointVolume vol) return null;
+            vol.GetMute(out bool muted);
+            vol.GetMasterVolumeLevelScalar(out float level);
+            var ctx = Guid.Empty;
+            if (muted) vol.SetMute(false, ref ctx);
+            return (muted, level);
+        }
+        catch (Exception ex) { Core.Log.Info($"Unmute: {ex.Message}"); return null; }
+    }
+
     /// <summary>Asks the Bluetooth audio driver to connect (or disconnect) the headset behind this endpoint. Blocks a moment: call off the UI thread.</summary>
     public static bool Connect(string endpointId, bool connect = true)
     {
@@ -257,6 +279,24 @@ public static class AudioEndpoints
         [PreserveSig] int SetPropertyValue(IntPtr a, int b, IntPtr c, IntPtr d);
         [PreserveSig] int SetDefaultEndpoint([MarshalAs(UnmanagedType.LPWStr)] string id, int role);
         [PreserveSig] int SetEndpointVisibility(IntPtr a, int b);
+    }
+
+    [ComImport, Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IAudioEndpointVolume
+    {
+        void RegisterControlChangeNotify(IntPtr notify);
+        void UnregisterControlChangeNotify(IntPtr notify);
+        void GetChannelCount(out uint count);
+        void SetMasterVolumeLevel(float levelDb, ref Guid ctx);
+        void SetMasterVolumeLevelScalar(float level, ref Guid ctx);
+        void GetMasterVolumeLevel(out float levelDb);
+        void GetMasterVolumeLevelScalar(out float level);
+        void SetChannelVolumeLevel(uint channel, float levelDb, ref Guid ctx);
+        void SetChannelVolumeLevelScalar(uint channel, float level, ref Guid ctx);
+        void GetChannelVolumeLevel(uint channel, out float levelDb);
+        void GetChannelVolumeLevelScalar(uint channel, out float level);
+        void SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, ref Guid ctx);
+        void GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
     }
 
     [ComImport, Guid("2A07407E-6497-4A18-9787-32F79BD0D98F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

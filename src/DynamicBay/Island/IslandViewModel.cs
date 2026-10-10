@@ -133,6 +133,7 @@ public sealed partial class IslandViewModel : ObservableObject
         Shortcuts = new ShortcutsService(settings);
         Claude = new ClaudeService(settings);
         Audio = new AudioService(settings);
+        AudioDevices.DefaultChanged += Audio.DevicesChanged; // switched output: mute and volume follow at once
         Work = new WorkModeService(settings, Audio, timer);
         Time = new TimeTrackingService(settings);
         Scripts = new Services.Scripting.ScriptWidgetsService(settings);

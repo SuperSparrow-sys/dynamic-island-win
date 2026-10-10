@@ -90,6 +90,13 @@ public sealed partial class AudioService : ObservableObject
         catch { return null; }
     }
 
+    /// <summary>The default device changed: forget the cached endpoints, so mute and volume act on the new one at once.</summary>
+    public void DevicesChanged()
+    {
+        _endpoints.Clear();
+        if (_started) ReadMute();
+    }
+
     private void ReadMute()
     {
         var speaker = Endpoint(EDataFlow.Render, ERole.Multimedia);
