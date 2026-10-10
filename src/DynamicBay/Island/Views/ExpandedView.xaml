@@ -953,19 +953,19 @@
                         </DockPanel>
 
                         <!-- the note sheet: covers the whole card while writing -->
-                        <Border x:Name="NoteSheet" Visibility="Collapsed" Margin="-12,-9,-12,-12" CornerRadius="20" Background="#FFFFF2B3" Padding="14,10,12,12">
+                        <Border x:Name="NoteSheet" Visibility="Collapsed" Margin="-12,-9,-12,-12" CornerRadius="20" Background="#FF2C2C2E" Padding="14,10,12,12">
                             <DockPanel>
                                 <DockPanel DockPanel.Dock="Top" Height="22">
                                     <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" VerticalAlignment="Center" Click="NoteSheetDone_Click"
                                             ToolTip="{core:L De='Fertig (Enter)', En='Done (Enter)'}">
-                                        <c:Icon Data="{StaticResource Icon.Check}" Width="13" Height="13" StrokeWidth="2.6" Foreground="#FF7A5B00" />
+                                        <c:Icon Data="{StaticResource Icon.Check}" Width="13" Height="13" StrokeWidth="2.6" Foreground="{StaticResource B.Orange}" />
                                     </Button>
-                                    <TextBlock Style="{StaticResource T.Title}" Foreground="#FF7A5B00" VerticalAlignment="Center" Text="{core:L De='Notiz', En='Note'}" />
+                                    <TextBlock Style="{StaticResource T.Title}" VerticalAlignment="Center" Text="{core:L De='Notiz', En='Note'}" />
                                 </DockPanel>
-                                <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource T.Caption}" FontSize="9.5" Foreground="#997A5B00" Margin="0,4,0,0"
+                                <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource T.Caption}" FontSize="9.5" Foreground="{StaticResource B.Text3}" Margin="0,4,0,0"
                                            TextWrapping="Wrap" Text="{core:L De='Enter speichert · Esc bricht ab', En='Enter saves · Esc cancels'}" ToolTip="{core:L De='Umschalt+Enter: neue Zeile', En='Shift+Enter: new line'}" />
                                 <TextBox x:Name="NoteSheetBox" Margin="0,6,0,0" TextWrapping="Wrap" AcceptsReturn="False" VerticalScrollBarVisibility="Auto"
-                                         Background="Transparent" BorderThickness="0" Foreground="#FF2B2300" CaretBrush="#FF2B2300" FontFamily="{StaticResource Font.UI}" FontSize="13"
+                                         Background="Transparent" BorderThickness="0" Foreground="{StaticResource B.Text}" CaretBrush="{StaticResource B.Text}" FontFamily="{StaticResource Font.UI}" FontSize="13"
                                          PreviewKeyDown="NoteSheet_KeyDown" LostKeyboardFocus="NoteSheet_LostFocus" />
                             </DockPanel>
                         </Border>
