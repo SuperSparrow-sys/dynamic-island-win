@@ -47,6 +47,20 @@
             </StackPanel>
         </Grid>
 
+        <!-- Time tracking: project and elapsed time -->
+        <Grid Visibility="{Binding ShowTimeTrack, Converter={StaticResource Vis}}">
+            <StackPanel x:Name="TrackH" Orientation="Horizontal">
+                <Ellipse Width="8" Height="8" Fill="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Title}" FontSize="12" Foreground="{StaticResource B.Blue}" MaxWidth="110"
+                           TextTrimming="CharacterEllipsis" Text="{Binding Time.CurrentProject}" VerticalAlignment="Center" />
+                <TextBlock Margin="6,0,0,0" Style="{StaticResource T.Numeric}" FontSize="12" Text="{Binding Time.Elapsed}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel x:Name="TrackV" Visibility="Collapsed">
+                <Ellipse Width="8" Height="8" Fill="{StaticResource B.Blue}" HorizontalAlignment="Center" />
+                <TextBlock Margin="0,4,0,0" Style="{StaticResource T.Numeric}" FontSize="9.5" Text="{Binding Time.Elapsed}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
         <!-- Music -->
         <Grid x:Name="MediaSeg" Visibility="{Binding ShowMedia, Converter={StaticResource Vis}}">
             <StackPanel x:Name="MediaH" Orientation="Horizontal">

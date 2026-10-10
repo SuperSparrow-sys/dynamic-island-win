@@ -24,6 +24,7 @@
         <c:BoolPick x:Key="LikeBrush" True="{StaticResource B.Pink}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
         <c:BoolPick x:Key="OnBrush" True="{StaticResource B.Green}" False="{StaticResource B.Text2}" />
+        <c:BoolPick x:Key="TrackBg" True="#330A84FF" False="{StaticResource B.Fill2}" />
         <c:BoolPick x:Key="OverdueBrush" True="{StaticResource B.Red}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="DoneOpacity"><c:BoolPick.True><sys:Double>0.4</sys:Double></c:BoolPick.True><c:BoolPick.False><sys:Double>1</sys:Double></c:BoolPick.False></c:BoolPick>
         <c:BoolPick x:Key="TodoEmpty" True="{core:L De='Keine offenen Aufgaben', En='No open tasks'}" False="{core:L De='In den Einstellungen mit Microsoft verbinden (Timer und Kalender)', En='Connect Microsoft in the settings (Timer and calendar)'}" />
@@ -530,6 +531,51 @@
 
             <!-- Optional widgets (shown when enabled in settings; laid out in code) -->
             <Grid x:Name="ExtraCards" Visibility="Collapsed">
+                <!-- Time tracking: tap a project to start or switch, tap the running one (or the square) to stop -->
+                <Border x:Name="TimeCard" Style="{StaticResource Card}" Padding="10">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Time.StopCommand}" ToolTip="{core:L De='Stoppen', En='Stop'}"
+                                        Visibility="{Binding Time.IsRunning, Converter={StaticResource Vis}}">
+                                    <Rectangle Width="9" Height="9" RadiusX="2" RadiusY="2" Fill="{StaticResource B.Red}" />
+                                </Button>
+                                <Button Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Time.ExportMonthCommand}"
+                                        ToolTip="{core:L De='Monat als CSV exportieren (Dokumente)', En='Export the month as CSV (Documents)'}">
+                                    <c:Icon Data="{StaticResource Icon.Download}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                                </Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <c:Icon Data="{StaticResource Icon.Clock}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:L De='Zeit', En='Time'}" />
+                                <TextBlock Style="{StaticResource T.Caption}" Margin="8,1,0,0" VerticalAlignment="Center" Text="{Binding Time.TodayTotal, StringFormat={}{0} h}"
+                                           ToolTip="{core:L De='Heute insgesamt', En='Today in total'}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <!-- running: project and time -->
+                        <StackPanel DockPanel.Dock="Top" Margin="0,6,0,0" Visibility="{Binding Time.IsRunning, Converter={StaticResource Vis}}">
+                            <TextBlock Style="{StaticResource T.Numeric}" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource B.Blue}" Text="{Binding Time.Elapsed}" />
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextTrimming="CharacterEllipsis" Text="{Binding Time.CurrentProject}" />
+                        </StackPanel>
+                        <ScrollViewer Margin="0,8,0,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Time.Projects}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type s:ProjectTotal}">
+                                        <Button Style="{StaticResource Btn.Chip}" Margin="0,0,0,4" Padding="8,5" HorizontalContentAlignment="Stretch"
+                                                Background="{Binding Running, Converter={StaticResource TrackBg}}"
+                                                Command="{Binding DataContext.Time.ToggleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding Project}">
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Numeric}" FontSize="10.5" Foreground="{StaticResource B.Text2}" Margin="8,0,0,0" Text="{Binding Today}" />
+                                                <TextBlock Style="{StaticResource T.Base}" FontSize="11" TextTrimming="CharacterEllipsis" Text="{Binding Project}" />
+                                            </DockPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+
                 <!-- Microsoft To Do: open tasks, overdue and today's first; tick them off here -->
                 <Border x:Name="TodoCard" Style="{StaticResource Card}" Padding="10">
                     <DockPanel>

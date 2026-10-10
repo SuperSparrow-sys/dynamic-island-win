@@ -14,8 +14,8 @@ public enum IdleStyle { Bar, Clock, Hidden }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams";
-    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams };
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack };
     public const string Battery = "battery";
     public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic };
     /// <summary>Home widget ids of user scripts: "script:{id}".</summary>
@@ -93,6 +93,9 @@ public sealed partial class AppSettings : ObservableObject
     public ObservableCollection<string> HomeWidgets { get => _homeWidgets; set => Hook(ref _homeWidgets, value, nameof(HomeWidgets)); }
     public ObservableCollection<string> CompactItems { get => _compactItems; set => Hook(ref _compactItems, value, nameof(CompactItems)); }
     public ObservableCollection<string> Shortcuts { get => _shortcuts; set => Hook(ref _shortcuts, value, nameof(Shortcuts)); }
+    private ObservableCollection<string> _timeProjects = new() { "Allgemein" };
+    /// <summary>Projects of the time tracking widget.</summary>
+    public ObservableCollection<string> TimeProjects { get => _timeProjects; set => Hook(ref _timeProjects, value, nameof(TimeProjects)); }
 
     // Windows banners and notification sound off while DynamicBay runs (see BannerSuppressor); exceptions keep their banner.
     [ObservableProperty] private bool _suppressBanners = true;
@@ -104,6 +107,7 @@ public sealed partial class AppSettings : ObservableObject
         _homeWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HomeWidgets));
         _compactItems.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CompactItems));
         _shortcuts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Shortcuts));
+        _timeProjects.CollectionChanged += (_, _) => OnPropertyChanged(nameof(TimeProjects));
         _calendarAccounts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CalendarAccounts));
         _scriptWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ScriptWidgets));
         _bannerExceptions.CollectionChanged += (_, _) => OnPropertyChanged(nameof(BannerExceptions));

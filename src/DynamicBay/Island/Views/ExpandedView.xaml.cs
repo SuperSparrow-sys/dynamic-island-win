@@ -20,7 +20,7 @@ public partial class ExpandedView : UserControl
     {
         InitializeComponent();
         // The optional cards live in the home grid too; they're shown/positioned by LayoutHome.
-        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, TodoCard, TeamsCard })
+        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, TodoCard, TeamsCard, TimeCard })
         {
             ExtraCards.Children.Remove(card);
             HomeGrid.Children.Add(card);
@@ -38,6 +38,7 @@ public partial class ExpandedView : UserControl
             [Core.Widgets.Devices] = DevicesCard,
             [Core.Widgets.Todo] = TodoCard,
             [Core.Widgets.Teams] = TeamsCard,
+            [Core.Widgets.TimeTrack] = TimeCard,
         };
         DataContextChanged += (_, _) =>
         {
@@ -167,7 +168,7 @@ public partial class ExpandedView : UserControl
 
     private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id switch
     {
-        "media" => 300, "messenger" or "claude" or "todo" => 230, "teams" => 52, "devices" => 220, "shortcuts" => 170, "calendar" => 160, _ => 150,
+        "media" => 300, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "devices" => 220, "shortcuts" => 170, "calendar" => 160, _ => 150,
     };
 
     // ---- script widgets ----

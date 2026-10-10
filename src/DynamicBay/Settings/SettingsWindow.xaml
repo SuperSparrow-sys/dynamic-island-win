@@ -744,6 +744,24 @@
                             </ContentControl>
                         </StackPanel>
                     </Border>
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Zeiterfassung', En='Time tracking'}" />
+                    <Border Style="{StaticResource S.Card}" Padding="16,12">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                       Text="{core:L De='Projekte für das Widget Zeiterfassung (unter Widgets und Module hinzufügen). Ein Klick auf ein Projekt startet die Zeit, ein Klick auf ein anderes wechselt.', En='Projects for the time tracking widget (add it under Widgets and modules). Click a project to start, click another one to switch.'}" />
+                            <StackPanel x:Name="ProjectRows" />
+                            <DockPanel Margin="0,4,0,0">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="AddProject_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Hinzufügen', En='Add'}" /></StackPanel>
+                                </Button>
+                                <TextBox x:Name="NewProject" Style="{StaticResource S.TextBox}" KeyDown="NewProject_KeyDown" />
+                            </DockPanel>
+                            <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Margin="0,10,0,0" Command="{Binding I.Time.ExportMonthCommand}">
+                                <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Download}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Diesen Monat als CSV exportieren', En='Export this month as CSV'}" /></StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Microsoft 365 (Outlook, Teams, To Do)', En='Microsoft 365 (Outlook, Teams, To Do)'}" />
                     <Border Style="{StaticResource S.Card}" Padding="16,12">
                         <StackPanel>

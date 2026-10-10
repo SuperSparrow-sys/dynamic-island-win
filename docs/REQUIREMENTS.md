@@ -79,7 +79,7 @@ dann die optionale Zeiterfassung (Paket C).
 ### Paket C – optional
 | # | Anforderung | Status |
 |---|---|---|
-| 46 | Zeiterfassung als Widget: Start/Stopp pro Projekt, CSV-Export | offen |
+| 46 | Zeiterfassung als Widget: Start/Stopp pro Projekt, CSV-Export | fertig (Live-Test) |
 
 ### Paket D – Kontakte und Anrufe
 | # | Anforderung | Status |

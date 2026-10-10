@@ -64,6 +64,7 @@ public partial class SettingsWindow : Window
         BuildBannerRows();
         UpdateClaudeShareText();
         UpdateTaildropFolderText();
+        BuildProjectRows();
         UpdateUpdateRow();
         Action updateChanged = () => Dispatcher.BeginInvoke(UpdateUpdateRow);
         Action calendarChanged = () => Dispatcher.BeginInvoke(RefreshCalendarRows);
@@ -126,6 +127,7 @@ public partial class SettingsWindow : Window
         (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
         (Widgets.Todo, "Icon.Check", "Aufgaben", "Tasks", "Microsoft To Do: offene Aufgaben abhaken", "Microsoft To Do: tick off open tasks"),
         (Widgets.Teams, "Icon.User", "Teams-Status", "Teams status", "Eigenen Teams-Status sehen und umschalten", "See and change your Teams status"),
+        (Widgets.TimeTrack, "Icon.Clock", "Zeiterfassung", "Time tracking", "Zeit pro Projekt starten und stoppen, CSV-Export", "Start and stop time per project, CSV export"),
     };
 
     private static (string id, string icon, string de, string en)[] CompactInfo => new[]
@@ -385,12 +387,50 @@ public partial class SettingsWindow : Window
         if (dlg.ShowDialog(this) != true) return;
         _ctx.S.TaildropFolder = dlg.FolderName;
         UpdateTaildropFolderText();
+        BuildProjectRows();
     }
 
     private void ResetTaildropFolder_Click(object sender, RoutedEventArgs e)
     {
         _ctx.S.TaildropFolder = "";
         UpdateTaildropFolderText();
+        BuildProjectRows();
+    }
+
+    // ---- time tracking projects ----
+
+    private void BuildProjectRows()
+    {
+        ProjectRows.Children.Clear();
+        foreach (var name in _ctx.S.TimeProjects)
+        {
+            string project = name;
+            var remove = new Button { Style = (Style)FindResource("S.Button"), Padding = new Thickness(8, 4, 8, 4),
+                Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.Close"), Width = 12, Height = 12 },
+                ToolTip = Loc.German ? "Entfernen (die erfasste Zeit bleibt)" : "Remove (recorded time stays)" };
+            remove.Click += (_, _) => { _ctx.S.TimeProjects.Remove(project); BuildProjectRows(); };
+            var dock = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
+            DockPanel.SetDock(remove, Dock.Right);
+            dock.Children.Add(remove);
+            dock.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Base"), VerticalAlignment = VerticalAlignment.Center, Text = project });
+            ProjectRows.Children.Add(dock);
+        }
+    }
+
+    private void AddProject_Click(object sender, RoutedEventArgs e) => AddProject();
+
+    private void NewProject_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter) { AddProject(); e.Handled = true; }
+    }
+
+    private void AddProject()
+    {
+        string name = NewProject.Text.Trim();
+        if (name.Length == 0 || _ctx.S.TimeProjects.Contains(name)) return;
+        _ctx.S.TimeProjects.Add(name);
+        NewProject.Text = "";
+        BuildProjectRows();
     }
 
     // ---- Microsoft 365 ----

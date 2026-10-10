@@ -440,3 +440,22 @@ public class TextRecognitionTests
         finally { File.Delete(file); }
     }
 }
+
+public class TimeTrackingTests
+{
+    [Fact]
+    public void Csv_has_one_line_per_entry_of_the_month_with_hours()
+    {
+        var entries = new[]
+        {
+            new TimeEntry { Project = "Kunde Müller", Start = new DateTime(2026, 10, 9, 9, 0, 0), End = new DateTime(2026, 10, 9, 10, 30, 0) },
+            new TimeEntry { Project = "Intern; Orga", Start = new DateTime(2026, 10, 9, 11, 0, 0), End = new DateTime(2026, 10, 9, 11, 15, 0) },
+            new TimeEntry { Project = "Letzter Monat", Start = new DateTime(2026, 9, 30, 9, 0, 0), End = new DateTime(2026, 9, 30, 10, 0, 0) },
+        };
+        var lines = TimeTrackingService.ToCsv(entries, new DateTime(2026, 10, 1), new DateTime(2026, 11, 1)).Trim().Split(Environment.NewLine);
+        Assert.Equal(3, lines.Length);
+        Assert.StartsWith("2026-10-09;Kunde Müller;09:00;10:30;", lines[1]);
+        Assert.Contains("\"Intern; Orga\"", lines[2]);
+        Assert.DoesNotContain(lines, l => l.Contains("Letzter Monat"));
+    }
+}
