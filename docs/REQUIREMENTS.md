@@ -61,7 +61,7 @@ dann die optionale Zeiterfassung (Paket C).
 ### Paket A – ohne Anmeldung
 | # | Anforderung | Status |
 |---|---|---|
-| 36 | Beitreten-Knopf: Teams-, Zoom-, Meet- und Webex-Links im Termin erkennen; Einblendung kurz vor Beginn und Knopf in der Kalender-Karte | offen |
+| 36 | Beitreten-Knopf: Teams- und Zoom-Links im Termin erkennen; Einblendung kurz vor Beginn und Knopf in der Kalender-Karte | offen |
 | 37 | Meeting-Modus: Teams/Zoom nutzt das Mikrofon → „Nicht stören“, Meetingdauer, Stumm- und Kamera-Status; danach zurück | offen |
 | 38 | Bildschirmfreigabe oder Präsentation: Insel wird zum Strich (auch bei Musik), Mitteilungen ohne Text | offen |
 | 39 | Text aus Screenshots (OCR, Windows-eigene Texterkennung) kopieren | offen |
