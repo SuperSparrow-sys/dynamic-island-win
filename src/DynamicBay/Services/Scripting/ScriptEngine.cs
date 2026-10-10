@@ -26,11 +26,15 @@ public static class ScriptEngine
     public const int MaxResponseBytes = 2 * 1024 * 1024;
     public const int MaxFileBytes = 1024 * 1024;
     // Every connection (redirects too) goes through ConnectPublicAsync: scripts reach the internet, never this PC or
-    // the local network. No proxy: the check has to see the real target.
+    // the local network. No proxy here: the check has to see the real target.
     private static readonly HttpClient Http = new(new SocketsHttpHandler
     {
         AllowAutoRedirect = true, MaxAutomaticRedirections = 5, UseProxy = false, ConnectCallback = ConnectPublicAsync,
     }) { Timeout = TimeSpan.FromSeconds(20) };
+    // Behind a proxy (company networks) the connection goes to the proxy: each target, redirects included, is
+    // resolved and checked here before the request is sent (see SendViaProxy).
+    private static readonly HttpClient ProxiedHttp = new(new SocketsHttpHandler { AllowAutoRedirect = false, UseProxy = true })
+    { Timeout = TimeSpan.FromSeconds(20) };
 
     /// <summary>For tests with a local server only.</summary>
     internal static bool AllowLocalAddresses { get; set; }
@@ -152,7 +156,7 @@ public static class ScriptEngine
                     req.Content.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(ct.ToString());
             }
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Clamp(timeout, 1, 20)));
-            using var resp = Http.Send(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            using var resp = UsesProxy(uri) ? SendViaProxy(req, cts.Token) : Http.Send(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
             using var stream = resp.Content.ReadAsStream(cts.Token);
             var buffer = new MemoryStream();
             var chunk = new byte[16384];
@@ -169,6 +173,42 @@ public static class ScriptEngine
         catch (Exception ex) { return Error(ex.InnerException?.Message ?? ex.Message); }
 
         static string Error(string m) => JsonSerializer.Serialize(new { status = 0, body = "", error = m });
+    }
+
+    private static bool UsesProxy(Uri uri)
+    {
+        try { return HttpClient.DefaultProxy.GetProxy(uri) is { } proxy && proxy != uri && !HttpClient.DefaultProxy.IsBypassed(uri); }
+        catch { return false; }
+    }
+
+    /// <summary>Throws if the host resolves to an address a script must not reach.</summary>
+    private static void CheckPublic(Uri uri, CancellationToken ct)
+    {
+        var host = uri.IdnHost;
+        var addresses = IPAddress.TryParse(host.Trim('[', ']'), out var literal) ? new[] { literal! } : Dns.GetHostAddressesAsync(host, ct).GetAwaiter().GetResult();
+        if (addresses.Length == 0 || (!AllowLocalAddresses && addresses.Any(IsBlockedAddress)))
+            throw new HttpRequestException(Loc.German ? "Adressen in diesem PC oder im lokalen Netz sind gesperrt" : "Addresses on this PC or the local network are blocked");
+    }
+
+    /// <summary>Through the system proxy, following at most 5 redirects itself so every target is checked first.</summary>
+    private static HttpResponseMessage SendViaProxy(HttpRequestMessage req, CancellationToken ct)
+    {
+        for (int hop = 0; ; hop++)
+        {
+            CheckPublic(req.RequestUri!, ct);
+            var resp = ProxiedHttp.Send(req, HttpCompletionOption.ResponseHeadersRead, ct);
+            int code = (int)resp.StatusCode;
+            if (code is not (301 or 302 or 303 or 307 or 308) || resp.Headers.Location is not { } location || hop >= 5) return resp;
+            var next = new Uri(req.RequestUri!, location);
+            resp.Dispose();
+            if (next.Scheme != Uri.UriSchemeHttp && next.Scheme != Uri.UriSchemeHttps)
+                throw new HttpRequestException("Nur http- und https-Adressen sind erlaubt");
+            // 307/308 keep method and body; the others continue with a GET, like the automatic redirects.
+            var follow = new HttpRequestMessage(code is 307 or 308 ? req.Method : HttpMethod.Get, next);
+            foreach (var h in req.Headers) if (!h.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase)) follow.Headers.TryAddWithoutValidation(h.Key, h.Value);
+            if (code is 307 or 308) follow.Content = req.Content;
+            req = follow;
+        }
     }
 
     /// <summary>Resolves the host itself and connects only to public addresses (the checked one, so DNS cannot switch).</summary>

@@ -23,8 +23,12 @@ public static class SecretStore
             Directory.CreateDirectory(Folder);
             // Written next to it and swapped in: a crash mid-write never leaves half a secret (e.g. a lost refresh token).
             string file = FileFor(key), tmp = $"{file}.{Guid.NewGuid():N}.tmp";
-            File.WriteAllBytes(tmp, ProtectedData.Protect(Encoding.UTF8.GetBytes(value), null, DataProtectionScope.CurrentUser));
-            File.Move(tmp, file, overwrite: true);
+            try
+            {
+                File.WriteAllBytes(tmp, ProtectedData.Protect(Encoding.UTF8.GetBytes(value), null, DataProtectionScope.CurrentUser));
+                File.Move(tmp, file, overwrite: true);
+            }
+            finally { try { File.Delete(tmp); } catch { } } // gone already after the move
         }
         catch (Exception ex) { Log.Error("SecretStore", ex); }
     }

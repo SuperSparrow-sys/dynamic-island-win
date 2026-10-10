@@ -1320,8 +1320,9 @@ public partial class IslandWindow : Window
         // Maximized windows also cover the monitor but keep their caption; real fullscreen windows don't.
         long style = Native.GetWindowLongPtr(fg, Native.GWL_STYLE).ToInt64();
         if ((style & Native.WS_CAPTION) == Native.WS_CAPTION) return false;
-        // Borderless apps (Spotify, Discord, VS Code) maximized cover the monitor too when the taskbar auto-hides: still no fullscreen.
-        if (Native.IsZoomed(fg)) return false;
+        // Borderless apps (Spotify, Discord, VS Code) maximized cover the monitor too when the taskbar auto-hides: still no
+        // fullscreen. They keep their resize frame; borderless-fullscreen games and videos have none.
+        if (Native.IsZoomed(fg) && (style & Native.WS_THICKFRAME) != 0) return false;
         if (!Native.GetWindowRect(fg, out var r)) return false;
         var (_, bounds, _) = Target();
         return r.Left <= bounds.Left && r.Top <= bounds.Top && r.Right >= bounds.Right && r.Bottom >= bounds.Bottom;

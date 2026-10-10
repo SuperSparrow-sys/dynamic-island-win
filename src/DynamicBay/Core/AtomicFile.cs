@@ -12,6 +12,7 @@ public static class AtomicFile
     /// <param name="backup">Keep the previous version as "{path}.bak".</param>
     public static void WriteAllText(string path, string text, Encoding? enc = null, bool backup = true)
     {
+        if (AppSettings.ReadOnly) return; // snapshot runs: the user's files stay untouched
         var full = Path.GetFullPath(path);
         var dir = Path.GetDirectoryName(full);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);

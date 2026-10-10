@@ -747,9 +747,13 @@ public partial class App : Application
     }
 
     /// <summary>Pending writes (notes, clipboard history) to disk now and Teams back to the status from before focus.</summary>
+    private bool _flushed;
+
     private void FlushAll()
     {
-        if (_snapshotMode) return;
+        // Once: Quit and then OnExit both come here, and the Teams call may wait up to 3 s.
+        if (_snapshotMode || _flushed) return;
+        _flushed = true;
         try { _vm?.Notes.Flush(); } catch (Exception ex) { Log.Error("Exit notes", ex); }
         try { _vm?.Clipboard.Flush(); } catch (Exception ex) { Log.Error("Exit clipboard", ex); }
         try { _vm?.Presence?.RestoreBeforeExit(); } catch (Exception ex) { Log.Error("Exit presence", ex); }
@@ -759,14 +763,16 @@ public partial class App : Application
     {
         SaveAndRestore();
         // The sign-out can still be cancelled by another app: if we are still running a minute later, silence the
-        // Windows banners again (they were given back above).
+        // Windows banners again (they were given back above) and put Teams back on "Do not disturb" during focus.
         if (!_running || _notifications is null) return;
         var again = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         again.Tick += (_, _) =>
         {
             again.Stop();
+            _flushed = false;
             try { BannerSuppressor.Apply(_settings, _notifications.Access == NotificationAccess.Allowed); }
             catch (Exception ex) { Log.Error("Banners", ex); }
+            _vm?.Presence?.Reapply();
         };
         again.Start();
     }

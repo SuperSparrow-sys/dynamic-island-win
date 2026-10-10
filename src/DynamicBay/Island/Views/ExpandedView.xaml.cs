@@ -77,6 +77,14 @@ public partial class ExpandedView : UserControl
     // so closing a mirror's panel must not stop it for the one still open.
     private static int _openPanels;
     private bool _countedOpen;
+    /// <summary>Open panels with the System card on screen: CPU and memory are read while there is at least one.</summary>
+    private static readonly HashSet<ExpandedView> _systemShown = new();
+
+    private void ShowsSystem(bool shown)
+    {
+        if (shown) _systemShown.Add(this); else _systemShown.Remove(this);
+        Vm?.System.SetActive(_systemShown.Count > 0);
+    }
 
     private void SetCountedOpen(bool open)
     {
@@ -84,7 +92,7 @@ public partial class ExpandedView : UserControl
         _countedOpen = open;
         _openPanels += open ? 1 : -1;
         bool any = _openPanels > 0;
-        Vm?.System.SetActive(any && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
+        ShowsSystem(open && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
         Vm?.Spotify.SetPanelOpen(any);
         Vm?.Media.SetPanelOpen(any);
         Vm?.MusicVolume.SetPanelOpen(any);
@@ -185,7 +193,7 @@ public partial class ExpandedView : UserControl
                 card.Margin = new Thickness(0, 0, rightEdge ? 0 : 8, lastRow ? 0 : 8);
             }
         }
-        Vm?.System.SetActive(_openPanels > 0 && enabled.Contains(Core.Widgets.System));
+        ShowsSystem(_countedOpen && enabled.Contains(Core.Widgets.System));
         FitHomeToViewport();
     }
 

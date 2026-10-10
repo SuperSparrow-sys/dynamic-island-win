@@ -141,12 +141,24 @@ public sealed partial class TimeTrackingService : ObservableObject
             // Woken but still locked: the question waits for the unlock, where it can be seen.
             else if (e.Mode == PowerModes.Resume) ui.BeginInvoke(() => { if (!_sessionLocked) Returned(now); });
         };
-        // Only when Windows itself was restarted since the last write: a mere restart of DynamicBay (update) is no break.
+        // Only when the user signed in again since the last write (shut down - also with fast startup, which keeps the
+        // uptime running - or signed out): a mere restart of DynamicBay (update) is no break.
         var written = _fileWrittenAt;
         var at = DateTime.Now;
-        var booted = at - TimeSpan.FromMilliseconds(Environment.TickCount64);
-        if (IsRunning && Running is { } r && r.Start < written && booted > written && at - written > Quarter)
+        if (IsRunning && Running is { } r && r.Start < written && SignedInAt() > written && at - written > Quarter)
             ui.BeginInvoke(() => CameBack?.Invoke(written, at));
+    }
+
+    /// <summary>When this Windows session began: the start of the oldest Explorer of this user (DateTime.MinValue if unknown).</summary>
+    private static DateTime SignedInAt()
+    {
+        var oldest = DateTime.MaxValue;
+        int session;
+        using (var me = System.Diagnostics.Process.GetCurrentProcess()) session = me.SessionId;
+        foreach (var p in System.Diagnostics.Process.GetProcessesByName("explorer"))
+            using (p)
+                try { if (p.SessionId == session && p.StartTime < oldest) oldest = p.StartTime; } catch { }
+        return oldest == DateTime.MaxValue ? DateTime.MinValue : oldest;
     }
 
     /// <summary>Locked or asleep: the first of both counts (locked, then the lid closed).</summary>
@@ -465,6 +477,10 @@ public sealed partial class TimeTrackingService : ObservableObject
         var have = _entries.Select(e => (e.Start, e.Project)).ToHashSet();
         _entries.InsertRange(0, loaded.Where(e => !have.Contains((e.Start, e.Project))));
         foreach (var line in unreadable) if (!_unreadable.Contains(line)) _unreadable.Add(line);
+        // Only one project runs: one left open in the file while another was started here ends after its first quarter
+        // (what it counted anyway), so it does not stay open in the file for good.
+        var running = Running;
+        foreach (var open in _entries.Where(e => e.End is null && e != running)) open.End = open.Start + Quarter;
         SyncRunning();
         Update();
         Changed?.Invoke();

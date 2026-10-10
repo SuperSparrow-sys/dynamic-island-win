@@ -269,8 +269,12 @@ public sealed partial class SpotifyService : ObservableObject
             var raw = JsonSerializer.SerializeToUtf8Bytes(new { r = _refreshToken });
             // Written next to it and swapped in, so a crash mid-write never leaves a broken token file.
             var tmp = _tokenFile + ".tmp";
-            File.WriteAllBytes(tmp, ProtectedData.Protect(raw, null, DataProtectionScope.CurrentUser));
-            File.Move(tmp, _tokenFile, overwrite: true);
+            try
+            {
+                File.WriteAllBytes(tmp, ProtectedData.Protect(raw, null, DataProtectionScope.CurrentUser));
+                File.Move(tmp, _tokenFile, overwrite: true);
+            }
+            finally { try { File.Delete(tmp); } catch { } } // gone already after the move
         }
         catch { }
     }

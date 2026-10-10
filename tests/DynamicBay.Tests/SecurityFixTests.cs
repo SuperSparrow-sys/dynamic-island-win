@@ -72,10 +72,14 @@ public class ClaudeInputTests
     public void Remote_links_only_to_claude_ai_code(string? url, bool ok) => Assert.Equal(ok, ClaudeService.SafeRemoteUrl(url) is not null);
 
     [Fact]
-    public void Hook_folders_without_shell_characters_only()
+    public void Hook_folders_must_exist_and_have_no_quotes()
     {
         string temp = Path.GetTempPath();
         Assert.Equal(temp, ClaudeService.SafeCwd(temp));
+        // Arguments go one by one, so an ampersand in a real folder name is fine.
+        var rd = Directory.CreateDirectory(Path.Combine(temp, "R&D;" + Guid.NewGuid().ToString("N"))).FullName;
+        try { Assert.Equal(rd, ClaudeService.SafeCwd(rd)); }
+        finally { Directory.Delete(rd); }
         Assert.Equal("", ClaudeService.SafeCwd(temp + "\" & calc & \""));
         Assert.Equal("", ClaudeService.SafeCwd("C:\\does-not-exist-" + Guid.NewGuid().ToString("N")));
         Assert.Equal("", ClaudeService.SafeCwd(null));

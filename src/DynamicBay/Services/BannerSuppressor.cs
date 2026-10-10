@@ -50,6 +50,7 @@ public static class BannerSuppressor
                 if (Restore(app, backup[app])) backup.Remove(app);
             foreach (var app in wanted.Where(a => !backup.ContainsKey(a)).ToList()) Silence(app, backup);
             SaveBackup(backup);
+            _assumeDefaults = false; // only the values found right after the reset can be ours from before
             Log.Info(_active ? $"Windows banners off for {backup.Count - 1} apps" : "Windows banners as configured by the user");
         }
         catch (Exception ex) { Log.Error("BannerSuppressor", ex); }

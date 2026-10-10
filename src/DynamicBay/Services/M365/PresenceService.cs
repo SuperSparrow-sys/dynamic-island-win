@@ -103,17 +103,21 @@ public sealed partial class PresenceService : ObservableObject
         if (_beforeAuto is not { } back || !Available) return;
         try
         {
-            string duration = RemainingDuration(back);
+            string target = ChosenOrAuto(back), duration = RemainingDuration(target);
             // Off the UI thread: waiting here for a task that needs the UI thread would never end.
-            if (Task.Run(() => SendPresenceAsync(ChosenOrAuto(back), duration)).Wait(TimeSpan.FromSeconds(3)))
+            if (Task.Run(() => SendPresenceAsync(target, duration)).Wait(TimeSpan.FromSeconds(3)))
             {
                 _beforeAuto = null;
+                Selected = target;
                 DeleteAuto();
                 Log.Info("Teams status handed back on exit");
             }
         }
         catch (Exception ex) { Log.Error("Teams presence exit", ex); }
     }
+
+    /// <summary>The app keeps running after all (a cancelled sign-out): "Do not disturb" again if focus is still on.</summary>
+    public void Reapply() => _ = AutoAsync();
 
     public async Task RefreshAsync()
     {

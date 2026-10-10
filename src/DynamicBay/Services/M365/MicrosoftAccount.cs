@@ -42,6 +42,9 @@ public sealed partial class MicrosoftAccount : ObservableObject
         _settings = settings;
         IsConnected = SecretStore.Get("ms:refresh") is not null && settings.MicrosoftClientId.Length > 0;
         IsWorkAccount = settings.MicrosoftWorkAccount;
+        // Back online or awake again: the next poll tries right away instead of sitting out the wait.
+        System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged += (_, e) => { if (e.IsAvailable) _retryAt = default; };
+        Microsoft.Win32.SystemEvents.PowerModeChanged += (_, e) => { if (e.Mode == Microsoft.Win32.PowerModes.Resume) _retryAt = default; };
     }
 
     private string Tenant => string.IsNullOrWhiteSpace(_settings.MicrosoftTenant) ? "common" : _settings.MicrosoftTenant.Trim();
@@ -223,9 +226,9 @@ public sealed partial class MicrosoftAccount : ObservableObject
             }
             catch (Exception ex)
             {
-                // Offline or server trouble: try again after 1, 2, 4 ... at most 30 minutes; the full error only once.
+                // Offline or server trouble: try again after 1, 2, 4, then every 5 minutes; the full error only once.
                 _tokenFailures++;
-                var wait = TimeSpan.FromMinutes(Math.Min(30, 1 << Math.Min(_tokenFailures - 1, 5)));
+                var wait = TimeSpan.FromMinutes(Math.Min(5, 1 << Math.Min(_tokenFailures - 1, 3)));
                 _retryAt = DateTime.UtcNow + wait;
                 if (_tokenFailures == 1) Log.Error("Microsoft token", ex);
                 else Log.Info($"Microsoft token failed again ({ex.Message}), next try in {wait.TotalMinutes:0} min");

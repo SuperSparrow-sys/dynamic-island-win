@@ -249,7 +249,9 @@ public sealed partial class ClaudeService : ObservableObject
             ["id"] = s.Id, ["title"] = s.Title, ["cwd"] = s.Cwd, ["updated"] = s.Updated.ToUniversalTime().ToString("o"),
             ["state"] = s.State.ToString(), ["remote"] = s.RemoteUrl,
         }).ToArray()).ToJsonString();
-        foreach (var r in await Task.Run(() => ExchangeShared(folder, mine)))
+        var shared = await Task.Run(() => ExchangeShared(folder, mine));
+        if (!_started) return result; // switched off while the folder was read: nothing may come back into the list
+        foreach (var r in shared)
         {
             var s = Sessions.FirstOrDefault(x => x.Id == r.Id && x.Machine.Equals(r.Machine, StringComparison.OrdinalIgnoreCase));
             if (s is null)
@@ -317,11 +319,12 @@ public sealed partial class ClaudeService : ObservableObject
     /// <summary>The link if it is a claude.ai/code address, else null (it is opened with the shell).</summary>
     internal static string? SafeRemoteUrl(string? url) => url is not null && RemoteUrlPattern.IsMatch(url) ? url : null;
 
-    private static readonly char[] UnsafeCwdChars = { '"', ';', '&', '|', '<', '>', '^', '%' };
-
-    /// <summary>A working folder from a hook: only an existing folder without shell metacharacters, else "".</summary>
+    /// <summary>
+    /// A working folder from a hook: only an existing folder, else "". It never reaches a shell string (resume passes
+    /// arguments one by one), so only quotes and control characters are refused (folders with ampersands or semicolons stay usable).
+    /// </summary>
     internal static string SafeCwd(string? cwd) =>
-        !string.IsNullOrEmpty(cwd) && cwd.Length < 1024 && cwd.IndexOfAny(UnsafeCwdChars) < 0 && Directory.Exists(cwd) ? cwd : "";
+        !string.IsNullOrEmpty(cwd) && cwd.Length < 1024 && !cwd.Any(c => c == '"' || char.IsControl(c)) && Directory.Exists(cwd) ? cwd : "";
 
     // ---------- questions from other machines (Remote Control) ----------
 
