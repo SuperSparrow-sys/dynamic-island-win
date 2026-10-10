@@ -133,6 +133,10 @@ public sealed class GoogleCalendarClient
                 {
                     Title = ev["summary"]?.ToString() ?? "(ohne Titel)", Start = s, End = e, AllDay = allDay,
                     Location = ev["location"]?.ToString(), Color = cal["backgroundColor"]?.ToString(),
+                    // Teams/Zoom add-ons put the link into conferenceData; invitations often only into the description.
+                    Meeting = MeetingLinks.Find(
+                        string.Join(" ", (ev["conferenceData"]?["entryPoints"] as JsonArray)?.Select(p => p?["uri"]?.ToString()) ?? Array.Empty<string?>()),
+                        ev["location"]?.ToString(), ev["description"]?.ToString()),
                 });
             }
         }

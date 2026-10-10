@@ -443,6 +443,14 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type s:CalendarEvent}">
                                                 <DockPanel Margin="0,0,0,7">
+                                                    <!-- Teams/Zoom meeting: join with one click -->
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Chip}" Padding="8,3" FontSize="10.5" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                            Background="#3330D158" Foreground="{StaticResource B.Green}"
+                                                            Visibility="{Binding HasMeeting, Converter={StaticResource Vis}}"
+                                                            Command="{Binding DataContext.Calendar.JoinCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                                            ToolTip="{Binding JoinText, StringFormat={}{0}-Meeting beitreten}">
+                                                        <TextBlock Text="{core:L De='Beitreten', En='Join'}" />
+                                                    </Button>
                                                     <Border Width="3" CornerRadius="1.5" Background="{Binding Brush}" Margin="0,1,8,1" />
                                                     <StackPanel>
                                                         <TextBlock Style="{StaticResource T.Title}" FontSize="12" TextTrimming="CharacterEllipsis" Text="{Binding Title}" />

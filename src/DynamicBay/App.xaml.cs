@@ -330,12 +330,23 @@ public partial class App : Application
             });
         };
 
-        calendar.EventStartingSoon += ev => island.ShowPeek(new PeekItem
-        {
-            Icon = Icon("Icon.Calendar"), IconBrush = Res("B.Red"), IconBackground = Tint("B.Red", 0x2E),
-            Title = ev.Title, Subtitle = $"{Loc.T("Cal.Starting")} · {ev.Start:HH:mm}",
-            Trailing = calendar.SoonText, TrailingBrush = Res("B.Red"), Seconds = 5,
-        });
+        calendar.EventStartingSoon += ev => island.ShowPeek(ev.Meeting is { } meeting
+            // Teams/Zoom: the reminder offers to join right away (stays until answered or the meeting started).
+            ? new PeekItem
+            {
+                Icon = Icon("Icon.Calendar"), IconBrush = Res("B.Green"), IconBackground = Tint("B.Green", 0x2E),
+                Title = ev.Title, Subtitle = $"{meeting.Service} · {ev.Start:HH:mm}",
+                ActionText = Loc.German ? "Beitreten" : "Join", DismissText = Loc.German ? "Später" : "Later",
+                Action = () => MeetingLinks.Open(meeting),
+                Priority = PeekPriority.High,
+                Seconds = Math.Clamp((ev.Start - DateTime.Now).TotalSeconds + 120, 15, 900),
+            }
+            : new PeekItem
+            {
+                Icon = Icon("Icon.Calendar"), IconBrush = Res("B.Red"), IconBackground = Tint("B.Red", 0x2E),
+                Title = ev.Title, Subtitle = $"{Loc.T("Cal.Starting")} · {ev.Start:HH:mm}",
+                Trailing = calendar.SoonText, TrailingBrush = Res("B.Red"), Seconds = 5,
+            });
 
         // Microphone: ask once when a recording starts, confirm every mute change.
         _vm!.Audio.MicStarted += app =>

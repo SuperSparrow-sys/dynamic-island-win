@@ -360,3 +360,30 @@ public class DownloadMarkTests
         finally { File.Delete(file); }
     }
 }
+
+public class MeetingLinkTests
+{
+    [Fact]
+    public void Finds_Teams_link_in_an_invitation()
+    {
+        const string body = "________________\nMicrosoft Teams Brauchen Sie Hilfe?\nJetzt an der Besprechung teilnehmen <https://teams.microsoft.com/l/meetup-join/19%3ameeting_ABC%40thread.v2/0?context=%7b%22Tid%22%3a%22x%22%7d>\nBesprechungs-ID: 123";
+        var m = MeetingLinks.Find(null, "Microsoft Teams-Besprechung", body);
+        Assert.Equal("Teams", m!.Service);
+        Assert.StartsWith("https://teams.microsoft.com/l/meetup-join/19%3ameeting_ABC", m.Url);
+        Assert.DoesNotContain(">", m.Url);
+    }
+
+    [Fact]
+    public void Finds_Zoom_link_with_password()
+    {
+        var m = MeetingLinks.Find("https://us02web.zoom.us/j/81234567890?pwd=abcDEF123.1, Meeting ID");
+        Assert.Equal("Zoom", m!.Service);
+        Assert.Equal("https://us02web.zoom.us/j/81234567890?pwd=abcDEF123.1", m.Url);
+    }
+
+    [Fact]
+    public void Ignores_other_services_and_plain_text()
+    {
+        Assert.Null(MeetingLinks.Find("https://meet.google.com/abc-defg-hij", "Raum 2.14", null));
+    }
+}

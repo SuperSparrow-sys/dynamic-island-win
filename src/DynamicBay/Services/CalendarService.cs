@@ -18,6 +18,10 @@ public sealed class CalendarEvent
     public bool AllDay { get; init; }
     public string? Location { get; init; }
     public string? Color { get; init; }
+    /// <summary>Teams or Zoom meeting of this event (from location, description or conference data).</summary>
+    public MeetingLink? Meeting { get; init; }
+    public bool HasMeeting => Meeting is not null && End > DateTime.Now;
+    public string JoinText => Meeting?.Service == "Zoom" ? "Zoom" : "Teams";
     public string AccountId { get; set; } = "";
     public string TimeText => AllDay ? Loc.T("Cal.AllDay") : $"{Start:HH:mm} – {End:HH:mm}";
     public Brush Brush => TryBrush(Color) ?? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0xFF, 0x45, 0x3A));
@@ -101,6 +105,12 @@ public sealed partial class CalendarService : ObservableObject
     [ObservableProperty] private string _todayText = "";
 
     public event Action<CalendarEvent>? EventStartingSoon;
+
+    [RelayCommand]
+    private void Join(CalendarEvent? ev)
+    {
+        if (ev?.Meeting is { } m) MeetingLinks.Open(m);
+    }
     public event Action? StatusChanged;
 
     public CalendarService(AppSettings settings) => _settings = settings;
@@ -274,6 +284,7 @@ public sealed partial class CalendarService : ObservableObject
                     AllDay = ev.IsAllDay,
                     Location = ev.Location,
                     Color = color,
+                    Meeting = MeetingLinks.Find(ev.Url?.ToString(), ev.Location, ev.Description),
                 };
             })
             .ToList();
