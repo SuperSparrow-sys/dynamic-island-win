@@ -61,6 +61,19 @@
             </StackPanel>
         </Grid>
 
+        <!-- Download: arrow, size and speed (browsers do not tell the full size) -->
+        <Grid Visibility="{Binding ShowDownload, Converter={StaticResource Vis}}" ToolTip="{Binding Downloads.Name}">
+            <StackPanel x:Name="DownH" Orientation="Horizontal">
+                <c:Icon Data="{StaticResource Icon.Download}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Numeric}" FontSize="12" Foreground="{StaticResource B.Blue}" Text="{Binding Downloads.SizeText}" VerticalAlignment="Center" />
+                <TextBlock Margin="6,0,0,0" Style="{StaticResource T.Numeric}" FontSize="11" FontWeight="Medium" Foreground="{StaticResource B.Text2}" Text="{Binding Downloads.SpeedText}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel x:Name="DownV" Visibility="Collapsed">
+                <c:Icon Data="{StaticResource Icon.Download}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Blue}" HorizontalAlignment="Center" />
+                <TextBlock Margin="0,4,0,0" Style="{StaticResource T.Numeric}" FontSize="9.5" Text="{Binding Downloads.SizeText}" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
         <!-- Music -->
         <Grid x:Name="MediaSeg" Visibility="{Binding ShowMedia, Converter={StaticResource Vis}}">
             <StackPanel x:Name="MediaH" Orientation="Horizontal">

@@ -172,6 +172,8 @@ public partial class App : Application
         if (_settings.AudioEnabled) _vm.Audio.Start();
         _vm.Work.Start();
         _vm.Time.WatchSession();
+        _vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads));
+        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.CompactItems)) _vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads)); };
         bluetooth.Start();
         _vm.AudioDevices.Start();
         calendar.Start();
@@ -531,6 +533,18 @@ public partial class App : Application
             Subtitle = error ?? name,
             Seconds = error is null ? 2.8 : 6,
         }));
+
+        // A download finished: the file, ready to drag out; a click shows it in its folder.
+        _vm!.Downloads.Finished += path => island.ShowPeek(new PeekItem
+        {
+            Image = ShellThumbnail.Get(path, 96),
+            Icon = Icon("Icon.Download"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+            Title = Path.GetFileName(path),
+            Subtitle = (Loc.German ? "Download fertig · " : "Download complete · ") + FormatSize(new FileInfo(path).Length),
+            DragPayload = new[] { path },
+            Seconds = 4,
+            OnClick = () => { try { Process.Start("explorer.exe", $"/select,\"{path}\""); } catch { } },
+        });
 
         shelf.FilesAdded += count => island.ShowPeek(new PeekItem
         {

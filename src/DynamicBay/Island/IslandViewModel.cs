@@ -69,6 +69,9 @@ public sealed partial class IslandViewModel : ObservableObject
     public AudioDevicesService AudioDevices { get; }
     /// <summary>Quick notes (the "Notizen" widget).</summary>
     public NotesService Notes { get; } = new();
+    /// <summary>Browser downloads (size, speed; the finished file is announced).</summary>
+    public DownloadsService Downloads { get; } = new();
+    [ObservableProperty] private bool _showDownload;
     /// <summary>Tailscale is installed: shelf files can be sent to other devices.</summary>
     public bool CanTaildrop { get; } = TaildropService.IsTailscaleInstalled;
 
@@ -143,6 +146,7 @@ public sealed partial class IslandViewModel : ObservableObject
         Claude.PropertyChanged += recompute;
         Audio.PropertyChanged += recompute;
         Time.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(TimeTrackingService.IsRunning)) RecomputeCompact(); };
+        Downloads.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(DownloadsService.IsActive)) RecomputeCompact(); };
         Settings.PropertyChanged += recompute;
         RecomputeCompact();
     }
@@ -164,13 +168,14 @@ public sealed partial class IslandViewModel : ObservableObject
         bool mic = (all || meeting) && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.MicInUse;
         bool cam = (all || meeting) && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.CameraInUse;
         bool scripts = all && Scripts.CompactIds.Count > 0;
-        bool activities = media || timer || cal || low || claude || muted || mic || cam || scripts || meeting || tracking;
+        bool download = all && s.HasCompact(Widgets.Downloads) && Downloads.IsActive;
+        bool activities = media || timer || cal || low || claude || muted || mic || cam || scripts || meeting || tracking || download;
         // The clock shows either as a permanent segment, or as the idle face when nothing else is going on.
         bool clock = all && (s.HasCompact(Widgets.Clock) || (s.Idle == IdleStyle.Clock && !activities));
         bool any = activities || clock;
         bool changed = media != ShowMedia || timer != ShowTimer || cal != ShowCalendar || low != ShowBatteryLow
-                       || clock != ShowClock || claude != ShowClaude || muted != ShowMuted || mic != ShowMic || cam != ShowCamera || scripts != ShowScripts || meeting != ShowMeeting || tracking != ShowTimeTrack || any != HasCompact;
-        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; ShowClaude = claude; ShowMuted = muted; ShowMic = mic; ShowCamera = cam; ShowStatus = mic || cam || muted; ShowScripts = scripts; ShowMeeting = meeting; ShowTimeTrack = tracking; HasCompact = any;
+                       || clock != ShowClock || claude != ShowClaude || muted != ShowMuted || mic != ShowMic || cam != ShowCamera || scripts != ShowScripts || meeting != ShowMeeting || tracking != ShowTimeTrack || download != ShowDownload || any != HasCompact;
+        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; ShowClaude = claude; ShowMuted = muted; ShowMic = mic; ShowCamera = cam; ShowStatus = mic || cam || muted; ShowScripts = scripts; ShowMeeting = meeting; ShowTimeTrack = tracking; ShowDownload = download; HasCompact = any;
         if (changed) CompactChanged?.Invoke();
     }
 

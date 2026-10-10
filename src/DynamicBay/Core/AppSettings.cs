@@ -15,10 +15,10 @@ public enum IdleStyle { Bar, Clock, Hidden }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes";
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads";
     public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts };
     public const string Battery = "battery";
-    public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic, TimeTrack };
+    public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic, TimeTrack, Downloads };
     /// <summary>Home widget ids of user scripts: "script:{id}".</summary>
     public const string ScriptPrefix = "script:";
 }
@@ -88,7 +88,7 @@ public sealed partial class AppSettings : ObservableObject
 
     // Customizable layout
     private ObservableCollection<string> _homeWidgets = new() { Widgets.Media, Widgets.Calendar, Widgets.Timer };
-    private ObservableCollection<string> _compactItems = new() { Widgets.Mic, Widgets.Media, Widgets.Timer, Widgets.Calendar, Widgets.Battery, Widgets.Claude, Widgets.Muted, Widgets.TimeTrack };
+    private ObservableCollection<string> _compactItems = new() { Widgets.Mic, Widgets.Media, Widgets.Timer, Widgets.Calendar, Widgets.Battery, Widgets.Claude, Widgets.Muted, Widgets.TimeTrack, Widgets.Downloads };
     private ObservableCollection<string> _shortcuts = new();
 
     public ObservableCollection<string> HomeWidgets { get => _homeWidgets; set => Hook(ref _homeWidgets, value, nameof(HomeWidgets)); }
@@ -189,6 +189,12 @@ public sealed partial class AppSettings : ObservableObject
         {
             if (!CompactItems.Contains(Widgets.TimeTrack)) CompactItems.Add(Widgets.TimeTrack);
             SettingsVersion = 7;
+        }
+        // v8: downloads in the island (size, speed, the finished file) - on once, can be switched off.
+        if (SettingsVersion < 8)
+        {
+            if (!CompactItems.Contains(Widgets.Downloads)) CompactItems.Add(Widgets.Downloads);
+            SettingsVersion = 8;
         }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });

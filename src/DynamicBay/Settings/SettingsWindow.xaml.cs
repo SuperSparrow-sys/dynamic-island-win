@@ -181,6 +181,7 @@ public partial class SettingsWindow : Window
         (Widgets.Mic, "Icon.Mic", "Mikrofon oder Kamera aktiv", "Microphone or camera in use"),
         (Widgets.Muted, "Icon.VolumeOff", "Ton aus", "Sound off"),
         (Widgets.TimeTrack, "Icon.Clock", "Zeiterfassung läuft", "Time tracking running"),
+        (Widgets.Downloads, "Icon.Download", "Downloads (Fortschritt und fertige Datei)", "Downloads (progress and finished file)"),
     };
 
     /// <summary>Built-in widgets plus the user's script widgets.</summary>
