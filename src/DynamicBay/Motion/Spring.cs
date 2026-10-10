@@ -54,6 +54,9 @@ public sealed class SpringGroup
 
     public event Action? Updated;
 
+    /// <summary>Draws every frame regardless of the frame rate setting (opening and closing of the island).</summary>
+    public bool EveryFrame { get; init; }
+
     public Spring Add(Spring s)
     {
         _springs.Add(s);
@@ -74,7 +77,7 @@ public sealed class SpringGroup
     private void OnRendering(object? sender, EventArgs e)
     {
         double now = _clock.Elapsed.TotalSeconds;
-        if (!FrameRate.Due(ref _drawn, now)) return; // the physics catch up on the next drawn frame
+        if (!EveryFrame && !FrameRate.Due(ref _drawn, now)) return; // the physics catch up on the next drawn frame
         double dt = Math.Min(now - _last, 0.05);
         _last = now;
         _accumulator += dt;

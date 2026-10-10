@@ -72,6 +72,8 @@ public static class Snapshots
         {
             settings.CompactItems.Clear();
             foreach (var w in new[] { Widgets.Media }) settings.CompactItems.Add(w);
+            // DYNAMICBAY_SNAPSHOT_FPS=60 measures with the frame rate setting of that value.
+            if (int.TryParse(Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_FPS"), out int fps)) Motion.FrameRate.Limit = fps;
             using var me = System.Diagnostics.Process.GetCurrentProcess();
             async Task Measure(string label, IslandMode mode, bool playing)
             {
@@ -91,12 +93,15 @@ public static class Snapshots
             await Measure("expanded, music playing", IslandMode.Expanded, true);
             // Open/close transitions: frame pacing while the island morphs (blur, scale, springs).
             var gaps = new List<double>();
+            var open = new List<double>();
+            var close = new List<double>();
+            List<double> current = open;
             double lastFrame = -1;
             bool recording = false;
             EventHandler onFrame = (_, e) =>
             {
                 double t = ((System.Windows.Media.RenderingEventArgs)e).RenderingTime.TotalMilliseconds;
-                if (recording && lastFrame > 0) gaps.Add(t - lastFrame);
+                if (recording && lastFrame > 0) { gaps.Add(t - lastFrame); current.Add(t - lastFrame); }
                 lastFrame = t;
             };
             System.Windows.Media.CompositionTarget.Rendering += onFrame;
@@ -107,6 +112,7 @@ public static class Snapshots
                 foreach (var mode in new[] { IslandMode.Expanded, IslandMode.Compact })
                 {
                     lastFrame = -1; recording = true;
+                    current = mode == IslandMode.Expanded ? open : close;
                     island.ForceState(mode);
                     await Task.Delay(650);
                     recording = false;
@@ -116,6 +122,8 @@ public static class Snapshots
             me.Refresh();
             System.Windows.Media.CompositionTarget.Rendering -= onFrame;
             gaps.Sort();
+            static string Stat(List<double> g) => $"{g.Count} frames, over 25 ms: {g.Count(x => x > 25)}, max {(g.Count > 0 ? g.Max() : 0):0} ms";
+            Log.Info($"PERF opening: {Stat(open)}; closing: {Stat(close)}");
             Log.Info($"PERF gen0 collections so far: {GC.CollectionCount(0)}, gen2: {GC.CollectionCount(2)}");
             Log.Info($"PERF transitions: {(me.TotalProcessorTime - t0).TotalSeconds / 14.4 * 100:0.0} % of one core, {gaps.Count} frames, "
                      + $"median {gaps[gaps.Count / 2]:0.0} ms, 95th {gaps[(int)(gaps.Count * 0.95)]:0.0} ms, max {gaps[^1]:0.0} ms, over 25 ms: {gaps.Count(g => g > 25)}");
@@ -227,7 +235,8 @@ public static class Snapshots
                 Seconds = 60,
             });
             await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-3-peek.png"), compact: true);
-            vm.Spotify.IsConnected = true; // shows like + device buttons next to the transport
+            vm.Spotify.IsConnected = true; // shows shuffle, like, repeat and device buttons next to the transport
+            vm.Spotify.Shuffle = true;
             vm.Tab = 0;
             await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-4-home.png"), compact: true);
             vm.Calendar.SelectDayCommand.Execute(vm.Calendar.Week.First(d => d.Date == DateTime.Today.AddDays(1)));

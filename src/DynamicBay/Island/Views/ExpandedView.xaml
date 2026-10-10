@@ -23,6 +23,11 @@
         <c:BoolPick x:Key="LikeBrush" True="{StaticResource B.Pink}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
         <c:BoolPick x:Key="OnBrush" True="{StaticResource B.Green}" False="{StaticResource B.Text2}" />
+        <c:BoolPick x:Key="LikeTip" True="{core:L De='Aus Lieblingssongs entfernen', En='Remove from Liked Songs'}" False="{core:L De='Zu Lieblingssongs hinzufügen', En='Save to Liked Songs'}" />
+        <c:BoolPick x:Key="ShuffleTip" True="{core:L De='Zufallswiedergabe aus', En='Shuffle off'}" False="{core:L De='Zufallswiedergabe an', En='Shuffle on'}" />
+        <c:RepeatPick x:Key="RepeatGlyph" Off="{StaticResource Icon.Repeat}" Context="{StaticResource Icon.Repeat}" Track="{StaticResource Icon.RepeatOne}" />
+        <c:RepeatPick x:Key="RepeatBrush" Off="{StaticResource B.Text2}" Context="{StaticResource B.Green}" Track="{StaticResource B.Green}" />
+        <c:RepeatPick x:Key="RepeatTip" Off="{core:L De='Wiederholen: aus', En='Repeat: off'}" Context="{core:L De='Wiederholen: Playlist oder Album', En='Repeat: playlist or album'}" Track="{core:L De='Wiederholen: dieser Song', En='Repeat: this song'}" />
         <c:BoolPick x:Key="PinBrush" True="{StaticResource B.Blue}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="HideQuitTip" True="{core:L De='DynamicBay beenden', En='Quit DynamicBay'}" False="{core:L De='Ausblenden (mit Alt: Beenden)', En='Hide (with Alt: quit)'}" />
         <c:BoolPick x:Key="MicBrush" True="{StaticResource B.Orange}" False="{StaticResource B.Text2}" />
@@ -299,10 +304,13 @@
                                             </EventTrigger>
                                         </Grid.Triggers>
                                     </Grid>
-                                    <DockPanel Margin="0,2,0,0">
-                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Numeric}" FontSize="10" FontWeight="Medium" Foreground="{StaticResource B.Text3}" Text="{Binding Media.RemainingText}" />
-                                        <TextBlock Style="{StaticResource T.Numeric}" FontSize="10" FontWeight="Medium" Foreground="{StaticResource B.Text3}" Text="{Binding Media.PositionText}" />
-                                    </DockPanel>
+                                    <Grid Margin="0,2,0,0">
+                                        <TextBlock HorizontalAlignment="Right" Style="{StaticResource T.Numeric}" FontSize="10" FontWeight="Medium" Foreground="{StaticResource B.Text3}" Text="{Binding Media.RemainingText}" />
+                                        <TextBlock HorizontalAlignment="Left" Style="{StaticResource T.Numeric}" FontSize="10" FontWeight="Medium" Foreground="{StaticResource B.Text3}" Text="{Binding Media.PositionText}" />
+                                        <!-- A Spotify action failed (no Premium, no active device): short note between the times -->
+                                        <TextBlock HorizontalAlignment="Center" FontSize="10" FontWeight="Medium" Foreground="{StaticResource B.Orange}" TextTrimming="CharacterEllipsis" Margin="34,0"
+                                                   Text="{Binding Spotify.PlayerError}" Visibility="{Binding Spotify.PlayerError, Converter={StaticResource Vis}}" />
+                                    </Grid>
                                 </StackPanel>
 
                                 <!-- Transport -->
@@ -315,11 +323,17 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <Button HorizontalAlignment="Left" Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.ToggleLikeCommand}"
-                                            Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}" ToolTip="{core:T Media.Like}">
-                                        <c:Icon Width="16" Height="16" Data="{Binding Spotify.IsLiked, Converter={StaticResource LikeGlyph}}"
-                                                Filled="{Binding Spotify.IsLiked}" Foreground="{Binding Spotify.IsLiked, Converter={StaticResource LikeBrush}}" />
-                                    </Button>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}">
+                                        <Button Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.ToggleShuffleCommand}"
+                                                ToolTip="{Binding Spotify.Shuffle, Converter={StaticResource ShuffleTip}}">
+                                            <c:Icon Width="16" Height="16" Data="{StaticResource Icon.Shuffle}" Foreground="{Binding Spotify.Shuffle, Converter={StaticResource OnBrush}}" />
+                                        </Button>
+                                        <Button Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.ToggleLikeCommand}"
+                                                ToolTip="{Binding Spotify.IsLiked, Converter={StaticResource LikeTip}}">
+                                            <c:Icon Width="16" Height="16" Data="{Binding Spotify.IsLiked, Converter={StaticResource LikeGlyph}}"
+                                                    Filled="{Binding Spotify.IsLiked}" Foreground="{Binding Spotify.IsLiked, Converter={StaticResource LikeBrush}}" />
+                                        </Button>
+                                    </StackPanel>
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center">
                                         <Button Style="{StaticResource Btn.Media}" Command="{Binding Media.PreviousCommand}">
                                             <c:Icon Data="{StaticResource Glyph.Previous}" Filled="True" Width="20" Height="20" />
@@ -331,10 +345,15 @@
                                             <c:Icon Data="{StaticResource Glyph.Next}" Filled="True" Width="20" Height="20" />
                                         </Button>
                                     </StackPanel>
-                                    <Button Grid.Column="4" HorizontalAlignment="Right" Style="{StaticResource Btn.Icon}" Click="Devices_Click"
-                                            Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}" ToolTip="{core:T Media.Devices}">
-                                        <c:Icon Data="{StaticResource Icon.Devices}" Width="16" Height="16" Foreground="{StaticResource B.Text2}" />
-                                    </Button>
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding Spotify.IsConnected, Converter={StaticResource Vis}}">
+                                        <Button Style="{StaticResource Btn.Icon}" Command="{Binding Spotify.CycleRepeatCommand}" ToolTip="{Binding Spotify.Repeat, Converter={StaticResource RepeatTip}}">
+                                            <c:Icon Width="16" Height="16" Data="{Binding Spotify.Repeat, Converter={StaticResource RepeatGlyph}}"
+                                                    Foreground="{Binding Spotify.Repeat, Converter={StaticResource RepeatBrush}}" />
+                                        </Button>
+                                        <Button Style="{StaticResource Btn.Icon}" Click="Devices_Click" ToolTip="{core:T Media.Devices}">
+                                            <c:Icon Data="{StaticResource Icon.Devices}" Width="16" Height="16" Foreground="{StaticResource B.Text2}" />
+                                        </Button>
+                                    </StackPanel>
                                 </Grid>
                             </Grid>
                         </Grid>

@@ -30,11 +30,12 @@ public partial class IslandWindow : Window
     private IntPtr _hwnd;
 
     // Morph springs (DIP) and window position springs (physical px)
-    private readonly SpringGroup _shapeAnim = new();
+    // Opening and closing always get every frame the display offers (the frame rate setting only limits the rest).
+    private readonly SpringGroup _shapeAnim = new() { EveryFrame = true };
     private readonly Spring _w, _h, _r;
     private readonly SpringGroup _moveAnim = new();
     private readonly Spring _x, _y;
-    private readonly SpringGroup _layerAnim = new();
+    private readonly SpringGroup _layerAnim = new() { EveryFrame = true };
     private readonly Dictionary<FrameworkElement, Spring> _layers = new();
 
     private IslandMode _mode = IslandMode.Idle;

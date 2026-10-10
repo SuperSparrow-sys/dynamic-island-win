@@ -59,6 +59,8 @@ public sealed partial class SpotifyService : ObservableObject
     [ObservableProperty] private bool _isLiked;
     [ObservableProperty] private bool _shuffle;
     [ObservableProperty] private string _repeat = "off"; // off, context, track
+    /// <summary>Short message in the player when a Spotify action failed (cleared after a few seconds).</summary>
+    [ObservableProperty] private string _playerError = "";
     [ObservableProperty] private string _deviceName = "";
     [ObservableProperty] private int _volume = 50;
     [ObservableProperty] private bool _supportsVolume;
@@ -265,6 +267,42 @@ public sealed partial class SpotifyService : ObservableObject
         catch { return null; }
     }
 
+    /// <summary>A write request (like, shuffle, repeat): true on success; failures are logged and shown in the player.</summary>
+    private async Task<bool> SendActionAsync(HttpMethod method, string path)
+    {
+        if (!await EnsureTokenAsync()) { ShowPlayerError(Loc.German ? "Spotify ist nicht verbunden" : "Spotify is not connected"); return false; }
+        try
+        {
+            var req = new HttpRequestMessage(method, path);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+            var res = await _http.SendAsync(req);
+            if (res.IsSuccessStatusCode) return true;
+            var text = await res.Content.ReadAsStringAsync();
+            Log.Info($"Spotify {method} {path.Split('?')[0]} -> {(int)res.StatusCode} {text[..Math.Min(text.Length, 200)]}");
+            if (res.StatusCode == HttpStatusCode.Unauthorized) _accessToken = null;
+            ShowPlayerError(res.StatusCode switch
+            {
+                HttpStatusCode.Forbidden => Loc.German ? "Spotify erlaubt das nur mit Premium" : "Spotify allows this with Premium only",
+                HttpStatusCode.NotFound => Loc.German ? "Kein aktives Spotify-Gerät" : "No active Spotify device",
+                HttpStatusCode.Unauthorized => Loc.German ? "Spotify bitte neu verbinden" : "Please reconnect Spotify",
+                _ => (Loc.German ? "Spotify-Fehler " : "Spotify error ") + (int)res.StatusCode,
+            });
+        }
+        catch (Exception ex) { Log.Info($"Spotify {method} {path.Split('?')[0]} failed: {ex.Message}"); ShowPlayerError(Loc.German ? "Spotify nicht erreichbar" : "Spotify unreachable"); }
+        return false;
+    }
+
+    private System.Windows.Threading.DispatcherTimer? _errorTimer;
+
+    private void ShowPlayerError(string message)
+    {
+        PlayerError = message;
+        _errorTimer ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromSeconds(4), System.Windows.Threading.DispatcherPriority.Normal,
+            (_, _) => { PlayerError = ""; _errorTimer!.Stop(); }, System.Windows.Application.Current.Dispatcher);
+        _errorTimer.Stop();
+        _errorTimer.Start();
+    }
+
     private async Task LoadProfileAsync()
     {
         var me = await SendAsync(HttpMethod.Get, "me");
@@ -295,23 +333,27 @@ public sealed partial class SpotifyService : ObservableObject
     {
         if (_trackUri is null) await PollAsync();
         if (_trackUri is null) return;
-        IsLiked = !IsLiked;
-        await SendAsync(IsLiked ? HttpMethod.Put : HttpMethod.Delete, $"me/library?uris={Uri.EscapeDataString(_trackUri)}",
-            new { uris = new[] { _trackUri } });
+        // Saves the song in "Lieblingssongs" (Spotify's library endpoint since February 2026 takes URIs).
+        bool like = !IsLiked;
+        IsLiked = like;
+        if (!await SendActionAsync(like ? HttpMethod.Put : HttpMethod.Delete, $"me/library?uris={Uri.EscapeDataString(_trackUri)}"))
+            IsLiked = !like;
     }
 
     [RelayCommand]
     public async Task ToggleShuffle()
     {
-        Shuffle = !Shuffle;
-        await SendAsync(HttpMethod.Put, $"me/player/shuffle?state={(Shuffle ? "true" : "false")}");
+        bool on = !Shuffle;
+        Shuffle = on;
+        if (!await SendActionAsync(HttpMethod.Put, $"me/player/shuffle?state={(on ? "true" : "false")}")) Shuffle = !on;
     }
 
     [RelayCommand]
     public async Task CycleRepeat()
     {
+        string before = Repeat;
         Repeat = Repeat switch { "off" => "context", "context" => "track", _ => "off" };
-        await SendAsync(HttpMethod.Put, $"me/player/repeat?state={Repeat}");
+        if (!await SendActionAsync(HttpMethod.Put, $"me/player/repeat?state={Repeat}")) Repeat = before;
     }
 
     public async Task SetVolumeAsync(int percent)

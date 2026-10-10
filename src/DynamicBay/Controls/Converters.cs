@@ -96,6 +96,16 @@ public sealed class EqualsToBool : IValueConverter
     }
 }
 
+/// <summary>Picks a value for Spotify's repeat state ("off", "context", "track").</summary>
+public sealed class RepeatPick : IValueConverter
+{
+    public object? Off { get; set; }
+    public object? Context { get; set; }
+    public object? Track { get; set; }
+    public object? Convert(object value, Type t, object p, CultureInfo c) => value as string switch { "track" => Track, "context" => Context, _ => Off };
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => Binding.DoNothing;
+}
+
 /// <summary>Picks between two values: Converter={c:BoolPick True=..., False=...}</summary>
 public sealed class BoolPick : IValueConverter
 {
