@@ -23,7 +23,7 @@ public static class AudioEndpoints
         var list = new List<AudioEndpointInfo>();
         try
         {
-            var en = (IMMDeviceEnumerator)new MMDeviceEnumeratorCom();
+            var en = (IMMDeviceEnumerator)CreateEnumerator();
             foreach (var flow in new[] { AudioFlow.Output, AudioFlow.Input })
             {
                 en.EnumAudioEndpoints((int)flow, StateAll, out var coll);
@@ -71,7 +71,7 @@ public static class AudioEndpoints
     {
         try
         {
-            var en = (IMMDeviceEnumerator)new MMDeviceEnumeratorCom();
+            var en = (IMMDeviceEnumerator)CreateEnumerator();
             if (en.GetDefaultAudioEndpoint((int)flow, role, out var dev) != 0 || dev is null) return null;
             dev.GetId(out string id);
             return id;
@@ -96,7 +96,7 @@ public static class AudioEndpoints
     {
         try
         {
-            var en = (IMMDeviceEnumerator)new MMDeviceEnumeratorCom();
+            var en = (IMMDeviceEnumerator)CreateEnumerator();
             en.GetDevice(endpointId, out var dev);
             var ks = BtAudioControl(dev);
             if (ks is null) return false;
@@ -123,7 +123,7 @@ public static class AudioEndpoints
     /// <summary>The driver filter's device path: "...BTHENUM..." for Bluetooth audio, "...BTHHFENUM..." for its hands-free (call) part.</summary>
     public static string? KsDeviceIdOf(string endpointId)
     {
-        var en = (IMMDeviceEnumerator)new MMDeviceEnumeratorCom();
+        var en = (IMMDeviceEnumerator)CreateEnumerator();
         en.GetDevice(endpointId, out var dev);
         return KsDeviceId(dev);
     }
@@ -183,10 +183,15 @@ public static class AudioEndpoints
 
     private static readonly Guid KsPropSetBtAudio = new("7FA06C40-B8F6-4C7E-8556-E8C33A12E54D");
 
-    // ---------- Core Audio interop ----------
+    /// <summary>
+    /// The Core Audio device enumerator, created from its CLSID. Not with "new" on a [ComImport] class: several services
+    /// declare one for the same CLSID, the runtime then hands out the first one's wrapper type and the cast fails
+    /// (only in the published app, depending on which service starts first).
+    /// </summary>
+    private static object CreateEnumerator() =>
+        Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
 
-    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
-    private class MMDeviceEnumeratorCom { }
+    // ---------- Core Audio interop ----------
 
     [ComImport, Guid("870AF99C-171D-4F9E-AF0D-E63DF40C2BC9")]
     private class PolicyConfigClient { }

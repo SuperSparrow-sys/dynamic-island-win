@@ -162,7 +162,7 @@ public static class AppVolume
         if (key.Length < 3) return found;
         try
         {
-            var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorCom();
+            var enumerator = (IMMDeviceEnumerator)CreateEnumerator();
             if (enumerator.GetDefaultAudioEndpoint(0 /* render */, 1 /* multimedia */, out var device) != 0 || device is null) return found;
             var iid = typeof(IAudioSessionManager2).GUID;
             device.Activate(ref iid, 23, IntPtr.Zero, out var obj);
@@ -190,10 +190,15 @@ public static class AppVolume
         return found;
     }
 
-    // ---------- Core Audio interop ----------
+    /// <summary>
+    /// The Core Audio device enumerator, created from its CLSID. Not with "new" on a [ComImport] class: several services
+    /// declare one for the same CLSID, the runtime then hands out the first one's wrapper type and the cast fails
+    /// (only in the published app, depending on which service starts first).
+    /// </summary>
+    private static object CreateEnumerator() =>
+        Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
 
-    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
-    private class MMDeviceEnumeratorCom { }
+    // ---------- Core Audio interop ----------
 
     [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDeviceEnumerator

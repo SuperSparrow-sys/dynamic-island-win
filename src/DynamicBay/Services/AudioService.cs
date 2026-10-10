@@ -46,7 +46,7 @@ public sealed partial class AudioService : ObservableObject
         _started = true;
         if (_enumerator is null)
         {
-            try { _enumerator = (IMMDeviceEnumerator)new MMDeviceEnumeratorCom(); }
+            try { _enumerator = (IMMDeviceEnumerator)CreateEnumerator(); }
             catch (Exception ex) { Log.Error("Audio", ex); }
         }
         ReadMute();
@@ -208,13 +208,18 @@ public sealed partial class AudioService : ObservableObject
         MicInUse = micInUse; MicApp = app; MicMuted = micMuted; SpeakerMuted = speakerMuted;
     }
 
+    /// <summary>
+    /// The Core Audio device enumerator, created from its CLSID. Not with "new" on a [ComImport] class: several services
+    /// declare one for the same CLSID, the runtime then hands out the first one's wrapper type and the cast fails
+    /// (only in the published app, depending on which service starts first).
+    /// </summary>
+    private static object CreateEnumerator() =>
+        Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
+
     // ---------- Core Audio interop ----------
 
     private enum EDataFlow { Render = 0, Capture = 1 }
     private enum ERole { Console = 0, Multimedia = 1, Communications = 2 }
-
-    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
-    private class MMDeviceEnumeratorCom { }
 
     [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IMMDeviceEnumerator
