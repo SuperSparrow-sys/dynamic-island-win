@@ -20,6 +20,7 @@
             <c:BoolToVis x:Key="Vis" />
             <c:ExcludedLabel x:Key="ExcludedLabel" />
             <c:BoolToVis x:Key="NotVis" Invert="True" />
+            <c:BoolPick x:Key="MsKind" True="{core:L De='Firmen- oder Schulkonto', En='Work or school account'}" False="{core:L De='Privates Microsoft-Konto', En='Personal Microsoft account'}" />
             <Style TargetType="c:Icon">
                 <Setter Property="Foreground" Value="{DynamicResource S.Text}" />
                 <Setter Property="Width" Value="16" />
@@ -128,6 +129,15 @@
                                         <RadioButton Style="{StaticResource S.Segment}" Content="30" IsChecked="{Binding S.FrameRate, Converter={StaticResource EqBool}, ConverterParameter=30}" />
                                         <RadioButton Style="{StaticResource S.Segment}" Content="60" IsChecked="{Binding S.FrameRate, Converter={StaticResource EqBool}, ConverterParameter=60}" />
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Maximal', En='Maximum'}" IsChecked="{Binding S.FrameRate, Converter={StaticResource EqBool}, ConverterParameter=0}" />
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Uhr-Widget', En='Clock widget'}"
+                                            ToolTip="{core:L De='Ziffern oder ein Zifferblatt wie beim iPhone. Ein Klick auf die Uhr in der Insel wechselt ebenfalls.', En='Digits or a dial like on the iPhone. Clicking the clock in the island switches too.'}">
+                                <Border Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Ziffern', En='Digits'}" IsChecked="{Binding S.ClockAnalog, Converter={StaticResource EqBool}, ConverterParameter=False}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Zifferblatt', En='Dial'}" IsChecked="{Binding S.ClockAnalog, Converter={StaticResource EqBool}, ConverterParameter=True}" />
                                     </StackPanel>
                                 </Border>
                             </ContentControl>
@@ -734,6 +744,54 @@
                             </ContentControl>
                         </StackPanel>
                     </Border>
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Microsoft 365 (Outlook, Teams, To Do)', En='Microsoft 365 (Outlook, Teams, To Do)'}" />
+                    <Border Style="{StaticResource S.Card}" Padding="16,12">
+                        <StackPanel>
+                            <!-- not connected: setup -->
+                            <StackPanel Visibility="{Binding I.Microsoft.IsConnected, Converter={StaticResource NotVis}}">
+                                <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                           Text="{core:L De='Eine Anmeldung für Outlook-Kalender, Aufgaben (To Do) und Teams-Status. Geht mit Firmen- und privaten Konten. Einmalig nötig: eine eigene App-Kennung bei Microsoft (5 Minuten, siehe Anleitung).', En='One sign-in for Outlook calendar, tasks (To Do) and Teams status. Works with work and personal accounts. Needed once: your own app ID at Microsoft (5 minutes, see the guide).'}" />
+                                <WrapPanel Margin="0,0,0,10">
+                                    <Button Style="{StaticResource S.Button}" Margin="0,0,8,0" Click="OpenMicrosoftGuide_Click" Content="{core:L De='Anleitung', En='Guide'}" />
+                                    <Button Style="{StaticResource S.Button}" Click="OpenEntra_Click">
+                                        <StackPanel Orientation="Horizontal"><TextBlock Text="{core:L De='App-Registrierung öffnen', En='Open app registrations'}" /><c:Icon Data="{StaticResource Icon.External}" Width="13" Height="13" Margin="8,0,0,0" /></StackPanel>
+                                    </Button>
+                                </WrapPanel>
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Anwendungs-ID (Client-ID)', En='Application (client) ID'}" />
+                                <TextBox Style="{StaticResource S.TextBox}" Margin="0,2,0,8" Text="{Binding S.MicrosoftClientId, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap"
+                                           Text="{core:L De='Verzeichnis (so lassen: common = Firmen- und private Konten; bei einer App nur für deine Firma die Verzeichnis-ID eintragen)', En='Directory (keep: common = work and personal accounts; for an app for your company only, enter the directory ID)'}" />
+                                <TextBox Style="{StaticResource S.TextBox}" Margin="0,2,0,10" Text="{Binding S.MicrosoftTenant, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button Style="{StaticResource S.Button}" HorizontalAlignment="Left" Click="MicrosoftSignIn_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.LogIn}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Mit Microsoft anmelden', En='Sign in with Microsoft'}" /></StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <!-- connected -->
+                            <StackPanel Visibility="{Binding I.Microsoft.IsConnected, Converter={StaticResource Vis}}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Click="MicrosoftSignOut_Click" Content="{core:L De='Trennen', En='Disconnect'}" VerticalAlignment="Center" />
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource ST.Label}" Text="{Binding S.MicrosoftUser}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Style="{StaticResource ST.Desc}" Text="{Binding I.Microsoft.IsWorkAccount, Converter={StaticResource MsKind}}" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <DockPanel Margin="0,12,0,0" Visibility="{Binding I.Microsoft.IsWorkAccount, Converter={StaticResource Vis}}">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Click="MicrosoftPresence_Click" VerticalAlignment="Center"
+                                            Visibility="{Binding S.MicrosoftPresence, Converter={StaticResource NotVis}}" Content="{core:L De='Freischalten', En='Allow'}" />
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Teams-Status', En='Teams status'}" />
+                                        <TextBlock Style="{StaticResource ST.Desc}" TextWrapping="Wrap"
+                                                   Text="{core:L De='Für das Widget Teams-Status: Microsoft fragt einmal nach der Erlaubnis. Manche Firmen verlangen dafür eine Freigabe durch die IT.', En='For the Teams status widget: Microsoft asks for permission once. Some companies require approval by IT.'}" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <TextBlock Style="{StaticResource ST.Desc}" Margin="0,12,0,0" TextWrapping="Wrap"
+                                           Text="{core:L De='Die Widgets Aufgaben und Teams-Status fügst du unter Widgets und Module hinzu. Der Outlook-Kalender steht unten bei den Kalender-Konten.', En='Add the Tasks and Teams status widgets under Widgets and modules. The Outlook calendar is listed below with the calendar accounts.'}" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource ST.Desc}" Foreground="{DynamicResource S.Orange}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                       Text="{Binding I.Microsoft.Status}" Visibility="{Binding I.Microsoft.Status, Converter={StaticResource Vis}}" />
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Kalender-Konten', En='Calendar accounts'}" />
                     <Border Style="{StaticResource S.Card}" Padding="16,12">
                         <StackPanel>

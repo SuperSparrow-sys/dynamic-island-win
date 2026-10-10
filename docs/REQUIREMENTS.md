@@ -80,3 +80,10 @@ dann die optionale Zeiterfassung (Paket C).
 | # | Anforderung | Status |
 |---|---|---|
 | 46 | Zeiterfassung als Widget: Start/Stopp pro Projekt, CSV-Export | offen |
+
+### Paket D – Kontakte und Anrufe
+| # | Anforderung | Status |
+|---|---|---|
+| 47 | Kontakte-Widget: häufige Kontakte (Microsoft-Kontakte und Personen, mit denen man oft arbeitet) mit Knöpfen für Teams-Chat, Teams-Anruf und Telefon | offen |
+| 48 | Telefonanrufe über Smartphone-Link starten (tel:-Links gehen an das verknüpfte Handy) | offen |
+| 49 | Eingehende Anrufe (Smartphone-Link, Teams) als Einblendung in der Insel; ein Telefonat zählt wie ein Meeting (still) | offen |

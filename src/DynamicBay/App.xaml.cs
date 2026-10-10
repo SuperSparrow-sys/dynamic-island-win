@@ -103,7 +103,20 @@ public partial class App : Application
         var spotify = new SpotifyService(_settings);
         _taildrop = new TaildropService(_settings);
 
-        _vm = new IslandViewModel(_settings, media, clipboard, shelf, notifications, timer, calendar, battery, spotify) { Bluetooth = bluetooth };
+        var microsoft = new Services.M365.MicrosoftAccount(_settings);
+        calendar.Microsoft = microsoft;
+        _vm = new IslandViewModel(_settings, media, clipboard, shelf, notifications, timer, calendar, battery, spotify)
+        {
+            Bluetooth = bluetooth, Microsoft = microsoft,
+            Todo = new Services.M365.TodoService(microsoft), Presence = new Services.M365.PresenceService(microsoft),
+        };
+        // First sign-in: the Outlook calendar joins the calendar card right away.
+        microsoft.Connected += () =>
+        {
+            if (!_settings.CalendarAccounts.Any(a => a.Kind == CalendarKind.Microsoft))
+                _settings.CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Microsoft, Name = "Outlook" });
+            _ = calendar.RefreshAsync();
+        };
         _islands = new IslandManager(_vm);
         _vm.OpenSettingsRequested += ShowSettings;
         _vm.QuitRequested += Quit;
@@ -165,6 +178,8 @@ public partial class App : Application
         await Next();
         _vm.Claude.SetEnabled(_settings.ClaudeEnabled);
         _taildrop.SetEnabled(_settings.TaildropEnabled);
+        _vm.Todo!.Start();
+        _vm.Presence!.Start();
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.TaildropEnabled)) _taildrop.SetEnabled(_settings.TaildropEnabled); };
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) _vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
         await spotify.InitAsync();

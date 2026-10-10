@@ -4,6 +4,7 @@
              xmlns:c="clr-namespace:DynamicBay.Controls"
              xmlns:core="clr-namespace:DynamicBay.Core"
              xmlns:s="clr-namespace:DynamicBay.Services"
+             xmlns:ms="clr-namespace:DynamicBay.Services.M365"
              xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <UserControl.Resources>
         <c:BoolToVis x:Key="Vis" />
@@ -23,6 +24,11 @@
         <c:BoolPick x:Key="LikeBrush" True="{StaticResource B.Pink}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
         <c:BoolPick x:Key="OnBrush" True="{StaticResource B.Green}" False="{StaticResource B.Text2}" />
+        <c:BoolPick x:Key="OverdueBrush" True="{StaticResource B.Red}" False="{StaticResource B.Text2}" />
+        <c:BoolPick x:Key="DoneOpacity"><c:BoolPick.True><sys:Double>0.4</sys:Double></c:BoolPick.True><c:BoolPick.False><sys:Double>1</sys:Double></c:BoolPick.False></c:BoolPick>
+        <c:BoolPick x:Key="TodoEmpty" True="{core:L De='Keine offenen Aufgaben', En='No open tasks'}" False="{core:L De='In den Einstellungen mit Microsoft verbinden (Timer und Kalender)', En='Connect Microsoft in the settings (Timer and calendar)'}" />
+        <c:SameToVis x:Key="SameVis" />
+        <c:TextOr x:Key="TeamsHint" Fallback="{core:L De='Mit einem Firmen- oder Schulkonto bei Microsoft verbinden (Einstellungen → Timer und Kalender)', En='Connect a work or school Microsoft account (Settings → Timer and calendar)'}" />
         <c:BoolPick x:Key="LikeTip" True="{core:L De='Aus Lieblingssongs entfernen', En='Remove from Liked Songs'}" False="{core:L De='Zu Lieblingssongs hinzufügen', En='Save to Liked Songs'}" />
         <c:BoolPick x:Key="DimIfFalse"><c:BoolPick.True><sys:Double>1</sys:Double></c:BoolPick.True><c:BoolPick.False><sys:Double>0.35</sys:Double></c:BoolPick.False></c:BoolPick>
         <c:BoolPick x:Key="ShuffleTip" True="{core:L De='Zufallswiedergabe aus', En='Shuffle off'}" False="{core:L De='Zufallswiedergabe an', En='Shuffle on'}" />
@@ -524,6 +530,91 @@
 
             <!-- Optional widgets (shown when enabled in settings; laid out in code) -->
             <Grid x:Name="ExtraCards" Visibility="Collapsed">
+                <!-- Microsoft To Do: open tasks, overdue and today's first; tick them off here -->
+                <Border x:Name="TodoCard" Style="{StaticResource Card}" Padding="10">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Todo.OpenAppCommand}" ToolTip="Microsoft To Do">
+                                <c:Icon Data="{StaticResource Icon.External}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                            </Button>
+                            <StackPanel Orientation="Horizontal">
+                                <c:Icon Data="{StaticResource Icon.Check}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" Text="{core:L De='Aufgaben', En='Tasks'}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Grid Margin="0,6,0,0">
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding Todo.IsEmpty, Converter={StaticResource Vis}}"
+                                       Text="{Binding Microsoft.IsConnected, Converter={StaticResource TodoEmpty}}" />
+                            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding Todo.Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type ms:TodoItem}">
+                                            <DockPanel Margin="0,0,0,6">
+                                                <Button DockPanel.Dock="Left" Style="{StaticResource Btn.Icon}" Width="18" Height="18" Margin="0,0,7,0" VerticalAlignment="Top"
+                                                        Command="{Binding DataContext.Todo.CompleteCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                                        ToolTip="{core:L De='Erledigt', En='Done'}">
+                                                    <Grid>
+                                                        <Border Width="14" Height="14" CornerRadius="7" BorderThickness="1.5" BorderBrush="{StaticResource B.Text2}" />
+                                                        <c:Icon Data="{StaticResource Icon.Check}" Width="10" Height="10" StrokeWidth="3" Foreground="{StaticResource B.Blue}"
+                                                                Visibility="{Binding Done, Converter={StaticResource Vis}}" />
+                                                    </Grid>
+                                                </Button>
+                                                <StackPanel>
+                                                    <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" TextTrimming="CharacterEllipsis" Text="{Binding Title}"
+                                                               Opacity="{Binding Done, Converter={StaticResource DoneOpacity}}" />
+                                                    <TextBlock Style="{StaticResource T.Caption}" FontSize="10" Text="{Binding DueText}"
+                                                               Foreground="{Binding Overdue, Converter={StaticResource OverdueBrush}}"
+                                                               Visibility="{Binding DueText, Converter={StaticResource Vis}}" />
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
+                <!-- Teams status: a narrow column of coloured dots; the current one has a ring, click one to switch -->
+                <Border x:Name="TeamsCard" Style="{StaticResource Card}" Padding="6,10" ToolTip="{Binding Presence.Status, Converter={StaticResource TeamsHint}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" IsEnabled="{Binding Presence.IsKnown}">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.35" /></Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <ItemsControl ItemsSource="{x:Static ms:PresenceService.Choices}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type ms:PresenceChoice}">
+                                    <Button Style="{StaticResource Btn.Icon}" Width="24" Height="24" Margin="0" ToolTip="{Binding Label}"
+                                            Command="{Binding DataContext.Presence.SetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding Availability}">
+                                        <Grid>
+                                            <!-- ring around the current status -->
+                                            <Ellipse Width="21" Height="21" Stroke="{StaticResource B.Text}" StrokeThickness="1.5">
+                                                <Ellipse.Visibility>
+                                                    <MultiBinding Converter="{StaticResource SameVis}">
+                                                        <Binding Path="Availability" />
+                                                        <Binding Path="DataContext.Presence.Selected" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                    </MultiBinding>
+                                                </Ellipse.Visibility>
+                                            </Ellipse>
+                                            <Ellipse Width="13" Height="13" Fill="{Binding Brush}" Stroke="{Binding Brush}" StrokeThickness="2"
+                                                     Visibility="{Binding Hollow, Converter={StaticResource NotVis}}" />
+                                            <Ellipse Width="13" Height="13" Stroke="{Binding Brush}" StrokeThickness="2.5"
+                                                     Visibility="{Binding Hollow, Converter={StaticResource Vis}}" />
+                                            <!-- do not disturb: white bar, automatic: small arrow -->
+                                            <Rectangle Width="7" Height="2" RadiusX="1" RadiusY="1" Fill="White" Visibility="{Binding Bar, Converter={StaticResource Vis}}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
                 <!-- Devices: this PC and connected Bluetooth devices with their battery, like the iPhone battery widget -->
                 <Border x:Name="DevicesCard" Style="{StaticResource Card}" Padding="12,10">
                     <DockPanel>
@@ -567,9 +658,13 @@
                 </Border>
 
                 <!-- Clock -->
-                <Border x:Name="ClockCard" Style="{StaticResource Card}" Padding="10">
-                    <!-- Scales down in narrow slots instead of clipping the digits -->
-                    <Viewbox StretchDirection="DownOnly">
+                <Border x:Name="ClockCard" Style="{StaticResource Card}" Padding="10" Cursor="Hand" MouseLeftButtonUp="ClockCard_Click"
+                        ToolTip="{core:L De='Klicken: Ziffern oder Zifferblatt', En='Click: digits or dial'}">
+                    <Grid>
+                    <!-- Dial like the iPhone Clock icon -->
+                    <c:AnalogClock Margin="4" Visibility="{Binding Settings.ClockAnalog, Converter={StaticResource Vis}}" />
+                    <!-- Digits: scale down in narrow slots instead of clipping -->
+                    <Viewbox StretchDirection="DownOnly" Visibility="{Binding Settings.ClockAnalog, Converter={StaticResource NotVis}}">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                         <TextBlock Style="{StaticResource T.Caption}" HorizontalAlignment="Center" Foreground="{StaticResource B.Orange}" Text="{Binding Clock.Weekday}" />
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,2,0,0">
@@ -582,6 +677,7 @@
                         <TextBlock Style="{StaticResource T.Caption}" HorizontalAlignment="Center" Text="{Binding Clock.Date}" />
                     </StackPanel>
                     </Viewbox>
+                    </Grid>
                 </Border>
 
                 <!-- System -->

@@ -92,8 +92,25 @@ public sealed class EqualsToBool : IValueConverter
         if (v is not true) return Binding.DoNothing;
         if (t.IsEnum) return Enum.Parse(t, p.ToString()!);
         if (t == typeof(int)) return int.Parse(p.ToString()!, CultureInfo.InvariantCulture);
+        if (t == typeof(bool)) return bool.Parse(p.ToString()!);
         return p;
     }
+}
+
+/// <summary>Visible when both bound values are equal (strings, null counts as "").</summary>
+public sealed class SameToVis : IMultiValueConverter
+{
+    public object Convert(object[] values, Type t, object p, CultureInfo c) =>
+        values.Length == 2 && string.Equals(values[0]?.ToString() ?? "", values[1]?.ToString() ?? "", StringComparison.Ordinal) ? Visibility.Visible : Visibility.Collapsed;
+    public object[] ConvertBack(object v, Type[] t, object p, CultureInfo c) => throw new NotSupportedException();
+}
+
+/// <summary>The bound text, or <see cref="Fallback"/> when it is empty.</summary>
+public sealed class TextOr : IValueConverter
+{
+    public string Fallback { get; set; } = "";
+    public object Convert(object value, Type t, object p, CultureInfo c) => value is string { Length: > 0 } s ? s : Fallback;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => Binding.DoNothing;
 }
 
 /// <summary>Picks a value for Spotify's repeat state ("off", "context", "track").</summary>

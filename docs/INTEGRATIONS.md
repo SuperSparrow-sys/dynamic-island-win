@@ -71,3 +71,36 @@ Screenshot-Ordner aller OneDrive-Konten werden automatisch überwacht.
   (Titel, Projekt, Status, Remote-Link – keine Zugangsdaten); die Insel zeigt dann die Sitzungen aller PCs.
 - Chats aus Claude Desktop/claude.ai werden nicht gelesen: Dafür gibt es keine öffentliche Schnittstelle.
 - Das ganze Modul ist mit einem Schalter abschaltbar.
+
+## Microsoft 365 (Outlook, Teams, To Do)
+
+Eine Anmeldung für den Outlook-Kalender (mit Teams-Links für den Beitreten-Knopf), die Aufgaben aus Microsoft To Do,
+den Teams-Status und die häufigen Kontakte. Geht mit Firmen- und Schulkonten und mit privaten Microsoft-Konten.
+
+Microsoft verlangt dafür eine eigene App-Kennung (wie bei Spotify). Einmalig, etwa fünf Minuten:
+
+1. [entra.microsoft.com](https://entra.microsoft.com) öffnen und mit dem Konto anmelden, das du in DynamicBay nutzen
+   willst (bevorzugt das Firmenkonto). Links: **App-Registrierungen** → **Neue Registrierung**.
+2. **Name:** `DynamicBay`.
+3. **Unterstützte Kontotypen:** „Konten in einem beliebigen Organisationsverzeichnis … und persönliche
+   Microsoft-Konten“. Dann funktionieren Firmen- und private Konten mit derselben Kennung.
+4. **Umleitungs-URI:** Plattform **Öffentlicher Client/nativ (mobil und Desktop)**, Adresse `http://localhost`.
+5. **Registrieren** klicken und die **Anwendungs-ID (Client-ID)** kopieren.
+6. In DynamicBay: Einstellungen → Timer und Kalender → Microsoft 365 → Anwendungs-ID einfügen →
+   **Mit Microsoft anmelden**. Im Browser das Konto wählen und zustimmen.
+
+Danach erscheint der Outlook-Kalender in der Kalender-Karte. Die Widgets **Aufgaben** und **Teams-Status** fügst du
+unter Widgets und Module hinzu. Den Teams-Status musst du einmal extra freischalten (Knopf „Freischalten“), weil
+Microsoft dafür eine eigene Erlaubnis abfragt.
+
+**Firmenkonto:**
+- Manche Firmen erlauben es nicht, selbst Apps zu registrieren, oder lassen fremde Apps nur nach Freigabe auf
+  Kalender und Aufgaben zugreifen. Dann zeigt Microsoft bei der Anmeldung „Genehmigung erforderlich“. Die IT kann die
+  App freigeben oder selbst registrieren und dir die Anwendungs-ID geben.
+- Ist die App nur für deine Firma registriert („Nur Konten in diesem Organisationsverzeichnis“), trag unter
+  „Verzeichnis“ die Verzeichnis-ID (Mandanten-ID) statt `common` ein.
+
+**Berechtigungen** (Microsoft Graph, delegiert): `User.Read`, `Calendars.Read`, `Tasks.ReadWrite`, `People.Read`,
+`Contacts.Read`, `offline_access`, für den Teams-Status zusätzlich `Presence.ReadWrite`. DynamicBay liest Termine,
+Aufgaben und Kontakte nur, schreibt nur das Abhaken von Aufgaben und den eigenen Status. Die Anmeldung wird
+verschlüsselt auf diesem PC gespeichert; „Trennen“ löscht sie.

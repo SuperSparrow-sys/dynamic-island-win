@@ -83,6 +83,9 @@ public sealed partial class IslandViewModel : ObservableObject
     public Services.Scripting.ScriptWidgetsService Scripts { get; }
     /// <summary>Connected Bluetooth devices for the "Geräte" widget (set by the app right after construction).</summary>
     public BluetoothService? Bluetooth { get; set; }
+    public Services.M365.MicrosoftAccount? Microsoft { get; set; }
+    public Services.M365.TodoService? Todo { get; set; }
+    public Services.M365.PresenceService? Presence { get; set; }
     [ObservableProperty] private bool _showMuted;
     [ObservableProperty] private bool _showMic;
     [ObservableProperty] private bool _showCamera;

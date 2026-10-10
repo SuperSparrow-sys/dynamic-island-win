@@ -281,6 +281,16 @@ public static class Snapshots
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8-widgets.png"), compact: true);
                 settings.AppIcons = AppIconStyle.Dark;
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8b-widgets-dark.png"), compact: true);
+                // Office widgets: Microsoft To Do and the Teams status.
+                if (vm.Todo is not null && vm.Presence is not null)
+                {
+                    vm.Todo.LoadDemo();
+                    vm.Presence.LoadDemo();
+                    settings.HomeWidgets.Clear();
+                    settings.ClockAnalog = true;
+                    foreach (var w in new[] { Widgets.Calendar, Widgets.Todo, Widgets.Clock, Widgets.Teams }) settings.HomeWidgets.Add(w);
+                    await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8c-office.png"), compact: true);
+                }
                 settings.AppIcons = AppIconStyle.Mono;
                 await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-9-compact-clock.png"), compact: true);
 

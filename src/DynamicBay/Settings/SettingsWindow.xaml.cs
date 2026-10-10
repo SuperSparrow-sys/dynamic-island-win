@@ -124,6 +124,8 @@ public partial class SettingsWindow : Window
         (Widgets.Claude, "Icon.Sparkles", "Claude", "Claude", "Deine Sitzungen und ob Claude gerade arbeitet", "Your sessions and whether Claude is working"),
         (Widgets.Devices, "Icon.Bluetooth", "Geräte", "Devices", "Akkustand von PC, Kopfhörern, Tastatur und Maus", "Battery of this PC, headphones, keyboard and mouse"),
         (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
+        (Widgets.Todo, "Icon.Check", "Aufgaben", "Tasks", "Microsoft To Do: offene Aufgaben abhaken", "Microsoft To Do: tick off open tasks"),
+        (Widgets.Teams, "Icon.User", "Teams-Status", "Teams status", "Eigenen Teams-Status sehen und umschalten", "See and change your Teams status"),
     };
 
     private static (string id, string icon, string de, string en)[] CompactInfo => new[]
@@ -391,6 +393,35 @@ public partial class SettingsWindow : Window
         UpdateTaildropFolderText();
     }
 
+    // ---- Microsoft 365 ----
+
+    private async void MicrosoftSignIn_Click(object sender, RoutedEventArgs e)
+    {
+        if (_ctx.I.Microsoft is { IsBusy: false } ms) await ms.SignInAsync(withPresence: _ctx.S.MicrosoftPresence);
+    }
+
+    private async void MicrosoftPresence_Click(object sender, RoutedEventArgs e)
+    {
+        if (_ctx.I.Microsoft is { IsBusy: false } ms) await ms.SignInAsync(withPresence: true);
+    }
+
+    private void MicrosoftSignOut_Click(object sender, RoutedEventArgs e)
+    {
+        _ctx.I.Microsoft?.SignOut();
+        foreach (var a in _ctx.S.CalendarAccounts.Where(a => a.Kind == CalendarKind.Microsoft).ToList()) _ctx.S.CalendarAccounts.Remove(a);
+    }
+
+    private void OpenEntra_Click(object sender, RoutedEventArgs e) =>
+        OpenUrl("https://entra.microsoft.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade/quickStartType~/null/sourceType/Microsoft_AAD_IAM");
+
+    private void OpenMicrosoftGuide_Click(object sender, RoutedEventArgs e) =>
+        OpenUrl("https://github.com/SuperSparrow-sys/dynamic-island-win/blob/main/docs/INTEGRATIONS.md#microsoft-365-outlook-teams-to-do");
+
+    private static void OpenUrl(string url)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+    }
+
     private async void PickClaudeShare_Click(object sender, RoutedEventArgs e)
     {
         var targets = await CloudTargets.GetAsync();
@@ -484,8 +515,8 @@ public partial class SettingsWindow : Window
         foreach (var a in _ctx.S.CalendarAccounts)
         {
             var account = a;
-            string kind = a.Kind switch { CalendarKind.ICloud => IsICloud(a.Url) ? "iCloud" : "CalDAV", CalendarKind.Google => "Google", _ => "ICS" };
-            string icon = a.Kind switch { CalendarKind.ICloud => "Icon.Cloud", CalendarKind.Google => "Icon.User", _ => "Icon.Link" };
+            string kind = a.Kind switch { CalendarKind.ICloud => IsICloud(a.Url) ? "iCloud" : "CalDAV", CalendarKind.Google => "Google", CalendarKind.Microsoft => "Microsoft", _ => "ICS" };
+            string icon = a.Kind switch { CalendarKind.ICloud => "Icon.Cloud", CalendarKind.Google => "Icon.User", CalendarKind.Microsoft => "Icon.Mail", _ => "Icon.Link" };
             string status = _ctx.I.Calendar.StatusOf(a);
             var controls = new StackPanel { Orientation = Orientation.Horizontal };
             var sw = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = a.Enabled, Margin = new Thickness(0, 0, 10, 0) };

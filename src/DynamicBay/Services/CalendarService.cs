@@ -106,6 +106,9 @@ public sealed partial class CalendarService : ObservableObject
 
     public event Action<CalendarEvent>? EventStartingSoon;
 
+    /// <summary>The Microsoft sign-in, for Outlook calendars (set by the app).</summary>
+    public M365.MicrosoftAccount? Microsoft { get; set; }
+
     [RelayCommand]
     private void Join(CalendarEvent? ev)
     {
@@ -263,6 +266,13 @@ public sealed partial class CalendarService : ObservableObject
                 var list = await client.FetchAsync(from, to, a.Hidden);
                 _calendarsOf[a.Id] = client.Calendars.Select(c => new CalendarInfo(c.id, c.name, c.color)).ToList();
                 if (client.RefreshToken is not null) SecretStore.Set($"cal:{a.Id}:refresh", client.RefreshToken);
+                return list;
+            }
+            case CalendarKind.Microsoft:
+            {
+                if (Microsoft is null) return new();
+                var (list, calendars) = await M365.OutlookCalendar.FetchAsync(Microsoft, from, to, a.Hidden);
+                _calendarsOf[a.Id] = calendars;
                 return list;
             }
         }

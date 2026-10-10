@@ -20,7 +20,7 @@ public partial class ExpandedView : UserControl
     {
         InitializeComponent();
         // The optional cards live in the home grid too; they're shown/positioned by LayoutHome.
-        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard })
+        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, TodoCard, TeamsCard })
         {
             ExtraCards.Children.Remove(card);
             HomeGrid.Children.Add(card);
@@ -36,6 +36,8 @@ public partial class ExpandedView : UserControl
             [Core.Widgets.Messenger] = MessengerCard,
             [Core.Widgets.Claude] = ClaudeCard,
             [Core.Widgets.Devices] = DevicesCard,
+            [Core.Widgets.Todo] = TodoCard,
+            [Core.Widgets.Teams] = TeamsCard,
         };
         DataContextChanged += (_, _) =>
         {
@@ -50,6 +52,7 @@ public partial class ExpandedView : UserControl
             Vm?.System.SetActive(IsVisible && _widgets[Core.Widgets.System].Visibility == Visibility.Visible);
             Vm?.Spotify.SetPanelOpen(IsVisible);
             Vm?.Media.SetPanelOpen(IsVisible);
+            if (IsVisible) { Vm?.Todo?.PanelOpened(); _ = Vm?.Presence?.RefreshAsync(); }
             if (IsVisible) Vm?.Shelf.PruneMissing();
         };
         HomeScroll.IsVisibleChanged += (_, _) => Dispatcher.BeginInvoke(FitHomeToViewport, System.Windows.Threading.DispatcherPriority.Loaded);
@@ -96,7 +99,7 @@ public partial class ExpandedView : UserControl
         if (enabled.Count == 0) return;
 
         double Weight(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 2.15 : 1)
-            : id switch { "media" => 2.15, "messenger" => 1.6, "claude" => 1.6, "shortcuts" => 1.3, _ => 1 };
+            : id switch { "media" => 2.15, "messenger" => 1.6, "claude" => 1.6, "shortcuts" => 1.3, "teams" => 0.3, _ => 1 };
 
         if (!_vertical)
         {
@@ -160,11 +163,11 @@ public partial class ExpandedView : UserControl
         };
     }
 
-    private bool IsWide(string id) => id is "media" or "messenger" or "claude" || ScriptOf(id)?.Size == Core.ScriptSize.Large;
+    private bool IsWide(string id) => id is "media" or "messenger" or "claude" or "todo" || ScriptOf(id)?.Size == Core.ScriptSize.Large;
 
     private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id switch
     {
-        "media" => 300, "messenger" or "claude" => 230, "devices" => 220, "shortcuts" => 170, "calendar" => 160, _ => 150,
+        "media" => 300, "messenger" or "claude" or "todo" => 230, "teams" => 52, "devices" => 220, "shortcuts" => 170, "calendar" => 160, _ => 150,
     };
 
     // ---- script widgets ----
@@ -428,6 +431,13 @@ public partial class ExpandedView : UserControl
             Core.Log.Error("OCR", ex);
             ShowToast(Core.Loc.German ? "Texterkennung fehlgeschlagen" : "Text recognition failed");
         }
+    }
+
+    /// <summary>The clock card switches between digits and the dial on a click.</summary>
+    private void ClockCard_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (Vm?.Settings is { } s) s.ClockAnalog = !s.ClockAnalog;
+        e.Handled = true;
     }
 
     /// <summary>Opens Explorer where the file lies, with the file selected (shelf files, saved clipboard pictures).</summary>

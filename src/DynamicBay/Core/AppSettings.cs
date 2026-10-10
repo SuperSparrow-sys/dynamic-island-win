@@ -14,8 +14,8 @@ public enum IdleStyle { Bar, Clock, Hidden }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices";
-    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices };
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams };
     public const string Battery = "battery";
     public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic };
     /// <summary>Home widget ids of user scripts: "script:{id}".</summary>
@@ -23,7 +23,7 @@ public static class Widgets
 }
 public enum DisplayMode { Single, Mirror }
 public enum AppIconStyle { Mono, Dark, Color, Original }
-public enum CalendarKind { Ics, ICloud, Google }
+public enum CalendarKind { Ics, ICloud, Google, Microsoft }
 
 public enum ScriptSize { Small, Large }
 
@@ -77,6 +77,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private double _scale = 1.0;
     [ObservableProperty] private double _animationSpeed = 1.0;
     [ObservableProperty] private bool _shadow = true;
+    /// <summary>Clock widget as a dial (like the iPhone Clock icon) instead of digits.</summary>
+    [ObservableProperty] private bool _clockAnalog;
     /// <summary>Off (default): the island draws in software - much less RAM and CPU for its transparent window.</summary>
     [ObservableProperty] private bool _gpuRendering;
     [ObservableProperty] private IdleStyle _idle = IdleStyle.Bar;
@@ -250,6 +252,14 @@ public sealed partial class AppSettings : ObservableObject
 
     // Taildrop: files from other devices via Tailscale (see TaildropService). Folder "" = leave them in Downloads.
     [ObservableProperty] private bool _taildropEnabled = true;
+
+    // Microsoft 365 (MicrosoftAccount): own app registration; tenant "common" = work and personal accounts.
+    [ObservableProperty] private string _microsoftClientId = "";
+    [ObservableProperty] private string _microsoftTenant = "common";
+    [ObservableProperty] private string _microsoftUser = "";
+    [ObservableProperty] private bool _microsoftWorkAccount;
+    /// <summary>The Teams status permission was granted (asked for separately).</summary>
+    [ObservableProperty] private bool _microsoftPresence;
     [ObservableProperty] private string _taildropFolder = "";
 
     // Notifications
