@@ -780,10 +780,10 @@
                                                     <TextBlock Style="{StaticResource T.Base}" FontSize="10" Margin="0,4,0,0" TextAlignment="Center"
                                                                TextWrapping="Wrap" MaxHeight="26" Text="{Binding Name}" />
                                                 </StackPanel>
-                                                <Button x:Name="Cloud" Style="{StaticResource TileButton}" Width="18" Height="18" Margin="2,2,0,0"
-                                                        HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Hidden" Click="CloudSave_Click"
-                                                        ToolTip="{core:T Cloud.SaveTo}">
-                                                    <c:Icon Data="{StaticResource Icon.CloudUpload}" Width="10" Height="10" />
+                                                <Button x:Name="Folder" Style="{StaticResource TileButton}" Width="18" Height="18" Margin="2,2,0,0"
+                                                        HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="Hidden" Click="ShowInFolder_Click"
+                                                        ToolTip="{core:L De='Im Ordner zeigen', En='Show in folder'}">
+                                                    <c:Icon Data="{StaticResource Icon.FolderOpen}" Width="10" Height="10" />
                                                 </Button>
                                                 <Button x:Name="Remove" Style="{StaticResource TileButton.Danger}" Width="18" Height="18" Margin="0,2,2,0"
                                                         HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Hidden"
@@ -796,7 +796,7 @@
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter TargetName="Hover" Property="Background" Value="{StaticResource B.Fill}" />
                                                     <Setter TargetName="Remove" Property="Visibility" Value="Visible" />
-                                                    <Setter TargetName="Cloud" Property="Visibility" Value="Visible" />
+                                                    <Setter TargetName="Folder" Property="Visibility" Value="Visible" />
                                                 </Trigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>
@@ -848,8 +848,9 @@
                                                 </Border>
                                                 <!-- hover actions -->
                                                 <StackPanel x:Name="Actions" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,1,5" Visibility="Hidden">
-                                                    <Button Style="{StaticResource TileButton}" ToolTip="{core:T Cloud.SaveTo}" Click="CloudSave_Click">
-                                                        <c:Icon Data="{StaticResource Icon.CloudUpload}" Width="11" Height="11" />
+                                                    <Button Style="{StaticResource TileButton}" ToolTip="{core:L De='Im Ordner zeigen', En='Show in folder'}" Click="ShowInFolder_Click"
+                                                            Visibility="{Binding IsImage, Converter={StaticResource Vis}}">
+                                                        <c:Icon Data="{StaticResource Icon.FolderOpen}" Width="11" Height="11" />
                                                     </Button>
                                                     <Button Style="{StaticResource TileButton}" ToolTip="{core:T Clip.Pin}"
                                                             Command="{Binding DataContext.Clipboard.TogglePinCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">

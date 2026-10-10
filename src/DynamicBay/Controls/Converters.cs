@@ -102,7 +102,7 @@ public sealed class RepeatPick : IValueConverter
     public object? Off { get; set; }
     public object? Context { get; set; }
     public object? Track { get; set; }
-    public object? Convert(object value, Type t, object p, CultureInfo c) => value as string switch { "track" => Track, "context" => Context, _ => Off };
+    public object? Convert(object value, Type t, object p, CultureInfo c) => (value as string) switch { "track" => Track, "context" => Context, _ => Off };
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => Binding.DoNothing;
 }
 

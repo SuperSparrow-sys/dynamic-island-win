@@ -45,11 +45,18 @@ Windows unverändert. Die ursprünglichen Einstellungen werden beim Beenden wied
 **Nicht stören:** Die Insel bleibt klein und zeigt nur Musik und einen laufenden Timer. Mitteilungen sammeln sich
 still im Mitteilungs-Tab, eingeblendet wird nur das Ende eines Timers.
 
-## Cloud-Speicher
+## Ablage und Taildrop
 
-Ablage und Zwischenablage können Einträge direkt in **OneDrive** (alle angemeldeten Konten), **iCloud Drive**,
-**Google Drive** und **Dropbox** speichern – in den Unterordner `DynamicBay`. Voraussetzung ist der jeweilige
-Sync-Client. Screenshot-Ordner aller OneDrive-Konten werden automatisch überwacht.
+Jede Datei in der Ablage und jedes Bild in der Zwischenablage hat beim Überfahren einen Ordner-Knopf: Er öffnet den
+Explorer dort, wo die Datei liegt, und markiert sie.
+
+**Taildrop:** Dateien, die ein anderes Gerät mit Tailscale (iPhone, iPad, Android, Mac, Linux, Windows) an diesen PC
+schickt, erscheinen sofort als Einblendung und in der Ablage. Ein Klick öffnet die Ablage, die Datei lässt sich auch
+direkt aus der Einblendung herausziehen. Tailscale legt sie unter Windows immer in den Downloads ab; unter
+Einstellungen → Dateiablage → *Speichern in* verschiebt DynamicBay sie in einen eigenen Ordner. Dafür muss „Send Files“
+in der Tailscale-Verwaltung eingeschaltet sein.
+
+Screenshot-Ordner aller OneDrive-Konten werden automatisch überwacht.
 
 ## Claude
 

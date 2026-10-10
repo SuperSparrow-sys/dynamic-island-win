@@ -69,7 +69,8 @@ Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird ansch
 | `CalendarService` | ICS, iCloud (`CalDavClient`), Google (`GoogleCalendarClient`) |
 | `Scripting/ScriptWidgetsService` | Eigene Skript-Widgets: `ScriptEngine` (Jint-Sandbox, Scriptable-API aus `ScriptPrelude.js`), `ScriptRenderer` (Widget-Baum → WPF), `ScriptWidgetView`; siehe [SCRIPTS.md](SCRIPTS.md) |
 | `ClaudeService` | `~/.claude/projects` lesen, Hooks über `127.0.0.1:43822`, Remote-Control-Links, PC-Abgleich |
-| `CloudTargets` | erkannte Sync-Ordner (OneDrive, iCloud Drive, Google Drive, Dropbox) |
+| `CloudTargets` | erkannte Sync-Ordner (OneDrive, iCloud Drive, Google Drive, Dropbox), im Hintergrund gesucht |
+| `TaildropService` | Dateien per Tailscale-Taildrop: liest `tailscale debug watch-ipn`, ordnet die Dateien in den Downloads zu |
 | `ShortcutsService`, `AppIcons`, `InstalledApps` | Schnellstart, Simple-Icons-Palette (gzip, bei Bedarf geladen), Startmenü-Apps |
 | `Battery/Bluetooth/Timer/Clock/SystemService` | Akku, Geräte, Timer/Pomodoro, Uhr, CPU/RAM |
 

@@ -408,57 +408,24 @@ public partial class ExpandedView : UserControl
 
     // ---- save to cloud ----
 
-    private async void CloudSave_Click(object sender, RoutedEventArgs e)
+    /// <summary>Opens Explorer where the file lies, with the file selected (shelf files, saved clipboard pictures).</summary>
+    private void ShowInFolder_Click(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
-        var button = (FrameworkElement)sender;
-        var item = button.DataContext;
-        DragOutActive?.Invoke(true); // keep the island open while the folders are looked up and the menu is up
-        var targets = await CloudTargets.GetAsync();
-        var menu = new ContextMenu
+        string? path = ((FrameworkElement)sender).DataContext switch
         {
-            Style = (Style)FindResource("Island.Menu"),
-            PlacementTarget = button,
-            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+            ShelfItem s => s.Path,
+            ClipItem { IsImage: true } c => c.ImagePath,
+            _ => null,
         };
-        foreach (var t in targets)
-        {
-            var mi = new MenuItem
-            {
-                Header = t.Name,
-                Style = (Style)FindResource("Island.MenuItem"),
-                Icon = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.Cloud"), Width = 14, Height = 14 },
-            };
-            mi.Click += (_, _) => SaveTo(t, item);
-            menu.Items.Add(mi);
-        }
-        if (targets.Count == 0)
-            menu.Items.Add(new MenuItem { Header = Core.Loc.T("Cloud.None"), IsEnabled = false, Style = (Style)FindResource("Island.MenuItem") });
-        menu.Closed += (_, _) => DragOutActive?.Invoke(false);
-        menu.IsOpen = true;
-    }
-
-    private async void SaveTo(CloudTarget target, object? item)
-    {
+        if (string.IsNullOrEmpty(path)) return;
         try
         {
-            // Copying into a synced cloud folder can take a moment (big files, the sync client): off the UI thread.
-            Action? save = item switch
-            {
-                ShelfItem s when System.IO.File.Exists(s.Path) => () => CloudTargets.SaveFile(target, s.Path),
-                ClipItem { IsImage: true, ImagePath: not null } c => () => CloudTargets.SaveFile(target, c.ImagePath),
-                ClipItem { IsText: true } c => () => CloudTargets.SaveText(target, c.Text ?? "", $"Text {c.Created:yyyy-MM-dd HHmmss}.txt"),
-                _ => null,
-            };
-            if (save is null) return;
-            await Task.Run(save);
-            ShowToast(Core.Loc.F("Cloud.Saved", target.Name));
+            if (System.IO.File.Exists(path) || System.IO.Directory.Exists(path))
+                System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
+            else ShowToast(Core.Loc.German ? "Datei nicht mehr vorhanden" : "File no longer exists");
         }
-        catch (Exception ex)
-        {
-            Core.Log.Error("CloudSave", ex);
-            ShowToast(ex.Message);
-        }
+        catch (Exception ex) { Core.Log.Error("ShowInFolder", ex); }
     }
 
     private void ShowToast(string text)
