@@ -112,6 +112,32 @@ public partial class SettingsWindow : Window
 
     public void ShowPage(int page) => Nav.SelectedIndex = Array.IndexOf(NavToPage, page);
 
+    /// <summary>Opens a page and scrolls its group heading (German or English text start) to the top.</summary>
+    public void ShowSection(int page, string? group)
+    {
+        ShowPage(page);
+        if (string.IsNullOrEmpty(group)) { PageScroll.ScrollToTop(); return; }
+        Dispatcher.BeginInvoke(() =>
+        {
+            var heading = Find(PageScroll, group);
+            if (heading is null) return;
+            var y = heading.TransformToAncestor(PageScroll).Transform(new Point(0, 0)).Y;
+            PageScroll.ScrollToVerticalOffset(Math.Max(0, PageScroll.VerticalOffset + y - 8));
+        }, System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    private static TextBlock? Find(DependencyObject root, string start)
+    {
+        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var c = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (c is TextBlock t && t.IsVisible && t.Text.StartsWith(start, StringComparison.OrdinalIgnoreCase) && t.FontWeight == FontWeights.SemiBold) return t;
+            if (c is UIElement { IsVisible: false }) continue;
+            if (Find(c, start) is { } found) return found;
+        }
+        return null;
+    }
+
     private void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_ctx is null || Nav.SelectedIndex < 0) return;

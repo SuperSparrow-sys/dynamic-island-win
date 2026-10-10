@@ -64,6 +64,7 @@ public partial class ExpandedView : UserControl
             if (IsVisible) Vm?.Shelf.PruneMissing();
         };
         HomeScroll.IsVisibleChanged += (_, _) => Dispatcher.BeginInvoke(FitHomeToViewport, System.Windows.Threading.DispatcherPriority.Loaded);
+        Loaded += (_, _) => AttachGears();
         SetVertical(false);
     }
 
@@ -514,6 +515,61 @@ public partial class ExpandedView : UserControl
     {
         if (NewTimeProject.Text.Trim().Length > 0) Vm?.Time.AddProject(NewTimeProject.Text);
         NewTimeProject.Visibility = Visibility.Collapsed;
+    }
+
+    // ---- widget settings (Alt held = edit mode) ----
+
+    private readonly List<WidgetGear> _gears = new();
+    private IslandViewModel? _gearVm;
+
+    /// <summary>Settings page and group heading of each widget (German heading start, as shown in the settings).</summary>
+    private static (int page, string? group)? SettingsOf(string id) => id switch
+    {
+        Core.Widgets.Media => (4, null),
+        Core.Widgets.Calendar => (9, "Kalender-Konten"),
+        Core.Widgets.Timer => (9, null),
+        Core.Widgets.Clock => (11, Core.Loc.German ? "Uhr" : "Clock"),
+        Core.Widgets.Shortcuts => (11, Core.Loc.German ? "Schnellstart" : "Launcher"),
+        Core.Widgets.Claude => (11, "Claude"),
+        Core.Widgets.Messenger => (7, null),
+        Core.Widgets.Devices => (8, null),
+        Core.Widgets.Audio => (8, Core.Loc.German ? "Kopfhörer" : "Headphones"),
+        Core.Widgets.Todo or Core.Widgets.Teams => (9, Core.Loc.German ? "Teams und To Do" : "Teams and To Do"),
+        Core.Widgets.Contacts => (9, "Microsoft 365"),
+        Core.Widgets.TimeTrack => (9, Core.Loc.German ? "Zeiterfassung" : "Time tracking"),
+        _ => (11, null),
+    };
+
+    private void AttachGears()
+    {
+        if (_gears.Count > 0) return;
+        foreach (var (id, card) in _widgets)
+        {
+            var layer = System.Windows.Documents.AdornerLayer.GetAdornerLayer(card);
+            if (layer is null) continue;
+            string widget = id;
+            var gear = new WidgetGear(card, () =>
+            {
+                if (Vm is not { } vm) return;
+                var (page, group) = SettingsOf(widget)!.Value;
+                vm.OpenSettingsAt(page, group);
+            });
+            layer.Add(gear);
+            _gears.Add(gear);
+        }
+        if (_gearVm is null && Vm is { } v)
+        {
+            _gearVm = v;
+            v.PropertyChanged += OnAltChanged;
+            Unloaded += (_, _) => { v.PropertyChanged -= OnAltChanged; _gearVm = null; };
+        }
+    }
+
+    private void OnAltChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(IslandViewModel.AltHeld) || Vm is null) return;
+        var vis = Vm.AltHeld ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var g in _gears) g.Visibility = ((UIElement)g.AdornedElement).Visibility == Visibility.Visible ? vis : Visibility.Collapsed;
     }
 
     // ---- notes ----

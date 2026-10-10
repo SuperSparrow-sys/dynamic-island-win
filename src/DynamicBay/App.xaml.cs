@@ -121,6 +121,7 @@ public partial class App : Application
         _islands = new IslandManager(_vm);
         _vm.OpenSettingsRequested += ShowSettings;
         _vm.OpenTimeTrackingRequested += ShowTimeTracking;
+        _vm.OpenSettingsAtRequested += (page, group) => { ShowSettings(); _settingsWindow?.ShowSection(page, group); };
         _vm.QuitRequested += Quit;
 
         if (snapshotDir is not null)
