@@ -807,8 +807,12 @@ public partial class IslandWindow : Window
             // Follow the cursor through a stiff, critically damped spring: smooth at any mouse rate, no visible lag.
             _x.Response = _y.Response = DragResponse;
             _x.Damping = _y.Damping = 1.0;
-            if (_expanded) { _expanded = false; }
+            bool wasExpanded = _expanded;
+            _expanded = false;
             Refresh();
+            // Grabbed in the open panel: the island shrinks to its small shape - keep that one under the cursor
+            // instead of where the big panel was grabbed (that left the cursor far away from the island).
+            if (wasExpanded) { HoldCompactUnderCursor(c); dx = 0; dy = 0; }
         }
         // Single mode: the island may travel to any monitor (the one under the cursor).
         // Mirror mode: each island stays on its own monitor.
@@ -829,6 +833,36 @@ public partial class IslandWindow : Window
     }
 
     private const double DragResponse = 0.09;
+
+    /// <summary>
+    /// Re-bases the drag so the compact shape the island is shrinking to ends up centred under the cursor.
+    /// The shape grows and shrinks from the side it is aligned to (top centre on the top edge), so its final
+    /// centre can be computed before the springs get there; the window then glides there with the drag spring.
+    /// </summary>
+    private void HoldCompactUnderCursor(Native.POINT cursor)
+    {
+        UpdateLayout();
+        double s = WindowScale;
+        var p = Shape.TransformToAncestor(this).Transform(new Point(0, 0));
+        double w = Shape.ActualWidth * U, h = Shape.ActualHeight * U;   // current (still open) size
+        double tw = _w.Target * U, th = _h.Target * U;                  // small size it shrinks to
+        double cx = HitPad.HorizontalAlignment switch
+        {
+            HorizontalAlignment.Left => p.X + tw / 2,
+            HorizontalAlignment.Right => p.X + w - tw / 2,
+            _ => p.X + w / 2,
+        };
+        double cy = HitPad.VerticalAlignment switch
+        {
+            VerticalAlignment.Top => p.Y + th / 2,
+            VerticalAlignment.Bottom => p.Y + h - th / 2,
+            _ => p.Y + h / 2,
+        };
+        int wx = (int)Math.Round(_x.Value), wy = (int)Math.Round(_y.Value);
+        _pressCursor = cursor;
+        _pressWindow.Left = wx + (int)Math.Round(cursor.X - (wx + cx * s));
+        _pressWindow.Top = wy + (int)Math.Round(cursor.Y - (wy + cy * s));
+    }
 
     /// <summary>
     /// Switches between the horizontal and the vertical shape mid-drag. The window changes size, so it is moved to keep

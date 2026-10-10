@@ -28,6 +28,12 @@ public static class Snapshots
             ("bottom", IslandEdge.Bottom, IslandAlign.Center, 0.5),
             ("topright", IslandEdge.Top, IslandAlign.End, 1),
         };
+        // Live: DYNAMICBAY_SNAPSHOT=live - the island runs normally (throwaway settings) for 30 s, so a script can drive the mouse.
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "live")
+        {
+            await Task.Delay(30000);
+            return;
+        }
         // Leak check: DYNAMICBAY_SNAPSHOT=leak - opens and closes the settings window five times; memory must not grow.
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "leak")
         {
