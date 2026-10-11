@@ -7,7 +7,7 @@
 # Usage: powershell -File tools\update-smoke.ps1 -NewInstaller artifacts\DynamicBay-Setup-1.0.18.exe [-OldVersions 1.0.15,1.0.16]
 param(
     [Parameter(Mandatory)] [string]$NewInstaller,
-    [string[]]$OldVersions = @("1.0.15", "1.0.16"),
+    [string[]]$OldVersions = @("1.0.15", "1.0.16", "1.0.18"),
     [string]$Repo = "SuperSparrow-sys/dynamic-island-win",
     [string]$Work = "$env:TEMP\dynamicbay-smoke"
 )
