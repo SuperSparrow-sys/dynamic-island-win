@@ -55,7 +55,9 @@ public partial class IslandWindow : Window
 
 
     // Dragging the island
-    private bool _pressed, _dragging;
+    // Press -> click or drag; ends once on release, lost capture or hiding (see PointerGesture).
+    private readonly PointerGesture _gesture = new();
+    private bool Dragging => _gesture.IsDragging;
     private Native.POINT _pressCursor;
     private Native.RECT _pressWindow;
 
@@ -91,7 +93,7 @@ public partial class IslandWindow : Window
         _layerAnim.Updated += ApplyLayers;
 
         _peekTimer.Tick += (_, _) => NextPeek();
-        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !_dragging && !ShowsQuestion && !ShowsClickablePeek && !_hoverBlocked && !_snapshotMode) SetExpanded(true); };
+        _hoverTimer.Tick += (_, _) => { _hoverTimer.Stop(); if (HitPad.IsMouseOver && !Dragging && !ShowsQuestion && !ShowsClickablePeek && !_hoverBlocked && !_snapshotMode) SetExpanded(true); };
         _collapseTimer.Tick += (_, _) => { _collapseTimer.Stop(); TryCollapse(); };
         _dropLeaveTimer.Tick += (_, _) => { _dropLeaveTimer.Stop(); _dropActive = false; Refresh(); };
         _watchdog.Tick += (_, _) => Watchdog();
@@ -102,8 +104,8 @@ public partial class IslandWindow : Window
         HitPad.MouseLeftButtonDown += OnPress;
         HitPad.MouseMove += OnPressMove;
         HitPad.MouseLeftButtonUp += OnRelease;
-        // Capture taken away mid-drag (Alt+Tab, a dialog). OnRelease clears _dragging before it lets go, so it isn't finished twice.
-        HitPad.LostMouseCapture += (_, _) => { if (_dragging) FinishDrag(); _pressed = false; };
+        // Capture taken away mid-drag (Alt+Tab, a dialog). OnRelease ends the gesture before it lets go, so it isn't finished twice.
+        HitPad.LostMouseCapture += (_, _) => { if (_gesture.End() == GestureEnd.Drag) FinishDrag(); };
         HitPad.DragEnter += OnDragEnter;
         HitPad.DragOver += (_, e) => { _dropLeaveTimer.Stop(); e.Effects = DragDropEffects.Copy; e.Handled = true; };
         HitPad.DragLeave += (_, _) => _dropLeaveTimer.Start();
@@ -130,6 +132,9 @@ public partial class IslandWindow : Window
         _vm.HideRequested += OnHideRequested;
         _vm.PropertyChanged += OnVmChanged;
         _settings.PropertyChanged += OnSettingChanged;
+
+        // Hidden (hotkey, fullscreen app, monitor gone): no MouseLeave/DragLeave/button-up arrives anymore.
+        IsVisibleChanged += (_, _) => { if (!IsVisible) ResetInteraction(); };
 
         BuildSoftShadow();
         SourceInitialized += OnSourceInitialized;
@@ -295,7 +300,8 @@ public partial class IslandWindow : Window
         if (_mirrorLost)
         {
             _mirrorLost = false;
-            if (!_closed && !_settings.Hidden && !_suppressed && !IsVisible) Show();
+            // FadeIn, not Show: a fade-out cut short by the unplugging may have left the opacity at 0 (invisible island).
+            if (!_closed && !_settings.Hidden && !_suppressed && !IsVisible) FadeIn();
         }
         return true;
     }
@@ -331,7 +337,7 @@ public partial class IslandWindow : Window
     private void Place(bool animate)
     {
         if (_hwnd == IntPtr.Zero) return;
-        if (_dragging) return; // WM_DPICHANGED while dragging across monitors
+        if (Dragging) return; // WM_DPICHANGED while dragging across monitors
         if (!MirrorMonitorPresent()) return;
         var (wa, bounds, s) = Target();
         bool vertical = _settings.Edge is IslandEdge.Left or IslandEdge.Right;
@@ -483,18 +489,18 @@ public partial class IslandWindow : Window
             case nameof(AppSettings.Align):
             case nameof(AppSettings.Along):
             case nameof(AppSettings.Inset):
-                if (!_dragging) Place(animate: true);
+                if (!Dragging) Place(animate: true);
                 break;
             case nameof(AppSettings.Monitor):
             case nameof(AppSettings.Displays):
                 // Jumping between monitors (possibly with different DPI) is done without the glide.
-                if (!_dragging) Place(animate: false);
+                if (!Dragging) Place(animate: false);
                 break;
             case nameof(AppSettings.Shadow): SoftShadow.Visibility = _settings.Shadow ? Visibility.Visible : Visibility.Collapsed; ApplyShape(); break;
             case nameof(AppSettings.GpuRendering): ApplyRenderMode(); break;
             case nameof(AppSettings.Hidden): SetHidden(_settings.Hidden); break;
             case nameof(AppSettings.ShapeStyle):
-                if (!_dragging) Place(animate: true);
+                if (!Dragging) Place(animate: true);
                 Refresh(); ApplyShape(); break;
             case nameof(AppSettings.Idle):
             case nameof(AppSettings.AutoHide):
@@ -755,7 +761,7 @@ public partial class IslandWindow : Window
         if (_minimized) { _minimized = false; Refresh(); }
         // While a question (buttons) is shown, hovering must not open the panel - the buttons must stay reachable.
         // "Nicht stören" keeps the island small: it only opens on a click.
-        if (_settings.ExpandOnHover && !_settings.Quiet && !_expanded && !_dragging && !ShowsQuestion && !ShowsClickablePeek && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
+        if (_settings.ExpandOnHover && !_settings.Quiet && !_expanded && !Dragging && !ShowsQuestion && !ShowsClickablePeek && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
         {
             _hoverTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(0, _settings.HoverDelayMs));
             _hoverTimer.Start();
@@ -893,7 +899,7 @@ public partial class IslandWindow : Window
     /// <summary>Runs the shown peek's own action (or opens the panel). False if there is nothing to click.</summary>
     private bool RunPeekClick()
     {
-        if (_dragging || _peek.Peek is null) return false;
+        if (Dragging || _peek.Peek is null) return false;
         if (_peek.Peek.HasActions) return false; // questions are answered with their buttons only
         var action = _peek.Peek.OnClick;
         _peek.Peek = null;
@@ -935,8 +941,7 @@ public partial class IslandWindow : Window
     private void OnPress(object sender, MouseButtonEventArgs e)
     {
         if (e.Handled || _dragOut) return;
-        _pressed = true;
-        _dragging = false;
+        _gesture.Press();
         _pressCursor = Native.CursorPos();
         Native.GetWindowRect(_hwnd, out _pressWindow);
         HitPad.CaptureMouse();
@@ -944,17 +949,17 @@ public partial class IslandWindow : Window
 
     private void OnPressMove(object sender, MouseEventArgs e)
     {
-        if (!_pressed || e.LeftButton != MouseButtonState.Pressed) return;
-        if (_dragOut) { _pressed = false; return; }
+        if (!_gesture.IsPressed || e.LeftButton != MouseButtonState.Pressed) return;
+        if (_dragOut) { _gesture.End(); HitPad.ReleaseMouseCapture(); return; } // a held capture would swallow every click on the island
         var c = Native.CursorPos();
         int dx = c.X - _pressCursor.X, dy = c.Y - _pressCursor.Y;
-        if (!_dragging)
+        if (!Dragging)
         {
             if (Math.Abs(dx) + Math.Abs(dy) < 6) return;
             if (!_expanded && _peek.Peek?.DragPayload is string[] { Length: > 0 } files)
             {
                 // The peek shows a received file: pull it straight into another app.
-                _pressed = false;
+                _gesture.End();
                 HitPad.ReleaseMouseCapture();
                 _peekTimer.Stop();
                 // Our own file passes over the island: no drop mode, it must not land in the shelf a second time.
@@ -965,7 +970,7 @@ public partial class IslandWindow : Window
                 _peekTimer.Start();
                 return;
             }
-            _dragging = true;
+            _gesture.BeginDrag();
             _hoverTimer.Stop();
             _collapseTimer.Stop();
             _moveAnim_Stop();
@@ -1045,10 +1050,14 @@ public partial class IslandWindow : Window
         var cursor = Native.CursorPos();
         _vertical = vertical;
         _vm.IsVertical = vertical;
+        // Other listeners run inside the setter: if one throws, this island must still hear its settings afterwards.
         _settings.PropertyChanged -= OnSettingChanged;
-        _settings.Edge = vertical ? (cursor.X < (TargetMonitor().Work.Left + TargetMonitor().Work.Right) / 2 ? IslandEdge.Left : IslandEdge.Right)
-                                  : (cursor.Y < (TargetMonitor().Work.Top + TargetMonitor().Work.Bottom) / 2 ? IslandEdge.Top : IslandEdge.Bottom);
-        _settings.PropertyChanged += OnSettingChanged;
+        try
+        {
+            _settings.Edge = vertical ? (cursor.X < (TargetMonitor().Work.Left + TargetMonitor().Work.Right) / 2 ? IslandEdge.Left : IslandEdge.Right)
+                                      : (cursor.Y < (TargetMonitor().Work.Top + TargetMonitor().Work.Bottom) / 2 ? IslandEdge.Top : IslandEdge.Bottom);
+        }
+        finally { _settings.PropertyChanged += OnSettingChanged; }
         // Only the small shape morphs, in place: the window keeps following the cursor and the shape keeps its anchor
         // in the window until the drop. Re-anchoring here would move the window by hundreds of pixels while Windows
         // still shows the previous frame - a visible jump. The hidden panel follows after the drop (SyncExpandedOrientation).
@@ -1064,12 +1073,10 @@ public partial class IslandWindow : Window
 
     private void OnRelease(object sender, MouseButtonEventArgs e)
     {
-        if (!_pressed) return;
-        _pressed = false;
-        bool wasDragging = _dragging;
-        _dragging = false; // before releasing: LostMouseCapture must not finish the drag as well
+        var end = _gesture.End(); // before releasing: LostMouseCapture must not finish the drag as well
+        if (end == GestureEnd.None) return;
         HitPad.ReleaseMouseCapture();
-        if (wasDragging) { FinishDrag(); return; }
+        if (end == GestureEnd.Drag) { FinishDrag(); return; }
         // A click: open/close. (Clicks on buttons inside never reach here.)
         if (e.OriginalSource is DependencyObject d && IsInside(d, ExpandedLayer)) return;
         if (!_expanded && RunPeekClick()) return; // a click on a peek does what the peek offers
@@ -1108,7 +1115,6 @@ public partial class IslandWindow : Window
 
     private void FinishDrag()
     {
-        _dragging = false;
         _x.Response = _y.Response = 0.5;
         _glideUntil = default;
         _x.Damping = _y.Damping = 0.86;
@@ -1125,12 +1131,15 @@ public partial class IslandWindow : Window
 
         bool orientationChanges = p.IsVertical != _vertical;
         _settings.PropertyChanged -= OnSettingChanged;
-        _settings.Edge = p.Edge;
-        _settings.Align = p.Align;
-        _settings.Along = p.Along;
-        _settings.Inset = p.Inset;
-        if (CanChangeMonitor) _settings.Monitor = monitor.IsPrimary ? "" : monitor.Device;
-        _settings.PropertyChanged += OnSettingChanged;
+        try
+        {
+            _settings.Edge = p.Edge;
+            _settings.Align = p.Align;
+            _settings.Along = p.Along;
+            _settings.Inset = p.Inset;
+            if (CanChangeMonitor) _settings.Monitor = monitor.IsPrimary ? "" : monitor.Device;
+        }
+        finally { _settings.PropertyChanged += OnSettingChanged; }
         _settings.SaveSoon();
         if (monitorChanged)
         {
@@ -1240,6 +1249,8 @@ public partial class IslandWindow : Window
         _vm.HideRequested -= OnHideRequested;
         _vm.PropertyChanged -= OnVmChanged;
         ExpandedLayer.Detach();
+        // AltHeld lives in the shared view model: a mirror closed with its panel open must not leave the quit button up.
+        if (_expanded) CloseExpandedState();
         _watchdog.Stop(); _altPoll.Stop();
         _shapeAnim.Updated -= ApplyShape;
         _moveAnim.Updated -= OnMoveUpdated;
@@ -1259,6 +1270,23 @@ public partial class IslandWindow : Window
         BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(1, TimeSpan.FromMilliseconds(220)));
         _minimized = false;
         Refresh();
+        // A panel left open while hidden (fullscreen app) closes as usual once the mouse is not on it.
+        ScheduleCollapseIfAway();
+    }
+
+    /// <summary>
+    /// Ends whatever the pointer was doing when the window hid: the events that would end it (button up, MouseLeave,
+    /// DragLeave) never reach a hidden window, and a held capture or a stuck drop mode left the island unusable.
+    /// </summary>
+    private void ResetInteraction()
+    {
+        _hoverTimer.Stop();
+        _collapseTimer.Stop();
+        _dropLeaveTimer.Stop();
+        _hoverBlocked = false;
+        if (_gesture.End() == GestureEnd.Drag) FinishDrag();
+        if (HitPad.IsMouseCaptured) HitPad.ReleaseMouseCapture();
+        if (_dropActive) { _dropActive = false; Refresh(); }
     }
 
     private void Watchdog()
