@@ -310,6 +310,7 @@ public sealed partial class LinkHub : ObservableObject
         Status = new LinkStatusFeature(link, _settings, LocalStatus);
         Status.Received += (id, s) =>
         {
+            Log.Info($"Link: status from {s.Name}: battery {(s.Battery is int pct ? pct + " %" : "none")}, version {s.Version}");
             if (Devices.FirstOrDefault(d => d.Id == id) is { } d) { d.Battery = s.Battery; d.Charging = s.Charging; d.Version = s.Version; }
         };
 
@@ -324,7 +325,11 @@ public sealed partial class LinkHub : ObservableObject
         Files.Failed += (o, r) => FileFailed?.Invoke(o, r);
 
         Clipboard = new LinkClipboardFeature(link, _settings, Files, Path.Combine(AppSettings.Folder, "link-temp"));
-        Clipboard.Received += c => LocalClipboard?.AddFromDevice(c.PeerName, c.Text, c.Png);
+        Clipboard.Received += c =>
+        {
+            bool added = LocalClipboard?.AddFromDevice(c.PeerName, c.Text, c.Png) == true;
+            Log.Info($"Link: clipboard {(c.Text is not null ? $"text ({c.Text.Length} chars)" : $"picture ({c.Png?.Length} bytes)")} from {c.PeerName}{(added ? "" : ", already in the history")}");
+        };
 
         Notifications = new LinkNotificationsFeature(link, _settings);
         Notifications.Received += n =>
@@ -339,6 +344,7 @@ public sealed partial class LinkHub : ObservableObject
         Media.RemoteChanged += (id, name, np) =>
         {
             if (np is null) _remoteMedia.Remove(id); else _remoteMedia[id] = np;
+            Log.Info(np is null ? $"Link: nothing plays on {name}" : $"Link: {name} plays ({(np.Playing ? "playing" : "paused")}, {np.App})");
             UpdateRemote();
         };
         Media.CommandReceived += (id, cmd) => RunMediaCommand(cmd);

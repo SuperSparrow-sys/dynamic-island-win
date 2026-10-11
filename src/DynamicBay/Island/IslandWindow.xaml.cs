@@ -521,6 +521,7 @@ public partial class IslandWindow : Window
     }
 
     private bool _refreshQueued;
+    private PeekItem? _measuredPeek;
 
     /// <summary>Refresh after pending binding updates and layout have run (one coalesced refresh per burst).</summary>
     private void RefreshSoon()
@@ -582,6 +583,9 @@ public partial class IslandWindow : Window
             case IslandMode.Drop: return new Size(380, 132);
             case IslandMode.Peek:
                 PeekLayer.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                // A new peek is measured before its texts are bound (it got the 300 px minimum and cut longer
+                // texts): measure once more after layout, the shape then springs to the real width.
+                if (!ReferenceEquals(_measuredPeek, _peek.Peek)) { _measuredPeek = _peek.Peek; RefreshSoon(); }
                 return new Size(Math.Max(300, PeekLayer.DesiredSize.Width), 58);
             case IslandMode.Compact:
                 CompactLayer.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));

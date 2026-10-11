@@ -49,7 +49,9 @@ public sealed class LinkClipboardFeature : LinkFeature
     {
         if (!Enabled || sourceDevice is not null || string.IsNullOrWhiteSpace(text) || text.Length > MaxTextChars) return Task.FromResult(0);
         if (!Fresh(Key(text))) return Task.FromResult(0);
-        return BroadcastAsync(Type, new JsonObject { ["kind"] = "text", ["text"] = text });
+        var sent = BroadcastAsync(Type, new JsonObject { ["kind"] = "text", ["text"] = text });
+        _ = sent.ContinueWith(t => { if (t.Result > 0) Log.Info($"Link: clipboard text ({text.Length} chars) to {t.Result} device(s)"); }, TaskContinuationOptions.OnlyOnRanToCompletion);
+        return sent;
     }
 
     /// <summary>A picture copied here (PNG bytes).</summary>

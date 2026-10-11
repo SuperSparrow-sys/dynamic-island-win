@@ -263,6 +263,18 @@ public partial class App : Application
         _link.SetEnabled(true); // throws when the port is taken; the hub leaves nothing half started
         if (_link.Service is not { } link) return;
         if (DevMode.AllowPairingAtStart) link.AllowPairing();
+        // Test instances: DYNAMICBAY_DEV_SENDFILE=<path> sends that file to the first device that comes online (live check).
+        if (DevMode.On && Environment.GetEnvironmentVariable("DYNAMICBAY_DEV_SENDFILE") is { Length: > 0 } sendFile)
+        {
+            var hub = _link;
+            void Once(PairedDevice p)
+            {
+                link.PeerOnline -= Once;
+                Log.Info("Dev: sending the test file");
+                _ = Task.Delay(2000).ContinueWith(_ => Dispatcher.BeginInvoke(() => hub.SendFilesAsync(p.Id, new[] { sendFile })), TaskScheduler.Default);
+            }
+            link.PeerOnline += Once;
+        }
         if (DevMode.PairAtStart is { } address)
             _ = Task.Delay(3000).ContinueWith(_ => link.PairAsync(address), TaskScheduler.Default).Unwrap()
                 .ContinueWith(t => Log.Info("Dev: pairing " + (t.IsFaulted ? "failed: " + t.Exception?.GetBaseException().Message : "started")), TaskScheduler.Default);
