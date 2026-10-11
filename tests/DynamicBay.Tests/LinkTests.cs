@@ -297,7 +297,7 @@ public class LinkServiceTests : IDisposable
     private LinkOptions Options(long maxFile = 1L << 30, int rateLimit = 5, int port = 0, double confirmSeconds = 120) => new()
     {
         ConfirmTimeout = TimeSpan.FromSeconds(confirmSeconds),
-        Port = port, LanDiscovery = false, TailscaleDiscovery = false, WatchSystem = false,
+        Port = port, LoopbackOnly = true, LanDiscovery = false, TailscaleDiscovery = false, WatchSystem = false,
         MinBackoff = TimeSpan.FromMilliseconds(100), MaxBackoff = TimeSpan.FromMilliseconds(500),
         DownloadFolder = Path.Combine(_temp, "downloads"), MaxFileBytes = maxFile, PairingRateLimit = rateLimit,
         Log = _ => { },

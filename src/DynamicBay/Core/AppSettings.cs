@@ -36,7 +36,6 @@ public static class Widgets
         Todo => (SettingsPage.Calendar, Loc.German ? "Aufgaben" : "Tasks"),
         Teams or Contacts => (SettingsPage.Accounts, "Microsoft 365"),
         TimeTrack => (SettingsPage.Calendar, Loc.German ? "Zeiterfassung" : "Time tracking"),
-        CursorHop => (SettingsPage.Devices, "CursorHop"),
         Paired => (SettingsPage.Devices, Loc.German ? "Gekoppelte" : "Paired"),
         _ when id.StartsWith(ScriptPrefix, StringComparison.Ordinal) => (SettingsPage.Apps, Loc.German ? "Eigene Widgets" : "Own widgets"),
         _ => (SettingsPage.Content, null),

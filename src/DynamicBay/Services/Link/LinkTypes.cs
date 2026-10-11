@@ -19,6 +19,8 @@ public sealed class LinkOptions
     /// <summary>TCP port to listen on; 0 picks a free one (tests).</summary>
     public int Port { get; init; } = LinkProtocol.Port;
     public int DiscoveryPort { get; init; } = LinkProtocol.DiscoveryPort;
+    /// <summary>Listen on 127.0.0.1 only (tests: no Windows Firewall prompt for the test host).</summary>
+    public bool LoopbackOnly { get; init; }
     public bool LanDiscovery { get; init; } = true;
     public bool TailscaleDiscovery { get; init; } = true;
     /// <summary>Reconnect right away on network changes and after sleep.</summary>

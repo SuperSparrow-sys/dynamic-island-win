@@ -30,7 +30,7 @@ public class LinkFeatureTests : IDisposable
 
     private LinkOptions Options(int port = 0, string? downloads = null) => new()
     {
-        Port = port, LanDiscovery = false, TailscaleDiscovery = false, WatchSystem = false,
+        Port = port, LoopbackOnly = true, LanDiscovery = false, TailscaleDiscovery = false, WatchSystem = false,
         MinBackoff = TimeSpan.FromMilliseconds(100), MaxBackoff = TimeSpan.FromMilliseconds(500),
         DownloadFolder = downloads ?? Path.Combine(_temp, "downloads"), Log = _ => { },
     };

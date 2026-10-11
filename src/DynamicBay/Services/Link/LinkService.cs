@@ -176,8 +176,8 @@ public sealed partial class LinkService : IDisposable
             _wake = new SemaphoreSlim(0);
             // Not exclusive: after a restart old connections may still linger on the port (TIME_WAIT), which would block
             // an exclusive bind. Another program on the port gains nothing: it cannot answer with a paired certificate.
-            var listener = new TcpListener(IPAddress.IPv6Any, _opts.Port);
-            listener.Server.DualMode = true;
+            var listener = _opts.LoopbackOnly ? new TcpListener(IPAddress.Loopback, _opts.Port) : new TcpListener(IPAddress.IPv6Any, _opts.Port);
+            if (!_opts.LoopbackOnly) listener.Server.DualMode = true;
             try { listener.Start(); }
             catch
             {
