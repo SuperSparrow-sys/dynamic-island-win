@@ -4,14 +4,18 @@ using Microsoft.Win32;
 
 namespace DynamicBay.Settings;
 
-/// <summary>Light/dark palette for the settings window, following the Windows app theme.</summary>
+/// <summary>Light/dark palette for the settings windows: chosen in the settings, or following the Windows app theme.</summary>
 public static class SettingsTheme
 {
+    /// <summary>The user's choice (AppSettings.WindowTheme): "auto", "light" or "dark".</summary>
+    public static string Mode { get; set; } = "auto";
+
     public static bool IsLight()
     {
         // Snapshots of the other theme: DYNAMICBAY_SNAPSHOT_THEME=dark or light.
         var theme = Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_THEME");
         if (theme is "dark" or "light") return theme == "light";
+        if (Mode is "dark" or "light") return Mode == "light";
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");

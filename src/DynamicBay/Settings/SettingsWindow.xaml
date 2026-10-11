@@ -133,7 +133,17 @@
                     <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Darstellung', En='Appearance'}" />
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
-                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Form', En='Shape'}"
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Einstellungsfenster', En='Settings window'}"
+                                            ToolTip="{core:L De='Hell oder dunkel. Die Insel bleibt immer schwarz.', En='Light or dark. The island always stays black.'}">
+                                <Border Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Wie Windows', En='Like Windows'}" IsChecked="{Binding S.WindowTheme, Converter={StaticResource EqBool}, ConverterParameter=auto}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Hell', En='Light'}" IsChecked="{Binding S.WindowTheme, Converter={StaticResource EqBool}, ConverterParameter=light}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Dunkel', En='Dark'}" IsChecked="{Binding S.WindowTheme, Converter={StaticResource EqBool}, ConverterParameter=dark}" />
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Form', En='Shape'}"
                                             ToolTip="{core:L De='Notch wächst aus dem Bildschirmrand wie beim MacBook.', En='Notch grows out of the screen edge like on a MacBook.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">

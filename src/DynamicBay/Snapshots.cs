@@ -246,6 +246,14 @@ public static class Snapshots
             if (win.FindName("ICloudForm") is FrameworkElement form) { form.Visibility = Visibility.Visible; await Task.Delay(300); form.BringIntoView(); }
             await Task.Delay(700);
             RenderWindow(win, Path.Combine(dir, "settings-12b-caldav.png"));
+            // Switching the theme while the window is open (demo settings, not saved)
+            settings.WindowTheme = Settings.SettingsTheme.IsLight() ? "dark" : "light";
+            win.ShowPage(SettingsPage.Appearance);
+            await Task.Delay(700);
+            RenderWindow(win, Path.Combine(dir, "settings-01b-theme.png"));
+            win.ShowPage(SettingsPage.Content);
+            await Task.Delay(500);
+            RenderWindow(win, Path.Combine(dir, "settings-05b-theme.png"));
             win.Close();
             return;
         }

@@ -39,7 +39,8 @@ public partial class SettingsWindow : Window
     public SettingsWindow(AppSettings settings, IslandViewModel vm)
     {
         InitializeComponent();
-        Resources.MergedDictionaries.Add(SettingsTheme.Create(SettingsTheme.IsLight()));
+        _theme = SettingsTheme.Create(SettingsTheme.IsLight());
+        Resources.MergedDictionaries.Add(_theme);
         _ctx = new SettingsContext(settings, vm);
         DataContext = _ctx;
         SourceInitialized += (_, _) =>
@@ -50,6 +51,7 @@ public partial class SettingsWindow : Window
         System.ComponentModel.PropertyChangedEventHandler placementChanged = (_, e) =>
         {
             if (e.PropertyName is nameof(AppSettings.Edge) or nameof(AppSettings.Align) or nameof(AppSettings.Along)) UpdatePreview();
+            if (e.PropertyName is nameof(AppSettings.WindowTheme)) Dispatcher.BeginInvoke(ApplyTheme);
         };
         settings.PropertyChanged += placementChanged;
         UpdatePreview();
@@ -91,6 +93,27 @@ public partial class SettingsWindow : Window
             UpdateCheck.PendingChanged -= updateChanged;
             vm.Calendar.StatusChanged -= calendarChanged;
         };
+    }
+
+    private ResourceDictionary _theme;
+
+    /// <summary>The theme was switched in the settings: new palette and title bar right away.</summary>
+    private void ApplyTheme()
+    {
+        var next = SettingsTheme.Create(SettingsTheme.IsLight());
+        Resources.MergedDictionaries.Remove(_theme);
+        Resources.MergedDictionaries.Add(next);
+        _theme = next;
+        ApplyBackdrop();
+        // Rows built in code took their brushes once: build them again with the new ones.
+        BuildWidgetBoard();
+        BuildScriptRows();
+        BuildCompactRows();
+        BuildCalendarRows();
+        BuildBannerRows();
+        BuildProjectRows();
+        BuildTodoListChoices();
+        BuildScreenshotFolders();
     }
 
     private void ApplyBackdrop()

@@ -93,6 +93,8 @@ public sealed partial class AppSettings : ObservableObject
     // General
     [ObservableProperty] private bool _startWithWindows = true;
     [ObservableProperty] private string _language = "auto";
+    /// <summary>Look of the settings windows: "auto" (like Windows), "light" or "dark". The island is always black.</summary>
+    [ObservableProperty] private string _windowTheme = "auto";
     [ObservableProperty] private string _toggleHotkey = "Ctrl+Alt+I";
     [ObservableProperty] private bool _checkForUpdates = true;
 
