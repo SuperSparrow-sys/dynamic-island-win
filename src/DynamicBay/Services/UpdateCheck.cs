@@ -151,7 +151,7 @@ public static class UpdateCheck
         try
         {
             // Without GitHub's checksum the download cannot be verified: don't run it.
-            if (release.Sha256 is null) throw new InvalidDataException(Loc.German ? "Update ohne Prüfsumme, nicht installiert" : "Update has no checksum, not installed");
+            if (release.Sha256 is null) throw new UserMessageException(Loc.German ? "Update ohne Prüfsumme, nicht installiert" : "Update has no checksum, not installed");
             _island?.ShowPeek(Info(Loc.F("Update.Downloading", release.Version.ToString(3)), Loc.T("Update.InstallingHint"), 6));
             // Stays open (others may only read) until the installer runs: the checked file is the one that starts.
             using var verified = await DownloadAsync(release);
@@ -178,7 +178,7 @@ public static class UpdateCheck
         catch (Exception ex)
         {
             Log.Error("UpdateInstall", ex);
-            _island?.ShowPeek(Info(Loc.T("Update.Failed"), ex.Message, 6));
+            _island?.ShowPeek(Info(Loc.T("Update.Failed"), ErrorText.For(ex), 6));
         }
         finally { _installing = false; }
     }
@@ -187,16 +187,25 @@ public static class UpdateCheck
     {
         using var http = Client();
         // /releases/latest = newest non-prerelease, non-draft release
-        var json = JsonNode.Parse(await http.GetStringAsync($"https://api.github.com/repos/{Repo}/releases/latest"));
+        return ParseRelease(JsonNode.Parse(await http.GetStringAsync($"https://api.github.com/repos/{Repo}/releases/latest")));
+    }
+
+    /// <summary>
+    /// One release of the GitHub API. No setup asset: SetupUrl is null (the release page opens instead); no digest:
+    /// Sha256 is null (never installed). A draft or a tag that is no version gives null.
+    /// </summary>
+    internal static Release? ParseRelease(JsonNode? json)
+    {
         string tag = json?["tag_name"]?.ToString() ?? "";
-        if (!TryParse(tag, out var version)) return null;
-        var asset = (json!["assets"] as JsonArray)?
+        if (json is null || !TryParse(tag, out var version)) return null;
+        if (json["draft"] is JsonValue d && d.TryGetValue<bool>(out var draft) && draft) return null;
+        var asset = (json["assets"] as JsonArray)?
             .FirstOrDefault(a => a?["name"]?.ToString() is { } n && n.StartsWith("DynamicBay-Setup", StringComparison.OrdinalIgnoreCase) && n.EndsWith(".exe"));
         string? digest = asset?["digest"]?.ToString();
         return new Release(version, tag, json["html_url"]?.ToString() ?? $"https://github.com/{Repo}/releases",
             asset?["browser_download_url"]?.ToString(),
             digest?.StartsWith("sha256:") == true ? digest[7..] : null,
-            asset?["size"]?.GetValue<long>() ?? 0);
+            asset?["size"] is JsonValue s && s.TryGetValue<long>(out var size) ? size : 0);
     }
 
     /// <summary>
@@ -217,10 +226,10 @@ public static class UpdateCheck
         var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
         try
         {
-            if (r.Size > 0 && fs.Length != r.Size) throw new InvalidDataException(Loc.German ? "Download unvollständig" : "Incomplete download");
+            if (r.Size > 0 && fs.Length != r.Size) throw new UserMessageException(Loc.German ? "Download unvollständig" : "Incomplete download");
             string hash = Convert.ToHexString(await SHA256.HashDataAsync(fs));
             if (r.Sha256 is null || !hash.Equals(r.Sha256, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException(Loc.German ? "Prüfsumme stimmt nicht" : "Checksum mismatch");
+                throw new UserMessageException(Loc.German ? "Prüfsumme stimmt nicht" : "Checksum mismatch");
             Log.Info($"Update downloaded ({fs.Length / 1048576.0:0.0} MB, checksum ok)");
             return fs;
         }

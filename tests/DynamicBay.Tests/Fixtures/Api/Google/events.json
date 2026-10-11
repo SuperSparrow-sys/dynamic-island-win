@@ -1,0 +1,87 @@
+{
+  "kind": "calendar#events",
+  "etag": "\"p33c9tdgh4ug9o0g\"",
+  "summary": "jonas.example@gmail.com",
+  "updated": "2026-10-11T07:15:42.123Z",
+  "timeZone": "Europe/Berlin",
+  "accessRole": "owner",
+  "defaultReminders": [ { "method": "popup", "minutes": 10 } ],
+  "items": [
+    {
+      "kind": "calendar#event",
+      "etag": "\"3456789012345678\"",
+      "id": "7k3m0q1r2s3t4u5v6w7x8y9z0a",
+      "status": "confirmed",
+      "htmlLink": "https://www.google.com/calendar/event?eid=N2szbTBxMXIy",
+      "created": "2026-10-01T10:00:00.000Z",
+      "updated": "2026-10-01T10:05:00.000Z",
+      "summary": "Design Review",
+      "description": "Agenda folgt.",
+      "location": "Büro, Raum 4",
+      "creator": { "email": "jonas.example@gmail.com", "self": true },
+      "organizer": { "email": "jonas.example@gmail.com", "self": true },
+      "start": { "dateTime": "2026-10-12T10:00:00+02:00", "timeZone": "Europe/Berlin" },
+      "end": { "dateTime": "2026-10-12T11:00:00+02:00", "timeZone": "Europe/Berlin" },
+      "iCalUID": "7k3m0q1r2s3t4u5v6w7x8y9z0a@google.com",
+      "sequence": 0,
+      "conferenceData": {
+        "entryPoints": [
+          { "entryPointType": "video", "uri": "https://meet.google.com/abc-defg-hij", "label": "meet.google.com/abc-defg-hij" },
+          { "entryPointType": "phone", "uri": "tel:+49-30-1234-5678", "pin": "123456789" }
+        ],
+        "conferenceSolution": { "key": { "type": "hangoutsMeet" }, "name": "Google Meet" },
+        "conferenceId": "abc-defg-hij"
+      },
+      "reminders": { "useDefault": true },
+      "eventType": "default"
+    },
+    {
+      "kind": "calendar#event",
+      "id": "20261014_60o30d1g60o30e1i60o4ac1g60rj8gpl88rj2c1h84s34h9g60s30c1g60o30c1g",
+      "status": "confirmed",
+      "summary": "Geburtstag Mia",
+      "start": { "date": "2026-10-14" },
+      "end": { "date": "2026-10-15" },
+      "transparency": "transparent",
+      "eventType": "birthday"
+    },
+    {
+      "kind": "calendar#event",
+      "id": "9c8b7a6f5e4d3c2b1a0_20261013T080000Z",
+      "status": "cancelled",
+      "recurringEventId": "9c8b7a6f5e4d3c2b1a0",
+      "originalStartTime": { "dateTime": "2026-10-13T10:00:00+02:00", "timeZone": "Europe/Berlin" }
+    },
+    {
+      "kind": "calendar#event",
+      "id": "teams0123",
+      "status": "tentative",
+      "description": "Microsoft Teams-Besprechung\nJetzt teilnehmen: https://teams.microsoft.com/l/meetup-join/19%3ameeting_ZmFrZQ%40thread.v2/0\n",
+      "start": { "dateTime": "2026-10-13T15:00:00Z" },
+      "end": { "dateTime": "2026-10-13T15:30:00Z" }
+    },
+    {
+      "kind": "calendar#event",
+      "id": "nostart01",
+      "status": "confirmed",
+      "summary": "Kaputter Termin ohne Beginn",
+      "end": { "dateTime": "2026-10-13T15:30:00Z" }
+    },
+    {
+      "kind": "calendar#event",
+      "id": "noend01",
+      "status": "confirmed",
+      "summary": "Ohne Ende",
+      "start": { "dateTime": "2026-10-15T08:00:00-07:00", "timeZone": "America/Los_Angeles" }
+    },
+    {
+      "kind": "calendar#event",
+      "id": "multiday01",
+      "status": "confirmed",
+      "summary": "Messe",
+      "start": { "date": "2026-10-12" },
+      "end": { "date": "2026-10-16" }
+    },
+    null
+  ]
+}

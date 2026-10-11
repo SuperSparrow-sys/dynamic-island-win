@@ -1,0 +1,43 @@
+{
+  "kind": "calendar#calendarList",
+  "etag": "\"p32g9vhs1ag9o40g\"",
+  "nextSyncToken": "CKCbrKvp2YgDEhVqb25hcy5leGFtcGxlQGdtYWlsLmNvbQ==",
+  "items": [
+    {
+      "kind": "calendar#calendarListEntry",
+      "etag": "\"1760100000000000\"",
+      "id": "jonas.example@gmail.com",
+      "summary": "jonas.example@gmail.com",
+      "timeZone": "Europe/Berlin",
+      "colorId": "14",
+      "backgroundColor": "#9fe1e7",
+      "foregroundColor": "#000000",
+      "selected": true,
+      "accessRole": "owner",
+      "defaultReminders": [ { "method": "popup", "minutes": 10 } ],
+      "primary": true
+    },
+    {
+      "kind": "calendar#calendarListEntry",
+      "id": "de.german#holiday@group.v.calendar.google.com",
+      "summary": "Feiertage in Deutschland",
+      "summaryOverride": "Feiertage",
+      "timeZone": "Europe/Berlin",
+      "backgroundColor": "#16a765",
+      "accessRole": "reader"
+    },
+    {
+      "kind": "calendar#calendarListEntry",
+      "id": "family0123456789@group.calendar.google.com",
+      "summary": "Familie",
+      "backgroundColor": "#f83a22",
+      "selected": false,
+      "accessRole": "writer"
+    },
+    {
+      "kind": "calendar#calendarListEntry",
+      "summary": "Ohne ID"
+    },
+    null
+  ]
+}

@@ -67,16 +67,7 @@ public sealed partial class ContactsService : ObservableObject
             {
                 var people = await _account.GetAsync("me/people?$top=15&$select=displayName,scoredEmailAddresses,phones,personType");
                 answered |= people is not null;
-                foreach (var p in people?["value"]?.AsArray() ?? new JsonArray())
-                {
-                    if (p?["personType"]?["class"]?.ToString() is { } cls && cls != "Person") continue;
-                    Add(new ContactItem
-                    {
-                        Name = p!["displayName"]?.ToString() ?? "",
-                        Email = p["scoredEmailAddresses"]?.AsArray().FirstOrDefault()?["address"]?.ToString() ?? "",
-                        Phone = BestPhone(p["phones"]?.AsArray(), "type", "number"),
-                    });
-                }
+                foreach (var c in ParsePeople(people)) Add(c);
             }
             catch (Exception ex) { Log.Info($"People: {ex.Message}"); }
             // Saved contacts (personal accounts have no people ranking; work accounts get the rest).
@@ -84,18 +75,7 @@ public sealed partial class ContactsService : ObservableObject
             {
                 var contacts = await _account.GetAsync("me/contacts?$top=60&$orderby=displayName&$select=displayName,emailAddresses,mobilePhone,businessPhones,homePhones");
                 answered |= contacts is not null;
-                foreach (var c in contacts?["value"]?.AsArray() ?? new JsonArray())
-                {
-                    if (c is null) continue;
-                    string phone = c["mobilePhone"]?.ToString() ?? "";
-                    if (phone.Length == 0) phone = c["businessPhones"]?.AsArray().FirstOrDefault()?.ToString() ?? c["homePhones"]?.AsArray().FirstOrDefault()?.ToString() ?? "";
-                    Add(new ContactItem
-                    {
-                        Name = c["displayName"]?.ToString() ?? "",
-                        Email = c["emailAddresses"]?.AsArray().FirstOrDefault()?["address"]?.ToString() ?? "",
-                        Phone = phone,
-                    });
-                }
+                foreach (var c in ParseContacts(contacts)) Add(c);
             }
             catch (Exception ex) { Log.Info($"Contacts: {ex.Message}"); }
 
@@ -108,6 +88,42 @@ public sealed partial class ContactsService : ObservableObject
             }
         }
         finally { _loading = false; }
+    }
+
+    /// <summary>GET me/people: real persons only (not groups or rooms).</summary>
+    internal static List<ContactItem> ParsePeople(JsonNode? people)
+    {
+        var list = new List<ContactItem>();
+        foreach (var p in people?["value"] as JsonArray ?? new JsonArray())
+        {
+            if (p is null || (p["personType"]?["class"]?.ToString() is { } cls && cls != "Person")) continue;
+            list.Add(new ContactItem
+            {
+                Name = p["displayName"]?.ToString() ?? "",
+                Email = (p["scoredEmailAddresses"] as JsonArray)?.FirstOrDefault()?["address"]?.ToString() ?? "",
+                Phone = BestPhone(p["phones"] as JsonArray, "type", "number"),
+            });
+        }
+        return list;
+    }
+
+    /// <summary>GET me/contacts: mobile number first, then business, then home.</summary>
+    internal static List<ContactItem> ParseContacts(JsonNode? contacts)
+    {
+        var list = new List<ContactItem>();
+        foreach (var c in contacts?["value"] as JsonArray ?? new JsonArray())
+        {
+            if (c is null) continue;
+            string phone = c["mobilePhone"]?.ToString() ?? "";
+            if (phone.Length == 0) phone = (c["businessPhones"] as JsonArray)?.FirstOrDefault()?.ToString() ?? (c["homePhones"] as JsonArray)?.FirstOrDefault()?.ToString() ?? "";
+            list.Add(new ContactItem
+            {
+                Name = c["displayName"]?.ToString() ?? "",
+                Email = (c["emailAddresses"] as JsonArray)?.FirstOrDefault()?["address"]?.ToString() ?? "",
+                Phone = phone,
+            });
+        }
+        return list;
     }
 
     /// <summary>Mobile first, then business, then any.</summary>

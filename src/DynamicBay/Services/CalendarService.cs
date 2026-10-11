@@ -214,7 +214,7 @@ public sealed partial class CalendarService : ObservableObject
             }
             catch (Exception ex)
             {
-                _status[a.Id] = (Loc.German ? "Fehler: " : "Error: ") + ex.Message;
+                _status[a.Id] = ErrorText.For(ex);
                 Log.Error("Calendar " + a.Kind, ex);
                 // keep the previous events of this account if the network hiccups
                 merged.AddRange(_all.Where(e => e.AccountId == a.Id));

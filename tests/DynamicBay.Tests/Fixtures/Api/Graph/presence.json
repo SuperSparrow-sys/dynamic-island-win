@@ -1,0 +1,8 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('a1b2c3d4-0000-4000-8000-000000000001')/presence/$entity",
+  "id": "a1b2c3d4-0000-4000-8000-000000000001",
+  "availability": "BusyIdle",
+  "activity": "InACall",
+  "statusMessage": null,
+  "outOfOfficeSettings": { "message": null, "isOutOfOffice": false }
+}

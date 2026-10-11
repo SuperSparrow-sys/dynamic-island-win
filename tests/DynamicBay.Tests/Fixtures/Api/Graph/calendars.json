@@ -1,0 +1,28 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('jonas%40contoso.com')/calendars(id,name,hexColor,isDefaultCalendar)",
+  "value": [
+    {
+      "@odata.etag": "W/\"DwAAABYAAAA1\"",
+      "id": "AAMkAGI2TGuLAAA=",
+      "name": "Kalender",
+      "hexColor": "#0078d4",
+      "isDefaultCalendar": true
+    },
+    {
+      "@odata.etag": "W/\"DwAAABYAAAA2\"",
+      "id": "AAMkAGI2TGuLBBB=",
+      "name": "Feiertage in Deutschland",
+      "hexColor": "",
+      "isDefaultCalendar": false
+    },
+    {
+      "id": null,
+      "name": "Kaputt",
+      "hexColor": "#ff0000"
+    },
+    {
+      "id": "AAMkAGI2TGuLCCC=",
+      "isDefaultCalendar": false
+    }
+  ]
+}

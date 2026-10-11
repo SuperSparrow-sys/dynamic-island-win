@@ -1,0 +1,7 @@
+{
+  "error": {
+    "status": 403,
+    "message": "Player command failed: Restriction violated",
+    "reason": "UNKNOWN"
+  }
+}

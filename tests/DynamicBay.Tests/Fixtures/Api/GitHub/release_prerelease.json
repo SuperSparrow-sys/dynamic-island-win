@@ -1,0 +1,17 @@
+{
+  "html_url": "https://github.com/SuperSparrow-sys/dynamic-island-win/releases/tag/v1.1.0-beta.2",
+  "id": 250000019,
+  "tag_name": "v1.1.0-beta.2",
+  "name": "DynamicBay 1.1.0 Beta 2",
+  "draft": false,
+  "prerelease": true,
+  "published_at": "2026-10-13T08:05:00Z",
+  "assets": [
+    {
+      "id": 300000004,
+      "name": "DynamicBay-Setup-1.1.0-beta.2.exe",
+      "size": 5300000,
+      "browser_download_url": "https://github.com/SuperSparrow-sys/dynamic-island-win/releases/download/v1.1.0-beta.2/DynamicBay-Setup-1.1.0-beta.2.exe"
+    }
+  ]
+}

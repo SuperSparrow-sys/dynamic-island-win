@@ -1,0 +1,30 @@
+{
+  "devices": [
+    {
+      "id": "3f228e06c8562e2f439e22932da6c3231715ed53",
+      "is_active": true,
+      "is_private_session": false,
+      "is_restricted": false,
+      "name": "DESKTOP-JONAS",
+      "supports_volume": true,
+      "type": "Computer",
+      "volume_percent": 64
+    },
+    {
+      "id": null,
+      "is_active": false,
+      "is_private_session": false,
+      "is_restricted": true,
+      "name": "Wohnzimmer TV",
+      "supports_volume": false,
+      "type": "TV",
+      "volume_percent": null
+    },
+    {
+      "id": "a8c1d5b2e4f6071829304a5b6c7d8e9f0a1b2c3d",
+      "name": "Pixel 9",
+      "type": "Smartphone"
+    },
+    null
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "country": "DE",
+  "display_name": null,
+  "email": "jonas@example.com",
+  "explicit_content": { "filter_enabled": false, "filter_locked": false },
+  "external_urls": { "spotify": "https://open.spotify.com/user/jonas.example" },
+  "followers": { "href": null, "total": 3 },
+  "href": "https://api.spotify.com/v1/users/jonas.example",
+  "id": "jonas.example",
+  "images": [],
+  "product": "premium",
+  "type": "user",
+  "uri": "spotify:user:jonas.example"
+}

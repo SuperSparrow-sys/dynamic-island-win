@@ -1,0 +1,37 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('jonas%40contoso.com')/people(displayName,scoredEmailAddresses,phones,personType)",
+  "value": [
+    {
+      "id": "8CE6E1DE-CF7C-4E9B-A0A1-1D2B3C4D5E6F",
+      "displayName": "Anna Schmidt",
+      "scoredEmailAddresses": [ { "address": "anna.schmidt@contoso.com", "relevanceScore": 30.0, "selectionLikelihood": "notSpecified" } ],
+      "phones": [
+        { "type": "business", "number": "+49 30 1234567" },
+        { "type": "mobile", "number": "+49 151 2345678" }
+      ],
+      "personType": { "class": "Person", "subclass": "OrganizationUser" }
+    },
+    {
+      "id": "8CE6E1DE-CF7C-4E9B-A0A1-1D2B3C4D5E70",
+      "displayName": "Vertrieb Nord",
+      "scoredEmailAddresses": [ { "address": "vertrieb-nord@contoso.com", "relevanceScore": 12.0 } ],
+      "phones": [],
+      "personType": { "class": "Group", "subclass": "UnifiedGroup" }
+    },
+    {
+      "id": "8CE6E1DE-CF7C-4E9B-A0A1-1D2B3C4D5E71",
+      "displayName": "Lukas Weber",
+      "scoredEmailAddresses": [],
+      "phones": null,
+      "personType": null
+    },
+    {
+      "id": "8CE6E1DE-CF7C-4E9B-A0A1-1D2B3C4D5E72",
+      "displayName": "Mia Fischer",
+      "scoredEmailAddresses": [ { "address": "mia@contoso.com" } ],
+      "phones": [ { "type": "home", "number": "+49 40 555" } ],
+      "personType": { "class": "Person", "subclass": "PersonalContact" }
+    },
+    null
+  ]
+}

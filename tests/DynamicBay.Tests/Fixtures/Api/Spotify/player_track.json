@@ -1,0 +1,54 @@
+{
+  "device": {
+    "id": "3f228e06c8562e2f439e22932da6c3231715ed53",
+    "is_active": true,
+    "is_private_session": false,
+    "is_restricted": false,
+    "name": "DESKTOP-JONAS",
+    "supports_volume": true,
+    "type": "Computer",
+    "volume_percent": 64
+  },
+  "shuffle_state": true,
+  "smart_shuffle": false,
+  "repeat_state": "context",
+  "timestamp": 1760187600000,
+  "context": {
+    "external_urls": { "spotify": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M" },
+    "href": "https://api.spotify.com/v1/playlists/37i9dQZF1DXcBWIGoYBM5M",
+    "type": "playlist",
+    "uri": "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M"
+  },
+  "progress_ms": 71234,
+  "item": {
+    "album": {
+      "album_type": "album",
+      "artists": [ { "id": "1Xyo4u8uXC1ZmMpatF05PJ", "name": "The Weeknd", "type": "artist", "uri": "spotify:artist:1Xyo4u8uXC1ZmMpatF05PJ" } ],
+      "id": "4yP0hdKOZPNshxUOjY0cZj",
+      "images": [
+        { "height": 640, "url": "https://i.scdn.co/image/ab67616d0000b2738863bc11d2aa12b54f5aeb36", "width": 640 },
+        { "height": 300, "url": "https://i.scdn.co/image/ab67616d00001e028863bc11d2aa12b54f5aeb36", "width": 300 },
+        { "height": 64, "url": "https://i.scdn.co/image/ab67616d000048518863bc11d2aa12b54f5aeb36", "width": 64 }
+      ],
+      "name": "After Hours",
+      "release_date": "2020-03-20",
+      "type": "album",
+      "uri": "spotify:album:4yP0hdKOZPNshxUOjY0cZj"
+    },
+    "artists": [ { "id": "1Xyo4u8uXC1ZmMpatF05PJ", "name": "The Weeknd", "type": "artist", "uri": "spotify:artist:1Xyo4u8uXC1ZmMpatF05PJ" } ],
+    "duration_ms": 200040,
+    "explicit": false,
+    "id": "0VjIjW4GlUZAMYd2vXMi3b",
+    "is_local": false,
+    "name": "Blinding Lights",
+    "popularity": 88,
+    "track_number": 9,
+    "type": "track",
+    "uri": "spotify:track:0VjIjW4GlUZAMYd2vXMi3b"
+  },
+  "currently_playing_type": "track",
+  "actions": {
+    "disallows": { "resuming": true }
+  },
+  "is_playing": true
+}

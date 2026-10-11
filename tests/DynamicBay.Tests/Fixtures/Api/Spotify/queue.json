@@ -1,0 +1,47 @@
+{
+  "currently_playing": {
+    "album": { "images": [ { "height": 64, "url": "https://i.scdn.co/image/ab67616d000048518863bc11d2aa12b54f5aeb36", "width": 64 } ], "name": "After Hours" },
+    "artists": [ { "name": "The Weeknd" } ],
+    "name": "Blinding Lights",
+    "type": "track",
+    "uri": "spotify:track:0VjIjW4GlUZAMYd2vXMi3b"
+  },
+  "queue": [
+    {
+      "album": {
+        "images": [
+          { "height": 640, "url": "https://i.scdn.co/image/ab67616d0000b273bd26ede1ae69327010d49946", "width": 640 },
+          { "height": 64, "url": "https://i.scdn.co/image/ab67616d00004851bd26ede1ae69327010d49946", "width": 64 }
+        ],
+        "name": "Future Nostalgia"
+      },
+      "artists": [ { "name": "Dua Lipa" }, { "name": "DaBaby" } ],
+      "name": "Levitating (feat. DaBaby)",
+      "type": "track",
+      "uri": "spotify:track:463CkQjx2Zk1yXoBuierM9"
+    },
+    {
+      "description": "Neue Folge",
+      "images": [ { "height": 640, "url": "https://i.scdn.co/image/ab6765630000ba8a0d5f5c2b9a7e7f4e7d2b9c51", "width": 640 } ],
+      "name": "Folge 213: Alles über Widgets",
+      "show": { "name": "Technik-Talk", "publisher": "Studio Nord" },
+      "type": "episode",
+      "uri": "spotify:episode:6x1zVhGNmOyO1H3n3iF0w5"
+    },
+    null,
+    {
+      "album": { "images": [], "name": "Demo-Aufnahmen" },
+      "artists": [ { "name": "Band aus dem Keller" }, null, { "name": null } ],
+      "is_local": true,
+      "name": "Probe 4",
+      "type": "track",
+      "uri": "spotify:local:Band+aus+dem+Keller:Demo-Aufnahmen:Probe+4:201"
+    },
+    {
+      "album": { "name": "Ohne Bilder" },
+      "name": "Track ohne Künstler",
+      "type": "track",
+      "uri": "spotify:track:1111111111111111111111"
+    }
+  ]
+}

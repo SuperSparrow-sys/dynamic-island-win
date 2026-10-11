@@ -1,0 +1,52 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('jonas%40contoso.com')/todo/lists('AAMkADIyAAAAABrJAAA%3D')/tasks",
+  "value": [
+    {
+      "@odata.etag": "W/\"xzyPKP0BiUGgld+lMKXwbQAAgdhkVw==\"",
+      "importance": "high",
+      "isReminderOn": false,
+      "status": "notStarted",
+      "title": "Angebot an Müller GmbH schicken",
+      "createdDateTime": "2026-10-08T07:12:45.1234567Z",
+      "lastModifiedDateTime": "2026-10-08T07:12:45.1234567Z",
+      "hasAttachments": false,
+      "categories": [],
+      "id": "AlMKXwbQAAAJws6wcAAAA=",
+      "body": { "content": "", "contentType": "text" },
+      "dueDateTime": { "dateTime": "2026-10-12T00:00:00.0000000", "timeZone": "UTC" }
+    },
+    {
+      "importance": "normal",
+      "status": "inProgress",
+      "title": "Reisekosten abrechnen",
+      "id": "AlMKXwbQAAAJws6wdAAAA=",
+      "dueDateTime": { "dateTime": "2026-10-13T17:30:00.0000000", "timeZone": "Pacific Standard Time" }
+    },
+    {
+      "importance": "normal",
+      "status": "completed",
+      "title": "Schon erledigt",
+      "id": "AlMKXwbQAAAJws6weAAAA=",
+      "completedDateTime": { "dateTime": "2026-10-10T00:00:00.0000000", "timeZone": "UTC" }
+    },
+    {
+      "importance": "low",
+      "status": "notStarted",
+      "id": "AlMKXwbQAAAJws6wfAAAA=",
+      "dueDateTime": null
+    },
+    {
+      "importance": "normal",
+      "status": "notStarted",
+      "title": "Aufgabe ohne ID"
+    },
+    {
+      "importance": "normal",
+      "status": "waitingOnOthers",
+      "title": "Unbekannte Zeitzone",
+      "id": "AlMKXwbQAAAJws6wgAAAA=",
+      "dueDateTime": { "dateTime": "2026-10-14T09:00:00.0000000", "timeZone": "Mars/Olympus" }
+    },
+    null
+  ]
+}

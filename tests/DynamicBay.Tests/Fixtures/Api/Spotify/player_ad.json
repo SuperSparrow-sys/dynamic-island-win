@@ -1,0 +1,32 @@
+{
+  "device": {
+    "id": "3f228e06c8562e2f439e22932da6c3231715ed53",
+    "is_active": true,
+    "is_private_session": false,
+    "is_restricted": false,
+    "name": "DESKTOP-JONAS",
+    "supports_volume": true,
+    "type": "Computer",
+    "volume_percent": 64
+  },
+  "shuffle_state": false,
+  "smart_shuffle": false,
+  "repeat_state": "off",
+  "timestamp": 1760187650000,
+  "context": null,
+  "progress_ms": 4100,
+  "item": null,
+  "currently_playing_type": "ad",
+  "actions": {
+    "disallows": {
+      "pausing": true,
+      "skipping_next": true,
+      "skipping_prev": true,
+      "toggling_repeat_context": true,
+      "toggling_repeat_track": true,
+      "toggling_shuffle": true,
+      "seeking": true
+    }
+  },
+  "is_playing": true
+}

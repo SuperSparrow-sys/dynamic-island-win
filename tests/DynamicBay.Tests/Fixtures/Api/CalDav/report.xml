@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<multistatus xmlns="DAV:">
+  <response>
+    <href>/1234567890/calendars/home/8A1F2B3C-0001.ics</href>
+    <propstat>
+      <prop>
+        <getetag>"mfzwsv1b"</getetag>
+        <calendar-data xmlns="urn:ietf:params:xml:ns:caldav"><![CDATA[BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Apple Inc.//macOS 15.0//EN
+CALSCALE:GREGORIAN
+BEGIN:VTIMEZONE
+TZID:Europe/Berlin
+BEGIN:DAYLIGHT
+TZOFFSETFROM:+0100
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+DTSTART:19810329T020000
+TZNAME:MESZ
+TZOFFSETTO:+0200
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:+0200
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+DTSTART:19961027T030000
+TZNAME:MEZ
+TZOFFSETTO:+0100
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:8A1F2B3C-0001
+DTSTAMP:20261001T080000Z
+CREATED:20261001T080000Z
+DTSTART;TZID=Europe/Berlin:20261012T093000
+DTEND;TZID=Europe/Berlin:20261012T100000
+SUMMARY:Arzttermin
+LOCATION:Praxis Dr. Weber\, Hauptstraße 5
+SEQUENCE:0
+END:VEVENT
+END:VCALENDAR
+]]></calendar-data>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response>
+    <href>/1234567890/calendars/home/8A1F2B3C-0002.ics</href>
+    <propstat>
+      <prop>
+        <getetag>"mfzwsv1c"</getetag>
+        <calendar-data xmlns="urn:ietf:params:xml:ns:caldav">BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Apple Inc.//iOS 18.0//EN
+BEGIN:VEVENT
+UID:8A1F2B3C-0002
+DTSTAMP:20260901T080000Z
+DTSTART:20260907T070000Z
+DTEND:20260907T073000Z
+RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR
+EXDATE:20261014T070000Z
+SUMMARY:Stand-up
+DESCRIPTION:Teams: https://teams.microsoft.com/l/meetup-join/19%3ameeting_c3RhbmR1cA%40thread.v2/0
+END:VEVENT
+END:VCALENDAR
+</calendar-data>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response>
+    <href>/1234567890/calendars/home/8A1F2B3C-0003.ics</href>
+    <propstat>
+      <prop>
+        <getetag>"mfzwsv1d"</getetag>
+        <calendar-data xmlns="urn:ietf:params:xml:ns:caldav">BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Apple Inc.//iOS 18.0//EN
+BEGIN:VEVENT
+UID:8A1F2B3C-0003
+DTSTAMP:20261001T080000Z
+DTSTART;VALUE=DATE:20261014
+DTEND;VALUE=DATE:20261015
+SUMMARY:Urlaubstag
+END:VEVENT
+END:VCALENDAR
+</calendar-data>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response>
+    <href>/1234567890/calendars/home/8A1F2B3C-0004.ics</href>
+    <propstat>
+      <prop>
+        <getetag>"mfzwsv1e"</getetag>
+        <calendar-data xmlns="urn:ietf:params:xml:ns:caldav"/>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response>
+    <href>/1234567890/calendars/home/8A1F2B3C-0005.ics</href>
+    <propstat>
+      <prop>
+        <calendar-data xmlns="urn:ietf:params:xml:ns:caldav">
+        </calendar-data>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response>
+    <href>/1234567890/calendars/home/deleted.ics</href>
+    <status>HTTP/1.1 404 Not Found</status>
+  </response>
+</multistatus>

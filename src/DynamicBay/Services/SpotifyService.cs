@@ -177,7 +177,8 @@ public sealed partial class SpotifyService : ObservableObject
         }
         catch (Exception ex)
         {
-            Status = (Loc.German ? "Anmeldung fehlgeschlagen: " : "Login failed: ") + ex.Message;
+            Log.Error("Spotify sign-in", ex);
+            Status = ErrorText.For(ex, Loc.T("Err.SignInFailed"));
         }
         finally { IsBusy = false; }
     }
@@ -207,7 +208,7 @@ public sealed partial class SpotifyService : ObservableObject
     }
 
     /// <summary>Spotify refused the token request; <see cref="Error"/> is its OAuth error code ("invalid_grant", ...).</summary>
-    private sealed class TokenException(HttpStatusCode status, string? error, string message) : InvalidOperationException(message)
+    private sealed class TokenException(HttpStatusCode status, string? error, string message) : InvalidOperationException(message), IHttpStatusError, IOAuthError
     {
         public HttpStatusCode Status { get; } = status;
         public string? Error { get; } = error;
@@ -344,7 +345,7 @@ public sealed partial class SpotifyService : ObservableObject
         if (message.Contains("Restriction violated", StringComparison.OrdinalIgnoreCase) || reason is "UNKNOWN" or "DISALLOWED")
             return de ? "Bei dieser Wiedergabe nicht möglich" : "Not possible for what is playing";
         if (status == HttpStatusCode.TooManyRequests) return de ? "Spotify: zu viele Anfragen, gleich nochmal" : "Spotify: too many requests, try again";
-        return (de ? "Spotify-Fehler " : "Spotify error ") + (int)status;
+        return ErrorText.For(status);
     }
 
     private System.Windows.Threading.DispatcherTimer? _errorTimer;
@@ -360,8 +361,7 @@ public sealed partial class SpotifyService : ObservableObject
 
     private async Task LoadProfileAsync()
     {
-        var me = await SendAsync(HttpMethod.Get, "me");
-        UserName = me?["display_name"]?.ToString() ?? me?["id"]?.ToString() ?? "Spotify";
+        UserName = ParseUserName(await SendAsync(HttpMethod.Get, "me"));
     }
 
     private async Task PollAsync()
@@ -369,21 +369,19 @@ public sealed partial class SpotifyService : ObservableObject
         if (!IsConnected) return;
         var st = await SendAsync(HttpMethod.Get, "me/player");
         if (st is null) return;
-        Shuffle = st["shuffle_state"]?.GetValue<bool>() ?? false;
-        Repeat = st["repeat_state"]?.ToString() ?? "off";
-        // What Spotify allows right now (autoplay/radio after the end of a playlist, for example, cannot be shuffled).
-        var disallows = st["actions"]?["disallows"];
-        CanShuffle = disallows?["toggling_shuffle"]?.GetValue<bool>() != true;
-        CanRepeat = disallows?["toggling_repeat_context"]?.GetValue<bool>() != true || disallows?["toggling_repeat_track"]?.GetValue<bool>() != true;
-        DeviceName = st["device"]?["name"]?.ToString() ?? "";
-        SupportsVolume = st["device"]?["supports_volume"]?.GetValue<bool>() ?? false;
-        Volume = st["device"]?["volume_percent"]?.GetValue<int>() ?? Volume;
-        string? uri = st["item"]?["uri"]?.ToString();
+        var p = ParsePlayerState(st);
+        Shuffle = p.Shuffle;
+        Repeat = p.Repeat;
+        CanShuffle = p.CanShuffle;
+        CanRepeat = p.CanRepeat;
+        DeviceName = p.DeviceName;
+        SupportsVolume = p.SupportsVolume;
+        Volume = p.Volume ?? Volume;
+        string? uri = p.TrackUri;
         if (uri is not null && uri != _trackUri)
         {
             _trackUri = uri;
-            var contains = await SendAsync(HttpMethod.Get, $"me/library/contains?uris={Uri.EscapeDataString(uri)}");
-            IsLiked = contains is JsonArray arr && arr.Count > 0 && arr[0]!.GetValue<bool>();
+            IsLiked = ParseContains(await SendAsync(HttpMethod.Get, $"me/library/contains?uris={Uri.EscapeDataString(uri)}"));
         }
     }
 
@@ -428,15 +426,7 @@ public sealed partial class SpotifyService : ObservableObject
     {
         var res = await SendAsync(HttpMethod.Get, "me/player/devices");
         Devices.Clear();
-        if (res?["devices"] is JsonArray arr)
-            foreach (var d in arr)
-                Devices.Add(new SpotifyDevice
-                {
-                    Id = d!["id"]?.ToString() ?? "",
-                    Name = d["name"]?.ToString() ?? "",
-                    Type = d["type"]?.ToString() ?? "",
-                    IsActive = d["is_active"]?.GetValue<bool>() ?? false,
-                });
+        foreach (var d in ParseDevices(res)) Devices.Add(d);
     }
 
     [RelayCommand]
@@ -453,19 +443,7 @@ public sealed partial class SpotifyService : ObservableObject
     {
         var res = await SendAsync(HttpMethod.Get, "me/player/queue");
         Queue.Clear();
-        if (res?["queue"] is JsonArray arr)
-        {
-            int i = 0;
-            foreach (var t in arr.Take(10))
-                Queue.Add(new SpotifyQueueItem
-                {
-                    Index = i++,
-                    Title = t!["name"]?.ToString() ?? "",
-                    // songs have artists, podcast episodes a show
-                    Artist = t["artists"] is JsonArray artists ? string.Join(", ", artists.Select(a => a!["name"]?.ToString())) : t["show"]?["name"]?.ToString() ?? "",
-                    ImageUrl = ((t["album"]?["images"] ?? t["images"]) as JsonArray)?.LastOrDefault()?["url"]?.ToString(),
-                });
-        }
+        foreach (var q in ParseQueue(res)) Queue.Add(q);
     }
 
     /// <summary>For design snapshots only.</summary>
@@ -504,18 +482,7 @@ public sealed partial class SpotifyService : ObservableObject
         }
         PlaylistHint = "";
         Playlists.Clear();
-        foreach (var p in res?["items"] as JsonArray ?? new JsonArray())
-        {
-            if (p is null) continue;
-            int count = p["tracks"]?["total"]?.GetValue<int>() ?? p["items"]?["total"]?.GetValue<int>() ?? 0;
-            Playlists.Add(new SpotifyPlaylist
-            {
-                Name = p["name"]?.ToString() ?? "",
-                Uri = p["uri"]?.ToString() ?? "",
-                ImageUrl = (p["images"] as JsonArray)?.LastOrDefault()?["url"]?.ToString(),
-                Detail = (Loc.German ? $"{count} Titel · " : $"{count} tracks · ") + (p["owner"]?["display_name"]?.ToString() ?? ""),
-            });
-        }
+        foreach (var p in ParsePlaylists(res)) Playlists.Add(p);
         if (Playlists.Count == 0) PlaylistHint = Loc.German ? "Keine Playlists gefunden." : "No playlists found.";
     }
 
@@ -529,4 +496,100 @@ public sealed partial class SpotifyService : ObservableObject
             await PollAsync();
         }
     }
+
+    // ---------- parsing (pure: tested with captured responses, never throws on odd or missing fields) ----------
+
+    /// <summary>What the panel shows from GET me/player.</summary>
+    internal sealed record PlayerState(bool Shuffle, string Repeat, bool CanShuffle, bool CanRepeat,
+        string DeviceName, bool SupportsVolume, int? Volume, string? TrackUri);
+
+    /// <summary>GET me/player. "item" is null during ads and sometimes for podcasts; then there is no track to like.</summary>
+    internal static PlayerState ParsePlayerState(JsonNode st)
+    {
+        // What Spotify allows right now (autoplay/radio after the end of a playlist, for example, cannot be shuffled).
+        var disallows = st["actions"]?["disallows"];
+        var device = st["device"];
+        return new PlayerState(
+            Shuffle: Bool(st["shuffle_state"]) ?? false,
+            Repeat: st["repeat_state"]?.ToString() ?? "off",
+            CanShuffle: Bool(disallows?["toggling_shuffle"]) != true,
+            CanRepeat: Bool(disallows?["toggling_repeat_context"]) != true || Bool(disallows?["toggling_repeat_track"]) != true,
+            DeviceName: device?["name"]?.ToString() ?? "",
+            SupportsVolume: Bool(device?["supports_volume"]) ?? false,
+            Volume: Int(device?["volume_percent"]),
+            TrackUri: st["item"]?["uri"]?.ToString());
+    }
+
+    /// <summary>GET me/library/contains: [true] or [false] (an error object counts as not liked).</summary>
+    internal static bool ParseContains(JsonNode? res) => res is JsonArray arr && arr.Count > 0 && Bool(arr[0]) == true;
+
+    internal static string ParseUserName(JsonNode? me) => me?["display_name"]?.ToString() ?? me?["id"]?.ToString() ?? "Spotify";
+
+    /// <summary>GET me/player/devices. Restricted devices come without an id.</summary>
+    internal static List<SpotifyDevice> ParseDevices(JsonNode? res)
+    {
+        var list = new List<SpotifyDevice>();
+        if (res?["devices"] is not JsonArray arr) return list;
+        foreach (var d in arr)
+        {
+            if (d is null) continue;
+            list.Add(new SpotifyDevice
+            {
+                Id = d["id"]?.ToString() ?? "",
+                Name = d["name"]?.ToString() ?? "",
+                Type = d["type"]?.ToString() ?? "",
+                IsActive = Bool(d["is_active"]) ?? false,
+            });
+        }
+        return list;
+    }
+
+    /// <summary>GET me/player/queue: the next ten. Index is the position in the queue (for skipping to it).</summary>
+    internal static List<SpotifyQueueItem> ParseQueue(JsonNode? res)
+    {
+        var list = new List<SpotifyQueueItem>();
+        if (res?["queue"] is not JsonArray arr) return list;
+        int i = 0;
+        foreach (var t in arr.Take(10))
+        {
+            int index = i++;
+            if (t is null) continue;
+            list.Add(new SpotifyQueueItem
+            {
+                Index = index,
+                Title = t["name"]?.ToString() ?? "",
+                // songs have artists, podcast episodes a show
+                Artist = t["artists"] is JsonArray artists
+                    ? string.Join(", ", artists.Select(a => a?["name"]?.ToString()).Where(n => !string.IsNullOrEmpty(n)))
+                    : t["show"]?["name"]?.ToString() ?? "",
+                ImageUrl = LastImage(t["album"]?["images"] ?? t["images"]),
+            });
+        }
+        return list;
+    }
+
+    /// <summary>GET me/playlists. Since 2026 the track count may come as "items" instead of "tracks".</summary>
+    internal static List<SpotifyPlaylist> ParsePlaylists(JsonNode? res)
+    {
+        var list = new List<SpotifyPlaylist>();
+        foreach (var p in res?["items"] as JsonArray ?? new JsonArray())
+        {
+            if (p is null) continue;
+            int count = Int(p["tracks"]?["total"]) ?? Int(p["items"]?["total"]) ?? 0;
+            list.Add(new SpotifyPlaylist
+            {
+                Name = p["name"]?.ToString() ?? "",
+                Uri = p["uri"]?.ToString() ?? "",
+                ImageUrl = LastImage(p["images"]),
+                Detail = (Loc.German ? $"{count} Titel · " : $"{count} tracks · ") + (p["owner"]?["display_name"]?.ToString() ?? ""),
+            });
+        }
+        return list;
+    }
+
+    /// <summary>The smallest picture (Spotify lists them largest first); null for local files and empty lists.</summary>
+    private static string? LastImage(JsonNode? images) => (images as JsonArray)?.LastOrDefault(i => i is not null)?["url"]?.ToString();
+
+    private static bool? Bool(JsonNode? n) => n is JsonValue v && v.TryGetValue<bool>(out var b) ? b : null;
+    private static int? Int(JsonNode? n) => n is JsonValue v && v.TryGetValue<int>(out var i) ? i : null;
 }

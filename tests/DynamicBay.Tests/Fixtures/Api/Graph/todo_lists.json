@@ -1,0 +1,31 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('jonas%40contoso.com')/todo/lists",
+  "value": [
+    {
+      "@odata.etag": "W/\"m1fdwWoFiE2YS9yegTKoYwAA/hqrxQ==\"",
+      "displayName": "Tasks",
+      "isOwner": true,
+      "isShared": false,
+      "wellknownListName": "defaultList",
+      "id": "AAMkADIyAAAAABrJAAA="
+    },
+    {
+      "displayName": "Flagged Emails",
+      "isOwner": true,
+      "isShared": false,
+      "wellknownListName": "flaggedEmails",
+      "id": "AAMkADIyAAAAABrKAAA="
+    },
+    {
+      "displayName": "Einkaufen",
+      "isOwner": true,
+      "isShared": true,
+      "wellknownListName": "none",
+      "id": "AAMkADIyAAAAABrLAAA="
+    },
+    {
+      "displayName": "Ohne ID",
+      "wellknownListName": "none"
+    }
+  ]
+}

@@ -9,10 +9,8 @@ public static class OutlookCalendar
         MicrosoftAccount account, DateTime from, DateTime to, ICollection<string> hidden)
     {
         var cals = await account.GetAsync("me/calendars?$select=id,name,hexColor,isDefaultCalendar&$top=50")
-                   ?? throw new InvalidOperationException(Core.Loc.German ? "Microsoft ist nicht verbunden" : "Microsoft is not connected");
-        var calendars = (cals["value"]?.AsArray() ?? new JsonArray())
-            .Select(c => new CalendarInfo(c!["id"]!.ToString(), c["name"]?.ToString() ?? "", NullIfAuto(c["hexColor"]?.ToString())))
-            .ToList();
+                   ?? throw new Core.UserMessageException(Core.Loc.German ? "Microsoft ist nicht verbunden" : "Microsoft is not connected");
+        var calendars = ParseCalendars(cals);
         string range = $"startDateTime={Uri.EscapeDataString(from.ToUniversalTime().ToString("o"))}&endDateTime={Uri.EscapeDataString(to.ToUniversalTime().ToString("o"))}";
         const string select = "$select=subject,start,end,isAllDay,location,isCancelled,onlineMeeting,onlineMeetingUrl,bodyPreview&$top=250";
         // Times in the PC's own zone (Graph takes Windows zone names): all-day events then keep their date.
@@ -20,26 +18,40 @@ public static class OutlookCalendar
         var pages = await Task.WhenAll(calendars.Where(c => !hidden.Contains(c.Id)).Select(async cal =>
             (cal, data: await account.GetAsync($"me/calendars/{Uri.EscapeDataString(cal.Id)}/calendarView?{range}&{select}", prefer))));
         var events = new List<CalendarEvent>();
-        foreach (var (cal, data) in pages)
-        {
-            foreach (var ev in data?["value"]?.AsArray() ?? new JsonArray())
-            {
-                if (ev is null || ev["isCancelled"]?.GetValue<bool>() == true) continue;
-                bool allDay = ev["isAllDay"]?.GetValue<bool>() == true;
-                DateTime s = Time(ev["start"], allDay), e = Time(ev["end"], allDay);
-                events.Add(new CalendarEvent
-                {
-                    Title = ev["subject"]?.ToString() ?? "", Start = s, End = e, AllDay = allDay,
-                    Location = ev["location"]?["displayName"]?.ToString(),
-                    Color = cal.Color,
-                    // Teams meetings carry their join link in onlineMeeting; older events in onlineMeetingUrl or the text.
-                    Meeting = MeetingLinks.Find(ev["onlineMeeting"]?["joinUrl"]?.ToString(), ev["onlineMeetingUrl"]?.ToString(),
-                                                ev["location"]?["displayName"]?.ToString(), ev["bodyPreview"]?.ToString()),
-                });
-            }
-        }
+        foreach (var (cal, data) in pages) events.AddRange(ParseEvents(data, cal.Color));
         return (events, calendars);
     }
+
+    /// <summary>GET me/calendars: calendars without an id are skipped.</summary>
+    internal static List<CalendarInfo> ParseCalendars(JsonNode? cals) =>
+        (cals?["value"] as JsonArray ?? new JsonArray())
+            .Where(c => c?["id"] is not null)
+            .Select(c => new CalendarInfo(c!["id"]!.ToString(), c["name"]?.ToString() ?? "", NullIfAuto(c["hexColor"]?.ToString())))
+            .ToList();
+
+    /// <summary>One page of calendarView; cancelled events are left out, a missing location or meeting is fine.</summary>
+    internal static List<CalendarEvent> ParseEvents(JsonNode? data, string? color)
+    {
+        var events = new List<CalendarEvent>();
+        foreach (var ev in data?["value"] as JsonArray ?? new JsonArray())
+        {
+            if (ev is null || Bool(ev["isCancelled"]) == true) continue;
+            bool allDay = Bool(ev["isAllDay"]) == true;
+            DateTime s = Time(ev["start"], allDay), e = Time(ev["end"], allDay);
+            events.Add(new CalendarEvent
+            {
+                Title = ev["subject"]?.ToString() ?? "", Start = s, End = e, AllDay = allDay,
+                Location = ev["location"]?["displayName"]?.ToString(),
+                Color = color,
+                // Teams meetings carry their join link in onlineMeeting; older events in onlineMeetingUrl or the text.
+                Meeting = MeetingLinks.Find(ev["onlineMeeting"]?["joinUrl"]?.ToString(), ev["onlineMeetingUrl"]?.ToString(),
+                                            ev["location"]?["displayName"]?.ToString(), ev["bodyPreview"]?.ToString()),
+            });
+        }
+        return events;
+    }
+
+    private static bool? Bool(JsonNode? n) => n is JsonValue v && v.TryGetValue<bool>(out var b) ? b : null;
 
     /// <summary>
     /// Times come in local time (Prefer: outlook.timezone = the PC's zone); all-day events take the date as written

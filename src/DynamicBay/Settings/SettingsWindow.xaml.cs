@@ -484,7 +484,13 @@ public partial class SettingsWindow : Window
         CheckUpdateButton.IsEnabled = false;
         UpdateStatus.Text = Loc.German ? "Suche nach Updates…" : "Checking for updates…";
         try { await UpdateCheck.CheckNowAsync(); UpdateUpdateRow(); }
-        catch { UpdateStatus.Text = Loc.German ? "GitHub nicht erreichbar" : "GitHub not reachable"; }
+        catch (Exception ex)
+        {
+            Log.Error("Update check", ex);
+            // GitHub answers 403 when its hourly limit for anonymous requests is used up: not a sign-in problem.
+            UpdateStatus.Text = ex is System.Net.Http.HttpRequestException { StatusCode: System.Net.HttpStatusCode.Forbidden }
+                ? ErrorText.For(System.Net.HttpStatusCode.TooManyRequests) : ErrorText.For(ex);
+        }
         finally { CheckUpdateButton.IsEnabled = true; }
     }
 
@@ -899,7 +905,8 @@ public partial class SettingsWindow : Window
         }
         catch (Exception ex)
         {
-            status.Text = (Loc.German ? "Fehlgeschlagen: " : "Failed: ") + ex.Message;
+            Log.Error("Calendar test " + account.Kind, ex);
+            status.Text = ErrorText.For(ex);
             return false;
         }
     }
@@ -953,7 +960,11 @@ public partial class SettingsWindow : Window
             if (!await TestAndAddAsync(account, GoogleStatus))
                 foreach (var k in new[] { "secret", "refresh" }) SecretStore.Set($"cal:{account.Id}:{k}", null);
         }
-        catch (Exception ex) { GoogleStatus.Text = (Loc.German ? "Fehlgeschlagen: " : "Failed: ") + ex.Message; }
+        catch (Exception ex)
+        {
+            Log.Error("Google sign-in", ex);
+            GoogleStatus.Text = ErrorText.For(ex, Loc.T("Err.SignInFailed"));
+        }
     }
 
     private async void SaveIcs_Click(object sender, RoutedEventArgs e)

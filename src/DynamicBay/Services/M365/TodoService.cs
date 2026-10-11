@@ -77,25 +77,13 @@ public sealed partial class TodoService : ObservableObject
         {
             var lists = await _account.GetAsync("me/todo/lists");
             if (lists is null) return;
-            var found = (lists["value"]?.AsArray() ?? new JsonArray())
-                .Select(l => new TodoList(l!["id"]!.ToString(), ListName(l)))
-                .ToList();
+            var found = ParseLists(lists);
             if (!found.SequenceEqual(Lists)) { Lists.Clear(); foreach (var l in found) Lists.Add(l); }
             var chosen = found.Where(l => _settings.TodoListId.Length == 0 || l.Id == _settings.TodoListId).ToList();
             if (chosen.Count == 0) chosen = found; // the chosen list was deleted: show all
             var pages = await Task.WhenAll(chosen.Select(async l => (l.Id, tasks: await ReadTasksAsync(l))));
             var all = new List<TodoItem>();
-            foreach (var (listId, tasks) in pages)
-                foreach (var t in tasks)
-                {
-                    if (t is null || t["status"]?.ToString() == "completed") continue;
-                    DateTime? due = DueDate(t["dueDateTime"]);
-                    all.Add(new TodoItem
-                    {
-                        Id = t["id"]!.ToString(), ListId = listId, Title = t["title"]?.ToString() ?? "",
-                        Due = due, Important = t["importance"]?.ToString() == "high",
-                    });
-                }
+            foreach (var (listId, tasks) in pages) all.AddRange(ParseTasks(listId, tasks));
             // Overdue and today first, then the rest by due date, then important ones without a date.
             var sorted = all.OrderBy(i => i.Due is null ? 1 : 0).ThenBy(i => i.Due).ThenByDescending(i => i.Important).Take(12).ToList();
             if (!sorted.Select(i => i.Id).SequenceEqual(Items.Select(i => i.Id)))
@@ -109,7 +97,7 @@ public sealed partial class TodoService : ObservableObject
         catch (Exception ex)
         {
             Log.Error("To Do", ex);
-            Status = (Loc.German ? "To Do: " : "To Do: ") + ex.Message;
+            Status = "To Do: " + ErrorText.For(ex);
         }
         finally { _loading = false; }
     }
@@ -150,6 +138,29 @@ public sealed partial class TodoService : ObservableObject
         if (d.TimeOfDay == TimeSpan.Zero || d.Kind != DateTimeKind.Unspecified) return d.Date;
         try { return TimeZoneInfo.ConvertTime(d, TimeZoneInfo.FindSystemTimeZoneById(due?["timeZone"]?.ToString() ?? "UTC"), TimeZoneInfo.Local).Date; }
         catch { return d.Date; }
+    }
+
+    /// <summary>GET me/todo/lists: lists without an id are skipped.</summary>
+    internal static List<TodoList> ParseLists(JsonNode? lists) =>
+        (lists?["value"] as JsonArray ?? new JsonArray())
+            .Where(l => l?["id"] is not null)
+            .Select(l => new TodoList(l!["id"]!.ToString(), ListName(l)))
+            .ToList();
+
+    /// <summary>The open tasks of one list (completed ones and tasks without an id are left out).</summary>
+    internal static List<TodoItem> ParseTasks(string listId, IEnumerable<JsonNode?> tasks)
+    {
+        var items = new List<TodoItem>();
+        foreach (var t in tasks)
+        {
+            if (t is null || t["id"] is null || t["status"]?.ToString() == "completed") continue;
+            items.Add(new TodoItem
+            {
+                Id = t["id"]!.ToString(), ListId = listId, Title = t["title"]?.ToString() ?? "",
+                Due = DueDate(t["dueDateTime"]), Important = t["importance"]?.ToString() == "high",
+            });
+        }
+        return items;
     }
 
     /// <summary>"Aufgaben" for the default list, "Gekennzeichnete E-Mails" for flagged mails, else the list's own name.</summary>

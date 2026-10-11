@@ -504,7 +504,7 @@ public sealed partial class TimeTrackingService : ObservableObject
             Log.Info($"TimeTracking write: {ex.Message}");
             Status = Loc.German ? "Datei in Excel offen, wird später gespeichert" : "File open in Excel, saved later";
         }
-        catch (Exception ex) { Log.Error("TimeTracking write", ex); Status = ex.Message; }
+        catch (Exception ex) { Log.Error("TimeTracking write", ex); Status = ErrorText.For(ex); }
     }
 
     /// <summary>Once a day (and once per start) the file as it was goes to "….csv.bak" before it is overwritten.</summary>
