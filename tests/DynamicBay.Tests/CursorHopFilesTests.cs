@@ -86,3 +86,27 @@ public class LinkAddressOrderTests
     public void Tailscale_ranges_are_recognised(string address, bool expected) =>
         Assert.Equal(expected, DynamicBay.Services.Link.LinkProtocol.IsTailscaleAddress(address));
 }
+
+public class ContinueHereTests
+{
+    private static DynamicBay.Services.SpotifyDevice D(string name, string type = "Computer", bool active = false) => new() { Id = name, Name = name, Type = type, IsActive = active };
+
+    [Fact]
+    public void This_pc_is_found_by_name_first() =>
+        Assert.Equal("LAPTOPJONATHAN", DynamicBay.Services.Link.LinkHub.PickThisPc(new[] { D("PC-JONATHAN", active: true), D("LAPTOPJONATHAN"), D("Echo", "Speaker") }, "LaptopJonathan")?.Name);
+
+    [Fact]
+    public void Otherwise_the_only_idle_computer() =>
+        Assert.Equal("Mein Laptop", DynamicBay.Services.Link.LinkHub.PickThisPc(new[] { D("PC-JONATHAN", active: true), D("Mein Laptop"), D("Echo", "Speaker") }, "LaptopJonathan")?.Name);
+
+    [Fact]
+    public void Two_idle_computers_are_not_guessed() =>
+        Assert.Null(DynamicBay.Services.Link.LinkHub.PickThisPc(new[] { D("A"), D("B") }, "LaptopJonathan"));
+
+    [Theory]
+    [InlineData("Spotify", true, true)]
+    [InlineData("Spotify", false, false)]
+    [InlineData("Apple Music", true, false)]
+    public void Only_spotify_with_a_login_can_continue_here(string app, bool signedIn, bool expected) =>
+        Assert.Equal(expected, DynamicBay.Services.Link.LinkHub.CanContinueHere(app, signedIn));
+}

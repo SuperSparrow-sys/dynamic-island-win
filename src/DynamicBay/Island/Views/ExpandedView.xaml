@@ -323,8 +323,8 @@
                                 </DockPanel>
                                 <!-- Which device plays it; a click goes back to the music here (when there is some) -->
                                 <Button Grid.Row="2" Style="{StaticResource Btn.Chip}" HorizontalAlignment="Left" Padding="8,0" Height="22" FontSize="10.5" Margin="0,6,0,0"
-                                        Command="{Binding Link.ToggleRemoteCommand}" IsEnabled="{Binding Media.HasSession}"
-                                        ToolTip="{core:L De='Musik auf diesem Gerät zeigen', En='Show the music on this device'}">
+                                        Command="{Binding Link.ToggleRemoteCommand}" IsEnabled="{Binding Link.CanTakeOver}"
+                                        ToolTip="{Binding Link.TakeOverText}">
                                     <StackPanel Orientation="Horizontal">
                                         <c:Icon Data="{StaticResource Icon.Laptop}" Width="11" Height="11" Foreground="{StaticResource B.Blue}" />
                                         <TextBlock Margin="5,0,0,0" Text="{Binding Link.Remote.DeviceText}" Foreground="{StaticResource B.Text}" />

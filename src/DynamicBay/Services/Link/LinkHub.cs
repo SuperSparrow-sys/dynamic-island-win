@@ -175,6 +175,18 @@ public sealed partial class LinkHub : ObservableObject
 
     // Local services (set once by the app).
     public MediaService? LocalMedia { get; set; }
+    /// <summary>Spotify with the user's login here: lets "Hier weiterhören" move the other device's Spotify to this PC.</summary>
+    public SpotifyService? LocalSpotify
+    {
+        get => _localSpotify;
+        set
+        {
+            _localSpotify = value;
+            if (value is not null) value.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(SpotifyService.IsConnected)) UpdateMediaFlags(); };
+            UpdateMediaFlags();
+        }
+    }
+    private SpotifyService? _localSpotify;
     public ClipboardService? LocalClipboard { get; set; }
     public NotificationService? LocalNotifications { get; set; }
     public ShelfService? Shelf { get; set; }
@@ -724,11 +736,52 @@ public sealed partial class LinkHub : ObservableObject
         MediaShowsRemote = Remote.Has && (!local || PreferRemote);
         MediaShowsLocal = local && !MediaShowsRemote;
         MediaShowsNothing = !local && !MediaShowsRemote;
+        CanTakeOver = local || CanContinueHere(Remote.App, LocalSpotify?.IsConnected == true);
+        TakeOverText = local ? (Loc.German ? "Musik von hier zeigen" : "Show the music here")
+            : CanTakeOver ? (Loc.German ? "Hier weiterhören" : "Continue here")
+            : (Loc.German ? $"Läuft auf {Remote.Device}" : $"Playing on {Remote.Device}");
     }
 
-    /// <summary>The chip in the media card: switch between the music here and on the other device.</summary>
+    /// <summary>The chip under the other device's music does something: show the music here, or continue its Spotify here.</summary>
+    [ObservableProperty] private bool _canTakeOver;
+    [ObservableProperty] private string _takeOverText = "";
+
+    /// <summary>Spotify on the other device and signed in to Spotify here: Spotify Connect can move the playback.</summary>
+    internal static bool CanContinueHere(string remoteApp, bool spotifySignedIn) =>
+        spotifySignedIn && remoteApp.Contains("Spotify", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The chip in the media card. Music here: switch the card between it and the other device's. No music here but the
+    /// other device plays Spotify: move that playback to this PC (Spotify Connect, the user asked for it with the click).
+    /// </summary>
     [RelayCommand]
-    private void ToggleRemote() => PreferRemote = !PreferRemote;
+    private async Task ToggleRemote()
+    {
+        if (LocalMedia?.HasSession == true) { PreferRemote = !PreferRemote; return; }
+        if (LocalSpotify is not { IsConnected: true } spotify || !CanContinueHere(Remote.App, true)) return;
+        try
+        {
+            await spotify.LoadDevices();
+            var here = PickThisPc(spotify.Devices, Environment.MachineName);
+            if (here is null)
+            {
+                TakeOverText = Loc.German ? "Spotify hier öffnen" : "Open Spotify here";
+                Log.Info("Link: no Spotify device for this PC (Spotify not running here?)");
+                return;
+            }
+            await spotify.TransferTo(here);
+            Log.Info($"Link: Spotify moved from {Remote.Device} to this PC");
+        }
+        catch (Exception ex) { Log.Error("Link: continue Spotify here", ex); }
+    }
+
+    /// <summary>This PC among the Spotify Connect devices: by its name, else the only computer that isn't playing.</summary>
+    internal static SpotifyDevice? PickThisPc(IEnumerable<SpotifyDevice> devices, string machineName)
+    {
+        var list = devices.ToList();
+        return list.FirstOrDefault(d => d.Name.Equals(machineName, StringComparison.OrdinalIgnoreCase))
+            ?? (list.Where(d => d.Type.Equals("Computer", StringComparison.OrdinalIgnoreCase) && !d.IsActive).ToList() is { Count: 1 } one ? one[0] : null);
+    }
 
     [RelayCommand] private Task RemotePlayPause() => RemoteCommand("playpause");
     [RelayCommand] private Task RemoteNext() => RemoteCommand("next");

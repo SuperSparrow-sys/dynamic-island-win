@@ -150,6 +150,7 @@ public partial class App : Application
         };
         _link = new Services.Link.LinkHub(_settings, Dispatcher);
         _link.Attach(media, clipboard, notifications, shelf, battery);
+        _link.LocalSpotify = spotify;
         _link.AttachTogether(timer);
         _link.LockThisPc = LockThisPc;
         _link.CursorHop = _vm.CursorHop;
