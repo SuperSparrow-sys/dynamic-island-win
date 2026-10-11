@@ -501,7 +501,7 @@ public class LinkHardeningTests : IDisposable
 
     private LinkOptions Options() => new()
     {
-        Port = 0, LanDiscovery = false, TailscaleDiscovery = false, WatchSystem = false,
+        Port = 0, LoopbackOnly = true, LanDiscovery = false, TailscaleDiscovery = false, WatchSystem = false,
         MinBackoff = TimeSpan.FromMilliseconds(100), MaxBackoff = TimeSpan.FromMilliseconds(300),
         DownloadFolder = Path.Combine(_temp, "downloads"), Log = _ => { },
     };

@@ -41,9 +41,10 @@ public sealed partial class WorkModeService : ObservableObject
         };
         _timer.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(TimerService.IsActive) or nameof(TimerService.Mode)) UpdateFocus();
+            if (e.PropertyName is nameof(TimerService.IsActive) or nameof(TimerService.Mode) or nameof(TimerService.RemoteOwner)) UpdateFocus();
         };
-        _timer.Finished += mode => { if (mode == TimerMode.Focus) AddFocusSession(_settings.PomodoroWorkMinutes); };
+        // A session mirrored from the paired device counts there, not twice.
+        _timer.Finished += mode => { if (mode == TimerMode.Focus && _timer.RemoteOwner is null) AddFocusSession(_settings.PomodoroWorkMinutes); };
         _settings.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(AppSettings.MeetingMode)) UpdateMeeting();
@@ -162,7 +163,8 @@ public sealed partial class WorkModeService : ObservableObject
 
     private void UpdateFocus()
     {
-        bool focus = _settings.FocusQuiet && _timer.IsActive && _timer.Mode == TimerMode.Focus;
+        // A focus session of the paired device makes this one quiet through "Ruhe und Fokus", not through the mirrored timer.
+        bool focus = _settings.FocusQuiet && _timer.IsActive && _timer.Mode == TimerMode.Focus && _timer.RemoteOwner is null;
         if (focus != _settings.FocusActive) _settings.FocusActive = focus;
     }
 

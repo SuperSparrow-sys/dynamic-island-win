@@ -305,7 +305,10 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _focusActive;
 
     /// <summary>"Nicht stören" by hand, or a call, screen sharing or a focus session right now.</summary>
-    [System.Text.Json.Serialization.JsonIgnore] public bool Quiet => DoNotDisturb || InMeeting || Sharing || FocusActive;
+    [System.Text.Json.Serialization.JsonIgnore] public bool Quiet => DoNotDisturb || InMeeting || Sharing || FocusActive || PeerQuiet;
+    /// <summary>The paired device is in a call or a focus session ("Ruhe und Fokus", see LinkQuietFeature).</summary>
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _peerQuiet;
+    partial void OnPeerQuietChanged(bool value) => OnPropertyChanged(nameof(Quiet));
     partial void OnDoNotDisturbChanged(bool value) => OnPropertyChanged(nameof(Quiet));
     partial void OnInMeetingChanged(bool value) => OnPropertyChanged(nameof(Quiet));
     partial void OnSharingChanged(bool value) => OnPropertyChanged(nameof(Quiet));
@@ -373,6 +376,14 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _linkShareNotifications = true;
     [ObservableProperty] private bool _linkShareMedia = true;
     [ObservableProperty] private bool _linkShareStatus = true;
+    // Working together (Services/Link/Link*Feature.cs): timer, quiet, questions and battery on; locking together off.
+    [ObservableProperty] private bool _linkShareTimer = true;
+    [ObservableProperty] private bool _linkShareQuiet = true;
+    [ObservableProperty] private bool _linkShareQuestions = true;
+    [ObservableProperty] private bool _linkShareBattery = true;
+    [ObservableProperty] private bool _linkLockTogether;
+    /// <summary>When "Nicht stören" was last switched by hand here or on the paired device (the newer one wins on both).</summary>
+    [ObservableProperty] private DateTime _linkQuietChanged;
     /// <summary>
     /// Main device while a paired one is connected: "" = none (both show everything), "this", "other" (the paired
     /// device) or "auto" (where the mouse is or that was used last). Relative on purpose: no ids, so it can be exported.

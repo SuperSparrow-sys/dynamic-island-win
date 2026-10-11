@@ -543,6 +543,27 @@ public static class Snapshots
                 Title = Loc.German ? "LaptopJonathan verbunden" : "LaptopJonathan connected", Subtitle = Loc.German ? "Gekoppeltes Gerät" : "Paired device", Seconds = 60,
             });
             await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-7-connected.png"), compact: false);
+            // Working together: a question of the laptop on the main device, the laptop's battery, the shared timer.
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.Mic"), IconBrush = Res("B.Orange"), IconBackground = Tint("B.Orange"),
+                Title = Loc.German ? "Mikrofon aktiv" : "Microphone in use", Subtitle = "Teams · LaptopJonathan",
+                ActionText = Loc.German ? "Stumm" : "Mute", DismissText = "OK", Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-8-question.png"), compact: false);
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.BatteryLow"), IconBrush = Res("B.Red"), IconBackground = Tint("B.Red"),
+                Title = Loc.German ? "LaptopJonathan: Akku 15 %" : "LaptopJonathan: battery 15 %", Subtitle = Loc.T("Battery.Low"), Progress = 0.15, Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-9-battery.png"), compact: false);
+            vm.Timer.LoadDemo();
+            link.CanHandOverTimer = true; // the demo has no connected device: show the button as with one
+            link.HandOverText = Loc.German ? "An LaptopJonathan übergeben" : "Hand over to LaptopJonathan";
+            island.ForceState(IslandMode.Expanded);
+            await Task.Delay(1300);
+            Capture(island, Path.Combine(dir, $"{name}-link-10-timer.png"));
+            vm.Timer.Stop();
         }
     }
 

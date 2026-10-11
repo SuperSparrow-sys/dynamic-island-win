@@ -75,7 +75,11 @@ $env:DYNAMICBAY_DEV_ALLOWPAIRING="1"; $env:DYNAMICBAY_DEV_AUTOCONFIRM="1"; .\Dyn
 # zweite Konsole: DYNAMICBAY_DEV=b, Port 43902, DYNAMICBAY_DEV_PAIR=127.0.0.1:43901, DYNAMICBAY_DEV_AUTOCONFIRM=1
 ```
 
-`DYNAMICBAY_DEV_SENDFILE=<Pfad>` schickt die Datei an das erste Gerät, das online kommt. Testinstanzen speichern
+`DYNAMICBAY_DEV_SENDFILE=<Pfad>` schickt die Datei an das erste Gerät, das online kommt. Eine Testinstanz führt Befehle
+aus `%AppData%\DynamicBay-dev-<n>\dev-commands.txt` aus (eine Zeile pro Befehl, die Datei wird danach gelöscht):
+`timer <min>`, `focus`, `pause`, `stop`, `handover`, `dnd on|off`, `main none|this|other|auto`, `battery low <Prozent>`,
+`ask [Sekunden]`, `answer yes|no`, `lock`, `set Link… on|off`, `state` (schreibt Timer, Ruhe und Hauptgerät ins Log).
+Testinstanzen sperren nie den PC, `lock` steht nur im Log des anderen. Testinstanzen speichern
 Empfangenes in `%AppData%\DynamicBay-dev-<n>\Downloads`, nie in den echten Downloads. Was über den Link geht, steht ohne
 Inhalte im Log (`Link: status from …`, `Link: clipboard text (40 chars) …`, `Link: received … bytes`).
 

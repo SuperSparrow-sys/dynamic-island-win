@@ -8,8 +8,8 @@ using System.Text.Json.Nodes;
 namespace DynamicBay.Services.Link;
 
 /// <summary>
-/// Finds other DynamicBays: UDP announcements in the LAN (every 5 s and on request), the online peers Tailscale lists
-/// (asked directly and probed on the link port) and addresses the user typed in. Announcements carry only id, name,
+/// Finds other DynamicBays: UDP announcements in the LAN (every 5 s and on request), the online Windows and Mac peers of
+/// the same Tailscale user (asked directly and probed on the link port) and addresses the user typed in. Announcements carry only id, name,
 /// port and protocol version: who someone really is only shows in the TLS connection.
 /// </summary>
 internal sealed class LinkDiscovery
@@ -341,15 +341,23 @@ internal sealed class LinkDiscovery
 
     // ---------- Tailscale ----------
 
-    internal sealed record TailscalePeer(string HostName, string DnsName, IReadOnlyList<IPAddress> Ips, bool Online);
+    internal sealed record TailscalePeer(string HostName, string DnsName, IReadOnlyList<IPAddress> Ips, bool Online, long? UserId = null, string Os = "");
 
     /// <summary>The parts of "tailscale status --json" the link needs. Missing fields are normal.</summary>
     internal static (string? BackendState, List<TailscalePeer> Peers) ParseTailscaleStatus(string json)
     {
+        var (state, _, peers) = ParseTailscale(json);
+        return (state, peers);
+    }
+
+    /// <summary>Like <see cref="ParseTailscaleStatus"/>, with the user this PC is signed in as (Self.UserID; null when missing).</summary>
+    internal static (string? BackendState, long? SelfUser, List<TailscalePeer> Peers) ParseTailscale(string json)
+    {
         var peers = new List<TailscalePeer>();
         JsonObject? root;
         try { root = JsonNode.Parse(json) as JsonObject; }
-        catch (System.Text.Json.JsonException) { return (null, peers); }
+        catch (System.Text.Json.JsonException) { return (null, null, peers); }
+        long? self = root?["Self"] is JsonObject me ? UserIdOf(me) : null;
         if (root?["Peer"] is JsonObject map)
             foreach (var (_, node) in map)
             {
@@ -360,10 +368,24 @@ internal sealed class LinkDiscovery
                         if (a is JsonValue v && v.TryGetValue<string>(out var s) && IPAddress.TryParse(s, out var ip)) ips.Add(ip);
                 if (ips.Count == 0) continue;
                 peers.Add(new TailscalePeer(LinkProtocol.Str(p, "HostName") ?? "", (LinkProtocol.Str(p, "DNSName") ?? "").TrimEnd('.'),
-                    ips.OrderBy(i => i.AddressFamily == AddressFamily.InterNetworkV6 ? 1 : 0).ToList(), LinkProtocol.Bool(p, "Online")));
+                    ips.OrderBy(i => i.AddressFamily == AddressFamily.InterNetworkV6 ? 1 : 0).ToList(), LinkProtocol.Bool(p, "Online"),
+                    UserIdOf(p), LinkProtocol.Str(p, "OS") ?? ""));
             }
-        return (LinkProtocol.Str(root, "BackendState"), peers);
+        return (LinkProtocol.Str(root, "BackendState"), self, peers);
     }
+
+    private static long? UserIdOf(JsonObject node) =>
+        node["UserID"] is JsonValue v && v.TryGetValue<long>(out var l) && l > 0 ? l : null;
+
+    /// <summary>
+    /// The tailnet may be shared with other people (their laptops, a NAS, phones): only devices of the same Tailscale
+    /// user that run Windows or macOS are asked and probed. Without our own user id nobody is (a typed address still
+    /// works). Tagged nodes and nodes shared in from another tailnet have another user id, so they stay out too.
+    /// </summary>
+    internal static List<TailscalePeer> OwnDesktops(long? selfUser, IEnumerable<TailscalePeer> peers) =>
+        selfUser is not long me ? new() : peers.Where(p => p.UserId == me && IsDesktopOs(p.Os)).ToList();
+
+    internal static bool IsDesktopOs(string os) => os.Equals("windows", StringComparison.OrdinalIgnoreCase) || os.Equals("macOS", StringComparison.OrdinalIgnoreCase);
 
     public void RefreshTailscale()
     {
@@ -389,7 +411,8 @@ internal sealed class LinkDiscovery
             if (exe is null) return;
             string json = await RunStatus(exe, ct).ConfigureAwait(false);
             if (json.Length == 0) return;
-            var (state, peers) = ParseTailscaleStatus(json);
+            var (state, selfUser, all) = ParseTailscale(json);
+            var peers = OwnDesktops(selfUser, all);
             bool up;
             lock (_gate)
             {
