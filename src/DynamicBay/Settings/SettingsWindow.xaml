@@ -138,7 +138,7 @@
                                             ToolTip="{core:L De='Hell oder dunkel. Die Insel bleibt immer schwarz.', En='Light or dark. The island always stays black.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
-                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Wie Windows', En='Like Windows'}" IsChecked="{Binding S.WindowTheme, Converter={StaticResource EqBool}, ConverterParameter=auto}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='System', En='System'}" IsChecked="{Binding S.WindowTheme, Converter={StaticResource EqBool}, ConverterParameter=auto}" />
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Hell', En='Light'}" IsChecked="{Binding S.WindowTheme, Converter={StaticResource EqBool}, ConverterParameter=light}" />
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Dunkel', En='Dark'}" IsChecked="{Binding S.WindowTheme, Converter={StaticResource EqBool}, ConverterParameter=dark}" />
                                     </StackPanel>
@@ -159,13 +159,13 @@
                                     <Slider Style="{StaticResource S.Slider}" Minimum="0.8" Maximum="1.4" Value="{Binding S.Scale}" TickFrequency="0.05" IsSnapToTickEnabled="True" />
                                 </StackPanel>
                             </ContentControl>
-                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Im Leerlauf', En='When idle'}"
-                                            ToolTip="{core:L De='Was die Insel zeigt, wenn nichts passiert.', En='What the island shows when nothing is going on.'}">
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Ruheanzeige', En='Standby display'}"
+                                            ToolTip="{core:L De='Darstellung der Insel ohne laufende Aktivität.', En='How the island looks without any activity.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
-                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Flacher Strich', En='Flat bar'}" IsChecked="{Binding S.Idle, Converter={StaticResource EqBool}, ConverterParameter=Bar}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Linie', En='Line'}" IsChecked="{Binding S.Idle, Converter={StaticResource EqBool}, ConverterParameter=Bar}" />
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Uhrzeit', En='Clock'}" IsChecked="{Binding S.Idle, Converter={StaticResource EqBool}, ConverterParameter=Clock}" />
-                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Fast unsichtbar', En='Nearly hidden'}" IsChecked="{Binding S.Idle, Converter={StaticResource EqBool}, ConverterParameter=Hidden}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Minimal', En='Minimal'}" IsChecked="{Binding S.Idle, Converter={StaticResource EqBool}, ConverterParameter=Hidden}" />
                                     </StackPanel>
                                 </Border>
                             </ContentControl>
