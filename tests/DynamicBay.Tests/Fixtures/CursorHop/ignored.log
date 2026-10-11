@@ -1,0 +1,11 @@
+2026-10-07T15:54:05.645227Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=0
+2026-10-07T15:54:05.922496Z  INFO cursorhop_ipc::handlers::license: [LICENSE] license verified paid tier tier=pro_plus game_mode=true power_sync=false clipboard_files=true file_transfer=true display_dimming=false roaming_primary=true
+2026-10-07T17:23:57.989168Z  INFO cursorhop_net::connection: heartbeat grace period granted duration_secs=15
+2026-10-07T17:24:06.587356Z  WARN cursorhop_net::connection: detected system sleep (heartbeat gap > 5s), resetting heartbeats gap_secs=6
+2026-10-08T17:30:10.502815Z  INFO cursorhop::injection: [CLIP_FWD] pull path - sending metadata-only file manifest files=6 total_size=260144
+2026-10-11T09:39:48.992937Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:53631
+2026-10-11T09:39:49.080715Z  INFO cursorhop_net::connection: [TRANSFER-SOCKET] inbound attached addr=192.168.10.***:53641 target_id=inbound-192.168.10.***:53633
+2026-10-11T09:39:49.150097Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:53633
+2026-10-11T09:39:49.171843Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:40:45.997577Z  INFO roaming.presence: accepted a paired roaming peer over a plaintext (non-Noise) connection - reduced trust, encryption is off event="roaming_trust_reduced_plaintext" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:43:04.924706Z  INFO cursorhop::injection: [IDLE_CURSOR] hide reason=controller_left

@@ -68,6 +68,38 @@ in der Tailscale-Verwaltung eingeschaltet sein.
 `tailscale file cp --targets`). Auf iPhone und iPad landet sie in der Dateien-App im Ordner Tailscale. Text und Links
 kann Taildrop nicht übertragen.
 
+## CursorHop
+
+CursorHop teilt eine Maus und eine Tastatur zwischen mehreren PCs. Es hat keine öffentliche
+Schnittstelle; seinen internen gRPC-Dienst (`127.0.0.1:50051`, eigenes Token) nutzt DynamicBay bewusst nicht.
+`CursorHopService` liest nur das Protokoll `%LocalAppData%\CursorHop\logs\core.log.<Datum>` mit (eine Datei pro Tag,
+Datum in UTC, geöffnet mit Lese-, Schreib- und Lösch-Freigabe, damit CursorHop nie gestört wird).
+
+- **Karte „CursorHop“** (System-Seite): verbundenes Gerät, ob CursorHop läuft, wo die Maus gerade ist („Maus ist hier“
+  oder „Maus am PC-Büro“), Knopf zum Öffnen oder Starten. Wird einmal hinzugefügt, wenn CursorHop installiert ist.
+- **Einblendungen:** „PC-Büro verbunden“ und „PC-Büro getrennt“. CursorHop verbindet sich nach dem Aufwachen oft
+  mehrmals neu; gemeldet wird eine Verbindung erst, wenn sie 3 s hält, eine Trennung erst nach 40 s.
+  „Zwischenablage von PC-Büro“, und der Eintrag in der Zwischenablage zeigt das Gerät als Quelle.
+- **Mitstarten:** Läuft CursorHop nicht, startet DynamicBay es (wie der Windows-Autostart, `CursorHop.exe`): beim
+  eigenen Start, nach dem Aufwachen und wenn das Netzwerk zurückkommt. Nie eine zweite Instanz.
+- Einstellungen: `CursorHopEnabled`, `CursorHopAutoStart`, `CursorHopPeeks` (alle an; ohne CursorHop passiert nichts).
+
+Gelesene Zeilen (CursorHop 0.12, als Fixtures in `tests/DynamicBay.Tests/Fixtures/CursorHop`):
+
+| Zeile | Bedeutung |
+|---|---|
+| `[PEER] PeerHello processed — connection ready peer=… name=… synthetic_id=… peer_is_primary_over_us=…` | Gerät verbunden |
+| `cleared peer keyboard presence after disconnect … peer=…` | Gerät getrennt (Geräte-ID oder Verbindungs-ID) |
+| `room beacon started on UDP port …` | kein Gerät mehr verbunden (auch beim Start) |
+| `CursorHop core starting` | Neustart, alle Verbindungen weg |
+| `[ROLE] peer claimed Primary role` / `peer released Primary role` | Zweit-PC: die Maus des Primary kommt herüber / geht zurück |
+| `[CLIP_RECV] received … clipboard frame … format=… peer=…` | Zwischenablage empfangen |
+
+Noch nicht in einem echten Protokoll gesehen (dieser PC ist Zweit-PC), aus den Meldungstexten in `cursorhop.exe`,
+Felder geraten: `[SWITCH] now controlling remote device` / `returned to local control` (Primary: Maus geht hinüber /
+kommt zurück), `[CLIP_TRANSFER] files delivered to paste directory|fallback folder` (Dateien empfangen; Zielordner
+unbekannt, die Einblendung öffnet ihn nur, wenn die Zeile einen Ordner nennt). Unbekannte Zeilen werden ignoriert.
+
 ## Audio und Bluetooth
 
 Das Widget „Audio“ wechselt Ausgabe und Mikrofon (Windows-Standardgerät für alles) und verbindet gekoppelte

@@ -57,6 +57,7 @@
         <c:BoolPick x:Key="LikeBrush" True="{StaticResource B.Pink}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
         <c:BoolPick x:Key="OnBrush" True="{StaticResource B.Green}" False="{StaticResource B.Text2}" />
+        <c:BoolPick x:Key="LaptopGlyph" True="{StaticResource Icon.Laptop}" False="{StaticResource Icon.Monitor}" />
         <c:BoolPick x:Key="ContactsEmpty" True="{core:L De='Noch keine Kontakte', En='No contacts yet'}" False="{core:L De='In den Einstellungen unter Konten mit Microsoft verbinden', En='Connect Microsoft under Accounts in the settings'}" />
         <c:BoolPick x:Key="TrackBg" True="#330A84FF" False="{StaticResource B.Fill2}" />
         <c:BoolPick x:Key="OverdueBrush" True="{StaticResource B.Red}" False="{StaticResource B.Text2}" />
@@ -1084,6 +1085,49 @@
                                 </ItemsControl>
                             </StackPanel>
                         </Viewbox>
+                    </DockPanel>
+                </Border>
+
+                <!-- CursorHop: one mouse for several PCs - the connected device and where the mouse is (read from its log) -->
+                <Border x:Name="CursorHopCard" Style="{StaticResource Card}" Padding="12,9,12,12">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Height="22">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding CursorHop.OpenCommand}"
+                                    Visibility="{Binding CursorHop.IsInstalled, Converter={StaticResource Vis}}" ToolTip="{core:L De='CursorHop öffnen', En='Open CursorHop'}">
+                                <c:Icon Data="{StaticResource Icon.External}" Width="12" Height="12" Foreground="{StaticResource B.Text2}" />
+                            </Button>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <c:Icon Data="{StaticResource Icon.Mouse}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="CursorHop" />
+                            </StackPanel>
+                        </DockPanel>
+                        <StackPanel Margin="0,8,0,0" VerticalAlignment="Center">
+                            <!-- the other PC: name and state -->
+                            <Border CornerRadius="8" Background="{StaticResource B.Fill2}" Padding="9,6">
+                                <DockPanel>
+                                    <Ellipse DockPanel.Dock="Right" Width="7" Height="7" Margin="8,0,0,0" VerticalAlignment="Center"
+                                             Fill="{Binding CursorHop.IsConnected, Converter={StaticResource OnBrush}}" />
+                                    <c:Icon DockPanel.Dock="Left" Data="{Binding CursorHop.DeviceIsLaptop, Converter={StaticResource LaptopGlyph}}" Width="14" Height="14" Margin="0,0,8,0"
+                                            VerticalAlignment="Center" Foreground="{Binding CursorHop.IsConnected, Converter={StaticResource OnBrush}}" />
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" TextTrimming="CharacterEllipsis" Text="{Binding CursorHop.DeviceTitle}" ToolTip="{Binding CursorHop.DeviceTitle}" />
+                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="10" TextTrimming="CharacterEllipsis" Text="{Binding CursorHop.StatusText}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <!-- where the mouse is: here (blue) or on the other PC -->
+                            <Border CornerRadius="8" Padding="9,6" Margin="0,6,0,0" Background="{Binding CursorHop.CursorHere, Converter={StaticResource TrackBg}}"
+                                    Visibility="{Binding CursorHop.IsConnected, Converter={StaticResource Vis}}">
+                                <DockPanel>
+                                    <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Pointer}" Width="13" Height="13" Margin="0,0,8,0" VerticalAlignment="Center"
+                                            Foreground="{Binding CursorHop.CursorHere, Converter={StaticResource PinBrush}}" />
+                                    <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding CursorHop.CursorText}" ToolTip="{Binding CursorHop.CursorText}" />
+                                </DockPanel>
+                            </Border>
+                            <Button Style="{StaticResource Btn.Chip}" Background="{StaticResource B.Blue}" Padding="12,0" Height="24" FontSize="11" Margin="0,8,0,0" HorizontalAlignment="Left"
+                                    Command="{Binding CursorHop.OpenCommand}" Visibility="{Binding CursorHop.CanStart, Converter={StaticResource Vis}}"
+                                    Content="{core:L De='Starten', En='Start'}" />
+                        </StackPanel>
                     </DockPanel>
                 </Border>
 

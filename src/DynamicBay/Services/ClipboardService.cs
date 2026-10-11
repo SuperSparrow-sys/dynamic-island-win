@@ -26,6 +26,13 @@ public sealed partial class ClipItem : ObservableObject
     /// <summary>The screenshot file Windows saved in the Screenshots folder (deleted together with the item).</summary>
     public string? SavedPath { get; set; }
     public string? SourceApp { get; set; }
+    /// <summary>Another PC it came from (CursorHop), shown next to the kind ("Text · PC-Jonathan").</summary>
+    public string? SourceDevice
+    {
+        get => _sourceDevice;
+        set { if (SetProperty(ref _sourceDevice, value)) OnPropertyChanged(nameof(Label)); }
+    }
+    private string? _sourceDevice;
     public DateTime Created { get; set; } = DateTime.Now;
     [ObservableProperty] private bool _pinned;
 
@@ -35,7 +42,8 @@ public sealed partial class ClipItem : ObservableObject
     [System.Text.Json.Serialization.JsonIgnore] public string Preview =>
         Text is null ? "" : (Text.Length > 240 ? Text[..240] + "…" : Text).Replace("\r", "").Trim();
     [System.Text.Json.Serialization.JsonIgnore] public string Label =>
-        Kind == ClipKind.Image ? (IsScreenshot ? Loc.T("Clip.Screenshot") : Loc.T("Clip.Image")) : Loc.T("Clip.Text");
+        (Kind == ClipKind.Image ? (IsScreenshot ? Loc.T("Clip.Screenshot") : Loc.T("Clip.Image")) : Loc.T("Clip.Text"))
+        + (string.IsNullOrEmpty(SourceDevice) ? "" : " · " + SourceDevice);
     [System.Text.Json.Serialization.JsonIgnore] public string Age
     {
         get
@@ -224,8 +232,30 @@ public sealed partial class ClipboardService : ObservableObject
         return wb;
     }
 
+    private string? _remoteDevice;
+    private DateTime _remoteUntil;
+
+    /// <summary>
+    /// CursorHop put clipboard content from another PC here. Its log line and our clipboard event come within a
+    /// second of each other, in either order: tag the entry that just arrived, or the next one within 3 s.
+    /// </summary>
+    public void MarkFromDevice(string device)
+    {
+        var newest = Items.FirstOrDefault(); // new entries always go to the top
+        if (newest is not null && newest.SourceDevice is null && (DateTime.Now - newest.Created).TotalSeconds < 3)
+        {
+            newest.SourceDevice = device;
+            SaveIndexSoon();
+            return;
+        }
+        _remoteDevice = device;
+        _remoteUntil = DateTime.UtcNow.AddSeconds(3);
+    }
+
     private void Insert(ClipItem item)
     {
+        if (_remoteDevice is not null && DateTime.UtcNow < _remoteUntil && item.SourceDevice is null) item.SourceDevice = _remoteDevice;
+        _remoteDevice = null;
         int firstUnpinned = 0;
         Items.Insert(firstUnpinned, item);
         Trim();

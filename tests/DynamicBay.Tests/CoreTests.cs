@@ -346,7 +346,7 @@ public class DevicesWidgetTests
         var s = new AppSettings { SettingsVersion = 8 };
         s.HomeWidgets.Clear();
         foreach (var w in new[] { Widgets.Media, Widgets.Audio, Widgets.Calendar }) s.HomeWidgets.Add(w);
-        s.Migrate();
+        s.Migrate(cursorHopInstalled: false); // the same on every PC
         Assert.Equal(new[] { Widgets.Media, Widgets.Calendar }, s.HomeWidgets);
         Assert.Equal(new[] { Widgets.Audio }, s.SystemWidgets);
     }

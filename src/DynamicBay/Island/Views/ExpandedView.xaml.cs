@@ -20,7 +20,7 @@ public partial class ExpandedView : UserControl
     {
         InitializeComponent();
         // The optional cards live in the home grid too; they're shown/positioned by LayoutHome.
-        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, TodoCard, TeamsCard, TimeCard, ContactsCard, AudioCard, NotesCard })
+        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, TodoCard, TeamsCard, TimeCard, ContactsCard, AudioCard, NotesCard, CursorHopCard })
         {
             ExtraCards.Children.Remove(card);
             HomeGrid.Children.Add(card);
@@ -42,6 +42,7 @@ public partial class ExpandedView : UserControl
             [Core.Widgets.Contacts] = ContactsCard,
             [Core.Widgets.Audio] = AudioCard,
             [Core.Widgets.Notes] = NotesCard,
+            [Core.Widgets.CursorHop] = CursorHopCard,
         };
         DataContextChanged += (_, _) =>
         {
@@ -219,7 +220,7 @@ public partial class ExpandedView : UserControl
 
     private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id switch
     {
-        "media" => 360, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "notes" => 190, "shortcuts" => 170, "calendar" => 134, "timer" => 120, _ => 150,
+        "media" => 360, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "notes" => 190, "cursorhop" => 190, "shortcuts" => 170, "calendar" => 134, "timer" => 120, _ => 150,
     };
 
     // ---- script widgets ----
