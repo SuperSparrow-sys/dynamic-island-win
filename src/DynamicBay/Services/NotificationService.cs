@@ -163,10 +163,16 @@ public sealed partial class NotificationService : ObservableObject
         // ones need their app logo. Every 1.2 s on the UI thread that held it for up to 900 ms on a busy PC.
         var listener = _listener;
         var seen = new HashSet<uint>(_seen);
-        (HashSet<uint> Current, List<(uint Id, NotificationItem? Item)> New)? read;
-        try { read = await Task.Run(() => ReadAsync(listener, seen)); }
+        // Every ~30 s a full read anyway (a removal and an arrival between two polls keep the count)
+        bool full = _polls++ % 25 == 0;
+        var last = _lastSignature;
+        (HashSet<uint> Current, List<(uint Id, NotificationItem? Item)> New, (int, uint) Signature)? read;
+        try { read = await Task.Run(() => ReadAsync(listener, seen, full ? null : last)); }
         catch { return; }
         if (read is not { } r) return;
+        if (_polls % 2500 == 1) Log.Info($"Notifications in the notification center: {r.Signature.Item1}"); // about every 50 min
+        _lastSignature = r.Signature;
+        if (r.Current is null) return; // nothing changed since the last poll
 
         var current = r.Current;
         // Drop entries the user dismissed in Windows.
@@ -194,11 +200,17 @@ public sealed partial class NotificationService : ObservableObject
     /// Reads the notification center on a worker thread: the ids of all toasts and the new ones (not in
     /// <paramref name="seen"/>) as items, oldest first. Null when Windows does not answer.
     /// </summary>
-    private static async Task<(HashSet<uint> Current, List<(uint Id, NotificationItem? Item)> New)?> ReadAsync(UserNotificationListener listener, HashSet<uint> seen)
+    private static async Task<(HashSet<uint> Current, List<(uint Id, NotificationItem? Item)> New, (int, uint) Signature)?> ReadAsync(
+        UserNotificationListener listener, HashSet<uint> seen, (int Count, uint LastId)? unchangedIf)
     {
         IReadOnlyList<UserNotification> list;
         try { list = await listener.GetNotificationsAsync(NotificationKinds.Toast); }
         catch { return null; }
+        // Banners are off while DynamicBay runs, so the notification center fills up over the day: reading every entry
+        // (each property is a call into Windows) every 1.2 s made the CPU load grow with it, up to half a core.
+        // Count and newest id first; the whole list only when they changed.
+        var signature = Signature(list);
+        if (signature.Count >= 0 && unchangedIf is { } before && before == signature) return (null!, new(), signature);
         var current = new HashSet<uint>();
         var fresh = new List<(UserNotification N, uint Id, DateTimeOffset Time)>();
         foreach (var n in list)
@@ -213,7 +225,21 @@ public sealed partial class NotificationService : ObservableObject
         }
         var items = new List<(uint, NotificationItem?)>();
         foreach (var f in fresh.OrderBy(f => f.Time)) items.Add((f.Id, await ToItemAsync(f.N)));
-        return (current, items);
+        return (current, items, signature);
+    }
+
+    private int _polls;
+    private (int, uint) _lastSignature = (-1, 0);
+
+    /// <summary>Count and the id of the last entry (Windows lists them oldest first): two calls instead of one per entry.</summary>
+    private static (int Count, uint LastId) Signature(IReadOnlyList<UserNotification> list)
+    {
+        try
+        {
+            int count = list.Count;
+            return (count, count > 0 ? list[count - 1].Id : 0);
+        }
+        catch { return (-1, 0); } // changed meanwhile: read it all
     }
 
     private static async Task<NotificationItem?> ToItemAsync(UserNotification n)

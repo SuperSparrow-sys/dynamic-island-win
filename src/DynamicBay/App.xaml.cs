@@ -921,6 +921,9 @@ public partial class App : Application
         };
         link.RemotePeek += p => island.ShowPeek(new PeekItem
         {
+            // Local: a peek from the other device is never handed back. Without this both devices sent it to each other
+            // whenever neither was the main one for a moment, endlessly (half a core and 370 messages a second after an hour).
+            Kind = PeekKind.Local,
             Icon = Icon(p.IconKey ?? "Icon.Bell"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
             Title = p.Title, Subtitle = p.Subtitle.Length > 0 ? p.Subtitle : p.PeerName, Seconds = 4,
         });

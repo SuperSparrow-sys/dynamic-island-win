@@ -166,7 +166,32 @@ public sealed class LinkRoleFeature : LinkFeature
     public Task<bool> ForwardPeekAsync(string title, string subtitle, string? iconKey)
     {
         if (_isMain || MainPeer is not { } main || !Settings.LinkShareNotifications) return Task.FromResult(false);
+        // Never back to where it came from: a peek of the other device that ends up here again is shown, not sent
+        if (_received.CameBack(title, subtitle, DateTime.UtcNow)) return Task.FromResult(false);
         return SendAsync(main, PeekType, new JsonObject { ["title"] = title, ["subtitle"] = subtitle, ["icon"] = iconKey });
+    }
+
+    private readonly RecentPeeks _received = new();
+
+    /// <summary>Peeks that just came from the other device (title + subtitle, 15 s): they must not be forwarded back.</summary>
+    internal sealed class RecentPeeks
+    {
+        private readonly Dictionary<string, DateTime> _seen = new();
+        private static readonly TimeSpan Window = TimeSpan.FromSeconds(15);
+
+        public void Add(string title, string subtitle, DateTime now)
+        {
+            lock (_seen)
+            {
+                foreach (var old in _seen.Where(kv => now - kv.Value > Window).Select(kv => kv.Key).ToList()) _seen.Remove(old);
+                _seen[title + "|" + subtitle] = now;
+            }
+        }
+
+        public bool CameBack(string title, string subtitle, DateTime now)
+        {
+            lock (_seen) return _seen.TryGetValue(title + "|" + subtitle, out var t) && now - t <= Window;
+        }
     }
 
     private void OnPeek(LinkMessage m)
@@ -175,6 +200,9 @@ public sealed class LinkRoleFeature : LinkFeature
         var title = Str(m.Payload, "title", 300);
         if (title.Length == 0) return;
         var icon = Str(m.Payload, "icon", 40);
+        var subtitle = Str(m.Payload, "subtitle", 300);
+        _received.Add(title, subtitle, DateTime.UtcNow);
+        _received.Add(title, m.PeerName, DateTime.UtcNow); // shown with the device name when it has no subtitle
         PeekReceived?.Invoke(new LinkPeek(m.PeerId, m.PeerName, title, Str(m.Payload, "subtitle", 300), icon.StartsWith("Icon.", StringComparison.Ordinal) ? icon : null));
     }
 
