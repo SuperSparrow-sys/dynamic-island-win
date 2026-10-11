@@ -28,7 +28,7 @@ Der Snapshot-Modus (`DynamicBay.exe --snapshot <dir>`) lädt Demo-Daten, durchl�
 Ablage, Mitteilungen, Drop und eigene Widget-Layouts an allen Kanten und speichert PNGs. Er verändert die echten
 Einstellungen nicht.
 
-`DYNAMICBAY_SNAPSHOT=frames` rendert jedes Bild, während die minimale Ruhelinie auf- und zugeht, als PNG
+`DYNAMICBAY_SNAPSHOT=frames` rendert jedes Bild, während die minimale Ruhelinie auf- und zugeht (auch Linie, Compact und Peek zu Minimal und zurück; Größe, Lage und Bildabstand pro Bild im Log), als PNG
 (`DYNAMICBAY_SNAPSHOT_SCALE`, Standard 1.5 = 150 %) und schreibt ins Log, in wie vielen Bildern WPF die Form
 abgeschnitten hat (`FRAMES: … clipped by layout in 0` ist richtig). Mit `DYNAMICBAY_DEV=f` landet das Log in
 `%AppData%\DynamicBay-dev-f`.

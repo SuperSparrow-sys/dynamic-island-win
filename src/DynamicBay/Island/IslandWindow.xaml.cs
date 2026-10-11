@@ -1406,7 +1406,9 @@ public partial class IslandWindow : Window
 
     /// <summary>Shape springs and whether WPF clipped the shape in this frame (frames snapshot, see Snapshots).</summary>
     public (string Springs, bool LayoutClip) ShapeStateForTest =>
-        (FormattableString.Invariant($"w={_w.Value:0.000} h={_h.Value:0.000} r={_r.Value:0.000}"), VisualTreeHelper.GetClip(Shape) is not null);
+        (FormattableString.Invariant($"w={Shape.ActualWidth:0.000} h={Shape.ActualHeight:0.000} r={ShapeBg.CornerRadius.TopLeft:0.000} x={Shape.TranslatePoint(new Point(0, 0), this).X:0.000} y={Shape.TranslatePoint(new Point(0, 0), this).Y:0.000} ")
+         + string.Join(" ", _layers.Select(l => FormattableString.Invariant($"{l.Key.Name[..2]}={l.Key.Opacity:0.00}"))),
+         VisualTreeHelper.GetClip(Shape) is not null);
 
     public void ForceState(IslandMode mode, bool vertical = false)
     {

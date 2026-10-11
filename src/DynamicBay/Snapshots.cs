@@ -620,9 +620,14 @@ public static class Snapshots
         {
             int frame = 0;
             bool pending = false;
+            double last = -1, gap = 0;
             // After this frame's layout and render pass (Rendering runs before them).
-            EventHandler onFrame = (_, _) =>
+            EventHandler onFrame = (_, e) =>
             {
+                double t = ((RenderingEventArgs)e).RenderingTime.TotalMilliseconds;
+                if (t == last) return; // Rendering can fire twice per frame
+                gap = last < 0 ? 0 : t - last;
+                last = t;
                 if (pending) return;
                 pending = true;
                 island.Dispatcher.BeginInvoke(() => { pending = false; Frame(); }, System.Windows.Threading.DispatcherPriority.Input);
@@ -632,7 +637,11 @@ public static class Snapshots
                 var (springs, clip) = island.ShapeStateForTest;
                 frames++;
                 if (clip) clipped++;
-                if (!png) return;
+                if (!png)
+                {
+                    Log.Info(FormattableString.Invariant($"FRAME {name} {frame++}: gap={gap:0.0} {springs}{(clip ? " CLIPPED" : "")}"));
+                    return;
+                }
                 var dv = new DrawingVisual();
                 using (var dc = dv.RenderOpen())
                 {
@@ -654,12 +663,34 @@ public static class Snapshots
         await Record("open", () => island.ForceState(IslandMode.Expanded), 1400);
         await Record("close", () => island.ForceState(IslandMode.Idle), 1400);
         await Record("after", () => { }, 300);
-        // Without PNGs every frame is seen: ten more rounds only count the clipped ones.
+        // Without PNGs every frame is seen (logged with its gap): every morph that starts or ends in the minimal line.
         for (int i = 0; i < 10; i++)
         {
             await Record("cycle", () => island.ForceState(IslandMode.Expanded), 900, png: false);
             await Record("cycle", () => island.ForceState(IslandMode.Idle), 900, png: false);
         }
+        await Record("m-open", () => island.ForceState(IslandMode.Expanded), 1000, png: false);
+        await Record("m-close", () => island.ForceState(IslandMode.Idle), 1000, png: false);
+        // The idle style changed live: wide bar -> minimal line and back.
+        settings.Idle = IdleStyle.Bar;
+        await Task.Delay(1200);
+        await Record("bar-to-min", () => settings.Idle = IdleStyle.Hidden, 1000, png: false);
+        await Record("min-to-bar", () => settings.Idle = IdleStyle.Bar, 1000, png: false);
+        settings.Idle = IdleStyle.Hidden;
+        await Task.Delay(1200);
+        // An activity starts and ends (the compact island grows out of the line and shrinks back into it).
+        settings.CompactItems.Add(Widgets.Timer);
+        await Record("min-to-compact", () => vm.Timer.IsActive = true, 1000, png: false);
+        await Record("compact-to-min", () => vm.Timer.IsActive = false, 1000, png: false);
+        // A message peeks out of the line and goes back.
+        await Record("min-to-peek", () => island.ShowPeek(new PeekItem { Title = "Test", Subtitle = "Peek", Seconds = 30 }), 1000, png: false);
+        await Record("peek-to-min", () => island.DismissPeek(), 1000, png: false);
+        // With PNGs for a look at the frames.
+        settings.Idle = IdleStyle.Bar;
+        await Task.Delay(1200);
+        await Record("png-bar-to-min", () => settings.Idle = IdleStyle.Hidden, 1000);
+        await Record("png-min-to-compact", () => vm.Timer.IsActive = true, 1000);
+        await Record("png-compact-to-min", () => vm.Timer.IsActive = false, 1000);
         Log.Info($"FRAMES: {frames} frames, shape clipped by layout in {clipped}");
     }
 
