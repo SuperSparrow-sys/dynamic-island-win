@@ -15,6 +15,7 @@ public partial class App : Application
 {
     private static Mutex? _single;
     private TaildropService? _taildrop;
+    private FullscreenGames? _fullscreenGames;
     // DynamicBay on another PC (Services/Link): the hub runs the link only while LinkEnabled.
     private Services.Link.LinkHub? _link;
     private NotificationService? _notifications;
@@ -40,6 +41,15 @@ public partial class App : Application
         {
             BannerSuppressor.RestoreAll();
             Shutdown();
+            return;
+        }
+        // Elevated by NvidiaProfile.ApplyAsync when the driver wants an administrator for its profiles.
+        if (GetArg(e.Args, "--nvidia-present") is { } game)
+        {
+            int st;
+            try { st = NvidiaProfile.SetPresentLayered(game, e.Args.Contains("on")); }
+            catch (Exception ex) { Log.Error("NVIDIA profile", ex); st = int.MinValue; }
+            Shutdown(st);
             return;
         }
         if (e.Args.Contains("--uninstall"))
@@ -259,6 +269,7 @@ public partial class App : Application
             if (ev.PropertyName == nameof(AppSettings.LinkEnabled)) Safe("Link", () => SetLinkEnabled(_settings.LinkEnabled));
         };
         await SafeAsync("Spotify", spotify.InitAsync);
+        Safe("FullscreenGames", () => _fullscreenGames = new FullscreenGames(_settings));
         Log.Info($"Services started in {clock.ElapsedMilliseconds} ms");
         // Test instances: DYNAMICBAY_DEV_SETTINGS=Devices opens the settings window on that page (live checks of a page).
         if (DevMode.SettingsAtStart is { } page) { ShowSettings(); _settingsWindow?.ShowPage(page); }
@@ -1095,6 +1106,7 @@ public partial class App : Application
         try { BannerSuppressor.RestoreAll(); } catch (Exception ex) { Log.Error("Import banners", ex); }
         _running = false;
         _taildrop?.Dispose();
+        _fullscreenGames?.Dispose();
         _vm?.CursorHop.Dispose();
         _hopOverlay.Dispose();
         _vm?.Claude.Stop(); // frees the hook port for the new run
@@ -1113,6 +1125,7 @@ public partial class App : Application
         FlushAll();
         _settings.Save();
         _taildrop?.Dispose(); // ends the Tailscale event stream
+        _fullscreenGames?.Dispose(); // the game gets its own size back
         _vm?.CursorHop.Dispose();
         _hopOverlay.Dispose();
         StopLink();

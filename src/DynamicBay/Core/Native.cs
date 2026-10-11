@@ -118,6 +118,14 @@ public static class Native
         return sb.ToString();
     }
 
+    [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
+
+    public static int ProcessId(IntPtr hwnd)
+    {
+        GetWindowThreadProcessId(hwnd, out uint pid);
+        return (int)pid;
+    }
+
     public static string? ProcessName(IntPtr hwnd)
     {
         if (hwnd == IntPtr.Zero) return null;

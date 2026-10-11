@@ -487,6 +487,31 @@ public partial class SettingsWindow : Window
 
     private async void InstallUpdate_Click(object sender, RoutedEventArgs e) => await UpdateCheck.InstallAsync();
 
+    private void NvidiaOn_Click(object sender, RoutedEventArgs e) => SetNvidia(true);
+    private void NvidiaOff_Click(object sender, RoutedEventArgs e) => SetNvidia(false);
+
+    /// <summary>The NVIDIA profile of the last fullscreen game (FullscreenGames remembers it); Windows asks for admin rights if needed.</summary>
+    private async void SetNvidia(bool on)
+    {
+        string game = _ctx.S.LastFullscreenGame;
+        if (string.IsNullOrEmpty(game))
+        {
+            NvidiaStatus.Text = Loc.German ? "Erst ein Spiel im Vollbild starten." : "Start a game in fullscreen first.";
+            return;
+        }
+        string exe = game.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? game : game + ".exe";
+        NvidiaStatus.Text = "…";
+        int st = await Services.NvidiaProfile.ApplyAsync(exe, on);
+        NvidiaStatus.Text = st switch
+        {
+            Services.NvidiaProfile.Ok when on => Loc.German ? $"{exe}: umgestellt, Spiel neu starten." : $"{exe}: applied, restart the game.",
+            Services.NvidiaProfile.Ok => Loc.German ? $"{exe}: zurückgesetzt." : $"{exe}: reset.",
+            Services.NvidiaProfile.NoNvidia => Loc.German ? "Keine NVIDIA-Grafikkarte." : "No NVIDIA graphics card.",
+            -1 => Loc.German ? "Abgebrochen." : "Cancelled.",
+            _ => Loc.German ? "Hat nicht geklappt." : "That did not work.",
+        };
+    }
+
     private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
     {
         CheckUpdateButton.IsEnabled = false;

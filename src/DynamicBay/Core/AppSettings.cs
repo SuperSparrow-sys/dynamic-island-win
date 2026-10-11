@@ -295,6 +295,9 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _autoHide;
     [ObservableProperty] private int _autoHideSeconds = 6;
     [ObservableProperty] private bool _hideInFullscreen = true;
+    // "Über allem" above games in real fullscreen (FullscreenGames): test methods; the last game seen for the NVIDIA profile.
+    [ObservableProperty] private Services.FullscreenFix _fullscreenFix = Services.FullscreenFix.Off;
+    [ObservableProperty] private string _lastFullscreenGame = "";
     [ObservableProperty] private bool _doNotDisturb;
     // Work modes (WorkModeService): quiet on their own during calls, screen sharing and focus sessions.
     [ObservableProperty] private bool _meetingMode = true;

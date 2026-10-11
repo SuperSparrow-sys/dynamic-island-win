@@ -267,7 +267,7 @@
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Wo die Insel liegt', En='Where the island lives'}"
-                                            ToolTip="{core:L De='Über allem bleibt auch im Vollbild sichtbar.', En='Above all stays visible in fullscreen too.'}">
+                                            ToolTip="{core:L De='Über allem bleibt auch über randlosem Vollbild sichtbar.', En='Above all stays visible over borderless fullscreen too.'}">
                                 <Border Style="{StaticResource S.Segments}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Schwebend', En='Floating'}" IsChecked="{Binding S.Layer, Converter={StaticResource EqBool}, ConverterParameter=Floating}" />
@@ -276,6 +276,28 @@
                                     </StackPanel>
                                 </Border>
                             </ContentControl>
+                            <StackPanel Visibility="{Binding S.Layer, Converter={StaticResource EqVis}, ConverterParameter=AboveAll}">
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Spiele im Vollbild (Test)', En='Fullscreen games (test)'}"
+                                            ToolTip="{core:L De='Damit die Insel auch über Spielen wie Minecraft mit F11 bleibt.', En='Keeps the island above games like Minecraft with F11.'}">
+                                <Border Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Normal', En='Normal'}" IsChecked="{Binding S.FullscreenFix, Converter={StaticResource EqBool}, ConverterParameter=Off}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='1 px größer', En='1 px taller'}" IsChecked="{Binding S.FullscreenFix, Converter={StaticResource EqBool}, ConverterParameter=Taller}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='1 px kleiner', En='1 px shorter'}" IsChecked="{Binding S.FullscreenFix, Converter={StaticResource EqBool}, ConverterParameter=Shorter}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="NVIDIA" IsChecked="{Binding S.FullscreenFix, Converter={StaticResource EqBool}, ConverterParameter=Nvidia}" />
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
+                            <ContentControl x:Name="NvidiaRow" Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='NVIDIA-Treiber für das Spiel', En='NVIDIA driver for the game'}"
+                                            ToolTip="{core:L De='Danach das Spiel neu starten.', En='Restart the game afterwards.'}"
+                                            Visibility="{Binding S.FullscreenFix, Converter={StaticResource EqVis}, ConverterParameter=Nvidia}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="NvidiaStatus" Style="{StaticResource ST.Desc}" VerticalAlignment="Center" Margin="0,0,12,0" Text="{Binding S.LastFullscreenGame}" />
+                                    <Button Style="{StaticResource S.Button}" Click="NvidiaOn_Click" Margin="0,0,8,0" Content="{core:L De='Umstellen', En='Apply'}" />
+                                    <Button Style="{StaticResource S.Button}" Click="NvidiaOff_Click" Content="{core:L De='Zurücksetzen', En='Reset'}" />
+                                </StackPanel>
+                            </ContentControl>
+                            </StackPanel>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Magnetisch einrasten', En='Magnetic snapping'}"
                                             ToolTip="{core:L De='Rastet an zwölf festen Punkten ein.', En='Snaps to twelve fixed spots.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MagneticSnap}" />
