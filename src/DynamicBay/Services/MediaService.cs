@@ -45,6 +45,9 @@ public sealed partial class MediaService : ObservableObject
     [ObservableProperty] private string _remainingText = "-0:00";
     [ObservableProperty] private bool _canSkip = true;
 
+    /// <summary>Look up covers the player doesn't send (Medien → Fehlende Cover laden).</summary>
+    public bool CoverLookupEnabled { get; set; } = true;
+
     /// <summary>Raised with the new track when the song changes while playing (used for the track peek).</summary>
     public event Action? TrackChanged;
 
@@ -228,6 +231,7 @@ public sealed partial class MediaService : ObservableObject
                 // During a skip the artwork often arrives a moment after the title; don't blank it in between.
                 Cover = null;
                 SetAccent(Color.FromRgb(0x30, 0xD1, 0x58));
+                LookUpCover();
             }
             else ScheduleMediaRetry();
 
@@ -428,7 +432,7 @@ public sealed partial class MediaService : ObservableObject
             Log.Info("Media: ignoring app icon used as artwork");
             try { System.IO.File.AppendAllLines(PlaceholderFile, new[] { hash }); } catch { }
         }
-        if (_placeholderArt.Contains(hash)) { ScheduleMediaRetry(); return; } // keep the old cover, real art follows
+        if (_placeholderArt.Contains(hash)) { ScheduleMediaRetry(); LookUpCover(); return; } // keep the old cover, real art follows
 
         _pendingArt = bytes;
         _pendingArtTitle = title;
@@ -440,6 +444,30 @@ public sealed partial class MediaService : ObservableObject
         }, _ui);
         _artSettle.Stop();
         _artSettle.Start();
+    }
+
+    private string _lookupKey = "";
+
+    /// <summary>No cover from the player: ask the iTunes catalogue once per track, apply if the track is still on.</summary>
+    private void LookUpCover()
+    {
+        string title = Title, artist = Artist, key = $"{title}|{artist}";
+        if (!CoverLookupEnabled || title.Length == 0 || key == _lookupKey || _coverTitle == title) return;
+        _lookupKey = key;
+        _ = Task.Run(async () =>
+        {
+            var bytes = await CoverLookup.FetchAsync(title, artist);
+            if (bytes is null) return;
+            _ = _ui.BeginInvoke(() =>
+            {
+                if (Title != title || Artist != artist || _coverTitle == title) return; // song changed or the player sent art
+                // Not through OfferCover: tracks of one album share this image, which there would count as an app icon.
+                _pendingArt = bytes;
+                _pendingArtTitle = title;
+                ApplyPendingArt();
+                Log.Info("Media: cover from the iTunes catalogue");
+            });
+        });
     }
 
     private void ApplyPendingArt()

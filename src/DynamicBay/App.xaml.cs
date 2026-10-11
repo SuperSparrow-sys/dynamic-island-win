@@ -119,7 +119,8 @@ public partial class App : Application
             return;
         }
 
-        var media = new MediaService();
+        var media = new MediaService { CoverLookupEnabled = _settings.MediaCoverLookup };
+        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.MediaCoverLookup)) media.CoverLookupEnabled = _settings.MediaCoverLookup; };
         var clipboard = new ClipboardService(_settings);
         var shelf = new ShelfService(_settings);
         var notifications = _notifications = new NotificationService(_settings);

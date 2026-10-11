@@ -298,6 +298,8 @@ public sealed partial class AppSettings : ObservableObject
     // Media
     [ObservableProperty] private bool _mediaEnabled = true;
     [ObservableProperty] private bool _mediaPeekOnTrackChange; // off: the island stays small on song changes (like the iPhone)
+    /// <summary>Player sends no cover (Apple Music, some browsers): look it up in the iTunes catalogue by title and artist.</summary>
+    [ObservableProperty] private bool _mediaCoverLookup = true;
     public int SettingsVersion { get; set; }
     [ObservableProperty] private string _spotifyClientId = "";
 

@@ -434,6 +434,10 @@
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.MediaEnabled}" Tag="{core:L De='Bei Titelwechsel kurz anzeigen', En='Peek on track change'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MediaPeekOnTrackChange}" />
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.MediaEnabled}" Tag="{core:L De='Fehlende Cover laden', En='Load missing covers'}"
+                                            ToolTip="{core:L De='Sucht das Cover bei Apple, wenn der Player keins mitschickt.', En='Looks the cover up at Apple when the player sends none.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MediaCoverLookup}" />
+                            </ContentControl>
                         </StackPanel>
                     </Border>
 

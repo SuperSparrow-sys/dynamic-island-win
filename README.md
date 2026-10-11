@@ -63,7 +63,7 @@ Benötigt: .NET 9 SDK, für den Installer zusätzlich Inno Setup 6 und das Windo
 
 ## Datenschutz
 
-Keine Telemetrie. Alles bleibt lokal in `%AppData%\DynamicBay`. Passwörter und Tokens (Spotify, iCloud, Google) werden mit Windows DPAPI verschlüsselt gespeichert. Die einzigen Netzwerkzugriffe sind die von dir verbundenen Dienste und ein Update-Check gegen GitHub (abschaltbar).
+Keine Telemetrie. Alles bleibt lokal in `%AppData%\DynamicBay`. Passwörter und Tokens (Spotify, iCloud, Google) werden mit Windows DPAPI verschlüsselt gespeichert. Die einzigen Netzwerkzugriffe sind die von dir verbundenen Dienste, ein Update-Check gegen GitHub und die Cover-Suche bei Apple für Player ohne Cover (Titel und Interpret, beides abschaltbar).
 
 ## Danksagungen
 
