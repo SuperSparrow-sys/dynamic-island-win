@@ -1104,8 +1104,14 @@
                                     <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Github}" Width="14" Height="14" /><TextBlock Margin="8,0,0,0" Text="{core:L De='Öffnen', En='Open'}" /></StackPanel>
                                 </Button>
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Lizenzen', En='Licenses'}"
+                                            ToolTip="{core:L De='Lizenzen der verwendeten Bibliotheken, Symbole und Schriften.', En='Licenses of the libraries, icons and fonts used.'}">
+                                <Button Style="{StaticResource S.Button}" Click="OpenLicenses_Click">
+                                    <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.FileText}" Width="14" Height="14" /><TextBlock Margin="8,0,0,0" Text="{core:L De='Anzeigen', En='Show'}" /></StackPanel>
+                                </Button>
+                            </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Danksagungen', En='Credits'}"
-                                            ToolTip="{core:L De='Symbole: Lucide (ISC) und Simple Icons (CC0). Schrift: Inter (SIL Open Font License). Vorbild: NotchNook und die Dynamic Island.', En='Icons: Lucide (ISC) and Simple Icons (CC0). Font: Inter (SIL Open Font License). Inspired by NotchNook and the Dynamic Island.'}" />
+                                            ToolTip="{core:L De='Entwickelt mit Claude (Anthropic). Vorbild: NotchNook und die Dynamic Island.', En='Built with Claude (Anthropic). Inspired by NotchNook and the Dynamic Island.'}" />
                         </StackPanel>
                     </Border>
                 </StackPanel>

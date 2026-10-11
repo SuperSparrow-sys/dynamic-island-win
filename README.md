@@ -69,7 +69,9 @@ Keine Telemetrie. Alles bleibt lokal in `%AppData%\DynamicBay`. Passwörter und 
 
 Icons: [Lucide](https://lucide.dev) (ISC) und [Simple Icons](https://simpleicons.org) (CC0, Marken gehören ihren Inhabern) · Schrift: [Inter](https://rsms.me/inter) (SIL OFL) · Inspiration: NotchNook und die Dynamic Island von Apple. DynamicBay steht in keiner Verbindung zu Apple, Spotify, Google oder Anthropic.
 
-Lizenz: [MIT](LICENSE)
+Entwickelt mit Unterstützung von Claude (Anthropic).
+
+Lizenz: [MIT](LICENSE) · Lizenzen der verwendeten Komponenten: [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)
 
 ---
 

@@ -15,7 +15,7 @@
     <Version>1.0.16</Version>
     <Product>DynamicBay</Product>
     <Company>SuperSparrow</Company>
-    <Copyright>MIT License</Copyright>
+    <Copyright>Copyright (c) 2026 SuperSparrow</Copyright>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
     <!-- WinForms is only used for the tray icon; avoid ambiguous type names. -->
@@ -40,6 +40,10 @@
     <EmbeddedResource Include="Assets\AppIcons.json.gz" LogicalName="DynamicBay.Assets.AppIcons.json.gz" />
     <EmbeddedResource Include="Services\Scripting\ScriptPrelude.js" LogicalName="DynamicBay.Scripting.Prelude.js" />
     <Content Include="Assets\Fonts\Inter-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- License texts of bundled third-party components (required for redistribution). -->
+    <Content Include="..\..\LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\licenses\*.txt" Link="Licenses\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <!-- Logos of the identity (sparse) package: Windows loads them from the install folder (taskbar, settings). -->
     <Content Include="Assets\Package\*.png" Link="Assets\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -1254,6 +1254,8 @@ public partial class SettingsWindow : Window
 
     private void OpenGitHub_Click(object sender, RoutedEventArgs e) => Open($"https://github.com/{UpdateCheck.Repo}");
 
+    private void OpenLicenses_Click(object sender, RoutedEventArgs e) => Open(System.IO.Path.Combine(AppContext.BaseDirectory, "THIRD-PARTY-NOTICES.txt"));
+
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => OpenFolder(AppSettings.Folder);
 
     private static void Open(string target)
