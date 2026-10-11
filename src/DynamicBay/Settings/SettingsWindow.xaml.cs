@@ -218,7 +218,10 @@ public partial class SettingsWindow : Window
 
     /// <summary>Built-in widgets plus the user's script widgets.</summary>
     private (string id, string icon, string de, string en, string descDe, string descEn)[] AllWidgetInfo() =>
-        HomeWidgetInfo.Concat(_ctx.S.ScriptWidgets.Select(sc => (sc.HomeId, "Icon.Code", sc.Name, sc.Name, "Eigenes Skript-Widget", "Own script widget"))).ToArray();
+        HomeWidgetInfo
+            // CursorHop only where it is installed (or already placed, so it can be removed again)
+            .Where(w => w.id != Widgets.CursorHop || Services.CursorHopService.IsInstalledOnDisk || PlaceOf(w.id).Length > 0)
+            .Concat(_ctx.S.ScriptWidgets.Select(sc => (sc.HomeId, "Icon.Code", sc.Name, sc.Name, "Eigenes Skript-Widget", "Own script widget"))).ToArray();
 
     /// <summary>Where a widget is: "home" (Nook), "system" or "" (not shown).</summary>
     private string PlaceOf(string id) => _ctx.S.HomeWidgets.Contains(id) ? "home" : _ctx.S.SystemWidgets.Contains(id) ? "system" : "";
@@ -1269,6 +1272,8 @@ public partial class SettingsWindow : Window
     private void OpenLicenses_Click(object sender, RoutedEventArgs e) => Open(System.IO.Path.Combine(AppContext.BaseDirectory, "THIRD-PARTY-NOTICES.txt"));
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => OpenFolder(AppSettings.Folder);
+
+    private void OpenCursorHopWebsite_Click(object sender, RoutedEventArgs e) => Open("https://cursorhop.com/");
 
     private void ShowTransferStatus(string text, bool error = false)
     {

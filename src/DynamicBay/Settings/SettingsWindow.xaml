@@ -59,6 +59,7 @@
                 <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.AppWindow}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Apps und Skripte', En='Apps and scripts'}" /></StackPanel>
                 <ListBoxItem Style="{StaticResource S.NavHeader}" Tag="header" Content="{core:L De='VERBINDUNGEN', En='CONNECTIONS'}" />
                 <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.User}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Konten', En='Accounts'}" /></StackPanel>
+                <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Laptop}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Geräte', En='Devices'}" /></StackPanel>
                 <ListBoxItem Style="{StaticResource S.NavHeader}" Tag="header" Content=" " />
                 <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Sliders}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Erweitert', En='Advanced'}" /></StackPanel>
                 <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Info}" /><TextBlock Style="{StaticResource ST.Base}" Margin="12,0,0,0" Text="{core:L De='Über', En='About'}" /></StackPanel>
@@ -1054,8 +1055,42 @@
                     </Border>
                 </StackPanel>
 
-                <!-- 13 Advanced -->
+                <!-- 13 Devices: pairing with the user's other PC, CursorHop -->
                 <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=13}">
+                    <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Geräte', En='Devices'}" />
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="CursorHop" />
+                    <Border Style="{StaticResource S.Card}" Padding="16,12" Visibility="{Binding I.CursorHop.IsInstalled, Converter={StaticResource NotVis}}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" VerticalAlignment="Center" Click="OpenCursorHopWebsite_Click">
+                                <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.External}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="cursorhop.com" /></StackPanel>
+                            </Button>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Nicht installiert', En='Not installed'}" />
+                                <TextBlock Style="{StaticResource ST.Desc}" Text="{core:L De='Eine Maus und Tastatur für mehrere PCs. Ohne CursorHop bleibt dieser Teil aus.', En='One mouse and keyboard for several PCs. Without CursorHop this part stays off.'}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <Border Style="{StaticResource S.Card}" Visibility="{Binding I.CursorHop.IsInstalled, Converter={StaticResource Vis}}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='CursorHop einbinden', En='Use CursorHop'}"
+                                            ToolTip="{core:L De='Zeigt Verbindung und Maus in der Insel.', En='Shows the connection and the mouse in the island.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.CursorHopEnabled}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.CursorHopEnabled}" Tag="{core:L De='Mit DynamicBay starten', En='Start with DynamicBay'}"
+                                            ToolTip="{core:L De='Startet CursorHop, falls es nicht läuft, auch nach dem Aufwachen.', En='Starts CursorHop if it is not running, also after sleep.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.CursorHopAutoStart}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.CursorHopEnabled}" Tag="{core:L De='Kurz anzeigen', En='Peeks'}"
+                                            ToolTip="{core:L De='Verbunden, getrennt und Zwischenablage vom anderen Gerät.', En='Connected, disconnected and clipboard from the other device.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.CursorHopPeeks}" />
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- 14 Advanced -->
+                <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=14}">
                     <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Erweitert', En='Advanced'}" />
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
@@ -1100,8 +1135,8 @@
                     </Border>
                 </StackPanel>
 
-                <!-- 14 About -->
-                <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=14}">
+                <!-- 15 About -->
+                <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=15}">
                     <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Über DynamicBay', En='About DynamicBay'}" />
                     <Border Style="{StaticResource S.Card}" Padding="20">
                         <DockPanel>

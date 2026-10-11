@@ -44,7 +44,7 @@ public static class Widgets
     public const string ScriptPrefix = "script:";
 }
 /// <summary>Pages of the settings window, in the order of the sidebar.</summary>
-public enum SettingsPage { General, Appearance, Position, Behavior, Quiet, Content, Media, Audio, Notifications, Shelf, Calendar, Apps, Accounts, Advanced, About }
+public enum SettingsPage { General, Appearance, Position, Behavior, Quiet, Content, Media, Audio, Notifications, Shelf, Calendar, Apps, Accounts, Devices, Advanced, About }
 public enum DisplayMode { Single, Mirror }
 public enum AppIconStyle { Mono, Dark, Color, Original }
 public enum CalendarKind { Ics, ICloud, Google, Microsoft }
