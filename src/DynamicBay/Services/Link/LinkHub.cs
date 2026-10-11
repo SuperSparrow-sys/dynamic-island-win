@@ -262,6 +262,10 @@ public sealed partial class LinkHub : ObservableObject
             DiscoveryPort = DevMode.DiscoveryPort ?? LinkProtocol.DiscoveryPort,
             // Test instances keep received files in their own data folder, never in the real downloads.
             DownloadFolder = DevMode.On ? Path.Combine(AppSettings.Folder, "Downloads") : new LinkOptions().DownloadFolder,
+            // Two test instances on one PC: 127.0.0.1 only and no discovery, so Windows Firewall does not ask.
+            LoopbackOnly = DevMode.LoopbackOnly,
+            LanDiscovery = !DevMode.LoopbackOnly,
+            TailscaleDiscovery = !DevMode.LoopbackOnly,
         };
         var link = new LinkService(_identity, _settings.LinkDeviceName, _settings.PairedDevices, options, new DispatcherSynchronizationContext(_ui));
         Service = link;

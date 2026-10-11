@@ -547,6 +547,8 @@ public static class Snapshots
             // "Ton an Gerät": the laptop as the chosen output, the compact indicator and the peek.
             link.LoadAudioDemo();
             vm.AudioDevices.RemoteOutputActive = true;
+            // Two speakers instead of three, so the laptop row is in view without scrolling.
+            if (vm.AudioDevices.Outputs.FirstOrDefault(o => o.Name.StartsWith("DELL")) is { } monitor) vm.AudioDevices.Outputs.Remove(monitor);
             vm.Tab = 3;
             await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-8-audio-card.png"), compact: false);
             vm.Tab = 0;

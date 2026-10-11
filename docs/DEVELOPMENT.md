@@ -75,6 +75,10 @@ $env:DYNAMICBAY_DEV_ALLOWPAIRING="1"; $env:DYNAMICBAY_DEV_AUTOCONFIRM="1"; .\Dyn
 # zweite Konsole: DYNAMICBAY_DEV=b, Port 43902, DYNAMICBAY_DEV_PAIR=127.0.0.1:43901, DYNAMICBAY_DEV_AUTOCONFIRM=1
 ```
 
+`DYNAMICBAY_DEV_LOOPBACK=1` lässt den Link nur auf 127.0.0.1 hören, ohne Suche (keine Firewall-Abfrage).
+`DYNAMICBAY_DEV_SENDAUDIO=<Sekunden>` schickt so lange Ton an das erste Gerät, das online kommt: Testinstanzen
+erzeugen einen 440-Hz-Ton statt aufzunehmen, spielen Empfangenes nirgends ab und schalten nichts stumm. Das Log zeigt
+`Audio link: received … frames …, buffer … ms, … level 0,071` (Pegel des Tons) und `sound back here (…)`.
 `DYNAMICBAY_DEV_SENDFILE=<Pfad>` schickt die Datei an das erste Gerät, das online kommt. Testinstanzen speichern
 Empfangenes in `%AppData%\DynamicBay-dev-<n>\Downloads`, nie in den echten Downloads. Was über den Link geht, steht ohne
 Inhalte im Log (`Link: status from …`, `Link: clipboard text (40 chars) …`, `Link: received … bytes`).
