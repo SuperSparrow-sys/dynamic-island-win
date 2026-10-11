@@ -15,7 +15,10 @@ public sealed class PeekItem
     public Geometry? Icon { get; init; }
     public bool IconFilled { get; init; }
     public Brush IconBrush { get; init; } = Brushes.White;
-    public Brush IconBackground { get; init; } = new SolidColorBrush(Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF));
+    public Brush IconBackground { get; init; } = DefaultIconBackground;
+    // One frozen brush for every peek (a new unfrozen one per peek kept change tracking alive for nothing).
+    private static readonly Brush DefaultIconBackground = Frozen(new SolidColorBrush(Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF)));
+    private static Brush Frozen(Brush b) { b.Freeze(); return b; }
     public ImageSource? Image { get; init; }
     public bool RoundImage { get; init; }
     public string Title { get; init; } = "";

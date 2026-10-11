@@ -1,0 +1,81 @@
+{
+    "date":  "2026-10-11",
+    "command":  "powershell -File tools\\memory-check.ps1 -Runs 3 -Rounds 6",
+    "build":  "Release, snapshot mode (demo settings), software rendering (default)",
+    "machine":  "Windows 11 Pro 26300, 125 % scaling, installed DynamicBay 1.0.17 running alongside",
+    "method":  "6 rounds after one warm-up round; values after forced GC; median of 3 runs",
+    "round":  "settings window open/close (3 pages), 3 home layouts x 4 tabs expand/collapse, analog clock toggle, script widget add/run/remove, 8 cover changes with image peeks, mirror island open/expand/close",
+    "before":  {
+                   "baselineManagedMb":  7.86,
+                   "finalManagedMb":  5.24,
+                   "baselineWorkingSetMb":  178.5,
+                   "finalWorkingSetMb":  184.7,
+                   "finalPrivateMb":  86.8,
+                   "managedGrowthMb":  -2.62,
+                   "workingSetGrowthMb":  2.9,
+                   "aliveAfterGc":  {
+                                        "settingsWindow":  "0/7",
+                                        "cover":  "0/56",
+                                        "mirrorIsland":  "0/7"
+                                    },
+                   "perRunFinal":  [
+                                       {
+                                           "managedMb":  5.23,
+                                           "workingSetMb":  185,
+                                           "privateMb":  87.4
+                                       },
+                                       {
+                                           "managedMb":  7.81,
+                                           "workingSetMb":  181.4,
+                                           "privateMb":  83.7
+                                       },
+                                       {
+                                           "managedMb":  5.24,
+                                           "workingSetMb":  184.7,
+                                           "privateMb":  86.8
+                                       }
+                                   ]
+               },
+    "after":  {
+                  "baselineManagedMb":  7.87,
+                  "finalManagedMb":  5.24,
+                  "baselineWorkingSetMb":  180.8,
+                  "finalWorkingSetMb":  186.2,
+                  "finalPrivateMb":  87.5,
+                  "managedGrowthMb":  -2.62,
+                  "workingSetGrowthMb":  4.8,
+                  "aliveAfterGc":  {
+                                       "settingsWindow":  "0/7",
+                                       "cover":  "0/56",
+                                       "mirrorIsland":  "0/7"
+                                   },
+                  "perRunFinal":  [
+                                      {
+                                          "managedMb":  5.24,
+                                          "workingSetMb":  186.2,
+                                          "privateMb":  87.5
+                                      },
+                                      {
+                                          "managedMb":  5.24,
+                                          "workingSetMb":  185.6,
+                                          "privateMb":  86.7
+                                      },
+                                      {
+                                          "managedMb":  5.25,
+                                          "workingSetMb":  188.9,
+                                          "privateMb":  90.6
+                                      }
+                                  ]
+              },
+    "iconPixels":  {
+                       "notepad.exe@48 icon":  "48x48",
+                       "notepad.exe@64 icon":  "64x64",
+                       "notepad.exe@96":  "96x96",
+                       "leak-widget.js@96":  "96x96"
+                   },
+    "notes":  [
+                  "No leak in the cycled paths before or after: every settings window, mirror island and cover created is collected (aliveAfterGc 0/n); managed memory after GC stays at 5-8 MB, working set moves within +-10 MB without a trend.",
+                  "The fixes do not show in this run: clipboard thumbnails loaded from disk (by longer side, no upscaling) and the shared frozen peek brush only matter with a real clipboard history and many peeks.",
+                  "The installed app\u0027s 357 MB working set includes the running services (media session, notifications, Bluetooth, M365, Spotify), which the snapshot mode does not start."
+              ]
+}
