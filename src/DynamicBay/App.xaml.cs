@@ -15,9 +15,8 @@ public partial class App : Application
 {
     private static Mutex? _single;
     private TaildropService? _taildrop;
-    // DynamicBay on another PC (Services/Link). Runs only while LinkEnabled; the pages to pair and share come later.
-    private Services.Link.LinkService? _link;
-    private Services.Link.DeviceIdentity? _linkIdentity;
+    // DynamicBay on another PC (Services/Link): the hub runs the link only while LinkEnabled.
+    private Services.Link.LinkHub? _link;
     private NotificationService? _notifications;
     private MessageWindow? _msg;
     private TrayIcon? _tray;
@@ -146,6 +145,12 @@ public partial class App : Application
             Todo = new Services.M365.TodoService(microsoft, _settings), Presence = new Services.M365.PresenceService(microsoft, _settings),
             Contacts = new Services.M365.ContactsService(microsoft),
         };
+        _link = new Services.Link.LinkHub(_settings, Dispatcher);
+        _link.Attach(media, clipboard, notifications, shelf, battery);
+        _link.CursorHop = _vm.CursorHop;
+        // "Hauptgerät: automatisch" follows the mouse right away when CursorHop moves it to the other PC.
+        _vm.CursorHop.CursorMoved += where => { if (_link.Role is { } role) { role.Update(); _ = role.AnnounceAsync(); } };
+        _vm.Link = _link;
         // First sign-in: the Outlook calendar joins the calendar card right away.
         microsoft.Connected += () =>
         {
@@ -235,7 +240,6 @@ public partial class App : Application
         _settings.PropertyChanged += (_, ev) =>
         {
             if (ev.PropertyName == nameof(AppSettings.LinkEnabled)) Safe("Link", () => SetLinkEnabled(_settings.LinkEnabled));
-            if (ev.PropertyName == nameof(AppSettings.LinkDeviceName) && _link is not null) _link.DeviceName = _settings.LinkDeviceName;
         };
         await SafeAsync("Spotify", spotify.InitAsync);
         Log.Info($"Services started in {clock.ElapsedMilliseconds} ms");
@@ -255,38 +259,18 @@ public partial class App : Application
             StopLink();
             return;
         }
-        if (_link is not null) return;
-        _linkIdentity = Services.Link.DeviceIdentity.LoadOrCreate();
-        var options = DevMode.LinkPort is { } port
-            ? new Services.Link.LinkOptions { Port = port, DiscoveryPort = DevMode.DiscoveryPort ?? Services.Link.LinkProtocol.DiscoveryPort }
-            : null;
-        var link = new Services.Link.LinkService(_linkIdentity, _settings.LinkDeviceName, _settings.PairedDevices, options,
-            new DispatcherSynchronizationContext(Dispatcher));
-        if (DevMode.AutoConfirmPairing) link.PairingRequested += session => { Log.Info($"Dev: confirming pairing code {session.Code}"); session.Confirm(true); };
-        link.PairedDevicesChanged += () => _settings.PairedDevices = new System.Collections.ObjectModel.ObservableCollection<PairedDevice>(link.PairedDevices);
-        link.PairingFinished += (_, result) => { if (result == Services.Link.PairingResult.Paired) _settings.LinkEnabled = true; };
-        _link = link;
-        try
-        {
-            link.Start(); // logs its state changes itself (never keys)
-            if (DevMode.AllowPairingAtStart) link.AllowPairing();
-            if (DevMode.PairAtStart is { } address)
-                _ = Task.Delay(3000).ContinueWith(_ => link.PairAsync(address), TaskScheduler.Default).Unwrap()
-                    .ContinueWith(t => Log.Info("Dev: pairing " + (t.IsFaulted ? "failed: " + t.Exception?.GetBaseException().Message : "started")), TaskScheduler.Default);
-        }
-        catch
-        {
-            StopLink(); // e.g. the port is taken: nothing half started stays behind
-            throw;
-        }
+        if (_link is null || _link.IsRunning) return;
+        _link.SetEnabled(true); // throws when the port is taken; the hub leaves nothing half started
+        if (_link.Service is not { } link) return;
+        if (DevMode.AllowPairingAtStart) link.AllowPairing();
+        if (DevMode.PairAtStart is { } address)
+            _ = Task.Delay(3000).ContinueWith(_ => link.PairAsync(address), TaskScheduler.Default).Unwrap()
+                .ContinueWith(t => Log.Info("Dev: pairing " + (t.IsFaulted ? "failed: " + t.Exception?.GetBaseException().Message : "started")), TaskScheduler.Default);
     }
 
     private void StopLink()
     {
-        try { _link?.Dispose(); } catch (Exception ex) { Log.Error("Link stop", ex); }
-        _link = null;
-        _linkIdentity?.Dispose();
-        _linkIdentity = null;
+        try { _link?.Stop(); } catch (Exception ex) { Log.Error("Link stop", ex); }
     }
 
     private static void Safe(string name, Action start)
@@ -328,7 +312,7 @@ public partial class App : Application
             if (!_settings.PeekOnScreenshot) return;
             island.ShowPeek(new PeekItem
             {
-                Image = item.Thumbnail,
+                Kind = PeekKind.Local,
                 Title = Loc.T("Peek.Screenshot"),
                 Subtitle = Loc.T("Peek.ScreenshotHint"),
                 Trailing = $"{item.PixelWidth}×{item.PixelHeight}",
@@ -343,7 +327,7 @@ public partial class App : Application
             if (!_settings.MediaPeekOnTrackChange || !_settings.MediaEnabled) return;
             island.ShowPeek(new PeekItem
             {
-                Image = media.Cover,
+                Kind = PeekKind.Local,
                 Icon = media.Cover is null ? Icon("Glyph.Music") : null,
                 IconFilled = true,
                 IconBrush = media.AccentBrush,
@@ -449,6 +433,7 @@ public partial class App : Application
             if (n.AppId == BannerSuppressor.SnippingTool && _settings.PeekOnScreenshot && _settings.ClipboardEnabled) return;
             island.ShowPeek(new PeekItem
             {
+                Kind = PeekKind.Notification,
                 Image = n.Logo,
                 Icon = n.Logo is null ? Icon("Icon.Bell") : null,
                 Title = string.Equals(n.Title, n.App, StringComparison.OrdinalIgnoreCase) ? n.App : $"{n.Title}",
@@ -571,7 +556,7 @@ public partial class App : Application
             if (!_settings.AudioEnabled) return;
             island.ShowPeek(new PeekItem
             {
-                Icon = Icon(muted ? "Icon.MicOff" : "Icon.Mic"),
+                Kind = PeekKind.Local,
                 IconBrush = Res(muted ? "B.Red" : "B.Green"), IconBackground = Tint(muted ? "B.Red" : "B.Green", 0x2E),
                 Title = muted ? (Loc.German ? "Mikrofon stumm" : "Microphone muted") : (Loc.German ? "Mikrofon an" : "Microphone on"),
                 Subtitle = _settings.MicMuteHotkey,
@@ -639,7 +624,8 @@ public partial class App : Application
         var hop = _vm!.CursorHop;
         hop.PeerConnected += name =>
         {
-            if (!_settings.CursorHopPeeks) return;
+            // The link may have announced the same device a moment ago (or will, and then stays silent).
+            if (!_settings.CursorHopPeeks || !Services.Link.DeviceAnnouncements.TryAnnounce(name, true, DateTime.UtcNow)) return;
             island.ShowPeek(new PeekItem
             {
                 Icon = Icon(CursorHopService.IconFor(name)), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
@@ -650,7 +636,7 @@ public partial class App : Application
         };
         hop.PeerDisconnected += name =>
         {
-            if (!_settings.CursorHopPeeks) return;
+            if (!_settings.CursorHopPeeks || !Services.Link.DeviceAnnouncements.TryAnnounce(name, false, DateTime.UtcNow)) return;
             island.ShowPeek(new PeekItem
             {
                 Icon = Icon(CursorHopService.IconFor(name)), IconBrush = Res("B.Text2"), IconBackground = Tint("B.Text", 0x26),
@@ -690,6 +676,7 @@ public partial class App : Application
         // A download finished: the file, ready to drag out; a click shows it in its folder.
         _vm!.Downloads.Finished += path => island.ShowPeek(new PeekItem
         {
+            Kind = PeekKind.Local,
             Image = ShellThumbnail.Get(path, 96),
             Icon = Icon("Icon.Download"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
             Title = Path.GetFileName(path),
@@ -701,12 +688,172 @@ public partial class App : Application
 
         shelf.FilesAdded += count => island.ShowPeek(new PeekItem
         {
+            Kind = PeekKind.Local,
             Icon = Icon("Icon.Inbox"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
             Title = Loc.German ? (count == 1 ? "1 Datei abgelegt" : $"{count} Dateien abgelegt") : (count == 1 ? "1 file added" : $"{count} files added"),
             Subtitle = Loc.T("Shelf.EmptyHint"),
             Seconds = 2.2,
             OnClick = () => { if (_settings.ShowTrayTab) _vm!.Tab = 1; island.Expand(); },
         });
+
+        if (_link is { } link) WireLinkPeeks(link, island, Res, Icon, Tint);
+    }
+
+    /// <summary>Pairing code, devices coming and going, files arriving and going out, notifications of the other device.</summary>
+    private void WireLinkPeeks(Services.Link.LinkHub link, IslandManager island, Func<string, Brush> Res, Func<string, Geometry> Icon, Func<string, byte, Brush> Tint)
+    {
+        var pairingPeeks = new Dictionary<Services.Link.PairingSession, PeekItem>();
+        link.PairingRequested += session =>
+        {
+            if (DevMode.AutoConfirmPairing) { Log.Info($"Dev: confirming pairing code {session.Code}"); session.Confirm(true); return; }
+            _settingsWindow?.ShowPairingCode(session);
+            // The device that was asked shows the code in the island too, with both answers right there.
+            if (session.Initiator) return;
+            var peek = new PeekItem
+            {
+                Kind = PeekKind.Local,
+                Icon = Icon("Icon.Link"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+                Title = Loc.German ? $"Kopplung mit {session.PeerName}" : $"Pair with {session.PeerName}",
+                Subtitle = (Loc.German ? "Code " : "Code ") + Services.Link.PairingCodeText.Format(session.Code),
+                ActionText = Loc.German ? "Bestätigen" : "Confirm", DismissText = Loc.German ? "Ablehnen" : "Decline",
+                Action = () => session.Confirm(true), OnDismiss = () => session.Confirm(false),
+                Priority = PeekPriority.High, ShowInDnd = true, Seconds = 120,
+            };
+            pairingPeeks[session] = peek;
+            island.ShowPeek(peek);
+        };
+        link.PairingFinished += (session, result) =>
+        {
+            if (pairingPeeks.Remove(session, out var asked)) island.WithdrawPeek(asked);
+            island.ShowPeek(new PeekItem
+            {
+                Kind = PeekKind.Local,
+                Icon = Icon(result == Services.Link.PairingResult.Paired ? "Icon.Check" : "Icon.Close"),
+                IconBrush = Res(result == Services.Link.PairingResult.Paired ? "B.Green" : "B.Text2"),
+                IconBackground = Tint(result == Services.Link.PairingResult.Paired ? "B.Green" : "B.Text", 0x26),
+                Title = Services.Link.LinkHub.ResultText(result, session.PeerName).TrimEnd('.'),
+                Subtitle = Loc.German ? "Geräte koppeln" : "Pair devices",
+                ShowInDnd = true, Seconds = 3,
+            });
+        };
+        link.DeviceAnnounced += (name, connected) => island.ShowPeek(new PeekItem
+        {
+            Kind = PeekKind.Local,
+            Icon = Icon(CursorHopService.IconFor(name)), IconBrush = Res(connected ? "B.Blue" : "B.Text2"), IconBackground = Tint(connected ? "B.Blue" : "B.Text", 0x2E),
+            Title = connected ? (Loc.German ? $"{name} verbunden" : $"{name} connected") : (Loc.German ? $"{name} getrennt" : $"{name} disconnected"),
+            Subtitle = Loc.German ? "Gekoppeltes Gerät" : "Paired device",
+            Seconds = 3,
+        });
+
+        // Files: one peek that counts up while it arrives, then the file ready to drag out.
+        var arriving = new Dictionary<string, PeekItem>();
+        link.FileStarted += offer =>
+        {
+            if (offer.Size < 4L * 1024 * 1024) return; // small files are there before a peek could show
+            var peek = new PeekItem
+            {
+                Kind = PeekKind.Local,
+                Icon = Icon("Icon.Download"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+                Title = offer.FileName, Subtitle = (Loc.German ? "Von " : "From ") + offer.PeerName + " · " + FormatSize(offer.Size),
+                Progress = 0, TrailingBrush = Res("B.Blue"), Seconds = 600,
+            };
+            arriving[offer.TransferId] = peek;
+            island.ShowPeek(peek);
+        };
+        link.FileProgress += (offer, bytes) =>
+        {
+            if (arriving.TryGetValue(offer.TransferId, out var peek)) peek.Progress = offer.Size == 0 ? 1 : (double)bytes / offer.Size;
+        };
+        link.FileFailed += (offer, _) =>
+        {
+            if (arriving.Remove(offer.TransferId, out var peek)) island.WithdrawPeek(peek);
+            island.ShowPeek(new PeekItem
+            {
+                Kind = PeekKind.Local,
+                Icon = Icon("Icon.Close"), IconBrush = Res("B.Red"), IconBackground = Tint("B.Red", 0x2E),
+                Title = offer.FileName, Subtitle = Loc.German ? $"Von {offer.PeerName} nicht angekommen" : $"From {offer.PeerName}, did not arrive", Seconds = 4,
+            });
+        };
+        link.FileReceived += (offer, path) =>
+        {
+            if (arriving.Remove(offer.TransferId, out var peek)) island.WithdrawPeek(peek);
+            island.ShowPeek(new PeekItem
+            {
+                Kind = PeekKind.Local,
+                Image = ShellThumbnail.Get(path, 96),
+                Icon = Icon("Icon.Inbox"),
+                Title = Path.GetFileName(path),
+                Subtitle = (Loc.German ? $"Datei von {offer.PeerName} · " : $"File from {offer.PeerName} · ") + FormatSize(offer.Size),
+                DragPayload = new[] { path },
+                Seconds = 4,
+                OnClick = () =>
+                {
+                    if (_settings.ShelfEnabled && _settings.ShowTrayTab) { _vm!.Tab = 1; island.Expand(); }
+                    else try { Process.Start("explorer.exe", $"/select,\"{path}\""); } catch { }
+                },
+            });
+        };
+        link.FileSent += (name, device, result) =>
+        {
+            bool ok = result == Services.Link.FileTransferResult.Done;
+            island.ShowPeek(new PeekItem
+            {
+                Kind = PeekKind.Local,
+                Icon = Icon("Icon.Send"), IconBrush = Res(ok ? "B.Blue" : "B.Red"), IconBackground = Tint(ok ? "B.Blue" : "B.Red", 0x2E),
+                Title = ok ? (Loc.German ? $"An {device} gesendet" : $"Sent to {device}") : (Loc.German ? $"Senden an {device} fehlgeschlagen" : $"Sending to {device} failed"),
+                Subtitle = ok ? name : Services.Link.LinkHub.SendErrorText(result),
+                Seconds = ok ? 2.8 : 5,
+            });
+        };
+        // Main device: the quiet one hands its peeks over (its notifications come through the notifications feature).
+        island.Divert = item =>
+        {
+            if (link.Role is not { IsMain: false } role || item.Kind == PeekKind.Local || item.HasActions) return false;
+            if (item.Kind == PeekKind.Notification) return link.Notifications?.Enabled == true;
+            if (!_settings.LinkShareNotifications) return false;
+            _ = role.ForwardPeekAsync(item.Title, item.Subtitle, item.IconKey ?? IconKeyOf(item.Icon));
+            return true;
+        };
+        link.RemotePeek += p => island.ShowPeek(new PeekItem
+        {
+            Icon = Icon(p.IconKey ?? "Icon.Bell"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+            Title = p.Title, Subtitle = p.Subtitle.Length > 0 ? p.Subtitle : p.PeerName, Seconds = 4,
+        });
+        link.RoleChanged += () => island.SetLinkHidden(link.HideIsland);
+
+        link.RemoteNotification += n =>
+        {
+            if (!_settings.NotificationsEnabled) return;
+            island.ShowPeek(new PeekItem
+            {
+                Kind = PeekKind.Local,
+                Image = n.Logo, Icon = n.Logo is null ? Icon("Icon.Bell") : null,
+                Title = string.Equals(n.Title, n.App, StringComparison.OrdinalIgnoreCase) ? n.App : n.Title,
+                Subtitle = (_settings.NotificationShowBody && !_settings.Sharing ? FirstLine(n.Body, n.App) : n.App) + " · " + n.Device,
+                Seconds = Math.Clamp(_settings.NotificationSeconds, 2, 15),
+                OnClick = () => { if (_settings.ShowNotificationsTab) { _vm!.Tab = 2; island.Expand(); } },
+            });
+        };
+    }
+
+    private Dictionary<Geometry, string>? _iconKeys;
+
+    /// <summary>The resource name of an icon geometry (Icon.Calendar …), so a forwarded peek keeps its symbol.</summary>
+    private string? IconKeyOf(Geometry? g)
+    {
+        if (g is null) return null;
+        if (_iconKeys is null)
+        {
+            _iconKeys = new();
+            void Scan(ResourceDictionary d)
+            {
+                foreach (var key in d.Keys)
+                    if (key is string k && k.StartsWith("Icon.", StringComparison.Ordinal) && d[k] is Geometry geo) _iconKeys.TryAdd(geo, k);
+                foreach (var m in d.MergedDictionaries) Scan(m);
+            }
+            Scan(Resources);
+        }
+        return _iconKeys.TryGetValue(g, out var name) ? name : null;
     }
 
     /// <summary>A call notification from Smartphone-Link (YourPhoneCalling) or Teams ("ruft an", "is calling").</summary>

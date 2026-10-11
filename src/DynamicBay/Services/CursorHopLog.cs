@@ -265,6 +265,17 @@ internal sealed class CursorHopAnnouncer
     public static readonly TimeSpan ConnectDelay = TimeSpan.FromSeconds(3);
     public static readonly TimeSpan DisconnectDelay = TimeSpan.FromSeconds(40);
 
+    private readonly TimeSpan _connectDelay, _disconnectDelay;
+
+    public CursorHopAnnouncer() : this(ConnectDelay, DisconnectDelay) { }
+
+    /// <summary>Other delays (the link between two DynamicBays announces a drop after 30 s).</summary>
+    public CursorHopAnnouncer(TimeSpan connectDelay, TimeSpan disconnectDelay)
+    {
+        _connectDelay = connectDelay;
+        _disconnectDelay = disconnectDelay;
+    }
+
     private readonly HashSet<string> _announced = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, DateTime> _connecting = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, DateTime> _leaving = new(StringComparer.OrdinalIgnoreCase);
@@ -274,13 +285,13 @@ internal sealed class CursorHopAnnouncer
     public void Connected(string name, DateTime now)
     {
         if (_leaving.Remove(name)) return;              // back before the drop was announced: nothing happened
-        if (!_announced.Contains(name)) _connecting[name] = now + ConnectDelay;
+        if (!_announced.Contains(name)) _connecting[name] = now + _connectDelay;
     }
 
     public void Disconnected(string name, DateTime now)
     {
         if (_connecting.Remove(name)) return;           // gone before it was announced: nothing happened
-        if (_announced.Contains(name)) _leaving[name] = now + DisconnectDelay;
+        if (_announced.Contains(name)) _leaving[name] = now + _disconnectDelay;
     }
 
     /// <summary>Known without a peek (state read from the log at start).</summary>

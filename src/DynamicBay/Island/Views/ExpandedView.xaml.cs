@@ -20,7 +20,7 @@ public partial class ExpandedView : UserControl
     {
         InitializeComponent();
         // The optional cards live in the home grid too; they're shown/positioned by LayoutHome.
-        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, TodoCard, TeamsCard, TimeCard, ContactsCard, AudioCard, NotesCard, CursorHopCard })
+        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, TodoCard, TeamsCard, TimeCard, ContactsCard, AudioCard, NotesCard, CursorHopCard, PairedCard })
         {
             ExtraCards.Children.Remove(card);
             HomeGrid.Children.Add(card);
@@ -43,6 +43,7 @@ public partial class ExpandedView : UserControl
             [Core.Widgets.Audio] = AudioCard,
             [Core.Widgets.Notes] = NotesCard,
             [Core.Widgets.CursorHop] = CursorHopCard,
+            [Core.Widgets.Paired] = PairedCard,
         };
         DataContextChanged += (_, _) =>
         {
@@ -220,7 +221,7 @@ public partial class ExpandedView : UserControl
 
     private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id switch
     {
-        "media" => 360, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "notes" => 190, "cursorhop" => 190, "shortcuts" => 170, "calendar" => 134, "timer" => 120, _ => 150,
+        "media" => 360, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "audio" => 190, "notes" => 190, "cursorhop" => 190, "paired" => 190, "shortcuts" => 170, "calendar" => 134, "timer" => 120, _ => 150,
     };
 
     // ---- script widgets ----
@@ -547,11 +548,58 @@ public partial class ExpandedView : UserControl
         _dragging = true;
         var items = new[] { item };
         DragOutActive?.Invoke(true);
+        // Paired devices online: they show as drop targets under the shelf while the file is dragged.
+        if (Vm.Link is { CanSendFiles: true }) ShelfSendBar.Visibility = Visibility.Visible;
         DragDropEffects result;
         // Always end the drag-out state, also when the drag throws: otherwise the island never collapses or moves again.
         try { result = DragDrop.DoDragDrop((DependencyObject)sender, Vm.Shelf.CreateDragData(items), DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link); }
-        finally { DragOutActive?.Invoke(false); }
+        finally
+        {
+            ShelfSendBar.Visibility = Visibility.Collapsed;
+            DragOutActive?.Invoke(false);
+        }
+        // Sent to a device: the file stays in the shelf (only a drop elsewhere counts as dragging it out).
+        if (_sentToDevice) { _sentToDevice = false; return; }
         Vm.Shelf.AfterDragOut(items, result);
+    }
+
+    // ---- paired devices: send files ----
+
+    private bool _sentToDevice;
+
+    private void PairedDevice_DragOver(object sender, DragEventArgs e)
+    {
+        bool ok = e.Data.GetDataPresent(DataFormats.FileDrop) && ((FrameworkElement)sender).Tag is Services.Link.LinkDeviceView { IsOnline: true }
+                  && Vm?.Link is { CanSendFiles: true };
+        e.Effects = ok ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void PairedDevice_Drop(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        if (Vm?.Link is not { CanSendFiles: true } link || ((FrameworkElement)sender).Tag is not Services.Link.LinkDeviceView { IsOnline: true } device) return;
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0) return;
+        _sentToDevice = _dragging;
+        _ = link.SendFilesAsync(device.Id, files);
+    }
+
+    /// <summary>"An Laptop senden" on a shelf file: right away with one device online, a small menu with several.</summary>
+    private void LinkSend_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is not Button b || b.DataContext is not ShelfItem item || Vm?.Link is not { } link) return;
+        var online = link.OnlineDevices.ToList();
+        if (online.Count == 1) { _ = link.SendFilesAsync(online[0].Id, new[] { item.Path }); return; }
+        var menu = new ContextMenu { PlacementTarget = b, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        foreach (var d in online)
+        {
+            var mi = new MenuItem { Header = (Core.Loc.German ? "An " : "To ") + d.Name };
+            string id = d.Id;
+            mi.Click += (_, _) => _ = link.SendFilesAsync(id, new[] { item.Path });
+            menu.Items.Add(mi);
+        }
+        if (menu.Items.Count > 0) menu.IsOpen = true;
     }
 
     // ---- clipboard ----

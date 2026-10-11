@@ -31,8 +31,9 @@ public enum ShelfPathState { There, Gone, Unreachable }
 public sealed partial class ShelfService : ObservableObject
 {
     private readonly AppSettings _settings;
-    private readonly string _folder = System.IO.Path.Combine(AppSettings.Folder, "shelf");
-    private string IndexPath => System.IO.Path.Combine(AppSettings.Folder, "shelf.json");
+    private readonly string _folder;
+    private readonly string _dataFolder;
+    private string IndexPath => System.IO.Path.Combine(_dataFolder, "shelf.json");
 
     public ObservableCollection<ShelfItem> Items { get; } = new();
     [ObservableProperty] private bool _isEmpty = true;
@@ -40,9 +41,12 @@ public sealed partial class ShelfService : ObservableObject
 
     public event Action<int>? FilesAdded;
 
-    public ShelfService(AppSettings settings)
+    /// <param name="dataFolder">Where shelf.json and copied files live (default: the app's data folder; tests pass their own).</param>
+    public ShelfService(AppSettings settings, string? dataFolder = null)
     {
         _settings = settings;
+        _dataFolder = dataFolder ?? AppSettings.Folder;
+        _folder = System.IO.Path.Combine(_dataFolder, "shelf");
         Items.CollectionChanged += (_, _) => { IsEmpty = Items.Count == 0; Count = Items.Count; SyncWatchers(); };
     }
 

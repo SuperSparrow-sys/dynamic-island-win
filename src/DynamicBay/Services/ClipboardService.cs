@@ -79,6 +79,11 @@ public sealed partial class ClipboardService : ObservableObject
 
     /// <summary>A new screenshot was captured (Snipping Tool or PrtScn).</summary>
     public event Action<ClipItem>? ScreenshotCaptured;
+    /// <summary>
+    /// Something was copied on this PC and joined the history (not entries from paired devices, not the screenshot
+    /// folder). Raised right away; the source device (CursorHop) may be set on the item a moment later.
+    /// </summary>
+    public event Action<ClipItem>? CopiedHere;
 
     public ClipboardService(AppSettings settings)
     {
@@ -152,7 +157,7 @@ public sealed partial class ClipboardService : ObservableObject
                 var dup = Items.FirstOrDefault(i => i.IsImage && (DateTime.Now - i.Created).TotalSeconds < 4 &&
                                                     i.PixelWidth == img.PixelWidth && i.PixelHeight == img.PixelHeight);
                 if (dup is not null) return;
-                AddImage(img, screenshot, owner);
+                CopiedHere?.Invoke(AddImage(img, screenshot, owner));
                 return;
             }
             if (_settings.ClipboardText && Clipboard.ContainsText())
@@ -162,7 +167,9 @@ public sealed partial class ClipboardService : ObservableObject
                 _lastText = text;
                 var existing = Items.FirstOrDefault(i => i.IsText && i.Text == text);
                 if (existing is not null) Items.Remove(existing);
-                Insert(new ClipItem { Kind = ClipKind.Text, Text = text, SourceApp = owner });
+                var item = new ClipItem { Kind = ClipKind.Text, Text = text, SourceApp = owner };
+                Insert(item);
+                CopiedHere?.Invoke(item);
             }
         }
         catch (System.Runtime.InteropServices.ExternalException ex) when (ex.HResult == ClipboardCantOpen && attempt < 2)
@@ -205,7 +212,7 @@ public sealed partial class ClipboardService : ObservableObject
         catch { return null; }
     }
 
-    private void AddImage(BitmapSource img, bool screenshot, string? source, string? existingPath = null)
+    private ClipItem AddImage(BitmapSource img, bool screenshot, string? source, string? existingPath = null)
     {
         var item = new ClipItem
         {
@@ -221,6 +228,65 @@ public sealed partial class ClipboardService : ObservableObject
         item.Thumbnail = MakeThumb(img);
         Insert(item);
         if (screenshot) ScreenshotCaptured?.Invoke(item);
+        return item;
+    }
+
+    /// <summary>
+    /// An entry from a paired device (the link): joins the history with the device as its source, without touching the
+    /// Windows clipboard and without counting as copied here. Content that is already there (CursorHop brought it a
+    /// moment ago) only gets the device as source. True: a new entry.
+    /// </summary>
+    public bool AddFromDevice(string device, string? text, byte[]? png)
+    {
+        if (!_settings.ClipboardEnabled) return false;
+        if (text is not null)
+        {
+            if (!_settings.ClipboardText || string.IsNullOrWhiteSpace(text)) return false;
+            var existing = Items.FirstOrDefault(i => i.IsText && i.Text == text);
+            if (existing is not null)
+            {
+                existing.SourceDevice ??= device;
+                SaveIndexSoon();
+                return false;
+            }
+            Insert(new ClipItem { Kind = ClipKind.Text, Text = text, SourceDevice = device });
+            return true;
+        }
+        if (png is null) return false;
+        BitmapSource img;
+        try
+        {
+            var frame = new PngBitmapDecoder(new MemoryStream(png), BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad).Frames[0];
+            frame.Freeze();
+            img = frame;
+        }
+        catch { return false; }
+        var dup = Items.FirstOrDefault(i => i.IsImage && (DateTime.Now - i.Created).TotalSeconds < 10 &&
+                                            i.PixelWidth == img.PixelWidth && i.PixelHeight == img.PixelHeight);
+        if (dup is not null)
+        {
+            dup.SourceDevice ??= device;
+            SaveIndexSoon();
+            return false;
+        }
+        var item = new ClipItem { Kind = ClipKind.Image, SourceDevice = device, PixelWidth = img.PixelWidth, PixelHeight = img.PixelHeight };
+        item.ImagePath = Path.Combine(_folder, item.Id + ".png");
+        try
+        {
+            Directory.CreateDirectory(_folder);
+            File.WriteAllBytes(item.ImagePath, png);
+        }
+        catch (Exception ex) { Log.Error("Clipboard from device", ex); return false; }
+        item.Thumbnail = MakeThumb(img);
+        Insert(item);
+        return true;
+    }
+
+    /// <summary>The picture of an entry as PNG bytes (null when the file is gone).</summary>
+    public static byte[]? PngOf(ClipItem item)
+    {
+        try { return item.ImagePath is { } p && File.Exists(p) ? File.ReadAllBytes(p) : null; }
+        catch { return null; }
     }
 
     private static ImageSource MakeThumb(BitmapSource img)

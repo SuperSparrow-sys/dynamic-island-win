@@ -5,6 +5,7 @@
              xmlns:core="clr-namespace:DynamicBay.Core"
              xmlns:s="clr-namespace:DynamicBay.Services"
              xmlns:ms="clr-namespace:DynamicBay.Services.M365"
+             xmlns:link="clr-namespace:DynamicBay.Services.Link"
              xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <UserControl.Resources>
         <c:BoolToVis x:Key="Vis" />
@@ -280,7 +281,7 @@
                     <Grid>
                         <!-- Nothing playing -->
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                                    Visibility="{Binding Media.HasSession, Converter={StaticResource NotVis}}">
+                                    Visibility="{Binding Link.MediaShowsNothing, Converter={StaticResource Vis}, FallbackValue=Collapsed}">
                             <Border Width="46" Height="46" CornerRadius="12" Background="{StaticResource B.Fill2}" HorizontalAlignment="Center">
                                 <c:Icon Data="{StaticResource Glyph.Music}" Filled="True" Width="20" Height="20" Foreground="{StaticResource B.Text3}" />
                             </Border>
@@ -288,8 +289,63 @@
                             <TextBlock Style="{StaticResource T.Caption}" Margin="0,2,0,0" HorizontalAlignment="Center" Text="{core:T Media.NothingHint}" />
                         </StackPanel>
 
+                        <!-- Music on a paired device (nothing plays here, or its chip was pressed): steered from here -->
+                        <Grid Visibility="{Binding Link.MediaShowsRemote, Converter={StaticResource Vis}, FallbackValue=Collapsed}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid Width="96" Height="96" VerticalAlignment="Top">
+                                <Border CornerRadius="10" Background="{StaticResource B.Fill2}">
+                                    <c:Icon Data="{StaticResource Glyph.Music}" Filled="True" Width="30" Height="30" Foreground="{StaticResource B.Text3}" />
+                                </Border>
+                                <Border CornerRadius="10">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding Link.Remote.Cover}" Stretch="UniformToFill" />
+                                    </Border.Background>
+                                </Border>
+                            </Grid>
+                            <Grid Grid.Column="1" Margin="14,0,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <DockPanel>
+                                    <c:Waveform DockPanel.Dock="Right" Width="18" Height="13" Margin="8,2,0,0" VerticalAlignment="Top"
+                                                IsPlaying="{Binding Link.Remote.IsPlaying}" BarBrush="{StaticResource B.Text2}" />
+                                    <StackPanel MaxWidth="280">
+                                        <TextBlock Style="{StaticResource T.Headline}" Text="{Binding Link.Remote.Title}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                                   LineHeight="19" LineStackingStrategy="BlockLineHeight" MaxHeight="38" ToolTip="{Binding Link.Remote.Title}" />
+                                        <TextBlock Style="{StaticResource T.Body}" Margin="0,1,0,0" FontSize="12.5" Text="{Binding Link.Remote.Artist}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                                <!-- Which device plays it; a click goes back to the music here (when there is some) -->
+                                <Button Grid.Row="2" Style="{StaticResource Btn.Chip}" HorizontalAlignment="Left" Padding="8,0" Height="22" FontSize="10.5" Margin="0,6,0,0"
+                                        Command="{Binding Link.ToggleRemoteCommand}" IsEnabled="{Binding Media.HasSession}"
+                                        ToolTip="{core:L De='Musik auf diesem Gerät zeigen', En='Show the music on this device'}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <c:Icon Data="{StaticResource Icon.Laptop}" Width="11" Height="11" Foreground="{StaticResource B.Blue}" />
+                                        <TextBlock Margin="5,0,0,0" Text="{Binding Link.Remote.DeviceText}" Foreground="{StaticResource B.Text}" />
+                                    </StackPanel>
+                                </Button>
+                                <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
+                                    <Button Style="{StaticResource Btn.Media}" Command="{Binding Link.RemotePreviousCommand}">
+                                        <c:Icon Data="{StaticResource Glyph.Previous}" Filled="True" Width="20" Height="20" />
+                                    </Button>
+                                    <Button Style="{StaticResource Btn.Media}" Width="42" Height="42" Margin="4,0" Command="{Binding Link.RemotePlayPauseCommand}">
+                                        <c:Icon Data="{Binding Link.Remote.IsPlaying, Converter={StaticResource PlayPauseGlyph}}" Filled="True" Width="26" Height="26" />
+                                    </Button>
+                                    <Button Style="{StaticResource Btn.Media}" Command="{Binding Link.RemoteNextCommand}">
+                                        <c:Icon Data="{StaticResource Glyph.Next}" Filled="True" Width="20" Height="20" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
                         <!-- Now playing -->
-                        <Grid Visibility="{Binding Media.HasSession, Converter={StaticResource Vis}}">
+                        <Grid Visibility="{Binding Link.MediaShowsLocal, Converter={StaticResource Vis}, FallbackValue=Visible}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
@@ -380,6 +436,12 @@
                                 <DockPanel>
                                     <c:Waveform DockPanel.Dock="Right" Width="18" Height="13" Margin="8,2,0,0" VerticalAlignment="Top"
                                                 IsPlaying="{Binding Media.IsPlaying}" BarBrush="{Binding Media.AccentBrush}" />
+                                    <!-- A paired device plays too: switch the card to it -->
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Margin="6,-3,0,0" VerticalAlignment="Top"
+                                            Command="{Binding Link.ToggleRemoteCommand}" Visibility="{Binding Link.Remote.Has, Converter={StaticResource Vis}, FallbackValue=Collapsed}"
+                                            ToolTip="{Binding Link.Remote.DeviceText}">
+                                        <c:Icon Data="{StaticResource Icon.Laptop}" Width="13" Height="13" Foreground="{StaticResource B.Blue}" />
+                                    </Button>
                                     <!-- Long titles wrap onto a second line and are then shortened; the text never widens the card. -->
                                     <StackPanel MaxWidth="280">
                                         <TextBlock Style="{StaticResource T.Headline}" Text="{Binding Media.Title}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
@@ -1088,6 +1150,57 @@
                     </DockPanel>
                 </Border>
 
+                <!-- Paired devices (link): online, battery; files dropped on a device go to it -->
+                <Border x:Name="PairedCard" Style="{StaticResource Card}" Padding="12,9,12,12">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
+                            <c:Icon Data="{StaticResource Icon.Devices}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Gekoppelt', En='Paired'}" />
+                        </StackPanel>
+                        <Grid Margin="0,8,0,0">
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                       Text="{core:L De='In den Einstellungen unter Geräte koppeln', En='Pair under Devices in the settings'}"
+                                       Visibility="{Binding Link.HasDevices, Converter={StaticResource NotVis}, FallbackValue=Visible}" />
+                            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding Link.Devices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type link:LinkDeviceView}">
+                                            <Border x:Name="Row" CornerRadius="8" Background="{StaticResource B.Fill2}" Padding="9,6" Margin="0,0,0,6"
+                                                    AllowDrop="True" DragOver="PairedDevice_DragOver" Drop="PairedDevice_Drop" Tag="{Binding}">
+                                                <DockPanel>
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                                        <TextBlock Style="{StaticResource T.Numeric}" FontSize="11" Foreground="{StaticResource B.Text2}" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                                   Text="{Binding BatteryText}" Visibility="{Binding HasBattery, Converter={StaticResource Vis}}" />
+                                                        <Grid Width="16" Height="16" Visibility="{Binding HasBattery, Converter={StaticResource Vis}}" Margin="0,0,6,0">
+                                                            <c:ProgressRing Thickness="2.5" Value="{Binding BatteryLevel}" RingBrush="{Binding Battery, Converter={StaticResource BatteryBrush}}" />
+                                                        </Grid>
+                                                        <Ellipse x:Name="Dot" Width="7" Height="7" VerticalAlignment="Center" Fill="{StaticResource B.Text3}" />
+                                                    </StackPanel>
+                                                    <c:Icon x:Name="Glyph" DockPanel.Dock="Left" Data="{Binding IsLaptop, Converter={StaticResource LaptopGlyph}}" Width="14" Height="14" Margin="0,0,8,0"
+                                                            VerticalAlignment="Center" Foreground="{StaticResource B.Text2}" />
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" TextTrimming="CharacterEllipsis" Text="{Binding Name}" ToolTip="{Binding Name}" />
+                                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="10" TextTrimming="CharacterEllipsis" Text="{Binding StateText}" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsOnline}" Value="True">
+                                                    <Setter TargetName="Dot" Property="Fill" Value="{StaticResource B.Green}" />
+                                                    <Setter TargetName="Glyph" Property="Foreground" Value="{StaticResource B.Green}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsRejected}" Value="True">
+                                                    <Setter TargetName="Dot" Property="Fill" Value="{StaticResource B.Red}" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
                 <!-- CursorHop: one mouse for several PCs - the connected device and where the mouse is (read from its log) -->
                 <Border x:Name="CursorHopCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
@@ -1348,6 +1461,25 @@
                                            Visibility="{Binding Shelf.IsEmpty, Converter={StaticResource NotVis}}" />
                             </StackPanel>
                         </DockPanel>
+                        <!-- While a file is dragged out: the paired devices that are online, drop it on one to send it -->
+                        <ItemsControl x:Name="ShelfSendBar" DockPanel.Dock="Bottom" Margin="0,6,0,0" Visibility="Collapsed" ItemsSource="{Binding Link.OnlineDevices}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type link:LinkDeviceView}">
+                                    <Border CornerRadius="10" Background="#330A84FF" BorderBrush="{StaticResource B.Blue}" BorderThickness="1" Padding="10,5" Margin="0,0,6,0"
+                                            AllowDrop="True" DragOver="PairedDevice_DragOver" Drop="PairedDevice_Drop" Tag="{Binding}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <c:Icon Data="{Binding IsLaptop, Converter={StaticResource LaptopGlyph}}" Width="12" Height="12" Foreground="{StaticResource B.Blue}" />
+                                            <TextBlock Style="{StaticResource T.Base}" FontSize="11" Margin="6,0,0,0">
+                                                <Run Text="{core:L De='An', En='To'}" /> <Run Text="{Binding Name, Mode=OneWay}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         <Grid>
                             <Border CornerRadius="10" BorderThickness="1.2" BorderBrush="#33FFFFFF" Visibility="{Binding Shelf.IsEmpty, Converter={StaticResource Vis}}">
                                 <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
@@ -1382,6 +1514,11 @@
                                                         ToolTip="{core:L De='An Gerät senden (Taildrop)', En='Send to device (Taildrop)'}">
                                                     <c:Icon Data="{StaticResource Icon.Send}" Width="10" Height="10" />
                                                 </Button>
+                                                <Button x:Name="LinkSend" Style="{StaticResource TileButton}" Width="18" Height="18" Margin="0,0,2,18"
+                                                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Visibility="Hidden" Click="LinkSend_Click"
+                                                        ToolTip="{core:L De='An gekoppeltes Gerät senden', En='Send to paired device'}">
+                                                    <c:Icon Data="{StaticResource Icon.Laptop}" Width="10" Height="10" />
+                                                </Button>
                                                 <Button x:Name="Remove" Style="{StaticResource TileButton.Danger}" Width="18" Height="18" Margin="0,2,2,0"
                                                         HorizontalAlignment="Right" VerticalAlignment="Top" Visibility="Hidden"
                                                         Command="{Binding DataContext.Shelf.RemoveCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
@@ -1395,6 +1532,7 @@
                                                     <Setter TargetName="Remove" Property="Visibility" Value="Visible" />
                                                     <Setter TargetName="Folder" Property="Visibility" Value="Visible" />
                                                     <Setter TargetName="Send" Property="Visibility" Value="{Binding DataContext.CanTaildrop, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Vis}}" />
+                                                    <Setter TargetName="LinkSend" Property="Visibility" Value="{Binding DataContext.Link.CanSendFiles, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Vis}, FallbackValue=Collapsed}" />
                                                 </Trigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>
@@ -1503,17 +1641,17 @@
                     <Grid>
                         <!-- Unavailable / denied / empty states -->
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                                    Visibility="{Binding Notifications.Access, Converter={StaticResource EqVis}, ConverterParameter=Unavailable}">
+                                    Visibility="{Binding Notifications.ShowUnavailable, Converter={StaticResource Vis}}">
                             <c:Icon Data="{StaticResource Icon.BellOff}" Width="20" Height="20" Foreground="{StaticResource B.Text3}" HorizontalAlignment="Center" />
                             <TextBlock Style="{StaticResource T.Caption}" Margin="0,6,0,0" HorizontalAlignment="Center" Text="{core:T Notif.Unavailable}" />
                             <TextBlock Style="{StaticResource T.Section}" FontWeight="Medium" Margin="0,2,0,0" HorizontalAlignment="Center" Text="{core:T Notif.UnavailableHint}" />
                         </StackPanel>
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-                                    Visibility="{Binding Notifications.Access, Converter={StaticResource EqVis}, ConverterParameter=Denied}">
+                                    Visibility="{Binding Notifications.ShowDenied, Converter={StaticResource Vis}}">
                             <c:Icon Data="{StaticResource Icon.BellOff}" Width="20" Height="20" Foreground="{StaticResource B.Text3}" HorizontalAlignment="Center" />
                             <TextBlock Style="{StaticResource T.Caption}" Margin="0,6,0,0" HorizontalAlignment="Center" Text="{core:T Notif.Denied}" />
                         </StackPanel>
-                        <Grid Visibility="{Binding Notifications.Access, Converter={StaticResource EqVis}, ConverterParameter=Allowed}">
+                        <Grid Visibility="{Binding Notifications.ShowList, Converter={StaticResource Vis}}">
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding Notifications.IsEmpty, Converter={StaticResource Vis}}">
                                 <c:Icon Data="{StaticResource Icon.Bell}" Width="20" Height="20" Foreground="{StaticResource B.Text3}" HorizontalAlignment="Center" />
                                 <TextBlock Style="{StaticResource T.Caption}" Margin="0,6,0,0" HorizontalAlignment="Center" Text="{core:T Notif.Empty}" />
@@ -1547,7 +1685,7 @@
                                                         <StackPanel Grid.Column="1" Margin="10,0,8,0">
                                                             <DockPanel>
                                                                 <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Section}" FontWeight="Medium" Text="{Binding TimeText}" />
-                                                                <TextBlock Style="{StaticResource T.Section}" Text="{Binding App}" />
+                                                                <TextBlock Style="{StaticResource T.Section}" Text="{Binding AppLabel}" TextTrimming="CharacterEllipsis" />
                                                             </DockPanel>
                                                             <TextBlock Style="{StaticResource T.Title}" FontSize="12" Margin="0,2,0,0" Text="{Binding Title}" />
                                                             <TextBlock Style="{StaticResource T.Body}" FontSize="11.5" TextWrapping="Wrap" MaxHeight="32" Text="{Binding Body}" />

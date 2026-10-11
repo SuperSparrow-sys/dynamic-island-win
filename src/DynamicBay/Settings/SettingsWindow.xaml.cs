@@ -82,6 +82,7 @@ public partial class SettingsWindow : Window
         _ctx.S.PropertyChanged += OnTimeProjectsChanged;
         Closed += (_, _) => _ctx.S.PropertyChanged -= OnTimeProjectsChanged;
         UpdateUpdateRow();
+        DeviceNamePlaceholder.Text = Environment.MachineName;
         Action updateChanged = () => Dispatcher.BeginInvoke(UpdateUpdateRow);
         Action calendarChanged = () => Dispatcher.BeginInvoke(RefreshCalendarRows);
         UpdateCheck.PendingChanged += updateChanged;
@@ -195,6 +196,7 @@ public partial class SettingsWindow : Window
         (Widgets.Audio, "Icon.Headphones", "Audio", "Audio", "Ausgabe und Mikrofon wechseln, AirPods und andere Bluetooth-Geräte verbinden", "Switch output and microphone, connect AirPods and other Bluetooth devices"),
         (Widgets.Devices, "Icon.Bluetooth", "Geräte", "Devices", "Akkustand von PC, Kopfhörern, Tastatur und Maus", "Battery of this PC, headphones, keyboard and mouse"),
         (Widgets.CursorHop, "Icon.Mouse", "CursorHop", "CursorHop", "Verbundene Geräte und wo die Maus gerade ist", "Connected devices and where the mouse is"),
+        (Widgets.Paired, "Icon.Devices", "Gekoppelte Geräte", "Paired devices", "Verbunden, Akku, Dateien hinüberziehen", "Connected, battery, drag files across"),
         (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
         (Widgets.Todo, "Icon.Check", "Aufgaben", "Tasks", "Microsoft To Do: offene Aufgaben abhaken", "Microsoft To Do: tick off open tasks"),
         (Widgets.Teams, "Icon.User", "Teams-Status", "Teams status", "Eigenen Teams-Status sehen und umschalten", "See and change your Teams status"),
@@ -221,6 +223,8 @@ public partial class SettingsWindow : Window
         HomeWidgetInfo
             // CursorHop only where it is installed (or already placed, so it can be removed again)
             .Where(w => w.id != Widgets.CursorHop || Services.CursorHopService.IsInstalledOnDisk || PlaceOf(w.id).Length > 0)
+            // Paired devices only once there is one (or it is placed already)
+            .Where(w => w.id != Widgets.Paired || _ctx.S.PairedDevices.Count > 0 || _ctx.I.Link?.HasDevices == true || PlaceOf(w.id).Length > 0)
             .Concat(_ctx.S.ScriptWidgets.Select(sc => (sc.HomeId, "Icon.Code", sc.Name, sc.Name, "Eigenes Skript-Widget", "Own script widget"))).ToArray();
 
     /// <summary>Where a widget is: "home" (Nook), "system" or "" (not shown).</summary>
@@ -1272,6 +1276,41 @@ public partial class SettingsWindow : Window
     private void OpenLicenses_Click(object sender, RoutedEventArgs e) => Open(System.IO.Path.Combine(AppContext.BaseDirectory, "THIRD-PARTY-NOTICES.txt"));
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => OpenFolder(AppSettings.Folder);
+
+    // ---- devices (link) ----
+
+    private PairingWindow? _pairingWindow;
+
+    private void PairAddress_Click(object sender, RoutedEventArgs e) => PairTyped();
+
+    private void PairAddress_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        e.Handled = true;
+        PairTyped();
+    }
+
+    private void PairTyped()
+    {
+        if (_ctx.I.Link is { } link && PairAddress.Text.Trim().Length > 0) _ = link.PairWithAsync(PairAddress.Text);
+    }
+
+    /// <summary>A pairing reached the code: the code big in a small window over the settings, until it is answered.</summary>
+    public void ShowPairingCode(Services.Link.PairingSession session)
+    {
+        _pairingWindow?.Close();
+        var w = new PairingWindow(session, session.PeerName, session.Code) { Owner = this };
+        _pairingWindow = w;
+        w.Closed += (_, _) => { if (_pairingWindow == w) _pairingWindow = null; };
+        void Done(Services.Link.PairingSession s, Services.Link.PairingResult r)
+        {
+            if (s != session) return;
+            _ctx.I.Link!.PairingFinished -= Done;
+            if (w.IsLoaded) w.ShowResult(r, s.PeerName);
+        }
+        _ctx.I.Link!.PairingFinished += Done;
+        w.Show();
+    }
 
     private void OpenCursorHopWebsite_Click(object sender, RoutedEventArgs e) => Open("https://cursorhop.com/");
 

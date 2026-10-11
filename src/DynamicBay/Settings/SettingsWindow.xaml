@@ -1059,6 +1059,193 @@
                 <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=13}">
                     <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Geräte', En='Devices'}" />
 
+                    <!-- This device: the link on or off, and the name the other device sees -->
+                    <TextBlock Style="{StaticResource ST.Group}" Margin="4,0,0,8" Text="{core:L De='Dieses Gerät', En='This device'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Geräte koppeln', En='Pair devices'}"
+                                            ToolTip="{core:L De='Verbindet DynamicBay auf PC und Laptop, im selben Netz oder über Tailscale.', En='Connects DynamicBay on PC and laptop, on the same network or via Tailscale.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkEnabled}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.LinkEnabled}" Tag="{core:L De='Gerätename', En='Device name'}"
+                                            ToolTip="{core:L De='So sieht das andere Gerät diesen PC.', En='How the other device sees this PC.'}">
+                                <Grid Width="200">
+                                    <TextBox Style="{StaticResource S.TextBox}" Height="30" MaxLength="64" Text="{Binding S.LinkDeviceName, UpdateSourceTrigger=LostFocus}" />
+                                    <TextBlock x:Name="DeviceNamePlaceholder" Style="{StaticResource ST.Desc}" Margin="11,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                               Visibility="{Binding S.LinkDeviceName, Converter={StaticResource NotVis}}" />
+                                </Grid>
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="6,2,0,0" Visibility="{Binding S.LinkEnabled, Converter={StaticResource NotVis}}"
+                               Text="{core:L De='Aus: dieser PC ist für andere Geräte unsichtbar und teilt nichts.', En='Off: this PC is invisible to other devices and shares nothing.'}" />
+
+                    <StackPanel Visibility="{Binding S.LinkEnabled, Converter={StaticResource Vis}}">
+                        <!-- Paired devices -->
+                        <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Gekoppelte Geräte', En='Paired devices'}" />
+                        <Border Style="{StaticResource S.Card}" Padding="16,6">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource ST.Desc}" Margin="0,8,0,8" Visibility="{Binding I.Link.HasDevices, Converter={StaticResource NotVis}}"
+                                           Text="{core:L De='Noch kein Gerät gekoppelt.', En='No device paired yet.'}" />
+                                <ItemsControl ItemsSource="{Binding I.Link.Devices}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,6">
+                                                <DockPanel>
+                                                    <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" VerticalAlignment="Center" Padding="12,5"
+                                                            Command="{Binding DataContext.I.Link.AskUnpairCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                            Visibility="{Binding ConfirmUnpair, Converter={StaticResource NotVis}}" Content="{core:L De='Entkoppeln', En='Unpair'}" />
+                                                    <Ellipse x:Name="Dot" DockPanel.Dock="Left" Width="8" Height="8" Margin="0,0,12,0" VerticalAlignment="Center" Fill="{DynamicResource S.Text3}" />
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Style="{StaticResource ST.Label}" Text="{Binding Name}" />
+                                                        <TextBlock Style="{StaticResource ST.Desc}" Text="{Binding StateText}" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                                <!-- Asked in place, no message box -->
+                                                <DockPanel Margin="20,8,0,2" Visibility="{Binding ConfirmUnpair, Converter={StaticResource Vis}}">
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                        <Button Style="{StaticResource S.Button}" Padding="12,5" Content="{core:L De='Abbrechen', En='Cancel'}"
+                                                                Command="{Binding DataContext.I.Link.CancelUnpairCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                        <Button Style="{StaticResource S.Button}" Padding="12,5" Margin="8,0,0,0" Foreground="{DynamicResource S.Red}" Content="{core:L De='Entkoppeln', En='Unpair'}"
+                                                                Command="{Binding DataContext.I.Link.UnpairCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                    </StackPanel>
+                                                    <TextBlock Style="{StaticResource ST.Desc}" VerticalAlignment="Center"
+                                                               Text="{core:L De='Danach muss neu gekoppelt werden.', En='You will have to pair again.'}" />
+                                                </DockPanel>
+                                            </StackPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsOnline}" Value="True">
+                                                    <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource S.Green}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsRejected}" Value="True">
+                                                    <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource S.Red}" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Add a device -->
+                        <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Gerät hinzufügen', En='Add a device'}" />
+                        <Border Style="{StaticResource S.Card}">
+                            <StackPanel>
+                                <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Koppeln erlauben', En='Allow pairing'}"
+                                                ToolTip="{core:L De='Zwei Minuten lang darf ein anderes Gerät dieses hier koppeln.', En='For two minutes another device may pair with this one.'}">
+                                    <Grid>
+                                        <Button Style="{StaticResource S.AccentButton}" Command="{Binding I.Link.AllowPairingCommand}" Content="{core:L De='Koppeln erlauben', En='Allow pairing'}"
+                                                Visibility="{Binding I.Link.PairingOpen, Converter={StaticResource NotVis}}" />
+                                        <StackPanel Orientation="Horizontal" Visibility="{Binding I.Link.PairingOpen, Converter={StaticResource Vis}}">
+                                            <TextBlock Style="{StaticResource ST.Desc}" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                <Run Text="{core:L De='Offen noch', En='Open for'}" /> <Run Text="{Binding I.Link.PairingRemaining, Mode=OneWay}" />
+                                            </TextBlock>
+                                            <Button Style="{StaticResource S.Button}" Command="{Binding I.Link.ClosePairingCommand}" Content="{core:L De='Beenden', En='Stop'}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </ContentControl>
+                                <!-- Found nearby or over Tailscale -->
+                                <Border BorderBrush="{DynamicResource S.Divider}" BorderThickness="0,1,0,0" Padding="16,10">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource S.IconButton}" Command="{Binding I.Link.RefreshCommand}"
+                                                    ToolTip="{core:L De='Neu suchen', En='Search again'}">
+                                                <c:Icon Data="{StaticResource Icon.Refresh}" Width="14" Height="14" />
+                                            </Button>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Gefundene Geräte', En='Devices found'}" />
+                                                <TextBlock Style="{StaticResource ST.Desc}" Visibility="{Binding I.Link.HasFound, Converter={StaticResource NotVis}}"
+                                                           Text="{core:L De='Im selben Netz und über Tailscale wird gesucht.', En='Searching the network and Tailscale.'}" />
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <ItemsControl ItemsSource="{Binding I.Link.Found}" Margin="0,6,0,0">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <DockPanel Margin="0,4">
+                                                        <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Padding="12,5" Content="{core:L De='Koppeln', En='Pair'}"
+                                                                IsEnabled="{Binding DataContext.I.Link.Busy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource S.InvBool}}"
+                                                                Command="{Binding DataContext.I.Link.PairFoundCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
+                                                        <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Laptop}" Width="15" Height="15" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                                        <StackPanel VerticalAlignment="Center">
+                                                            <TextBlock Style="{StaticResource ST.Base}" Text="{Binding Name}" />
+                                                            <TextBlock Style="{StaticResource ST.Desc}">
+                                                                <Run Text="{Binding ViaText, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Address, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Adresse', En='Address'}"
+                                                ToolTip="{core:L De='IP, Rechnername oder Tailscale-Name, optional mit :Port.', En='IP, computer name or Tailscale name, optionally with :port.'}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBox x:Name="PairAddress" Style="{StaticResource S.TextBox}" Width="180" Height="30" KeyDown="PairAddress_KeyDown" />
+                                        <Button Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="PairAddress_Click" Content="{core:L De='Koppeln', En='Pair'}"
+                                                IsEnabled="{Binding I.Link.Busy, Converter={StaticResource S.InvBool}}" />
+                                    </StackPanel>
+                                </ContentControl>
+                                <TextBlock x:Name="PairStatusText" Style="{StaticResource ST.Desc}" Margin="16,0,16,12" TextWrapping="Wrap" Text="{Binding I.Link.PairStatus}"
+                                           Visibility="{Binding I.Link.PairStatus, Converter={StaticResource Vis}}" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- What is shared -->
+                        <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Teilen mit gekoppelten Geräten', En='Share with paired devices'}" />
+                        <Border Style="{StaticResource S.Card}">
+                            <StackPanel>
+                                <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Dateien', En='Files'}"
+                                                ToolTip="{core:L De='Senden aus der Ablage, Empfangenes landet in Downloads\\DynamicBay und in der Ablage.', En='Send from the shelf, received files go to Downloads\\DynamicBay and the shelf.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareFiles}" />
+                                </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Zwischenablage', En='Clipboard'}"
+                                                ToolTip="{core:L De='Kopierte Texte und Bilder erscheinen im Verlauf des anderen Geräts, Passwörter nie.', En='Copied text and images appear in the other device\'s history, passwords never.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareClipboard}" />
+                                </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Mitteilungen', En='Notifications'}"
+                                                ToolTip="{core:L De='Mitteilungen dieses PCs erscheinen auch auf dem anderen Gerät.', En='This PC\'s notifications also show on the other device.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareNotifications}" />
+                                </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Musik', En='Music'}"
+                                                ToolTip="{core:L De='Zeigt und steuert die Wiedergabe des anderen Geräts, wenn hier nichts läuft.', En='Shows and controls the other device\'s playback when nothing plays here.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareMedia}" />
+                                </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Status', En='Status'}"
+                                                ToolTip="{core:L De='Name, Akku und Version für die Karte „Gekoppelte Geräte“.', En='Name, battery and version for the “Paired devices” card.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareStatus}" />
+                                </ContentControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- One device shows everything, the other stays quiet: no message twice -->
+                        <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Hauptgerät', En='Main device'}" />
+                        <Border Style="{StaticResource S.Card}">
+                            <StackPanel>
+                                <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Alles zeigt', En='Everything shows on'}"
+                                                ToolTip="{core:L De='Das andere Gerät schickt seine Einblendungen dorthin und bleibt still.', En='The other device sends its peeks there and stays quiet.'}">
+                                    <Border Style="{StaticResource S.Segments}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton Style="{StaticResource S.Segment}" GroupName="LinkMain" Content="{core:L De='Beide', En='Both'}"
+                                                         IsChecked="{Binding I.Link.MainChoice, Converter={StaticResource EqBool}, ConverterParameter=0}" />
+                                            <RadioButton Style="{StaticResource S.Segment}" GroupName="LinkMain" Content="{core:L De='Dieses Gerät', En='This device'}"
+                                                         IsChecked="{Binding I.Link.MainChoice, Converter={StaticResource EqBool}, ConverterParameter=1}" />
+                                            <RadioButton Style="{StaticResource S.Segment}" GroupName="LinkMain" Content="{Binding I.Link.OtherName}"
+                                                         IsChecked="{Binding I.Link.MainChoice, Converter={StaticResource EqBool}, ConverterParameter=2}" />
+                                            <RadioButton Style="{StaticResource S.Segment}" GroupName="LinkMain" Content="{core:L De='Automatisch', En='Automatic'}"
+                                                         IsChecked="{Binding I.Link.MainChoice, Converter={StaticResource EqBool}, ConverterParameter=3}"
+                                                         ToolTip="{core:L De='Wo die Maus ist (CursorHop), sonst das zuletzt benutzte Gerät.', En='Where the mouse is (CursorHop), else the device used last.'}" />
+                                        </StackPanel>
+                                    </Border>
+                                </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Insel auf dem anderen Gerät ausblenden', En='Hide the island on the other device'}"
+                                                ToolTip="{core:L De='Solange beide verbunden sind, zeigt nur das Hauptgerät die Insel.', En='While both are connected, only the main device shows the island.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkHideWhenNotMain}" />
+                                </ContentControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
                     <TextBlock Style="{StaticResource ST.Group}" Text="CursorHop" />
                     <Border Style="{StaticResource S.Card}" Padding="16,12" Visibility="{Binding I.CursorHop.IsInstalled, Converter={StaticResource NotVis}}">
                         <DockPanel>
