@@ -223,6 +223,10 @@ public static class Snapshots
                 await Task.Delay(4000);
             }
             foreach (var app in InstalledApps.All().Take(3)) settings.Shortcuts.Add(app.LaunchPath); // launcher list with tiles
+            // Calendar accounts as after a settings import: Google and iCloud without their sign-in show "Anmelden"
+            settings.CalendarAccounts.Add(new CalendarAccount { Id = "snapgoogle01", Kind = CalendarKind.Google, Name = "Google", User = "1234.apps.googleusercontent.com" });
+            settings.CalendarAccounts.Add(new CalendarAccount { Id = "snapicloud01", Kind = CalendarKind.ICloud, Name = "iCloud", User = "name@icloud.com", Url = "https://caldav.icloud.com/" });
+            settings.CalendarAccounts.Add(new CalendarAccount { Id = "snapics00001", Kind = CalendarKind.Ics, Name = "Feiertage", Url = "https://example.com/feiertage.ics" });
             // Time tracking window with a demo day (the user's file is not touched).
             {
                 var d = DateTime.Today;

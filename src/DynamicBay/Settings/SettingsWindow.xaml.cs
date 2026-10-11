@@ -837,6 +837,19 @@ public partial class SettingsWindow : Window
                 SaveAccounts();
             };
             controls.Children.Add(sw);
+            // Sign in again (after an import or an expired login): same account, its calendars and switches stay
+            if (NeedsSignIn(a, status))
+            {
+                var signIn = new Button { Style = (Style)FindResource("S.Button"), Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 8, 0),
+                    ToolTip = Loc.German ? "Neu anmelden, das Konto bleibt erhalten" : "Sign in again, the account stays",
+                    Content = new StackPanel { Orientation = Orientation.Horizontal, Children =
+                    {
+                        new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.LogIn"), Width = 13, Height = 13 },
+                        new TextBlock { Margin = new Thickness(6, 0, 0, 0), Text = Loc.German ? "Anmelden" : "Sign in" },
+                    } } };
+                signIn.Click += (_, _) => SignInAgain(account);
+                controls.Children.Add(signIn);
+            }
             var remove = new Button { Style = (Style)FindResource("S.Button"), Padding = new Thickness(8, 4, 8, 4),
                 Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.Trash"), Width = 13, Height = 13 } };
             remove.Click += (_, _) =>
@@ -881,6 +894,85 @@ public partial class SettingsWindow : Window
                 Text = Loc.German ? "Noch kein Kalender verbunden." : "No calendar connected yet." });
     }
 
+    /// <summary>
+    /// Google or CalDAV without its sign-in (imported settings carry no passwords or tokens) or with a sign-in the
+    /// server refused. ICS links and Microsoft (signed in on the Accounts card) have no such button.
+    /// </summary>
+    internal static bool NeedsSignIn(CalendarKind kind, bool hasSecret, string status) => kind switch
+    {
+        CalendarKind.Google or CalendarKind.ICloud => !hasSecret || (status.Length > 0 && !status.StartsWith("OK", StringComparison.Ordinal)),
+        _ => false,
+    };
+
+    private static bool NeedsSignIn(CalendarAccount a, string status) =>
+        NeedsSignIn(a.Kind, SecretStore.Get($"cal:{a.Id}:{(a.Kind == CalendarKind.Google ? "refresh" : "password")}") is { Length: > 0 }, status);
+
+    /// <summary>The account being signed in again by the open form (null: the form adds a new account).</summary>
+    private CalendarAccount? _reauth;
+
+    private async void SignInAgain(CalendarAccount account)
+    {
+        _reauth = account;
+        if (account.Kind == CalendarKind.Google)
+        {
+            // Client id and secret travel with the export: then only the browser sign-in is left
+            GoogleClientId.Text = account.User;
+            if (SecretStore.Get($"cal:{account.Id}:secret") is { Length: > 0 }) { await SignInGoogleAsync(account, null); return; }
+            ShowCalForm(GoogleForm);
+            GoogleStatus.Text = Loc.German ? "Clientschlüssel eintragen, dann anmelden." : "Enter the client secret, then sign in.";
+            GoogleSecret.Focus();
+        }
+        else
+        {
+            ICloudServer.Text = string.IsNullOrEmpty(account.Url) ? "https://caldav.icloud.com/" : account.Url;
+            ICloudUser.Text = account.User;
+            ShowCalForm(ICloudForm);
+            ICloudStatus.Text = Loc.German ? "Passwort eintragen, dann verbinden." : "Enter the password, then connect.";
+            ICloudPassword.Focus();
+        }
+    }
+
+    /// <summary>Signs the existing account in again and checks it; its id, name and hidden calendars stay.</summary>
+    private async Task SignInGoogleAsync(CalendarAccount account, string? newSecret)
+    {
+        try
+        {
+            GoogleStatus.Text = Loc.German ? "Bitte im Browser anmelden…" : "Please sign in in the browser…";
+            string secret = newSecret ?? SecretStore.Get($"cal:{account.Id}:secret") ?? "";
+            var client = new Services.Calendars.GoogleCalendarClient(account.User, secret, null);
+            await client.SignInAsync();
+            SecretStore.Set($"cal:{account.Id}:secret", secret);
+            SecretStore.Set($"cal:{account.Id}:refresh", client.RefreshToken);
+            await RecheckAsync(account, GoogleStatus);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Google sign-in again", ex);
+            ShowCalForm(GoogleForm);
+            GoogleStatus.Text = ErrorText.For(ex, Loc.T("Err.SignInFailed"));
+        }
+    }
+
+    private async Task RecheckAsync(CalendarAccount account, TextBlock status)
+    {
+        status.Text = Loc.German ? "Verbinde…" : "Connecting…";
+        try
+        {
+            var events = await _ctx.I.Calendar.FetchAsync(account, DateTime.Today, DateTime.Today.AddDays(7));
+            _reauth = null;
+            ICloudForm.Visibility = GoogleForm.Visibility = IcsForm.Visibility = Visibility.Collapsed;
+            SaveAccounts(); // saved and synced: the account's status line turns to OK
+            _ = _ctx.I.Calendar.RefreshAsync();
+            Log.Info($"Calendar {account.Kind} signed in again ({events.Count} events in 7 days)");
+            BuildCalendarRows();
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Calendar sign-in again " + account.Kind, ex);
+            status.Text = ErrorText.For(ex);
+        }
+    }
+
     /// <summary>An account changed in place: save and sync, the list itself stays as it is.</summary>
     private void SaveAccounts() => _ctx.S.CalendarAccountsChanged();
 
@@ -891,11 +983,14 @@ public partial class SettingsWindow : Window
         form.BringIntoView();
     }
 
-    private void AddICloud_Click(object sender, RoutedEventArgs e) => ShowCalForm(ICloudForm);
-    private void AddGoogle_Click(object sender, RoutedEventArgs e) => ShowCalForm(GoogleForm);
+    private void AddICloud_Click(object sender, RoutedEventArgs e) { _reauth = null; ShowCalForm(ICloudForm); }
+    private void AddGoogle_Click(object sender, RoutedEventArgs e) { _reauth = null; ShowCalForm(GoogleForm); }
     private void AddIcs_Click(object sender, RoutedEventArgs e) => ShowCalForm(IcsForm);
-    private void CloseCalForms_Click(object sender, RoutedEventArgs e) =>
+    private void CloseCalForms_Click(object sender, RoutedEventArgs e)
+    {
+        _reauth = null;
         ICloudForm.Visibility = GoogleForm.Visibility = IcsForm.Visibility = Visibility.Collapsed;
+    }
     private void OpenAppleId_Click(object sender, RoutedEventArgs e) => Open("https://appleid.apple.com/account/manage");
     private void OpenGoogleConsole_Click(object sender, RoutedEventArgs e) => Open("https://console.cloud.google.com/apis/library/calendar-json.googleapis.com");
 
@@ -937,6 +1032,18 @@ public partial class SettingsWindow : Window
         if (server.Length == 0) { ICloudStatus.Text = Loc.German ? "Bitte die Server-Adresse eintragen." : "Please enter the server address."; return; }
         if (!server.Contains("://")) server = "https://" + server;
         if (!server.EndsWith("/")) server += "/";
+        if (_reauth is { Kind: CalendarKind.ICloud } again)
+        {
+            // Same account: new password (and maybe a corrected user or server), its calendars and switches stay
+            string? old = SecretStore.Get($"cal:{again.Id}:password");
+            again.User = ICloudUser.Text.Trim();
+            again.Url = server;
+            SecretStore.Set($"cal:{again.Id}:password", ICloudPassword.Password.Trim());
+            await RecheckAsync(again, ICloudStatus);
+            if (_reauth is null) ICloudPassword.Clear();
+            else SecretStore.Set($"cal:{again.Id}:password", old); // refused: the old one stays
+            return;
+        }
         var account = new CalendarAccount { Kind = CalendarKind.ICloud, Name = ServerName(server), User = ICloudUser.Text.Trim(), Url = server };
         SecretStore.Set($"cal:{account.Id}:password", ICloudPassword.Password.Trim());
         if (await TestAndAddAsync(account, ICloudStatus)) { ICloudPassword.Clear(); }
@@ -957,6 +1064,13 @@ public partial class SettingsWindow : Window
 
     private async void SaveGoogle_Click(object sender, RoutedEventArgs e)
     {
+        if (_reauth is { Kind: CalendarKind.Google } again)
+        {
+            again.User = GoogleClientId.Text.Trim();
+            await SignInGoogleAsync(again, GoogleSecret.Password.Trim());
+            if (_reauth is null) GoogleSecret.Clear();
+            return;
+        }
         var account = new CalendarAccount { Kind = CalendarKind.Google, Name = "Google", User = GoogleClientId.Text.Trim() };
         try
         {
