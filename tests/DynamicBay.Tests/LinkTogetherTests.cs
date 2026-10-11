@@ -121,7 +121,8 @@ public class LinkTogetherTests : IDisposable
 
     // ---------- timer ----------
 
-    private LinkTimerState? _timerA, _timerB;
+    private LinkTimerState? _timerA;
+    private readonly LinkTimerState? _timerB = null; // device B never owns a timer in these tests
 
     private async Task<(LinkTimerFeature A, LinkTimerFeature B, Pair P)> Timers(Action<Pair>? settings = null, bool startB = true)
     {
