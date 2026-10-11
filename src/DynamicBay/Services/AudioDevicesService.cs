@@ -16,6 +16,10 @@ public sealed partial class AudioDeviceItem : ObservableObject
     public bool Bluetooth { get; init; }
     public bool Headphones { get; init; }
     [ObservableProperty] private bool _isDefault;
+    /// <summary>Shown as the chosen output: the default, unless the sound plays on a paired device right now.</summary>
+    [ObservableProperty] private bool _isSelected;
+    partial void OnIsDefaultChanged(bool value) => IsSelected = value && !RemoteActive;
+    internal bool RemoteActive { get; set; }
 }
 
 /// <summary>A paired Bluetooth headset or speaker, connected or not.</summary>
@@ -59,6 +63,22 @@ public sealed partial class AudioDevicesService : ObservableObject
 
     /// <summary>The default output or microphone changed (the mute/volume reading must follow at once).</summary>
     public event Action? DefaultChanged;
+
+    /// <summary>A local output was chosen while the sound plays on a paired device: bring it back.</summary>
+    public event Action? LocalOutputChosen;
+
+    /// <summary>The sound plays on a paired device ("Ton an …"): no local output is shown as chosen.</summary>
+    public bool RemoteOutputActive
+    {
+        get => _remoteOutputActive;
+        set
+        {
+            if (_remoteOutputActive == value) return;
+            _remoteOutputActive = value;
+            foreach (var o in Outputs) { o.RemoteActive = value; o.IsSelected = o.IsDefault && !value; }
+        }
+    }
+    private bool _remoteOutputActive;
 
     /// <summary>The Bluetooth microphone was replaced: (headset, microphone now used).</summary>
     public event Action<string, string>? BluetoothMicAvoided;
@@ -185,7 +205,7 @@ public sealed partial class AudioDevicesService : ObservableObject
         // ---- lists ----
         var outputs = list.Where(e => e.Flow == AudioFlow.Output && e.Active && !e.HandsFree).ToList();
         var inputs = list.Where(e => e.Flow == AudioFlow.Input && e.Active).ToList();
-        Sync(Outputs, outputs, outId);
+        Sync(Outputs, outputs, outId, _remoteOutputActive);
         Sync(Inputs, inputs, inId);
 
         var headsets = list.Where(e => e.Bluetooth && e.Flow == AudioFlow.Output && e.Connectable)
@@ -251,15 +271,15 @@ public sealed partial class AudioDevicesService : ObservableObject
         }
     }
 
-    private static void Sync(ObservableCollection<AudioDeviceItem> target, List<AudioEndpointInfo> source, string? defaultId)
+    private static void Sync(ObservableCollection<AudioDeviceItem> target, List<AudioEndpointInfo> source, string? defaultId, bool remote = false)
     {
         if (!source.Select(e => e.Id).SequenceEqual(target.Select(t => t.Id)))
         {
             target.Clear();
             foreach (var e in source)
-                target.Add(new AudioDeviceItem { Id = e.Id, Flow = e.Flow, Name = ShortName(e), Bluetooth = e.Bluetooth, Headphones = IsHeadphones(e) });
+                target.Add(new AudioDeviceItem { Id = e.Id, Flow = e.Flow, Name = ShortName(e), Bluetooth = e.Bluetooth, Headphones = IsHeadphones(e), RemoteActive = remote && e.Flow == AudioFlow.Output });
         }
-        foreach (var t in target) t.IsDefault = t.Id == defaultId;
+        foreach (var t in target) { t.IsDefault = t.Id == defaultId; t.IsSelected = t.IsDefault && !t.RemoteActive; }
     }
 
     // ---------- commands ----------
@@ -272,7 +292,13 @@ public sealed partial class AudioDevicesService : ObservableObject
     [RelayCommand]
     private async Task Select(AudioDeviceItem? item)
     {
-        if (item is null || item.IsDefault) return;
+        if (item is null) return;
+        if (item.Flow == AudioFlow.Output && _remoteOutputActive)
+        {
+            LocalOutputChosen?.Invoke(); // the sound comes back here (the output's mute state is restored)
+            if (item.IsDefault) return;
+        }
+        if (item.IsDefault) return;
         if (item.Flow == AudioFlow.Input)
         {
             if (!AudioEndpoints.SetDefault(item.Id)) return;

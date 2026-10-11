@@ -543,6 +543,26 @@ public static class Snapshots
                 Title = Loc.German ? "LaptopJonathan verbunden" : "LaptopJonathan connected", Subtitle = Loc.German ? "Gekoppeltes Gerät" : "Paired device", Seconds = 60,
             });
             await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-7-connected.png"), compact: false);
+
+            // "Ton an Gerät": the laptop as the chosen output, the compact indicator and the peek.
+            link.LoadAudioDemo();
+            vm.AudioDevices.RemoteOutputActive = true;
+            vm.Tab = 3;
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-8-audio-card.png"), compact: false);
+            vm.Tab = 0;
+            await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-link-9-audio-compact.png"), compact: false);
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.Volume"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue"),
+                Title = App.AudioMovedTitle("LaptopJonathan", null), Subtitle = App.AudioMovedText("LaptopJonathan", null), Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-10-audio-peek.png"), compact: false);
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.Volume"), IconBrush = Res("B.Text2"), IconBackground = Tint("B.Text"),
+                Title = App.AudioMovedTitle("LaptopJonathan", Services.Link.AudioForwardEnd.LinkLost), Subtitle = App.AudioMovedText("LaptopJonathan", Services.Link.AudioForwardEnd.LinkLost), Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-11-audio-back.png"), compact: false);
         }
     }
 

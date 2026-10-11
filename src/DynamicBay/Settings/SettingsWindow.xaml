@@ -1212,6 +1212,10 @@
                                                 ToolTip="{core:L De='Zeigt und steuert die Wiedergabe des anderen Geräts, wenn hier nichts läuft.', En='Shows and controls the other device\'s playback when nothing plays here.'}">
                                     <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareMedia}" />
                                 </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Ton', En='Sound'}"
+                                                ToolTip="{core:L De='Der Ton eines Geräts kann im Audio-Widget auf das andere wechseln.', En='The sound of one device can move to the other in the Audio widget.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareAudio}" />
+                                </ContentControl>
                                 <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Status', En='Status'}"
                                                 ToolTip="{core:L De='Name, Akku und Version für die Karte „Gekoppelte Geräte“.', En='Name, battery and version for the “Paired devices” card.'}">
                                     <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareStatus}" />

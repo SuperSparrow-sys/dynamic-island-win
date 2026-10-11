@@ -84,6 +84,33 @@ internal sealed class LinkConnection
         return (env, bin);
     }
 
+    /// <summary>A bare frame without envelope (streams, see <see cref="LinkStream"/>).</summary>
+    public async Task SendRawAsync(ReadOnlyMemory<byte> frame, CancellationToken ct = default)
+    {
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _closed.Token);
+        await _write.WaitAsync(linked.Token).ConfigureAwait(false);
+        try
+        {
+            await LinkProtocol.WriteFrameAsync(_ssl, frame, linked.Token).ConfigureAwait(false);
+            await _ssl.FlushAsync(linked.Token).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidOperationException or SocketException)
+        {
+            Close();
+            throw new IOException("connection closed", ex);
+        }
+        finally { _write.Release(); }
+    }
+
+    /// <summary>Next bare frame, or null when the connection ended.</summary>
+    public async Task<byte[]?> ReceiveRawAsync(CancellationToken ct = default)
+    {
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, _closed.Token);
+        var frame = await LinkProtocol.ReadFrameAsync(_ssl, linked.Token).ConfigureAwait(false);
+        if (frame is not null) LastReceived = DateTime.UtcNow;
+        return frame;
+    }
+
     public void Close()
     {
         if (Interlocked.Exchange(ref _closing, 1) != 0) return;

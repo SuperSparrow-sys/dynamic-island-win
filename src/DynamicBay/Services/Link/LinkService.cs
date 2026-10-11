@@ -59,7 +59,8 @@ public sealed class LinkException(string reason, string? message = null, Excepti
 /// <summary>
 /// DynamicBay to DynamicBay: finds other devices (LAN, Tailscale, typed address), pairs with them once (both users
 /// compare a six-digit code) and keeps one TLS connection per paired device, with mutually pinned certificates.
-/// Features plug in with <see cref="RegisterHandler"/> and <see cref="SendAsync"/>; files go with <see cref="SendFileAsync"/>.
+/// Features plug in with <see cref="RegisterHandler"/> and <see cref="SendAsync"/>; files go with <see cref="SendFileAsync"/>,
+/// long-running flows (sound) get their own connection with <see cref="OpenStreamAsync"/>.
 /// <para>Events are raised on the <see cref="SynchronizationContext"/> passed in (the UI thread in the app), or on a
 /// pool thread when there is none. Methods may be called from any thread.</para>
 /// </summary>
@@ -220,6 +221,7 @@ public sealed partial class LinkService : IDisposable
         try { listener?.Stop(); } catch { }
         HookSystem(false);
         _discovery.Stop();
+        CloseStreams(null);
         foreach (var c in close) c.Close();
         if (pairing is not null) FinishPairing(pairing, null, PairingResult.Failed);
         Log("Link: stopped");
@@ -480,6 +482,7 @@ public sealed partial class LinkService : IDisposable
             _sessions.Remove(peerId, out conn);
         }
         if (device is null) return;
+        CloseStreams(peerId);
         if (conn is not null)
         {
             try
@@ -508,6 +511,7 @@ public sealed partial class LinkService : IDisposable
             if (_dial.TryGetValue(peerId, out var d)) d.State = LinkPeerState.Rejected;
         }
         conn?.Close();
+        CloseStreams(peerId);
         Log($"Link: {device.Name} ({device.Id}) rejected the pairing ({why})");
         var copy = Clone(device);
         if (conn is not null) Post(() => PeerOffline?.Invoke(copy));
@@ -561,6 +565,7 @@ public sealed partial class LinkService : IDisposable
             if (!ReadHello(conn, hello)) throw new LinkException("protocol", "bad hello");
             string intent = LinkProtocol.Str(hello, "intent") ?? "connect";
             if (intent == "pair") { await RespondToPairing(conn, ct).ConfigureAwait(false); return; }
+            if (intent == "stream") { await AcceptStream(conn, hello!, ct).ConfigureAwait(false); return; }
 
             bool paired;
             lock (_gate) paired = _paired.TryGetValue(conn.PeerId, out var p) && p.Fingerprint == conn.PeerFingerprint;
@@ -624,7 +629,7 @@ public sealed partial class LinkService : IDisposable
     /// Dials, runs TLS (server certificate pinned to <paramref name="expectedFingerprint"/>, any one when pairing) and the
     /// hello exchange. <paramref name="onReply"/> sees the other side's hello.
     /// </summary>
-    private async Task<LinkConnection> ConnectAsync(string host, int port, string? expectedFingerprint, string intent, Action<JsonObject>? onReply, CancellationToken ct)
+    private async Task<LinkConnection> ConnectAsync(string host, int port, string? expectedFingerprint, string intent, Action<JsonObject>? onReply, CancellationToken ct, string? purpose = null)
     {
         IPAddress[] addresses = IPAddress.TryParse(host, out var ip) ? new[] { ip } : await Dns.GetHostAddressesAsync(host, ct).ConfigureAwait(false);
         Exception? last = null;
@@ -645,12 +650,12 @@ public sealed partial class LinkService : IDisposable
                 last = ex;
                 continue;
             }
-            return await HandshakeAsync(tcp, expectedFingerprint, intent, onReply, ct).ConfigureAwait(false);
+            return await HandshakeAsync(tcp, expectedFingerprint, intent, onReply, ct, purpose).ConfigureAwait(false);
         }
         throw new LinkException("unreachable", last?.Message ?? "no address", last);
     }
 
-    private async Task<LinkConnection> HandshakeAsync(TcpClient tcp, string? expectedFingerprint, string intent, Action<JsonObject>? onReply, CancellationToken ct)
+    private async Task<LinkConnection> HandshakeAsync(TcpClient tcp, string? expectedFingerprint, string intent, Action<JsonObject>? onReply, CancellationToken ct, string? purpose = null)
     {
         var ssl = new SslStream(tcp.GetStream(), false);
         LinkConnection? conn = null;
@@ -684,7 +689,9 @@ public sealed partial class LinkService : IDisposable
                 }
             }
             conn = NewConnection(tcp, ssl, outbound: true);
-            await conn.SendAsync(HelloEnvelope(intent), null, ct).ConfigureAwait(false);
+            var hello = HelloEnvelope(intent);
+            if (purpose is not null) hello["purpose"] = purpose;
+            await conn.SendAsync(hello, null, ct).ConfigureAwait(false);
             JsonObject? reply;
             // The other side turned our certificate down: with TLS 1.3 that only shows as a closed connection here.
             try { reply = await ReceiveWithTimeout(conn, TimeSpan.FromSeconds(10), ct).ConfigureAwait(false); }
@@ -839,6 +846,7 @@ public sealed partial class LinkService : IDisposable
         }
         FailTransfers(conn);
         if (device is null) return;
+        CloseStreams(device.Id); // they belong to the connection that just ended
         Log($"Link: {device.Name} ({device.Id}) offline");
         Post(() => PeerStateChanged?.Invoke(device.Id, device.Rejected ? LinkPeerState.Rejected : LinkPeerState.Offline));
         Post(() => PeerOffline?.Invoke(device));

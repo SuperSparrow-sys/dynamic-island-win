@@ -93,6 +93,9 @@ public partial class App : Application
             _settings.Migrate();
             _settings.Save();
             _running = true;
+            // A crash or a hard kill while the sound played on another device left this PC's output muted: unmute it.
+            try { if (Services.Link.LinkHub.AudioMute.RecoverLeftover()) Log.Info("Audio link: output unmuted after an unclean exit"); }
+            catch (Exception ex) { Log.Error("Audio mute recovery", ex); }
         }
         else
         {
@@ -151,6 +154,12 @@ public partial class App : Application
         // "Hauptgerät: automatisch" follows the mouse right away when CursorHop moves it to the other PC.
         _vm.CursorHop.CursorMoved += where => { if (_link.Role is { } role) { role.Update(); _ = role.AnnounceAsync(); } };
         _vm.Link = _link;
+        // "Ton an <Gerät>": the audio card shows the device as the output; choosing a local one brings the sound back,
+        // and when Windows switches the default output the capture and the mute follow it.
+        var hub = _link;
+        _vm.AudioDevices.LocalOutputChosen += hub.StopAudio;
+        hub.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(Services.Link.LinkHub.IsForwardingAudio)) _vm.AudioDevices.RemoteOutputActive = hub.IsForwardingAudio; };
+        _vm.AudioDevices.DefaultChanged += () => hub.DefaultOutputChanged(AudioEndpoints.DefaultId(AudioFlow.Output));
         // First sign-in: the Outlook calendar joins the calendar card right away.
         microsoft.Connected += () =>
         {
@@ -275,10 +284,45 @@ public partial class App : Application
             }
             link.PeerOnline += Once;
         }
+        // Test instances: DYNAMICBAY_DEV_SENDAUDIO=<seconds> sends the (generated) sound to the first device that comes
+        // online for that long (live check; nothing is captured or played, see DevMode).
+        if (DevMode.On && int.TryParse(Environment.GetEnvironmentVariable("DYNAMICBAY_DEV_SENDAUDIO"), out int audioSeconds) && audioSeconds > 0)
+        {
+            var hub = _link;
+            void SendAudioOnce(PairedDevice p)
+            {
+                link.PeerOnline -= SendAudioOnce;
+                Log.Info($"Dev: sending sound for {audioSeconds} s");
+                _ = Task.Delay(3000).ContinueWith(_ => Dispatcher.BeginInvoke(async () =>
+                {
+                    await hub.StartAudioAsync(p.Id);
+                    await Task.Delay(TimeSpan.FromSeconds(audioSeconds));
+                    hub.StopAudio();
+                }), TaskScheduler.Default);
+            }
+            link.PeerOnline += SendAudioOnce;
+        }
         if (DevMode.PairAtStart is { } address)
             _ = Task.Delay(3000).ContinueWith(_ => link.PairAsync(address), TaskScheduler.Default).Unwrap()
                 .ContinueWith(t => Log.Info("Dev: pairing " + (t.IsFaulted ? "failed: " + t.Exception?.GetBaseException().Message : "started")), TaskScheduler.Default);
     }
+
+    /// <summary>The "Ton" peeks: where the sound plays now, and why.</summary>
+    internal static string AudioMovedTitle(string device, Services.Link.AudioForwardEnd? why) => why switch
+    {
+        null => Loc.German ? $"Ton läuft jetzt am {device}" : $"Sound now plays on {device}",
+        _ => Loc.German ? "Ton wieder hier" : "Sound back here",
+    };
+
+    internal static string AudioMovedText(string device, Services.Link.AudioForwardEnd? why) => why switch
+    {
+        null => Loc.German ? "Über Kopplung" : "Via pairing",
+        Services.Link.AudioForwardEnd.LinkLost => Loc.German ? $"Verbindung zu {device} getrennt" : $"Connection to {device} lost",
+        Services.Link.AudioForwardEnd.Refused => Loc.German ? $"„Ton“ ist am {device} aus" : $"“Sound” is off on {device}",
+        Services.Link.AudioForwardEnd.RemoteStopped => Loc.German ? $"{device} hat beendet" : $"{device} ended it",
+        Services.Link.AudioForwardEnd.Failed => Loc.German ? "Ton konnte nicht wechseln" : "Sound could not move",
+        _ => Loc.German ? $"Nicht mehr am {device}" : $"No longer on {device}",
+    };
 
     private void StopLink()
     {
@@ -714,6 +758,20 @@ public partial class App : Application
     /// <summary>Pairing code, devices coming and going, files arriving and going out, notifications of the other device.</summary>
     private void WireLinkPeeks(Services.Link.LinkHub link, IslandManager island, Func<string, Brush> Res, Func<string, Geometry> Icon, Func<string, byte, Brush> Tint)
     {
+        // "Ton an <Gerät>": where the sound plays now.
+        link.AudioMoved += (name, why) =>
+        {
+            bool there = why is null;
+            island.ShowPeek(new PeekItem
+            {
+                Kind = PeekKind.Local,
+                Icon = Icon("Icon.Volume"), IconBrush = Res(there ? "B.Blue" : "B.Text2"), IconBackground = Tint(there ? "B.Blue" : "B.Text", 0x2E),
+                Title = AudioMovedTitle(name, why),
+                Subtitle = AudioMovedText(name, why),
+                ShowInDnd = true, Seconds = 3,
+            });
+        };
+
         var pairingPeeks = new Dictionary<Services.Link.PairingSession, PeekItem>();
         link.PairingRequested += session =>
         {
@@ -1043,6 +1101,7 @@ public partial class App : Application
         FlushAll();
         try { _settings.Save(); } catch (Exception ex) { Log.Error("Exit save", ex); }
         try { BannerSuppressor.RestoreAll(); } catch (Exception ex) { Log.Error("Exit banners", ex); }
+        try { Services.Link.LinkHub.AudioMute.Release(); } catch (Exception ex) { Log.Error("Exit audio mute", ex); } // the sound plays here again
     }
 
     /// <summary>Pending writes (notes, clipboard history) to disk now and Teams back to the status from before focus.</summary>
