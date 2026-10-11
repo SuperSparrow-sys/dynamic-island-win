@@ -457,6 +457,7 @@ internal sealed class LinkDiscovery
         psi.ArgumentList.Add("--json");
         using var p = Process.Start(psi);
         if (p is null) return "";
+        Core.ChildProcesses.Adopt(p); // ends with DynamicBay
         var output = p.StandardOutput.ReadToEndAsync(ct);
         _ = p.StandardError.ReadToEndAsync(ct);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);

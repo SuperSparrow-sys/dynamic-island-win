@@ -92,6 +92,9 @@ public static class UpdateCheck
             foreach (var f in Directory.EnumerateFiles(DownloadFolder, "DynamicBay-Setup-*.exe"))
                 if (!string.Equals(f, keepFile, StringComparison.OrdinalIgnoreCase))
                     try { File.Delete(f); } catch { } // still running or locked: next time
+            // Setup logs: the last three stay for troubleshooting, older ones go (each is about 220 KB)
+            foreach (var f in new DirectoryInfo(DownloadFolder).EnumerateFiles("setup*.log").OrderByDescending(f => f.LastWriteTimeUtc).Skip(3))
+                try { f.Delete(); } catch { }
         }
         catch (Exception ex) { Log.Error("Update.Cleanup", ex); }
     }

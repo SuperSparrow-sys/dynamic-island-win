@@ -104,6 +104,7 @@ public sealed class TaildropService : IDisposable
             foreach (var a in args) psi.ArgumentList.Add(a);
             psi.Environment["NO_COLOR"] = "1";
             using var p = Process.Start(psi)!;
+            ChildProcesses.Adopt(p); // ends with DynamicBay, also after a crash
             var stdout = p.StandardOutput.ReadToEndAsync();
             var stderr = p.StandardError.ReadToEndAsync();
             using var cts = new CancellationTokenSource(timeout);
@@ -161,9 +162,11 @@ public sealed class TaildropService : IDisposable
                 StandardOutputEncoding = Encoding.UTF8,
             };
             var p = new Process { StartInfo = psi, EnableRaisingEvents = true };
-            p.Exited += (_, _) => _ui.BeginInvoke(() => OnWatchExited(exe));
+            p.Exited += (_, _) => _ui.BeginInvoke(() => OnWatchExited(exe, p));
             p.Start();
-            p.ErrorDataReceived += (_, _) => { };
+            ChildProcesses.Adopt(p); // a crashed or killed DynamicBay left these running for good
+            _watchStarted = DateTime.UtcNow;
+            p.ErrorDataReceived += (_, e) => { if (!string.IsNullOrWhiteSpace(e.Data)) _watchError = e.Data.Trim(); };
             p.BeginErrorReadLine();
             _watch = p;
             var reader = p.StandardOutput;
@@ -173,12 +176,25 @@ public sealed class TaildropService : IDisposable
         catch (Exception ex) { Log.Error("Taildrop", ex); }
     }
 
-    private async void OnWatchExited(string exe)
+    private DateTime _watchStarted;
+    private string? _watchError, _loggedWatchError;
+    private int _quickExits;
+
+    private async void OnWatchExited(string exe, Process p)
     {
         if (!_running) return;
-        // Tailscale restarted or not running yet: try again, slower each time (max. once a minute).
+        int code = -1;
+        try { code = p.ExitCode; } catch { }
+        // Why it ended, once per reason (a PC started a new watcher every minute without saying why)
+        string reason = $"exit {code}" + (_watchError is null ? "" : ": " + _watchError);
+        if (reason != _loggedWatchError) { Log.Info("Taildrop: Tailscale watch ended (" + reason + ")"); _loggedWatchError = reason; }
+        _watchError = null;
+        // Ended right away again and again: Tailscale doesn't allow it here, ask far less often.
+        _quickExits = DateTime.UtcNow - _watchStarted < TimeSpan.FromSeconds(10) ? _quickExits + 1 : 0;
+        // Tailscale restarted or not running yet: try again, slower each time (max. once a minute, 10 min when it keeps failing).
         _restarts++;
-        await Task.Delay(TimeSpan.FromSeconds(Math.Min(60, 5 * _restarts)));
+        var wait = _quickExits >= 5 ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(Math.Min(60, 5 * _restarts));
+        await Task.Delay(wait);
         if (_running) StartWatch(exe);
     }
 
