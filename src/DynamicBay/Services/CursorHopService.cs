@@ -137,7 +137,7 @@ public sealed partial class CursorHopService : ObservableObject, IDisposable
     /// <summary>Starts CursorHop when neither its window process nor its core runs (setting "mitstarten").</summary>
     private void EnsureRunning(string reason)
     {
-        if (!_running || !_settings.CursorHopEnabled || !_settings.CursorHopAutoStart) return;
+        if (!_running || !_settings.CursorHopEnabled || !_settings.CursorHopAutoStart || DevMode.On) return; // test instances leave the real CursorHop alone
         if ((DateTime.UtcNow - _startedAt).TotalSeconds < 60) return; // just started it, it is still coming up
         if (IsProcessRunning(ProcessCore) || IsProcessRunning(ProcessApp)) return;
         _startedAt = DateTime.UtcNow;
@@ -170,7 +170,8 @@ public sealed partial class CursorHopService : ObservableObject, IDisposable
         {
             if (!File.Exists(path)) continue;
             _tail.Follow(path);
-            ReadNew(silent: true);
+            // Up to the end: a big log read in parts must not turn its older half into peeks on the next tick
+            for (int part = 0; part < 64 && ReadNew(silent: true); part++) { }
         }
         if (!IsRunning) _state.Reset();
         foreach (var p in _state.Peers) _announcer.Silently(p.Name);
@@ -210,16 +211,18 @@ public sealed partial class CursorHopService : ObservableObject, IDisposable
         }
     }
 
-    private void ReadNew(bool silent)
+    /// <returns>Whether anything was read (the reader hands out at most a few MB per call).</returns>
+    private bool ReadNew(bool silent)
     {
         List<string> lines;
         try { lines = _tail.ReadNew(); }
-        catch (Exception ex) { Log.Info($"CursorHop: log not readable ({ex.Message})"); return; }
-        if (lines.Count == 0) return;
+        catch (Exception ex) { Log.Info($"CursorHop: log not readable ({ex.Message})"); return false; }
+        if (lines.Count == 0) return false;
         if (!silent && !IsRunning) IsRunning = true; // it is writing its log right now
         foreach (var line in lines)
             if (CursorHopLog.Parse(line) is { } e) Apply(e, silent);
         if (!silent) Publish();
+        return true;
     }
 
     private void Apply(CursorHopEvent e, bool silent)

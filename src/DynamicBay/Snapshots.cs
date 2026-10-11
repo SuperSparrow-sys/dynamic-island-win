@@ -230,11 +230,11 @@ public static class Snapshots
             foreach (bool export in new[] { true, false })
             {
                 var pw = export
-                    ? new Settings.PinWindow("Einstellungen exportieren", "Ohne den Code lässt sich die Datei nicht öffnen. Passwörter und Anmeldungen sind nicht enthalten.", "Weiter", confirm: true)
-                    : new Settings.PinWindow("Einstellungen importieren", "Ersetzt alle Einstellungen. Danach startet DynamicBay neu, du meldest dich nur noch an.", "Importieren", confirm: false, check: _ => "Falscher Code.");
+                    ? new Settings.PinWindow("Einstellungen exportieren", "Passwörter, Anmeldungen und Kopplungen bleiben auf diesem PC.", "Weiter", confirm: true)
+                    : new Settings.PinWindow("Einstellungen importieren", "Ersetzt alle Einstellungen, danach startet DynamicBay neu.", "Importieren", confirm: false, check: _ => "Falscher Code.");
                 pw.Show();
-                ((System.Windows.Controls.PasswordBox)pw.FindName("Pin")).Password = "482913";
-                if (export) ((System.Windows.Controls.PasswordBox)pw.FindName("Repeat")).Password = "482913";
+                ((System.Windows.Controls.PasswordBox)pw.FindName("Pin")).Password = "4829137705";
+                if (export) ((System.Windows.Controls.PasswordBox)pw.FindName("Repeat")).Password = "4829137705";
                 else ((System.Windows.Controls.Button)pw.FindName("OkButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                 await Task.Delay(600);
                 RenderWindow(pw, Path.Combine(dir, export ? "pin-export.png" : "pin-import.png"));

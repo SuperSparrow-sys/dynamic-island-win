@@ -5,6 +5,9 @@ namespace DynamicBay.Core;
 /// <summary>Hidden window that receives clipboard, hotkey and display-change messages.</summary>
 public sealed class MessageWindow : IDisposable
 {
+    /// <summary>Found by a second launch; test instances (DevMode) have their own, so they never reach the installed one.</summary>
+    public static string WindowTitle => DevMode.On ? "DynamicBay.Messages." + DevMode.Name : "DynamicBay.Messages";
+
     private readonly HwndSource _source;
     public IntPtr Handle => _source.Handle;
 
@@ -12,7 +15,7 @@ public sealed class MessageWindow : IDisposable
 
     public MessageWindow()
     {
-        var p = new HwndSourceParameters("DynamicBay.Messages") { Width = 0, Height = 0, WindowStyle = 0 };
+        var p = new HwndSourceParameters(WindowTitle) { Width = 0, Height = 0, WindowStyle = 0 };
         _source = new HwndSource(p);
         _source.AddHook(Hook);
     }

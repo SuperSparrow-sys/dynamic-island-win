@@ -410,7 +410,7 @@ public sealed partial class ClaudeService : ObservableObject
 
     private void StartListener()
     {
-        if (_listener is not null) return;
+        if (_listener is not null || DevMode.On) return; // the hook port belongs to the installed DynamicBay
         try
         {
             var listener = new HttpListener();
@@ -522,6 +522,7 @@ public sealed partial class ClaudeService : ObservableObject
     [RelayCommand]
     public void InstallHooks()
     {
+        if (DevMode.On) { Log.Info("Claude: hooks are not changed by a test instance"); return; }
         try
         {
             Directory.CreateDirectory(ClaudeDir);
@@ -549,6 +550,7 @@ public sealed partial class ClaudeService : ObservableObject
     [RelayCommand]
     public void RemoveHooks()
     {
+        if (DevMode.On) return;
         try
         {
             if (!File.Exists(SettingsPath)) return;

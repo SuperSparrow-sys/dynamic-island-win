@@ -1286,8 +1286,7 @@ public partial class SettingsWindow : Window
     {
         bool de = Loc.German;
         var pin = new PinWindow(de ? "Einstellungen exportieren" : "Export settings",
-            de ? "Ohne den Code lässt sich die Datei nicht öffnen. Passwörter und Anmeldungen sind nicht enthalten."
-               : "The file can't be opened without the code. Passwords and sign-ins are not included.",
+            de ? "Passwörter, Anmeldungen und Kopplungen bleiben auf diesem PC." : "Passwords, sign-ins and pairings stay on this PC.",
             de ? "Weiter" : "Continue", confirm: true) { Owner = this };
         if (pin.ShowDialog() != true) return;
         var dlg = new Microsoft.Win32.SaveFileDialog
@@ -1330,8 +1329,7 @@ public partial class SettingsWindow : Window
         }
         SettingsTransfer.Bundle? bundle = null;
         var pin = new PinWindow(de ? "Einstellungen importieren" : "Import settings",
-            de ? "Ersetzt alle Einstellungen. Danach startet DynamicBay neu, du meldest dich nur noch an."
-               : "Replaces all settings. DynamicBay then restarts; you only sign in again.",
+            de ? "Ersetzt alle Einstellungen, danach startet DynamicBay neu." : "Replaces all settings, then DynamicBay restarts.",
             de ? "Importieren" : "Import", confirm: false, check: code =>
             {
                 try { bundle = SettingsTransfer.Decrypt(file, code); return null; }

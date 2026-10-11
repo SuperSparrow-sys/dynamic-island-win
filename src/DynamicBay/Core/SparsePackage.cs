@@ -64,6 +64,7 @@ public static class SparsePackage
     /// <summary>Removes the identity package for this user (uninstall).</summary>
     public static async Task RemoveAsync()
     {
+        if (DevMode.On) return;
         try
         {
             var pm = new PackageManager();

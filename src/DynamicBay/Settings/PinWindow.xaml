@@ -17,12 +17,12 @@
     <StackPanel Margin="18,44,18,16">
         <TextBlock x:Name="Heading" Style="{StaticResource ST.Base}" FontSize="18" FontWeight="Bold" />
         <TextBlock x:Name="Hint" Style="{StaticResource ST.Desc}" Margin="0,2,0,12" TextWrapping="Wrap" />
-        <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Zahlencode (6 bis 12 Ziffern)', En='Code (6 to 12 digits)'}" />
-        <PasswordBox x:Name="Pin" Margin="0,4,0,10" Height="32" MaxLength="12" InputScope="Number"
+        <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Zahlencode (10 bis 16 Ziffern)', En='Code (10 to 16 digits)'}" />
+        <PasswordBox x:Name="Pin" Margin="0,4,0,10" Height="32" MaxLength="16" InputScope="Number"
                      PreviewTextInput="Pin_PreviewTextInput" DataObject.Pasting="Pin_Pasting" PasswordChanged="Pin_Changed" />
         <StackPanel x:Name="RepeatPanel">
             <TextBlock Style="{StaticResource ST.Label}" Text="{core:L De='Code wiederholen', En='Repeat code'}" />
-            <PasswordBox x:Name="Repeat" Margin="0,4,0,10" Height="32" MaxLength="12" InputScope="Number"
+            <PasswordBox x:Name="Repeat" Margin="0,4,0,10" Height="32" MaxLength="16" InputScope="Number"
                          PreviewTextInput="Pin_PreviewTextInput" DataObject.Pasting="Pin_Pasting" PasswordChanged="Pin_Changed" />
         </StackPanel>
         <TextBlock x:Name="Error" Style="{StaticResource ST.Desc}" Foreground="{DynamicResource S.Red}" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,6" />

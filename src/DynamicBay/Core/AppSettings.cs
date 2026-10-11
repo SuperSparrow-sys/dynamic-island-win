@@ -29,6 +29,7 @@ public static class Widgets
         Clock => (SettingsPage.Appearance, Loc.German ? "Uhr" : "Clock"),
         Shortcuts => (SettingsPage.Apps, Loc.German ? "Schnellstart" : "Launcher"),
         Claude => (SettingsPage.Apps, "Claude"),
+        CursorHop => (SettingsPage.Devices, "CursorHop"),
         Messenger => (SettingsPage.Notifications, null),
         Devices => (SettingsPage.Audio, "Bluetooth"),
         Audio => (SettingsPage.Audio, Loc.German ? "Kopfhörer" : "Headphones"),

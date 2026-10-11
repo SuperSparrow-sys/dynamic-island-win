@@ -785,11 +785,11 @@ public partial class App : Application
     private static void SignalRunningInstance()
     {
         // The first instance may still be starting (no message window yet): look again for up to 3 s.
-        var target = Native.FindWindow(null, "DynamicBay.Messages");
+        var target = Native.FindWindow(null, MessageWindow.WindowTitle);
         for (int i = 0; target == IntPtr.Zero && i < 30; i++)
         {
             Thread.Sleep(100);
-            target = Native.FindWindow(null, "DynamicBay.Messages");
+            target = Native.FindWindow(null, MessageWindow.WindowTitle);
         }
         if (target == IntPtr.Zero) return;
         // We were started by the user and may hand the foreground on: the settings come up in front, not just flashing.
@@ -840,6 +840,7 @@ public partial class App : Application
         _running = false;
         _taildrop?.Dispose();
         _vm?.CursorHop.Dispose();
+        _vm?.Claude.Stop(); // frees the hook port for the new run
         StopLink(); // frees the link port for the new run
         _tray?.Dispose();
         _msg?.Dispose();

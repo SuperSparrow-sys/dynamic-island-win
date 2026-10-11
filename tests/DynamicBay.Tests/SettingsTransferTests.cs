@@ -37,9 +37,9 @@ public class SettingsTransferTests : IDisposable
     {
         var (s, secrets, scripts) = Source();
         var bundle = SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k));
-        var file = SettingsTransfer.Encrypt(bundle, "482913", FastIterations);
+        var file = SettingsTransfer.Encrypt(bundle, "4829137705", FastIterations);
 
-        var back = SettingsTransfer.Decrypt(file, "482913");
+        var back = SettingsTransfer.Decrypt(file, "4829137705");
         string target = Path.Combine(_dir, "target");
         Directory.CreateDirectory(target);
         var written = new Dictionary<string, string?>();
@@ -61,7 +61,7 @@ public class SettingsTransferTests : IDisposable
     public void File_contains_no_readable_settings()
     {
         var (s, secrets, scripts) = Source();
-        var file = SettingsTransfer.Encrypt(SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k)), "482913", FastIterations);
+        var file = SettingsTransfer.Encrypt(SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k)), "4829137705", FastIterations);
         string raw = System.Text.Encoding.Latin1.GetString(file);
         Assert.DoesNotContain("spotify-client", raw);
         Assert.DoesNotContain("google-secret", raw);
@@ -71,33 +71,33 @@ public class SettingsTransferTests : IDisposable
     public void Wrong_code_and_changed_bytes_are_rejected()
     {
         var (s, secrets, scripts) = Source();
-        var file = SettingsTransfer.Encrypt(SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k)), "482913", FastIterations);
-        Assert.Throws<SettingsTransfer.WrongPinException>(() => SettingsTransfer.Decrypt(file, "482914"));
+        var file = SettingsTransfer.Encrypt(SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k)), "4829137705", FastIterations);
+        Assert.Throws<SettingsTransfer.WrongPinException>(() => SettingsTransfer.Decrypt(file, "4829137706"));
         var changed = (byte[])file.Clone();
         changed[^1] ^= 1;
-        Assert.Throws<SettingsTransfer.WrongPinException>(() => SettingsTransfer.Decrypt(changed, "482913"));
+        Assert.Throws<SettingsTransfer.WrongPinException>(() => SettingsTransfer.Decrypt(changed, "4829137705"));
         var header = (byte[])file.Clone();
         header[8] ^= 1; // iteration count is authenticated too
-        Assert.ThrowsAny<Exception>(() => SettingsTransfer.Decrypt(header, "482913"));
+        Assert.ThrowsAny<Exception>(() => SettingsTransfer.Decrypt(header, "4829137705"));
     }
 
     [Fact]
     public void Other_files_are_not_exports()
     {
-        Assert.Throws<InvalidDataException>(() => SettingsTransfer.Decrypt("{\"settings\":1}"u8.ToArray(), "482913"));
-        Assert.Throws<InvalidDataException>(() => SettingsTransfer.Decrypt(Array.Empty<byte>(), "482913"));
+        Assert.Throws<InvalidDataException>(() => SettingsTransfer.Decrypt("{\"settings\":1}"u8.ToArray(), "4829137705"));
+        Assert.Throws<InvalidDataException>(() => SettingsTransfer.Decrypt(Array.Empty<byte>(), "4829137705"));
     }
 
     [Theory]
-    [InlineData("123456", true)]
-    [InlineData("123456789012", true)]
-    [InlineData("12345", false)]
-    [InlineData("1234567890123", false)]
-    [InlineData("12a456", false)]
-    [InlineData("１２３４５６", false)] // full-width digits
+    [InlineData("1234567890", true)]
+    [InlineData("1234567890123456", true)]
+    [InlineData("123456789", false)]
+    [InlineData("12345678901234567", false)]
+    [InlineData("12a4567890", false)]
+    [InlineData("１２３４５６７８９０", false)] // full-width digits
     [InlineData("", false)]
     [InlineData(null, false)]
-    public void Code_is_6_to_12_digits(string? pin, bool valid) => Assert.Equal(valid, SettingsTransfer.IsValidPin(pin));
+    public void Code_is_10_to_16_digits(string? pin, bool valid) => Assert.Equal(valid, SettingsTransfer.IsValidPin(pin));
 
     [Fact]
     public void Script_paths_outside_the_scripts_folder_change_nothing()
@@ -129,5 +129,40 @@ public class SettingsTransferTests : IDisposable
         Assert.False(SettingsTransfer.IsTransferableSecret("cal:g1:refresh"));
         Assert.False(SettingsTransfer.IsTransferableSecret("cal:i1:password"));
         Assert.False(SettingsTransfer.IsTransferableSecret("ms:refresh"));
+    }
+
+    [Fact]
+    public void Pairing_stays_on_each_pc()
+    {
+        var (s, secrets, scripts) = Source();
+        s.LinkEnabled = true;
+        s.LinkDeviceName = "Laptop";
+        s.PairedDevices.Add(new PairedDevice { Id = "laptop-peer", Name = "PC", Fingerprint = "AA" });
+        var bundle = SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k));
+        Assert.DoesNotContain("laptop-peer", bundle.Settings);
+        Assert.DoesNotContain("LinkEnabled", bundle.Settings);
+
+        // The target PC is paired with someone else: it keeps that after the import
+        string target = Path.Combine(_dir, "target");
+        Directory.CreateDirectory(target);
+        var own = new AppSettings { LinkEnabled = true, LinkDeviceName = "Desktop" };
+        own.PairedDevices.Add(new PairedDevice { Id = "desktop-peer", Name = "Laptop", Fingerprint = "BB" });
+        File.WriteAllText(Path.Combine(target, "settings.json"), own.ToJson());
+        SettingsTransfer.Apply(SettingsTransfer.Decrypt(SettingsTransfer.Encrypt(bundle, "4829137705", FastIterations), "4829137705"), target, (_, _) => { });
+
+        var after = AppSettings.FromJson(File.ReadAllText(Path.Combine(target, "settings.json")));
+        Assert.Equal("spotify-client", after.SpotifyClientId);
+        Assert.True(after.LinkEnabled);
+        Assert.Equal("Desktop", after.LinkDeviceName);
+        Assert.Equal("desktop-peer", Assert.Single(after.PairedDevices).Id);
+    }
+
+    [Fact]
+    public void Huge_round_counts_are_refused()
+    {
+        var (s, secrets, scripts) = Source();
+        var file = SettingsTransfer.Encrypt(SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k)), "4829137705", FastIterations);
+        BitConverter.GetBytes(50_000_000).CopyTo(file, 8);
+        Assert.Throws<InvalidDataException>(() => SettingsTransfer.Decrypt(file, "4829137705"));
     }
 }
