@@ -28,7 +28,7 @@ public class UiThreadTests
     }
 
     [Fact]
-    public void Background_writer_never_lets_an_older_text_land_after_a_direct_write()
+    public async Task Background_writer_never_lets_an_older_text_land_after_a_direct_write()
     {
         var written = new List<string>();
         var inWrite = new ManualResetEventSlim(false);
@@ -44,7 +44,7 @@ public class UiThreadTests
         var exit = Task.Run(() => w.WriteNow("exit")); // the exit save
         Thread.Sleep(50);
         release.Set();
-        exit.Wait();
+        await exit;
         w.Drain();
         Assert.Equal("exit", written[^1]);
     }
