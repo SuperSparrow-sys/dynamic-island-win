@@ -102,6 +102,7 @@ public sealed partial class MicrosoftAccount : ObservableObject
             });
             _tokenFailures = 0;
             _retryAt = default;
+            _grantInvalid = false;
             if (withPresence) _settings.MicrosoftPresence = true;
             await LoadProfileAsync();
             IsConnected = true;
@@ -191,6 +192,8 @@ public sealed partial class MicrosoftAccount : ObservableObject
     private readonly SemaphoreSlim _tokenGate = new(1, 1);
     private int _tokenFailures;
     private DateTime _retryAt;
+    /// <summary>Microsoft refused the refresh token: no more token calls until the next sign-in.</summary>
+    private bool _grantInvalid;
 
     private async Task<bool> EnsureTokenAsync()
     {
@@ -199,7 +202,7 @@ public sealed partial class MicrosoftAccount : ObservableObject
         try
         {
             if (_accessToken is not null && DateTime.UtcNow < _expires) return true;
-            if (DateTime.UtcNow < _retryAt) return false; // the last attempt failed: wait before the next one
+            if (_grantInvalid || DateTime.UtcNow < _retryAt) return false; // the last attempt failed: wait before the next one
             var rt = SecretStore.Get("ms:refresh");
             if (rt is null || _settings.MicrosoftClientId.Length == 0) { IsConnected = false; return false; }
             string scopes = _settings.MicrosoftPresence ? BaseScopes + " " + PresenceScopes : BaseScopes;
@@ -220,6 +223,7 @@ public sealed partial class MicrosoftAccount : ObservableObject
                 // Sign-in expired or revoked: show "connect" again instead of retrying with every poll.
                 Log.Info($"Microsoft sign-in no longer valid: {ex.Message}");
                 _accessToken = null;
+                _grantInvalid = true;
                 IsConnected = false;
                 Status = Loc.German ? "Microsoft bitte neu verbinden" : "Please reconnect Microsoft";
                 return false;

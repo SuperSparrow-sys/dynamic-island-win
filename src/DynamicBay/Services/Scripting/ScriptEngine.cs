@@ -186,7 +186,7 @@ public static class ScriptEngine
     {
         var host = uri.IdnHost;
         var addresses = IPAddress.TryParse(host.Trim('[', ']'), out var literal) ? new[] { literal! } : Dns.GetHostAddressesAsync(host, ct).GetAwaiter().GetResult();
-        if (addresses.Length == 0 || (!AllowLocalAddresses && addresses.Any(IsBlockedAddress)))
+        if (addresses.Length == 0 || (!AllowLocalAddresses && addresses.Any(IsForbidden)))
             throw new HttpRequestException(Loc.German ? "Adressen in diesem PC oder im lokalen Netz sind gesperrt" : "Addresses on this PC or the local network are blocked");
     }
 
@@ -216,7 +216,7 @@ public static class ScriptEngine
     {
         var host = context.DnsEndPoint.Host;
         var addresses = IPAddress.TryParse(host.Trim('[', ']'), out var literal) ? new[] { literal! } : await Dns.GetHostAddressesAsync(host, ct);
-        var allowed = addresses.Where(a => AllowLocalAddresses || !IsBlockedAddress(a)).ToArray();
+        var allowed = addresses.Where(a => AllowLocalAddresses || !IsForbidden(a)).ToArray();
         if (allowed.Length == 0)
             throw new HttpRequestException(Loc.German ? "Adressen in diesem PC oder im lokalen Netz sind gesperrt" : "Addresses on this PC or the local network are blocked");
         var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
@@ -230,6 +230,39 @@ public static class ScriptEngine
             socket.Dispose();
             throw;
         }
+    }
+
+    /// <summary>Blocked ranges plus the networks of this PC's own adapters (global IPv6 of the router, NAS, the PC itself).</summary>
+    private static bool IsForbidden(IPAddress ip) => IsBlockedAddress(ip) || InLocalSubnet(ip);
+
+    private static bool InLocalSubnet(IPAddress ip)
+    {
+        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+        try
+        {
+            foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
+                foreach (var u in nic.GetIPProperties().UnicastAddresses)
+                    if (u.Address.AddressFamily == ip.AddressFamily && SamePrefix(ip, u.Address, u.PrefixLength)) return true;
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    /// <summary>True if the first <paramref name="bits"/> bits of both addresses match.</summary>
+    internal static bool SamePrefix(IPAddress a, IPAddress b, int bits)
+    {
+        var x = a.GetAddressBytes();
+        var y = b.GetAddressBytes();
+        if (x.Length != y.Length) return false;
+        bits = Math.Clamp(bits, 0, x.Length * 8);
+        // A /0 or /1 prefix would cover the whole internet: only the address itself counts then.
+        if (bits < 8) bits = x.Length * 8;
+        int i = 0;
+        for (; bits >= 8; bits -= 8, i++) if (x[i] != y[i]) return false;
+        return bits == 0 || (x[i] >> (8 - bits)) == (y[i] >> (8 - bits));
     }
 
     /// <summary>

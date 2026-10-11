@@ -223,7 +223,7 @@ public partial class App : Application
         await SafeAsync("WarmUp", () => Task.WhenAll(warmApps, warmIcons));
         Safe("Shortcuts", vm.Shortcuts.Rebuild);
         Log.Info($"Background warm-up done after {clock.ElapsedMilliseconds} ms");
-        if (_settings.CheckForUpdates) _ = UpdateCheck.RunAsync(_islands, Quit, () => _settings.CheckForUpdates);
+        _ = UpdateCheck.RunAsync(_islands, Quit, () => _settings.CheckForUpdates);
         // CPU and memory in the log every 90 s (no trimming: smooth animations matter more than a small working set).
         Safe("MemoryTrim", MemoryTrim.Start);
     }

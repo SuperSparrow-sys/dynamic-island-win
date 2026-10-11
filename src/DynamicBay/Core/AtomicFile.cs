@@ -55,6 +55,7 @@ public static class AtomicFile
             var dir = Path.GetDirectoryName(Path.GetFullPath(path)) ?? "";
             var target = Path.Combine(dir, $"{Path.GetFileNameWithoutExtension(path)}.corrupt-{DateTime.Now:yyyyMMdd-HHmmss}{Path.GetExtension(path)}");
             File.Copy(path, target, overwrite: true);
+            File.SetLastWriteTime(target, DateTime.Now); // the copy's date says when it was set aside (cleanup counts from it)
             Log.Info($"Unreadable {Path.GetFileName(path)} kept as {Path.GetFileName(target)}");
             return true;
         }

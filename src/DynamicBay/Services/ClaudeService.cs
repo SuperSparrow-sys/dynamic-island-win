@@ -159,7 +159,7 @@ public sealed partial class ClaudeService : ObservableObject
         {
             var known = Sessions.Where(x => x.IsLocal).ToDictionary(x => x.Id, x => x.Updated);
             var results = await Task.Run(() => ReadSessions(known));
-            if (results is null) return;
+            if (results is null || !_started) return; // switched off while the sessions were read
 
             var seen = new HashSet<string>();
             foreach (var r in results)

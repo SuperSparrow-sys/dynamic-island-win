@@ -49,6 +49,7 @@ public static class BannerSuppressor
             foreach (var app in backup.Keys.Where(a => !wanted.Contains(a)).ToList())
                 if (Restore(app, backup[app])) backup.Remove(app);
             foreach (var app in wanted.Where(a => !backup.ContainsKey(a)).ToList()) Silence(app, backup);
+            if (_assumeDefaults) ResetLeftovers(wanted);
             SaveBackup(backup);
             _assumeDefaults = false; // only the values found right after the reset can be ours from before
             Log.Info(_active ? $"Windows banners off for {backup.Count - 1} apps" : "Windows banners as configured by the user");
@@ -76,6 +77,7 @@ public static class BannerSuppressor
         if ((_backup ?? LoadBackup()) is not { } backup) return;
         foreach (var app in backup.Keys.ToList())
             if (Restore(app, backup[app])) backup.Remove(app);
+        if (_assumeDefaults) ResetLeftovers(new HashSet<string>());
         // Only what could not be put back stays in the file (deleted once everything is restored).
         SaveBackup(backup);
     }
@@ -93,6 +95,27 @@ public static class BannerSuppressor
         using var key = Registry.CurrentUser.CreateSubKey($@"{Root}\{app}");
         backup[app] = key.GetValue("ShowBanner") is int v && !(v == 0 && _assumeDefaults) ? v : null;
         key.SetValue("ShowBanner", 0, RegistryValueKind.DWord);
+    }
+
+    /// <summary>
+    /// The backup was lost: every 0 still in the registry counts as ours from before (like in <see cref="Silence"/>)
+    /// and goes back to Windows' default "on", except for what stays silenced right now.
+    /// </summary>
+    private static void ResetLeftovers(HashSet<string> keep)
+    {
+        try
+        {
+            using var root = Registry.CurrentUser.CreateSubKey(Root);
+            if (!keep.Contains(SoundKey) && root.GetValue(SoundValue) is 0) Restore(SoundKey, null);
+            foreach (var app in root.GetSubKeyNames())
+            {
+                if (keep.Contains(app)) continue;
+                using var key = root.OpenSubKey(app);
+                if (key?.GetValue("ShowBanner") is 0) Restore(app, null);
+            }
+            Log.Info("Banner backup was lost: leftover banner switches reset to Windows' default");
+        }
+        catch (Exception ex) { Log.Error("BannerReset", ex); }
     }
 
     private static bool Restore(string app, int? original)

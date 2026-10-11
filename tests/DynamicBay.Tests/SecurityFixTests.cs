@@ -44,6 +44,19 @@ public class ScriptNetworkGuardTests
     [InlineData("2606:4700:4700::1111")]
     [InlineData("::ffff:8.8.8.8")]
     public void Allows_public_addresses(string ip) => Assert.False(ScriptEngine.IsBlockedAddress(IPAddress.Parse(ip)));
+
+    [Theory]
+    [InlineData("2a02:810d:1:2::1", "2a02:810d:1:2:abcd::5", 64, true)]  // router in the PC's own /64
+    [InlineData("2a02:810d:1:3::1", "2a02:810d:1:2:abcd::5", 64, false)]
+    [InlineData("203.0.113.7", "203.0.113.200", 24, true)]
+    [InlineData("203.0.114.7", "203.0.113.200", 24, false)]
+    [InlineData("203.0.113.7", "203.0.113.200", 25, false)]              // bits inside the last byte
+    [InlineData("203.0.113.130", "203.0.113.200", 25, true)]
+    [InlineData("8.8.8.8", "203.0.113.200", 0, false)]                    // a /0 never covers the internet
+    [InlineData("203.0.113.200", "203.0.113.200", 0, true)]
+    [InlineData("203.0.113.7", "2a02:810d:1:2::1", 24, false)]            // different families
+    public void Local_subnet_prefix(string target, string own, int bits, bool same) =>
+        Assert.Equal(same, ScriptEngine.SamePrefix(IPAddress.Parse(target), IPAddress.Parse(own), bits));
 }
 
 /// <summary>What reaches a command line or the shell from hooks and the synced folder.</summary>
@@ -152,6 +165,11 @@ public class CalDavCredentialTests
     [InlineData("http://dav.example.org/", "http://dav.example.org/cal/", false)]
     [InlineData("https://example.com/dav/", "https://other.com/", false)]
     [InlineData("https://example.com/dav/", "https://example.com/dav/cal/", true)]
+    [InlineData("https://dav.example.com/", "https://p1.dav.example.com/", true)]   // below the server's own host
+    [InlineData("https://name.github.io/dav/", "https://evil.github.io/", false)]   // parent belongs to strangers
+    [InlineData("https://dav.example.co.uk/", "https://other.co.uk/", false)]
+    [InlineData("https://dav.example.co.uk/", "https://x.example.co.uk/", false)]
+    [InlineData("https://caldav.gmx.net/", "https://p2-caldav.gmx.net/", true)]
     public void Sends_credentials_only_where_it_should(string server, string target, bool ok) =>
         Assert.Equal(ok, CalDavClient.MaySendCredentials(new Uri(server), new Uri(target)));
 }

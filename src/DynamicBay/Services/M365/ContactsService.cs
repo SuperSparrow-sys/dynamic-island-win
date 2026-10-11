@@ -54,6 +54,7 @@ public sealed partial class ContactsService : ObservableObject
         try
         {
             var list = new List<ContactItem>();
+            bool answered = false; // at least one call got through; otherwise (offline, token pause) the list stays
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             void Add(ContactItem c)
             {
@@ -65,6 +66,7 @@ public sealed partial class ContactsService : ObservableObject
             try
             {
                 var people = await _account.GetAsync("me/people?$top=15&$select=displayName,scoredEmailAddresses,phones,personType");
+                answered |= people is not null;
                 foreach (var p in people?["value"]?.AsArray() ?? new JsonArray())
                 {
                     if (p?["personType"]?["class"]?.ToString() is { } cls && cls != "Person") continue;
@@ -81,6 +83,7 @@ public sealed partial class ContactsService : ObservableObject
             try
             {
                 var contacts = await _account.GetAsync("me/contacts?$top=60&$orderby=displayName&$select=displayName,emailAddresses,mobilePhone,businessPhones,homePhones");
+                answered |= contacts is not null;
                 foreach (var c in contacts?["value"]?.AsArray() ?? new JsonArray())
                 {
                     if (c is null) continue;
@@ -96,6 +99,7 @@ public sealed partial class ContactsService : ObservableObject
             }
             catch (Exception ex) { Log.Info($"Contacts: {ex.Message}"); }
 
+            if (!answered) return;
             var top = list.Take(30).ToList();
             if (!top.Select(c => c.Name + c.Email + c.Phone).SequenceEqual(Items.Select(c => c.Name + c.Email + c.Phone)))
             {

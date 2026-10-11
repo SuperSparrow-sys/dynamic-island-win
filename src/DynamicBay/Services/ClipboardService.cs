@@ -471,8 +471,8 @@ public sealed partial class ClipboardService : ObservableObject
     {
         try
         {
-            // A history that could not be read was set aside: its images stay until it is sorted out.
-            if (Directory.EnumerateFiles(_folder, "index.corrupt-*").Any()) return;
+            // A history that could not be read was set aside: its images stay two weeks, time to sort it out by hand.
+            if (Directory.EnumerateFiles(_folder, "index.corrupt-*").Any(f => DateTime.Now - File.GetLastWriteTime(f) < TimeSpan.FromDays(14))) return;
             var used = Items.Where(i => i.ImagePath is not null).Select(i => Path.GetFullPath(i.ImagePath!)).ToHashSet(StringComparer.OrdinalIgnoreCase);
             // Listed here (on the UI thread), so an image saved a moment later is never in the list.
             var orphans = Directory.EnumerateFiles(_folder, "*.png").Where(f => !used.Contains(Path.GetFullPath(f))).ToList();

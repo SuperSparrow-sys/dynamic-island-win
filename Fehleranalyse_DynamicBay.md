@@ -518,10 +518,27 @@ Bewusst belassen:
 
 Ich habe die Änderungen aus Runde 2 und die UI-Fixes aus Runde 1 selbst nachgelesen: Peek-Warteschlange, Tray, Hotkeys, Spiegel-Monitor, Zahnräder und Notizen. Neue Fehler habe ich nicht gefunden.
 
+### Runde 4: unabhängiger Agent
+
+Ein neuer Agent ohne Vorwissen hat den Diff seit 1.0.15 und den übrigen Code geprüft. Er fand keine kritischen und keine hohen Befunde. Die Sicherheits-Fixes hat er nachvollzogen und als wirksam bestätigt. Seine Befunde, am Code nachgeprüft:
+
+- **Skript-Netzwerkschutz über IPv6 (mittel):** Globale IPv6-Adressen im eigenen Netz waren erreichbar, z. B. die Router-Oberfläche oder ein NAS. Jetzt sind auch alle Adressen in den Netzen der eigenen Adapter gesperrt (`ScriptEngine.InLocalSubnet`, IPv4 und IPv6).
+- **Banner nach verlorenem Backup (mittel/niedrig):** Ist `banner-backup.json` unlesbar, blieben bei Deinstallation oder abgeschalteter Unterdrückung alle Banner aus. Jetzt setzen `RestoreAll` und `Apply` die verbliebenen Nullen auf den Windows-Standard zurück. Ausgenommen sind die Apps, die gerade stumm bleiben sollen.
+- **Kontakte leer bei kurzem Ausfall (niedrig):** Die Liste bleibt jetzt stehen, wenn keine der beiden Abfragen durchkam.
+- **Token-Abfragen nach `invalid_grant` (niedrig):** Bis zur nächsten Anmeldung gibt es keine weiteren Token-Abfragen.
+- **CalDAV-Zugangsdaten an Nachbar-Hosts (niedrig):** Nachbar-Hosts bekommen die Zugangsdaten nur noch bei bekannten Anbietern (iCloud, GMX, web.de). Sonst gilt das nur für den eigenen Host und Hosts darunter, weil bei `name.github.io` oder `*.co.uk` die Elterndomain Fremden gehört.
+- **Zwischenablage-Bilder bei defektem Verlauf (niedrig):** Die Bilder bleiben noch zwei Wochen ab dem Beiseitelegen, danach räumt die Ablage wieder auf. `AtomicFile.SetAside` setzt dafür das Datum der Kopie.
+- **Update-Prüfung später eingeschaltet (niedrig):** Der tägliche Timer läuft jetzt immer und prüft nur, wenn die Einstellung an ist.
+- **Claude-Sitzungen nach dem Abschalten (niedrig):** `ScanAsync` prüft `_started` jetzt direkt nach dem Lesen.
+
+Bewusst belassen:
+
+- **Proxy-Pfad der Skripte:** Der Proxy löst den Namen selbst noch einmal auf (DNS-Rebinding möglich). Das betrifft nur Netze mit System-Proxy. Eine Lösung bräuchte einen eigenen Verbindungsaufbau über den Proxy.
+
 ### Tests in jeder Runde
 
 - `dotnet build`: 0 Warnungen.
-- `dotnet test`: 204 von 204 bestanden.
+- `dotnet test`: 204 von 204 bestanden, nach Runde 4 218 von 218 (neu: Netz-Präfixe, CalDAV-Hosts).
 - `ISCC` kompiliert das Installer-Skript fehlerfrei. Gebaut wurde in den Scratchpad, installiert wurde nichts.
 - Snapshot-Modus mit allen Zuständen an allen Kanten: Die Darstellung ist unverändert. Ich habe vor und nach dem Lauf geprüft, dass `%AppData%\DynamicBay` nicht verändert wurde.
 - Musik, Teams, Spotify und Graph wurden nicht angesprochen.

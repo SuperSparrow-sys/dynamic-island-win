@@ -32,7 +32,10 @@ public static class UpdateCheck
 
     private static DispatcherTimer? _daily;
 
-    /// <summary>Checks shortly after the start and then once a day (it only asks, it never installs by itself).</summary>
+    /// <summary>
+    /// Checks shortly after the start and then once a day while the setting is on (it only asks, it never installs by
+    /// itself). The daily timer always runs, so switching the setting on later works without a restart.
+    /// </summary>
     public static async Task RunAsync(IslandManager island, Action shutdown, Func<bool> enabled)
     {
         _island = island;
@@ -44,7 +47,7 @@ public static class UpdateCheck
             _daily.Start();
         }
         await Task.Delay(TimeSpan.FromSeconds(8));
-        await CheckAndAskAsync();
+        if (enabled()) await CheckAndAskAsync();
     }
 
     private static async Task CheckAndAskAsync()

@@ -34,18 +34,21 @@ public sealed class CalDavClient : IDisposable
     public void Dispose() => _http.Dispose();
 
     /// <summary>
-    /// Credentials only over https and only to the server's own host - or a sibling host of the same domain, as iCloud
-    /// hands out its partitions (caldav.icloud.com -> p42-caldav.icloud.com). An href pointing anywhere else gets none.
+    /// Credentials only over https and only to the server's own host (and hosts below it). Sibling hosts only for
+    /// providers known to hand out partitions (caldav.icloud.com -> p42-caldav.icloud.com): for a server like
+    /// name.github.io or dav.example.co.uk the parent domain belongs to strangers. An href anywhere else gets none.
     /// </summary>
     internal static bool MaySendCredentials(Uri server, Uri target)
     {
         if (target.Scheme != Uri.UriSchemeHttps || server.Scheme != Uri.UriSchemeHttps) return false;
         string host = target.IdnHost, own = server.IdnHost;
-        if (host.Equals(own, StringComparison.OrdinalIgnoreCase)) return true;
+        if (host.Equals(own, StringComparison.OrdinalIgnoreCase) || host.EndsWith("." + own, StringComparison.OrdinalIgnoreCase)) return true;
         int dot = own.IndexOf('.');
         string parent = dot < 0 ? "" : own[(dot + 1)..];
-        return parent.Contains('.') && host.EndsWith("." + parent, StringComparison.OrdinalIgnoreCase);
+        return SiblingDomains.Contains(parent) && host.EndsWith("." + parent, StringComparison.OrdinalIgnoreCase);
     }
+
+    private static readonly HashSet<string> SiblingDomains = new(StringComparer.OrdinalIgnoreCase) { "icloud.com", "me.com", "gmx.net", "gmx.de", "web.de" };
 
     /// <summary>
     /// iCloud answers 503/429 when it is busy or gets too many requests at once: wait (as long as the server asks,
