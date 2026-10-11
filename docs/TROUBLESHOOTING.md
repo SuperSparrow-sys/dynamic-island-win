@@ -48,13 +48,13 @@ wieder her (macht auch die Deinstallation). Gesichert wird in `%AppData%\Dynamic
 
 ## Kalender
 
-Der Status jedes Kontos steht in Einstellungen → Timer und Kalender (z. B. `OK · 4 Termine in 48 h` oder die
+Der Status jedes Kontos steht in Einstellungen → Konten → Kalender (z. B. `OK · 4 Termine in 48 h` oder die
 Fehlermeldung). iCloud braucht ein **app-spezifisches** Passwort, nicht das Apple-ID-Passwort.
 
 ## Claude
 
 - Keine Sitzungen: Es werden nur lokale Claude-Code-Sitzungen aus `%UserProfile%\.claude\projects` gelesen.
-- Live-Status fehlt: Einstellungen → Widgets und Module → Claude → *Einrichten*. Danach muss in
+- Live-Status fehlt: Einstellungen → Apps und Skripte → Claude → *Einrichten*. Danach muss in
   `%UserProfile%\.claude\settings.json` ein Hook mit `127.0.0.1:43822/claude` stehen. Test:
   `curl -X POST http://127.0.0.1:43822/claude/ -d "{\"session_id\":\"x\",\"hook_event_name\":\"Notification\"}"`
 - Eine Sicherung der vorherigen Datei liegt als `settings.json.dynamicbay-backup` daneben.

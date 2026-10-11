@@ -57,13 +57,13 @@
         <c:BoolPick x:Key="LikeBrush" True="{StaticResource B.Pink}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
         <c:BoolPick x:Key="OnBrush" True="{StaticResource B.Green}" False="{StaticResource B.Text2}" />
-        <c:BoolPick x:Key="ContactsEmpty" True="{core:L De='Noch keine Kontakte', En='No contacts yet'}" False="{core:L De='In den Einstellungen mit Microsoft verbinden (Timer und Kalender)', En='Connect Microsoft in the settings (Timer and calendar)'}" />
+        <c:BoolPick x:Key="ContactsEmpty" True="{core:L De='Noch keine Kontakte', En='No contacts yet'}" False="{core:L De='In den Einstellungen unter Konten mit Microsoft verbinden', En='Connect Microsoft under Accounts in the settings'}" />
         <c:BoolPick x:Key="TrackBg" True="#330A84FF" False="{StaticResource B.Fill2}" />
         <c:BoolPick x:Key="OverdueBrush" True="{StaticResource B.Red}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="DoneOpacity"><c:BoolPick.True><sys:Double>0.4</sys:Double></c:BoolPick.True><c:BoolPick.False><sys:Double>1</sys:Double></c:BoolPick.False></c:BoolPick>
-        <c:BoolPick x:Key="TodoEmpty" True="{core:L De='Keine offenen Aufgaben', En='No open tasks'}" False="{core:L De='In den Einstellungen mit Microsoft verbinden (Timer und Kalender)', En='Connect Microsoft in the settings (Timer and calendar)'}" />
+        <c:BoolPick x:Key="TodoEmpty" True="{core:L De='Keine offenen Aufgaben', En='No open tasks'}" False="{core:L De='In den Einstellungen unter Konten mit Microsoft verbinden', En='Connect Microsoft under Accounts in the settings'}" />
         <c:SameToVis x:Key="SameVis" />
-        <c:TextOr x:Key="TeamsHint" Fallback="{core:L De='Mit einem Firmen- oder Schulkonto bei Microsoft verbinden (Einstellungen → Timer und Kalender)', En='Connect a work or school Microsoft account (Settings → Timer and calendar)'}" />
+        <c:TextOr x:Key="TeamsHint" Fallback="{core:L De='Mit einem Firmen- oder Schulkonto bei Microsoft verbinden (Einstellungen → Konten)', En='Connect a work or school Microsoft account (Settings → Accounts)'}" />
         <c:BoolPick x:Key="LikeTip" True="{core:L De='Aus Lieblingssongs entfernen', En='Remove from Liked Songs'}" False="{core:L De='Zu Lieblingssongs hinzufügen', En='Save to Liked Songs'}" />
         <c:BoolPick x:Key="DimIfFalse"><c:BoolPick.True><sys:Double>1</sys:Double></c:BoolPick.True><c:BoolPick.False><sys:Double>0.35</sys:Double></c:BoolPick.False></c:BoolPick>
         <c:BoolPick x:Key="ShuffleTip" True="{core:L De='Zufallswiedergabe aus', En='Shuffle off'}" False="{core:L De='Zufallswiedergabe an', En='Shuffle on'}" />

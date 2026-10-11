@@ -18,7 +18,6 @@ public sealed partial class SettingsContext : ObservableObject
     [ObservableProperty] private int _page;
     public string RedirectUri => SpotifyService.RedirectUri;
     public string VersionText => (Loc.German ? "Version " : "Version ") + App.Version;
-    public string ScreenshotFolders => string.Join("\n", ClipboardService.ScreenshotFolders());
     public string NotificationStatus => I.Notifications.Access switch
     {
         NotificationAccess.Allowed => Loc.German ? "Zugriff erlaubt: Mitteilungen aller Apps werden gespiegelt." : "Access granted: notifications from all apps are mirrored.",
@@ -54,7 +53,8 @@ public partial class SettingsWindow : Window
         };
         settings.PropertyChanged += placementChanged;
         UpdatePreview();
-        BuildWidgetRows();
+        ShowPage(SettingsPage.General);
+        BuildWidgetBoard();
         BuildScriptRows();
         Action<string> scriptsUpdated = _ => Dispatcher.BeginInvoke(UpdateScriptStatus);
         vm.Scripts.Updated += scriptsUpdated;
@@ -64,6 +64,9 @@ public partial class SettingsWindow : Window
         BuildBannerRows();
         UpdateClaudeShareText();
         UpdateTaildropFolderText();
+        BuildScreenshotFolders();
+        SetPath(ScriptFolderButton, ScriptFolderText, Services.Scripting.ScriptWidgetsService.Folder);
+        SetPath(DataFolderButton, DataFolderText, AppSettings.Folder);
         BuildProjectRows();
         UpdateTimeFileText();
         BuildTodoListChoices();
@@ -107,13 +110,13 @@ public partial class SettingsWindow : Window
         }
     }
 
-    // Sidebar position -> page id ("Widgets und Module" is page 11 but sits second in the sidebar).
-    private static readonly int[] NavToPage = { 0, 1, 11, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    /// <summary>The sidebar entries that are pages (in SettingsPage order); section headings are skipped.</summary>
+    private List<object> NavPages => Nav.Items.Cast<object>().Where(i => i is not ListBoxItem { Tag: "header" }).ToList();
 
-    public void ShowPage(int page) => Nav.SelectedIndex = Array.IndexOf(NavToPage, page);
+    public void ShowPage(SettingsPage page) => Nav.SelectedItem = NavPages[(int)page];
 
     /// <summary>Opens a page and scrolls its group heading (German or English text start) to the top.</summary>
-    public void ShowSection(int page, string? group)
+    public void ShowSection(SettingsPage page, string? group)
     {
         ShowPage(page);
         if (string.IsNullOrEmpty(group)) { PageScroll.ScrollToTop(); return; }
@@ -140,14 +143,19 @@ public partial class SettingsWindow : Window
 
     private void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_ctx is null || Nav.SelectedIndex < 0) return;
+        if (_ctx is null || NavPages.IndexOf(Nav.SelectedItem) is not (>= 0 and var index)) return;
         var sw = Stopwatch.StartNew();
-        _ctx.Page = NavToPage[Nav.SelectedIndex];
+        _ctx.Page = index;
         PageScroll.ScrollToTop();
         // Slow pages show up in the log (time until the page is laid out and rendered).
         int page = _ctx.Page;
-        Dispatcher.BeginInvoke(() => { if (sw.ElapsedMilliseconds > 150) Log.Info($"Settings page {page} took {sw.ElapsedMilliseconds} ms"); }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+        Dispatcher.BeginInvoke(() => { if (sw.ElapsedMilliseconds > 150) Log.Info($"Settings page {(SettingsPage)page} took {sw.ElapsedMilliseconds} ms"); }, System.Windows.Threading.DispatcherPriority.ContextIdle);
     }
+
+    private void GoToAccount_Click(object sender, RoutedEventArgs e) =>
+        ShowSection(SettingsPage.Accounts, ((FrameworkElement)sender).Tag is "Calendars" ? (Loc.German ? "Kalender" : "Calendars") : (string)((FrameworkElement)sender).Tag);
+
+    private void GoToCompact_Click(object sender, RoutedEventArgs e) => ShowSection(SettingsPage.Content, Loc.German ? "Kompakte" : "Compact");
 
     // ---- widgets & modules ----
 
@@ -188,9 +196,6 @@ public partial class SettingsWindow : Window
     private (string id, string icon, string de, string en, string descDe, string descEn)[] AllWidgetInfo() =>
         HomeWidgetInfo.Concat(_ctx.S.ScriptWidgets.Select(sc => (sc.HomeId, "Icon.Code", sc.Name, sc.Name, "Eigenes Skript-Widget", "Own script widget"))).ToArray();
 
-    // Rows by widget id, so switches and arrows can update them in place (no flicker, no jumping list).
-    private readonly Dictionary<string, (Border row, Button up, Button down)> _widgetRows = new();
-
     /// <summary>Where a widget is: "home" (Nook), "system" or "" (not shown).</summary>
     private string PlaceOf(string id) => _ctx.S.HomeWidgets.Contains(id) ? "home" : _ctx.S.SystemWidgets.Contains(id) ? "system" : "";
 
@@ -215,49 +220,6 @@ public partial class SettingsWindow : Window
             {
                 if (index < 0 || index > target.Count) target.Add(id); else target.Insert(index, id);
             }
-        }
-        BuildWidgetRows();
-    }
-
-    private void BuildWidgetRows()
-    {
-        var s = _ctx.S;
-        var infos = AllWidgetInfo();
-        WidgetRows.Children.Clear();
-        _widgetRows.Clear();
-        // Nook widgets first (in their order), then System, then the rest.
-        var ordered = s.HomeWidgets.Concat(s.SystemWidgets).Where(id => infos.Any(w => w.id == id))
-            .Concat(infos.Select(w => w.id).Where(id => !s.HomeWidgets.Contains(id) && !s.SystemWidgets.Contains(id))).ToList();
-        for (int i = 0; i < ordered.Count; i++)
-        {
-            var info = infos.First(w => w.id == ordered[i]);
-            string id = info.id;
-            string place = PlaceOf(id);
-            var list = place == "home" ? s.HomeWidgets : place == "system" ? s.SystemWidgets : null;
-            int pos = list?.IndexOf(id) ?? -1;
-
-            // Off | Nook | System
-            var segs = new StackPanel { Orientation = Orientation.Horizontal };
-            foreach (var (key, text) in new[] { ("", Loc.German ? "Aus" : "Off"), ("home", "Nook"), ("system", "System") })
-            {
-                var rb = new RadioButton { Style = (Style)FindResource("S.Segment"), Content = text, GroupName = "w_" + id, IsChecked = place == key };
-                string k = key;
-                rb.Checked += (_, _) => { if (PlaceOf(id) != k) Dispatcher.BeginInvoke(() => Place(id, k)); };
-                segs.Children.Add(rb);
-            }
-            var seg = new Border { Style = (Style)FindResource("S.Segments"), Child = segs };
-
-            var controls = new StackPanel { Orientation = Orientation.Horizontal };
-            var up = ArrowButton("Icon.ChevronUp", list is not null && pos > 0, () => Place(id, place, pos - 1));
-            var down = ArrowButton("Icon.ChevronDown", list is not null && pos >= 0 && pos < list!.Count - 1, () => Place(id, place, pos + 2));
-            controls.Children.Add(up);
-            controls.Children.Add(down);
-            controls.Children.Add(new Border { Width = 12 });
-            controls.Children.Add(seg);
-
-            var row = (Border)Row(info.icon, Loc.German ? info.de : info.en, Loc.German ? info.descDe : info.descEn, controls, i > 0);
-            _widgetRows[id] = (row, up, down);
-            WidgetRows.Children.Add(row);
         }
         BuildWidgetBoard();
     }
@@ -325,7 +287,8 @@ public partial class SettingsWindow : Window
         {
             CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(0, 0, 0, 6), Cursor = Cursors.SizeAll,
             Background = (System.Windows.Media.Brush)FindResource("S.Field"), BorderBrush = (System.Windows.Media.Brush)FindResource("S.FieldBorder"), BorderThickness = new Thickness(1),
-            ToolTip = Loc.German ? "Tippen: Einstellungen des Widgets · Ziehen: verschieben" : "Tap: widget settings · Drag: move",
+            ToolTip = Loc.German ? "Tippen: Einstellungen · Ziehen: verschieben · Rechtsklick: Menü" : "Tap: settings · Drag: move · Right-click: menu",
+            ContextMenu = ChipMenu(id),
         };
         var row = new StackPanel { Orientation = Orientation.Horizontal };
         row.Children.Add(new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Width = 14, Height = 14, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
@@ -350,10 +313,37 @@ public partial class SettingsWindow : Window
             if (!pressed || dragged) return;
             pressed = false;
             var (page, group) = Widgets.SettingsOf(id);
-            if (page == 11 && group is null) return; // nothing of its own beyond this page
+            if (page == SettingsPage.Content && group is null) return; // nothing of its own beyond this page
             ShowSection(page, group);
         };
         return chip;
+    }
+
+    /// <summary>Without dragging: move a widget to Nook, System or Off, or up and down in its column.</summary>
+    private ContextMenu ChipMenu(string id)
+    {
+        var menu = new ContextMenu();
+        menu.Opened += (_, _) =>
+        {
+            menu.Items.Clear();
+            string place = PlaceOf(id);
+            var list = place == "home" ? _ctx.S.HomeWidgets : place == "system" ? _ctx.S.SystemWidgets : null;
+            int pos = list?.IndexOf(id) ?? -1;
+            void Add(string header, bool enabled, Action click)
+            {
+                var item = new MenuItem { Header = header, IsEnabled = enabled };
+                item.Click += (_, _) => Dispatcher.BeginInvoke(click);
+                menu.Items.Add(item);
+            }
+            Add("Nook", place != "home", () => Place(id, "home"));
+            Add("System", place != "system", () => Place(id, "system"));
+            Add(Loc.German ? "Aus" : "Off", place != "", () => Place(id, ""));
+            if (list is null) return;
+            menu.Items.Add(new Separator());
+            Add(Loc.German ? "Nach oben" : "Move up", pos > 0, () => Place(id, place, pos - 1));
+            Add(Loc.German ? "Nach unten" : "Move down", pos < list.Count - 1, () => Place(id, place, pos + 2));
+        };
+        return menu;
     }
 
     // ---- script widgets ----
@@ -408,7 +398,7 @@ public partial class SettingsWindow : Window
 
             controls.Children.Add(IconButton("Icon.Pencil", Loc.German ? "Im Editor öffnen" : "Open in editor", () => Services.Scripting.ScriptWidgetsService.Edit(sc)));
             controls.Children.Add(IconButton("Icon.Refresh", Loc.German ? "Jetzt ausführen" : "Run now", () => _ctx.I.Scripts.RunNow(sc)));
-            controls.Children.Add(IconButton("Icon.Trash", Loc.German ? "Entfernen" : "Remove", () => { _ctx.I.Scripts.Remove(sc); BuildScriptRows(); BuildWidgetRows(); }));
+            controls.Children.Add(IconButton("Icon.Trash", Loc.German ? "Entfernen" : "Remove", () => { _ctx.I.Scripts.Remove(sc); BuildScriptRows(); BuildWidgetBoard(); }));
 
             var row = Row("Icon.Code", sc.Name, _ctx.I.Scripts.StatusOf(sc), controls, i > 0, out var status);
             _scriptStatus[sc.Id] = status;
@@ -431,7 +421,7 @@ public partial class SettingsWindow : Window
     {
         var sc = _ctx.I.Scripts.CreateNew();
         BuildScriptRows();
-        BuildWidgetRows();
+        BuildWidgetBoard();
         Services.Scripting.ScriptWidgetsService.Edit(sc);
     }
 
@@ -442,32 +432,14 @@ public partial class SettingsWindow : Window
         try { _ctx.I.Scripts.Import(dlg.FileName); }
         catch (Exception ex) { Log.Error("ScriptImport", ex); }
         BuildScriptRows();
-        BuildWidgetRows();
+        BuildWidgetBoard();
     }
 
-    private void OpenScriptFolder_Click(object sender, RoutedEventArgs e)
-    {
-        System.IO.Directory.CreateDirectory(Services.Scripting.ScriptWidgetsService.Folder);
-        try { Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { Services.Scripting.ScriptWidgetsService.Folder } }); } catch { }
-    }
+    private void OpenScriptFolder_Click(object sender, RoutedEventArgs e) => OpenFolder(Services.Scripting.ScriptWidgetsService.Folder);
 
     private void ScriptHelp_Click(object sender, RoutedEventArgs e)
     {
         try { Process.Start(new ProcessStartInfo("https://github.com/SuperSparrow-sys/dynamic-island-win/blob/main/docs/SCRIPTS.md") { UseShellExecute = true }); } catch { }
-    }
-
-    private Button ArrowButton(string icon, bool enabled, Action click)
-    {
-        var b = new Button
-        {
-            Style = (Style)FindResource("S.Button"),
-            Padding = new Thickness(6, 4, 6, 4),
-            Margin = new Thickness(4, 0, 0, 0),
-            IsEnabled = enabled,
-            Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Width = 13, Height = 13 },
-        };
-        b.Click += (_, _) => click();
-        return b;
     }
 
     // ---- update ----
@@ -495,8 +467,70 @@ public partial class SettingsWindow : Window
 
     // ---- claude ----
 
-    private void UpdateClaudeShareText() =>
-        ClaudeShareText.Text = string.IsNullOrEmpty(_ctx.S.ClaudeShareFolder) ? (Loc.German ? "Aus" : "Off") : _ctx.S.ClaudeShareFolder;
+    private void UpdateClaudeShareText()
+    {
+        string folder = _ctx.S.ClaudeShareFolder;
+        if (string.IsNullOrEmpty(folder))
+        {
+            ClaudeShareText.Text = Loc.German ? "Aus" : "Off";
+            ClaudeShareText.ClearValue(TextBlock.ForegroundProperty);
+            ClaudeShareButton.ToolTip = Loc.German ? "Cloud-Ordner wählen" : "Choose a cloud folder";
+        }
+        else SetPath(ClaudeShareButton, ClaudeShareText, folder, exists: System.IO.Directory.Exists(folder));
+    }
+
+    // ---- places on the PC: [icon] name, full path as tooltip ----
+
+    private static string ShortName(string path)
+    {
+        var trimmed = path.TrimEnd('\\', '/');
+        var name = System.IO.Path.GetFileName(trimmed);
+        return name.Length > 0 ? name : path;
+    }
+
+    /// <summary>Shows a place by its name; the full path goes into the tooltip, a missing place turns orange.</summary>
+    private void SetPath(Button button, TextBlock text, string path, string? display = null, bool exists = true)
+    {
+        text.Text = display ?? ShortName(path);
+        button.ToolTip = exists ? path : path + "\n" + (Loc.German ? "Ordner nicht gefunden" : "Folder not found");
+        if (exists) text.ClearValue(TextBlock.ForegroundProperty);
+        else text.SetResourceReference(TextBlock.ForegroundProperty, "S.Orange");
+    }
+
+    private static void OpenFolder(string folder)
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { folder } });
+        }
+        catch { }
+    }
+
+    /// <summary>The folders the clipboard watches for new screenshots, one button each (opens it).</summary>
+    private void BuildScreenshotFolders()
+    {
+        ScreenshotFolderButtons.Children.Clear();
+        foreach (var folder in ClipboardService.ScreenshotFolders())
+        {
+            var text = new TextBlock { Margin = new Thickness(8, 0, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+            var b = new Button
+            {
+                Style = (Style)FindResource("S.PathButton"), Margin = new Thickness(6, 3, 0, 3),
+                Content = new StackPanel { Orientation = Orientation.Horizontal, Children =
+                {
+                    new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.Folder"), Width = 14, Height = 14 },
+                    text,
+                } },
+            };
+            SetPath(b, text, folder);
+            string f = folder;
+            b.Click += (_, _) => OpenFolder(f);
+            ScreenshotFolderButtons.Children.Add(b);
+        }
+        if (ScreenshotFolderButtons.Children.Count == 0)
+            ScreenshotFolderButtons.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Desc"), Text = Loc.German ? "Keiner gefunden" : "None found" });
+    }
 
     // ---- Taildrop folder ----
 
@@ -504,8 +538,8 @@ public partial class SettingsWindow : Window
     {
         string folder = _ctx.S.TaildropFolder;
         bool custom = !string.IsNullOrWhiteSpace(folder);
-        TaildropFolderText.Text = custom ? folder : (Loc.German ? "Downloads (wie Tailscale)" : "Downloads (like Tailscale)");
-        TaildropFolderText.ToolTip = custom ? folder : Services.TaildropService.DownloadsFolder;
+        if (custom) SetPath(TaildropFolderButton, TaildropFolderText, folder, exists: System.IO.Directory.Exists(folder));
+        else SetPath(TaildropFolderButton, TaildropFolderText, Services.TaildropService.DownloadsFolder, "Downloads");
         TaildropFolderReset.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -534,7 +568,7 @@ public partial class SettingsWindow : Window
         if (lists.Count == 0)
         {
             TodoListChoices.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Desc"),
-                Text = _ctx.I.Microsoft?.IsConnected == true ? (Loc.German ? "Listen werden geladen …" : "Loading lists …") : (Loc.German ? "Erst mit Microsoft verbinden (unten)." : "Connect Microsoft first (below).") });
+                Text = _ctx.I.Microsoft?.IsConnected == true ? (Loc.German ? "Listen werden geladen …" : "Loading lists …") : (Loc.German ? "Erst unter Konten mit Microsoft verbinden." : "Connect Microsoft under Accounts first.") });
             return;
         }
         void Add(string id, string name)
@@ -576,8 +610,9 @@ public partial class SettingsWindow : Window
 
     private void UpdateTimeFileText()
     {
-        TimeFileText.Text = _ctx.I.Time.FilePath;
-        TimeFileText.ToolTip = _ctx.I.Time.FilePath;
+        // The file itself appears with the first entry; only a missing folder is a problem.
+        string path = _ctx.I.Time.FilePath;
+        SetPath(TimeFileButton, TimeFileText, path, exists: System.IO.Directory.Exists(System.IO.Path.GetDirectoryName(path)));
     }
 
     private void PickTimeFile_Click(object sender, RoutedEventArgs e)
@@ -614,6 +649,26 @@ public partial class SettingsWindow : Window
     private async void MicrosoftSignIn_Click(object sender, RoutedEventArgs e)
     {
         if (_ctx.I.Microsoft is { IsBusy: false } ms) await ms.SignInAsync(withPresence: _ctx.S.MicrosoftPresence);
+    }
+
+    /// <summary>With an app ID it signs in at once; without one the setup opens first.</summary>
+    private void MicrosoftConnect_Click(object sender, RoutedEventArgs e)
+    {
+        if (_ctx.S.MicrosoftClientId.Trim().Length == 0) { MsSetup.Visibility = Visibility.Visible; return; }
+        MicrosoftSignIn_Click(sender, e);
+    }
+
+    /// <summary>Shows or hides the setup steps of an account (also to fix a wrong client ID).</summary>
+    private void ToggleSetup_Click(object sender, RoutedEventArgs e)
+    {
+        if (FindName((string)((FrameworkElement)sender).Tag) is FrameworkElement setup)
+            setup.Visibility = setup.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void SpotifyConnect_Click(object sender, RoutedEventArgs e)
+    {
+        if (_ctx.S.SpotifyClientId.Trim().Length == 0) { SpotifySetup.Visibility = Visibility.Visible; return; }
+        _ctx.I.Spotify.ConnectCommand.Execute(null);
     }
 
     private async void MicrosoftPresence_Click(object sender, RoutedEventArgs e)
@@ -723,6 +778,8 @@ public partial class SettingsWindow : Window
 
     private void BuildCalendarRows()
     {
+        var names = _ctx.S.CalendarAccounts.Select(a => a.Name).Distinct().ToList();
+        CalendarSummary.Text = names.Count == 0 ? (Loc.German ? "Noch keiner" : "None yet") : string.Join(", ", names);
         CalendarRows.Children.Clear();
         _calStatus.Clear();
         _calLines.Clear();
@@ -824,10 +881,22 @@ public partial class SettingsWindow : Window
         }
     }
 
+    /// <summary>iCloud, GMX and web.de fill in their server; only "Other" shows the address field.</summary>
+    private void CalDavProvider_Checked(object sender, RoutedEventArgs e)
+    {
+        if (ICloudServer is null || CalDavServerPanel is null || CalDavAppleHint is null) return;
+        string server = (string)((FrameworkElement)sender).Tag;
+        bool other = server.Length == 0;
+        ICloudServer.Text = server;
+        CalDavServerPanel.Visibility = other ? Visibility.Visible : Visibility.Collapsed;
+        CalDavAppleHint.Visibility = !other && IsICloud(server) ? Visibility.Visible : Visibility.Collapsed;
+        if (other) ICloudServer.Focus();
+    }
+
     private async void SaveICloud_Click(object sender, RoutedEventArgs e)
     {
         var server = ICloudServer.Text.Trim();
-        if (server.Length == 0) server = "https://caldav.icloud.com/";
+        if (server.Length == 0) { ICloudStatus.Text = Loc.German ? "Bitte die Server-Adresse eintragen." : "Please enter the server address."; return; }
         if (!server.Contains("://")) server = "https://" + server;
         if (!server.EndsWith("/")) server += "/";
         var account = new CalendarAccount { Kind = CalendarKind.ICloud, Name = ServerName(server), User = ICloudUser.Text.Trim(), Url = server };
@@ -912,7 +981,7 @@ public partial class SettingsWindow : Window
         if (_ctx.S.Shortcuts.Count > 0 && !_ctx.S.HomeWidgets.Contains(Widgets.Shortcuts))
         {
             _ctx.S.HomeWidgets.Add(Widgets.Shortcuts);
-            BuildWidgetRows();
+            BuildWidgetBoard();
         }
     }
 
@@ -1054,7 +1123,16 @@ public partial class SettingsWindow : Window
 
     // ---- excluded apps ----
 
-    private void AddExcluded_Click(object sender, RoutedEventArgs e) => AddExcluded(ExcludeBox.Text);
+    private void PickExcludedProgram_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = Loc.German ? "Programm wählen" : "Choose a program",
+            Filter = (Loc.German ? "Programme" : "Programs") + " (*.exe)|*.exe",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+        };
+        if (dlg.ShowDialog(this) == true) AddExcluded(System.IO.Path.GetFileName(dlg.FileName));
+    }
 
     private void AddExcluded(string? name)
     {
@@ -1062,7 +1140,6 @@ public partial class SettingsWindow : Window
         if (string.IsNullOrEmpty(name)) return;
         if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) name += ".exe";
         if (!_ctx.S.ExcludedApps.Contains(name, StringComparer.OrdinalIgnoreCase)) _ctx.S.ExcludedApps.Add(name);
-        ExcludeBox.Text = "";
         _ctx.S.SaveSoon();
     }
 
@@ -1154,11 +1231,7 @@ public partial class SettingsWindow : Window
 
     private void OpenGitHub_Click(object sender, RoutedEventArgs e) => Open($"https://github.com/{UpdateCheck.Repo}");
 
-    private void OpenDataFolder_Click(object sender, RoutedEventArgs e)
-    {
-        System.IO.Directory.CreateDirectory(AppSettings.Folder);
-        Open(AppSettings.Folder);
-    }
+    private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => OpenFolder(AppSettings.Folder);
 
     private static void Open(string target)
     {

@@ -4,7 +4,7 @@ DynamicBay kann eigene Widgets aus JavaScript anzeigen – mit derselben Schnitt
 [Scriptable](https://scriptable.app) auf dem iPhone. Vorhandene Scriptable-Widgets laufen deshalb meist mit kleinen
 Anpassungen (Bilder und Symbole werden noch nicht unterstützt).
 
-Einstellungen → **Widgets und Module** → *Eigene Widgets (Skripte)*:
+Einstellungen → **Apps und Skripte** → *Eigene Widgets (Skripte)*:
 
 - **Neues Skript** legt eine Vorlage an und öffnet sie im Editor (Notepad). Speichern genügt – die Insel führt das
   Skript sofort neu aus.

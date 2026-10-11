@@ -93,7 +93,8 @@ public partial class App : Application
             AppSettings.ReadOnly = true; // demo settings, never written to the user's file
             _settings = new AppSettings { Hidden = false };
         }
-        Loc.Init(_settings.Language);
+        // Snapshots of the other language: DYNAMICBAY_SNAPSHOT_LANG=en (demo settings only).
+        Loc.Init(snapshotDir is not null && Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_LANG") is { Length: > 0 } lang ? lang : _settings.Language);
         // Without the graphics card for the whole process (see IslandWindow.ApplyRenderMode): no Direct3D device at all,
         // which saves another ~70 MB. Switching back takes effect after a restart; the island itself switches live.
         if (!_settings.GpuRendering) System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;

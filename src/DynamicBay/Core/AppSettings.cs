@@ -21,27 +21,30 @@ public static class Widgets
     public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts };
     public const string Battery = "battery";
     /// <summary>Settings page and group heading (start of its text) of each widget - for the gear in the island and the board in the settings.</summary>
-    public static (int page, string? group) SettingsOf(string id) => id switch
+    public static (SettingsPage page, string? group) SettingsOf(string id) => id switch
     {
-        Media => (4, null),
-        Calendar => (9, "Kalender-Konten"),
-        Timer => (9, null),
-        Clock => (11, Loc.German ? "Uhr" : "Clock"),
-        Shortcuts => (11, Loc.German ? "Schnellstart" : "Launcher"),
-        Claude => (11, "Claude"),
-        Messenger => (7, null),
-        Devices => (8, null),
-        Audio => (8, Loc.German ? "Kopfhörer" : "Headphones"),
-        Todo or Teams => (9, Loc.German ? "Teams und To Do" : "Teams and To Do"),
-        Contacts => (9, "Microsoft 365"),
-        TimeTrack => (9, Loc.German ? "Zeiterfassung" : "Time tracking"),
-        _ => (11, null),
+        Media => (SettingsPage.Media, null),
+        Calendar => (SettingsPage.Calendar, null),
+        Timer => (SettingsPage.Calendar, "Timer"),
+        Clock => (SettingsPage.Appearance, Loc.German ? "Uhr" : "Clock"),
+        Shortcuts => (SettingsPage.Apps, Loc.German ? "Schnellstart" : "Launcher"),
+        Claude => (SettingsPage.Apps, "Claude"),
+        Messenger => (SettingsPage.Notifications, null),
+        Devices => (SettingsPage.Audio, "Bluetooth"),
+        Audio => (SettingsPage.Audio, Loc.German ? "Kopfhörer" : "Headphones"),
+        Todo => (SettingsPage.Calendar, Loc.German ? "Aufgaben" : "Tasks"),
+        Teams or Contacts => (SettingsPage.Accounts, "Microsoft 365"),
+        TimeTrack => (SettingsPage.Calendar, Loc.German ? "Zeiterfassung" : "Time tracking"),
+        _ when id.StartsWith(ScriptPrefix, StringComparison.Ordinal) => (SettingsPage.Apps, Loc.German ? "Eigene Widgets" : "Own widgets"),
+        _ => (SettingsPage.Content, null),
     };
 
     public static readonly string[] AllCompact = { Media, Timer, Calendar, Battery, Clock, Claude, Muted, Mic, TimeTrack, Downloads };
     /// <summary>Home widget ids of user scripts: "script:{id}".</summary>
     public const string ScriptPrefix = "script:";
 }
+/// <summary>Pages of the settings window, in the order of the sidebar.</summary>
+public enum SettingsPage { General, Appearance, Position, Behavior, Quiet, Content, Media, Audio, Notifications, Shelf, Calendar, Apps, Accounts, Advanced, About }
 public enum DisplayMode { Single, Mirror }
 public enum AppIconStyle { Mono, Dark, Color, Original }
 public enum CalendarKind { Ics, ICloud, Google, Microsoft }

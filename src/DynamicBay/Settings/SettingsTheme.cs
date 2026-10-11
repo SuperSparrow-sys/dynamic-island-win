@@ -9,6 +9,9 @@ public static class SettingsTheme
 {
     public static bool IsLight()
     {
+        // Snapshots of the other theme: DYNAMICBAY_SNAPSHOT_THEME=dark or light.
+        var theme = Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_THEME");
+        if (theme is "dark" or "light") return theme == "light";
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");

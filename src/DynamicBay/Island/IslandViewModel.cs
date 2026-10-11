@@ -111,8 +111,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public event Action? OpenSettingsRequested;
     public event Action? OpenTimeTrackingRequested;
     /// <summary>The gear on a widget (Alt held): settings page and the group heading to scroll to.</summary>
-    public event Action<int, string?>? OpenSettingsAtRequested;
-    public void OpenSettingsAt(int page, string? group) => OpenSettingsAtRequested?.Invoke(page, group);
+    public event Action<SettingsPage, string?>? OpenSettingsAtRequested;
+    public void OpenSettingsAt(SettingsPage page, string? group) => OpenSettingsAtRequested?.Invoke(page, group);
     public event Action? HideRequested;
     public event Action? QuitRequested;
 

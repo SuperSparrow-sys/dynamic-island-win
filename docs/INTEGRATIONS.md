@@ -7,7 +7,7 @@ anderen Player. Die optionale Anmeldung ergänzt Lieblingssongs, Gerätewahl, Sh
 
 1. <https://developer.spotify.com/dashboard> → *Create app* (beliebiger Name).
 2. Redirect URI: `http://127.0.0.1:43821/callback`, API: *Web API*.
-3. Client ID in Einstellungen → Medien und Spotify eintragen → *Verbinden*.
+3. Einstellungen → Konten → Spotify → *Verbinden* öffnet die Einrichtung. Client ID eintragen → *Verbinden*.
 
 Für Warteschlange und Playlists braucht die Anmeldung die Berechtigung für Playlists: Wer vor Version 1.0.15 verbunden
 hat, trennt und verbindet Spotify einmal neu.
@@ -28,9 +28,9 @@ der Rest des PCs bleibt gleich laut.
 
 ## Kalender
 
-Einstellungen → Timer und Kalender → *Kalender-Konten*. Mehrere Konten gleichzeitig möglich.
+Einstellungen → Konten → *Kalender*. Mehrere Konten gleichzeitig möglich.
 
-- **iCloud / GMX / web.de (CalDAV):** Server-Feld (iCloud vorgegeben, GMX `https://caldav.gmx.net`, web.de `https://caldav.web.de`). iCloud: Apple-ID + **app-spezifisches Passwort** (appleid.apple.com → Anmeldung und Sicherheit →
+- **iCloud / GMX / web.de (CalDAV):** Anbieter wählen: iCloud, GMX, web.de oder *Andere* (eigene https-Adresse). iCloud: Apple-ID + **app-spezifisches Passwort** (appleid.apple.com → Anmeldung und Sicherheit →
   App-spezifische Passwörter). Zugriff über CalDAV (`caldav.icloud.com`), alle Kalender werden gefunden.
 - **Google:** Einmalig in der [Google Cloud Console](https://console.cloud.google.com) ein Projekt anlegen,
   *Google Calendar API* aktivieren, OAuth-Zustimmungsbildschirm einrichten (extern, dich selbst als Testnutzer),
@@ -72,7 +72,7 @@ kann Taildrop nicht übertragen.
 
 Das Widget „Audio“ wechselt Ausgabe und Mikrofon (Windows-Standardgerät für alles) und verbindet gekoppelte
 Bluetooth-Kopfhörer und -Lautsprecher mit einem Klick (wie „Verbinden“ in den Windows-Soundeinstellungen; klappt auch
-mit Intels Bluetooth-Audio-Offload). Einstellungen → Akku und Bluetooth → *Kopfhörer und Mikrofon*:
+mit Intels Bluetooth-Audio-Offload). Einstellungen → Audio und Geräte → *Kopfhörer und Mikrofon*:
 
 - Kopfhörer werden beim Verbinden sofort die Ausgabe.
 - Wird das Mikrofon von Bluetooth-Kopfhörern benutzt, schalten sie in den Telefonmodus (Mono, dumpfer Ton). Die Insel
@@ -88,7 +88,7 @@ Screenshot-Ordner aller OneDrive-Konten werden automatisch überwacht.
   Klick setzt sie im Terminal fort (`claude --resume`).
 - **Remote Control:** Sitzungen mit Remote Control zeigen einen Globus – öffnet `claude.ai/code/session_…` im Browser
   oder in der Claude-App, auf jedem Gerät.
-- **Live-Status:** Einstellungen → Widgets und Module → Claude → *Einrichten* ergänzt Claude-Code-Hooks
+- **Live-Status:** Einstellungen → Apps und Skripte → Claude → *Einrichten* ergänzt Claude-Code-Hooks
   (`UserPromptSubmit`, `Notification`, `Stop`), die an `127.0.0.1:43822` melden. Die Insel zeigt dann
   „Claude arbeitet“, „Claude ist fertig“ und „Claude braucht dich“.
 - **Alle PCs:** Mit einem gewählten Cloud-Ordner legt jeder PC eine kleine Übersicht seiner Sitzungen ab
@@ -110,11 +110,11 @@ Microsoft verlangt dafür eine eigene App-Kennung (wie bei Spotify). Einmalig, e
    Microsoft-Konten“. Dann funktionieren Firmen- und private Konten mit derselben Kennung.
 4. **Umleitungs-URI:** Plattform **Öffentlicher Client/nativ (mobil und Desktop)**, Adresse `http://localhost`.
 5. **Registrieren** klicken und die **Anwendungs-ID (Client-ID)** kopieren.
-6. In DynamicBay: Einstellungen → Timer und Kalender → Microsoft 365 → Anwendungs-ID einfügen →
+6. In DynamicBay: Einstellungen → Konten → Microsoft 365 → *Verbinden* → Anwendungs-ID einfügen →
    **Mit Microsoft anmelden**. Im Browser das Konto wählen und zustimmen.
 
 Danach erscheint der Outlook-Kalender in der Kalender-Karte. Die Widgets **Aufgaben** und **Teams-Status** fügst du
-unter Widgets und Module hinzu. Den Teams-Status musst du einmal extra freischalten (Knopf „Freischalten“), weil
+unter Insel-Inhalte hinzu. Den Teams-Status musst du einmal extra freischalten (Knopf „Freischalten“), weil
 Microsoft dafür eine eigene Erlaubnis abfragt.
 
 **Firmenkonto:**

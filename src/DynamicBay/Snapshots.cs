@@ -227,30 +227,25 @@ public static class Snapshots
             }
             var win = new Settings.SettingsWindow(settings, vm);
             win.Show();
-            for (int page = 0; page <= 11; page++)
+            // Every page from top to bottom: settings-PP-N.png, one picture per screen height.
+            var scroll = (System.Windows.Controls.ScrollViewer)win.FindName("PageScroll");
+            foreach (var page in Enum.GetValues<SettingsPage>())
             {
                 win.ShowPage(page);
                 await Task.Delay(700);
-                RenderWindow(win, Path.Combine(dir, $"settings-{page:00}.png"));
+                for (int part = 0; ; part++)
+                {
+                    RenderWindow(win, Path.Combine(dir, $"settings-{(int)page:00}-{part}.png"));
+                    if (scroll.VerticalOffset + scroll.ViewportHeight >= scroll.ExtentHeight - 1 || part > 6) break;
+                    scroll.ScrollToVerticalOffset(scroll.VerticalOffset + scroll.ViewportHeight - 60);
+                    await Task.Delay(400);
+                }
             }
-            // Calendar page with the CalDAV form open
-            win.ShowPage(9);
+            // Accounts page with the CalDAV form open
+            win.ShowPage(SettingsPage.Accounts);
             if (win.FindName("ICloudForm") is FrameworkElement form) { form.Visibility = Visibility.Visible; await Task.Delay(300); form.BringIntoView(); }
             await Task.Delay(700);
-            RenderWindow(win, Path.Combine(dir, "settings-10b-caldav.png"));
-            // Widgets page, scrolled to the script widgets
-            win.ShowPage(11);
-            await Task.Delay(500);
-            if (win.FindName("ScriptRows") is FrameworkElement rows) rows.BringIntoView();
-            await Task.Delay(500);
-            RenderWindow(win, Path.Combine(dir, "settings-11b-scripts.png"));
-            if (win.FindName("PageScroll") is System.Windows.Controls.ScrollViewer ps) { ps.ScrollToVerticalOffset(ps.VerticalOffset + 650); await Task.Delay(500); RenderWindow(win, Path.Combine(dir, "settings-11c-launcher.png")); }
-            // Behaviour page, scrolled down to "hide while these apps are active"
-            win.ShowPage(3);
-            await Task.Delay(500);
-            (win.FindName("PageScroll") as System.Windows.Controls.ScrollViewer)?.ScrollToEnd();
-            await Task.Delay(500);
-            RenderWindow(win, Path.Combine(dir, "settings-03b-excluded.png"));
+            RenderWindow(win, Path.Combine(dir, "settings-12b-caldav.png"));
             win.Close();
             return;
         }
@@ -442,7 +437,9 @@ public static class Snapshots
         var dv = new DrawingVisual();
         using (var dc = dv.RenderOpen())
         {
-            var bg = w.Background is SolidColorBrush b && b.Color.A > 0 ? b : new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3));
+            // Mica leaves the window transparent: paint what it shows, light or dark.
+            var mica = Settings.SettingsTheme.IsLight() ? Color.FromRgb(0xF3, 0xF3, 0xF3) : Color.FromRgb(0x20, 0x20, 0x20);
+            var bg = w.Background is SolidColorBrush b && b.Color.A > 0 ? b : new SolidColorBrush(mica);
             dc.DrawRectangle(bg, null, new Rect(0, 0, root.ActualWidth, root.ActualHeight));
             dc.DrawRectangle(new VisualBrush(root), null, new Rect(0, 0, root.ActualWidth, root.ActualHeight));
         }

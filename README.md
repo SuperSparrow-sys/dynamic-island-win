@@ -45,7 +45,7 @@ Der Installer ist nicht von einer Zertifizierungsstelle signiert – Windows Sma
 
 | | |
 |---|---|
-| ![Widgets](docs/images/settings-widgets.png) | ![Position](docs/images/settings-position.png) |
+| ![Insel-Inhalte](docs/images/settings-content.png) | ![Konten](docs/images/settings-accounts.png) |
 
 Anleitungen: [Spotify verbinden](docs/INTEGRATIONS.md#spotify) · [Kalender (iCloud, Google, Outlook)](docs/INTEGRATIONS.md#kalender) · [Mitteilungen anderer Apps](docs/INTEGRATIONS.md#mitteilungen) · [Claude](docs/INTEGRATIONS.md#claude)
 
