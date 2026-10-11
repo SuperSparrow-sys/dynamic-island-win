@@ -47,13 +47,11 @@
             </StackPanel>
         </Grid>
 
-        <!-- Time tracking: project and elapsed time -->
-        <Grid Visibility="{Binding ShowTimeTrack, Converter={StaticResource Vis}}">
+        <!-- Time tracking: elapsed time, the project is in the tooltip -->
+        <Grid Visibility="{Binding ShowTimeTrack, Converter={StaticResource Vis}}" ToolTip="{Binding Time.CurrentProject}">
             <StackPanel x:Name="TrackH" Orientation="Horizontal">
                 <Ellipse Width="8" Height="8" Fill="{StaticResource B.Blue}" VerticalAlignment="Center" />
-                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Title}" FontSize="12" Foreground="{StaticResource B.Blue}" MaxWidth="110"
-                           TextTrimming="CharacterEllipsis" Text="{Binding Time.CurrentProject}" VerticalAlignment="Center" />
-                <TextBlock Margin="6,0,0,0" Style="{StaticResource T.Numeric}" FontSize="12" Text="{Binding Time.Elapsed}" VerticalAlignment="Center" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Numeric}" FontSize="12" Foreground="{StaticResource B.Blue}" Text="{Binding Time.Elapsed}" VerticalAlignment="Center" />
             </StackPanel>
             <StackPanel x:Name="TrackV" Visibility="Collapsed">
                 <Ellipse Width="8" Height="8" Fill="{StaticResource B.Blue}" HorizontalAlignment="Center" />
@@ -74,16 +72,13 @@
             </StackPanel>
         </Grid>
 
-        <!-- This PC's sound plays on a paired device: "Ton am Laptop" -->
+        <!-- This PC's sound plays on a paired device: only the speaker, the device name is in the tooltip -->
         <Grid Visibility="{Binding ShowAudioLink, Converter={StaticResource Vis}}" ToolTip="{Binding Link.AudioDeviceText}">
             <StackPanel x:Name="AudioLinkH" Orientation="Horizontal">
                 <c:Icon Data="{StaticResource Icon.Volume}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
-                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Title}" FontSize="12" Foreground="{StaticResource B.Blue}" MaxWidth="130"
-                           TextTrimming="CharacterEllipsis" Text="{Binding Link.AudioDeviceText}" VerticalAlignment="Center" />
             </StackPanel>
             <StackPanel x:Name="AudioLinkV" Visibility="Collapsed">
                 <c:Icon Data="{StaticResource Icon.Volume}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Blue}" HorizontalAlignment="Center" />
-                <c:Icon Data="{StaticResource Icon.Link}" Width="10" Height="10" StrokeWidth="2.4" Foreground="{StaticResource B.Text2}" Margin="0,4,0,0" HorizontalAlignment="Center" />
             </StackPanel>
         </Grid>
 
@@ -124,7 +119,7 @@
             </StackPanel>
         </Grid>
 
-        <!-- Claude Code agent working / waiting -->
+        <!-- Claude Code agent working / waiting: text only for "wartet" and "2 aktiv" -->
         <Grid Visibility="{Binding ShowClaude, Converter={StaticResource Vis}}">
             <StackPanel x:Name="ClaudeH" Orientation="Horizontal">
                 <c:Icon Data="{StaticResource Icon.Sparkles}" Width="13" Height="13" StrokeWidth="2.2" Foreground="#FFD97757" RenderTransformOrigin="0.5,0.5">
@@ -135,8 +130,8 @@
                         </Storyboard>
                     </c:Loop.Storyboard>
                 </c:Icon>
-                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Title}" FontSize="12" Foreground="#FFE8A98F" MaxWidth="120"
-                           Text="{Binding Claude.WorkingText}" VerticalAlignment="Center" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Title}" FontSize="12" Foreground="#FFE8A98F" Text="{Binding Claude.WorkingText}"
+                           VerticalAlignment="Center" Visibility="{Binding Claude.WorkingText, Converter={StaticResource Vis}}" />
             </StackPanel>
             <StackPanel x:Name="ClaudeV" Visibility="Collapsed">
                 <c:Icon Data="{StaticResource Icon.Sparkles}" Width="13" Height="13" StrokeWidth="2.2" Foreground="#FFD97757" />

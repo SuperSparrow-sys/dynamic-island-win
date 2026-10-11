@@ -314,6 +314,15 @@ public class ClaudeNotificationTests
         Assert.Equal(expected, ClaudeService.NeedsAnswer(app, appId, title, body));
 
     [Fact]
+    public void Compact_text_never_shows_a_project_name()
+    {
+        Assert.Equal("", ClaudeService.CompactText(waiting: false, working: 1));
+        Assert.Equal("", ClaudeService.CompactText(waiting: false, working: 0));
+        Assert.NotEqual("", ClaudeService.CompactText(waiting: true, working: 1));
+        Assert.StartsWith("2 ", ClaudeService.CompactText(waiting: false, working: 2));
+    }
+
+    [Fact]
     public void Remote_question_shows_waiting_until_answered()
     {
         var claude = new ClaudeService(new AppSettings());

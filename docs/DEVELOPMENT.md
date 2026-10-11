@@ -20,6 +20,7 @@ powershell -File tools/build-release.ps1            # self-contained publish + I
 powershell -File tools/snapshot.ps1 -Out artifacts/snapshots          # echte Bildschirmaufnahmen aller Zustände
 $env:DYNAMICBAY_SNAPSHOT="settings"; powershell -File tools/snapshot.ps1   # alle Einstellungsseiten
 $env:DYNAMICBAY_SNAPSHOT="readme";   powershell -File tools/snapshot.ps1   # saubere 2x-Renderings für die Doku
+$env:DYNAMICBAY_SNAPSHOT="compact";  powershell -File tools/snapshot.ps1   # kleine Insel: Symbole mit langen Namen
 $env:DYNAMICBAY_SNAPSHOT_CURSORHOP="1"; powershell -File tools/snapshot.ps1   # CursorHop-Karte und -Einblendungen (Demo)
 $env:DYNAMICBAY_SNAPSHOT_LINK="1"; powershell -File tools/snapshot.ps1        # Karte „Gekoppelt“, Musik des Laptops, Koppel-Code (Demo)
 ```

@@ -365,10 +365,14 @@ public sealed partial class ClaudeService : ObservableObject
         var working = Sessions.Where(s => s.State == ClaudeState.Working).ToList();
         AnyWorking = working.Count > 0;
         AnyWaiting = Sessions.Any(s => s.State == ClaudeState.Waiting) || _remoteAsks.Count > 0;
-        WorkingText = AnyWaiting ? (Loc.German ? "wartet" : "waiting")
-            : working.Count > 1 ? (Loc.German ? $"{working.Count} aktiv" : $"{working.Count} active")
-            : working.Count == 1 ? working[0].Project : "";
+        WorkingText = CompactText(AnyWaiting, working.Count);
     }
+
+    /// <summary>Text next to the symbol in the compact island: none for one session (a project name would be cut off).</summary>
+    public static string CompactText(bool waiting, int working) =>
+        waiting ? (Loc.German ? "wartet" : "waiting")
+        : working > 1 ? (Loc.German ? $"{working} aktiv" : $"{working} active")
+        : "";
 
     /// <summary>Reads cwd from the head and the latest title / last prompt from the tail (files can be large).</summary>
     private static (string cwd, string title, string prompt, string bridge) ReadMeta(string path)

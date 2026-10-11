@@ -75,6 +75,31 @@ public static class Snapshots
             System.Windows.Media.CompositionTarget.Rendering -= onFrame;
             return;
         }
+        // Compact symbols: DYNAMICBAY_SNAPSHOT=compact - sound on the laptop, time tracking and Claude with long names,
+        // horizontal and vertical (long names belong in the open island, not in the small one).
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "compact")
+        {
+            foreach (var (vertical, working) in new[] { (false, 1), (false, 2), (true, 1) })
+            {
+                var view = new Island.Views.CompactView { DataContext = new CompactDemo(working) };
+                view.SetVertical(vertical);
+                var w = new Window
+                {
+                    WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, SizeToContent = SizeToContent.WidthAndHeight,
+                    Background = new SolidColorBrush(Color.FromRgb(0x30, 0x30, 0x30)), Left = 100, Top = 100,
+                    Content = new System.Windows.Controls.Border
+                    {
+                        Background = Brushes.Black, CornerRadius = new CornerRadius(18), Margin = new Thickness(16),
+                        Width = vertical ? 40 : double.NaN, Height = vertical ? double.NaN : 36, Child = view,
+                    },
+                };
+                w.Show();
+                await Task.Delay(600);
+                RenderWindow(w, Path.Combine(dir, $"compact-{(vertical ? "vertical" : "horizontal")}-{working}.png"));
+                w.Close();
+            }
+            return;
+        }
         // Morph frames: DYNAMICBAY_SNAPSHOT=frames - the minimal idle line opening and closing, every rendered frame as a
         // PNG at DYNAMICBAY_SNAPSHOT_SCALE (default 1.5 = 150 %), to check that the line does not jitter.
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "frames")
@@ -696,6 +721,26 @@ public static class Snapshots
         await Record("png-min-to-compact", () => vm.Timer.IsActive = true, 1000);
         await Record("png-compact-to-min", () => vm.Timer.IsActive = false, 1000);
         Log.Info($"FRAMES: {frames} frames, shape clipped by layout in {clipped}");
+    }
+
+    /// <summary>Just enough of the view model for the compact symbols snapshot.</summary>
+    private sealed class CompactDemo(int working)
+    {
+        public bool ShowAudioLink => true;
+        public bool ShowTimeTrack => true;
+        public bool ShowClaude => true;
+        public bool ShowStatus => false;
+        public bool ShowMeeting => false;
+        public bool ShowDownload => false;
+        public bool ShowMedia => false;
+        public bool ShowTimer => false;
+        public bool ShowCalendar => false;
+        public bool ShowClock => false;
+        public bool ShowScripts => false;
+        public bool ShowBatteryLow => false;
+        public object Link { get; } = new { AudioDeviceText = "Ton am LAPTOPJONATHAN" };
+        public object Time { get; } = new { CurrentProject = "Kunde Mueller Website Relaunch", Elapsed = "1:24:07" };
+        public object Claude { get; } = new { WorkingText = Services.ClaudeService.CompactText(false, working) };
     }
 
     private static async Task Shot(IslandWindow island, IslandViewModel vm, IslandMode mode, string file, bool compact)
