@@ -81,13 +81,15 @@ Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird ansch
 | `TaildropService` | Dateien per Tailscale-Taildrop: liest `tailscale debug watch-ipn`, ordnet die Dateien in den Downloads zu |
 | `CursorHopService` | CursorHop (eine Maus für mehrere PCs): liest nur sein Protokoll mit (`CursorHopLog`: Parser, Zustand, Entprellung), startet es bei Bedarf; siehe [INTEGRATIONS.md](INTEGRATIONS.md#cursorhop) |
 | `Link/LinkService` | DynamicBay mit DynamicBay: finden, koppeln, verschlüsselte Verbindung, Nachrichten und Dateien (siehe unten) |
+| `Link/LinkHub` | Startet den Link mit „Geräte koppeln“, hält die Funktionen und die Listen für Einstellungen und Insel |
 | `ShortcutsService`, `AppIcons`, `InstalledApps` | Schnellstart, Simple-Icons-Palette (gzip, bei Bedarf geladen), Startmenü-Apps |
 | `Battery/Bluetooth/Timer/Clock/SystemService` | Akku, Geräte, Timer/Pomodoro, Uhr, CPU/RAM |
 
 ## Daten
 
 `%AppData%\DynamicBay\`: `settings.json`, `clipboard\` (Bilder + `index.json`), `shelf.json`, `secrets\` (DPAPI),
-`link\identity.bin` (Geräte-Zertifikat, DPAPI), `banner-backup.json`, `logs\dynamicbay.log`.
+`link\identity.bin` (Geräte-Zertifikat, DPAPI), `link-temp\` (große Zwischenablage-Bilder unterwegs),
+`banner-backup.json`, `logs\dynamicbay.log`.
 
 ## Link (Geräte koppeln)
 
@@ -112,8 +114,8 @@ Verbindung tot. Neuverbindung mit Backoff 1 s bis 60 s, sofort bei Netzwechsel, 
 angeht. Pro Gerät eine Verbindung: Wählen beide gleichzeitig, bleibt die, die das Gerät mit der kleineren ID gewählt
 hat (`LinkProtocol.KeepNew`); eine neue Boot-ID (Partner neu gestartet) gewinnt immer.
 
-**Koppeln (Zahlenvergleich).** Nur wenn der Empfänger „Koppeln erlauben“ geöffnet hat (2 min, höchstens 5 Versuche in
-10 min). Der Empfänger legt sich zuerst auf eine Zufallszahl fest (Commitment), dann tauschen beide ihre Zufallszahlen.
+**Koppeln (Zahlenvergleich).** Nur wenn der Empfänger „Koppeln erlauben“ geöffnet hat (2 min, höchstens 5 Versuche pro
+Absender in 10 min). Der Empfänger legt sich zuerst auf eine Zufallszahl fest (Commitment), dann tauschen beide ihre Zufallszahlen.
 Code = 6 Ziffern aus SHA-256(„DynamicBay-pair-v1“ ‖ beide Fingerabdrücke sortiert ‖ beide Zufallszahlen). Ein Gerät
 in der Mitte sieht andere Zertifikate und kann den Code wegen des Commitments nicht vorausberechnen. Gespeichert wird
 erst, wenn beide Nutzer innerhalb von 2 min bestätigt haben. Entkoppeln schickt `unpair`; der Partner zeigt die
@@ -124,11 +126,38 @@ genauso.
 `notification`, `media`, `status`; `hello`, `ping`, `pair.*`, `file.*` … gehören dem Link). Dateien: `SendFileAsync`,
 beim Empfänger `FileOffered` → `Accept(ordner, maxBytes)`/`Decline()`. Blöcke à 256 KiB in eine `.part`-Datei,
 SHA-256 und Größe werden geprüft, dann umbenannt; Dateinamen bereinigt (`LinkProtocol.SanitizeFileName`), Ziel
-`Downloads\DynamicBay`, Mark of the Web wie bei Downloads. Ereignisse kommen auf dem UI-Thread an.
+`Downloads\DynamicBay`, Mark of the Web wie bei Downloads. Ereignisse kommen auf dem UI-Thread an. Die Leseschleife
+wartet nie auf ein eigenes Senden (Antworten gehen ohne `await` raus): Sonst könnten sich zwei Geräte, die gleichzeitig
+Dateien schicken, gegenseitig blockieren.
+
+**Härtung.** Nur wer das festgepinnte Zertifikat zeigt und dann unseres ablehnt, zählt als „lehnt ab“ (dreimal →
+abgelehnt); lehnen wir ein fremdes Zertifikat ab (anderes Gerät unter der alten Adresse), heißt das `wrong-device` und
+zählt nicht. Gefundene Geräte verfallen nach 20 s (LAN) bzw. 90 s (Tailscale), höchstens 64, Änderungen gehen höchstens
+zweimal pro Sekunde an die Oberfläche. Koppel-Versuche: 5 pro Absender-Adresse in 10 min, 20 insgesamt. Dateinamen
+verlieren auch Unicode-Formatzeichen (RTLO). Den Schlüssel, den Schannel im Schlüsselspeicher braucht, merkt sich
+`link\identity.bin.key` mit Namen; bleibt er nach einem harten Beenden liegen, löscht ihn der nächste Start.
+
+**Funktionen** (`Services/Link/*Feature.cs`, Basis `LinkFeature`): je ein Nachrichtentyp und ein eigener Schalter
+(`LinkShare*`), der beim Senden und beim Empfangen geprüft wird; ohne WPF, damit zwei Link-Instanzen im Test
+miteinander reden. `LinkHub` verbindet sie mit den lokalen Diensten.
+
+| Funktion | Typ | Inhalt |
+|---|---|---|
+| `LinkStatusFeature` | `status` | Name, Akku, Version; beim Verbinden und bei Änderung |
+| `LinkFilesFeature` | `file.*` | Annahme ohne Nachfrage nach `Downloads\DynamicBay`, dann Ablage; andere Funktionen können Angebote übernehmen (`LinkFileClaim`) |
+| `LinkClipboardFeature` | `clipboard` | Text, Bild bis 700 KB in der Nachricht, bis 5 MB als übernommene Datei; dieselben Inhalte nicht innerhalb 60 s zurück |
+| `LinkNotificationsFeature` | `notification` | App, Titel, Text, Symbol (PNG); Empfangenes wird nie weitergeleitet |
+| `LinkMediaFeature` | `media`, `media.cmd` | Titel, Künstler, Cover (JPEG ≤ 300 px), Position; Befehle `playpause`/`next`/`previous` nur bei vorhandenem Player |
+| `LinkRoleFeature` | `role`, `peek` | Hauptgerät (Einstellung relativ: `this`/`other`/`auto`, auf der Leitung die Geräte-ID, die neuere Wahl gewinnt), Leerlaufzeit und CursorHop-Maus für „Automatisch“, weitergereichte Einblendungen |
+
+Das stille Gerät leitet Einblendungen über `IslandManager.Divert` ans Hauptgerät (`PeekKind`: `Local` bleibt immer,
+`Notification` kommt über die Mitteilungs-Funktion); gleiche Einblendungen (Titel und Untertitel) und gleiche
+Mitteilungen innerhalb 10 s erscheinen einmal. Ausblenden läuft über dieselbe Unterdrückung wie bei Vollbild-Apps,
+`AppSettings.Hidden` bleibt unberührt.
 
 **Firewall.** Der Installer legt eingehende Regeln für `DynamicBay.exe` an (TCP 43823, UDP 43824): private und
-Domänen-Netze, dazu jedes Netz für Tailscale-Adressen (100.64.0.0/10, fd7a:115c:a1e0::/48). Die Deinstallation
-entfernt sie.
+Domänen-Netze per `netsh`, dazu per `New-NetFirewallRule` eine Regel nur auf dem Adapter „Tailscale“ für
+Tailscale-Adressen (100.64.0.0/10 allein träfe auch Carrier-Grade-NAT in Hotspots). Die Deinstallation entfernt beide.
 
 ## Installation und Identität
 

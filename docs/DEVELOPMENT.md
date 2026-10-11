@@ -21,6 +21,7 @@ powershell -File tools/snapshot.ps1 -Out artifacts/snapshots          # echte Bi
 $env:DYNAMICBAY_SNAPSHOT="settings"; powershell -File tools/snapshot.ps1   # alle Einstellungsseiten
 $env:DYNAMICBAY_SNAPSHOT="readme";   powershell -File tools/snapshot.ps1   # saubere 2x-Renderings für die Doku
 $env:DYNAMICBAY_SNAPSHOT_CURSORHOP="1"; powershell -File tools/snapshot.ps1   # CursorHop-Karte und -Einblendungen (Demo)
+$env:DYNAMICBAY_SNAPSHOT_LINK="1"; powershell -File tools/snapshot.ps1        # Karte „Gekoppelt“, Musik des Laptops, Koppel-Code (Demo)
 ```
 
 Der Snapshot-Modus (`DynamicBay.exe --snapshot <dir>`) lädt Demo-Daten, durchläuft Idle, Compact, Peek, Panel,
@@ -73,4 +74,8 @@ $env:DYNAMICBAY_DEV="a"; $env:DYNAMICBAY_LINK_PORT="43901"; $env:DYNAMICBAY_LINK
 $env:DYNAMICBAY_DEV_ALLOWPAIRING="1"; $env:DYNAMICBAY_DEV_AUTOCONFIRM="1"; .\DynamicBay.exe
 # zweite Konsole: DYNAMICBAY_DEV=b, Port 43902, DYNAMICBAY_DEV_PAIR=127.0.0.1:43901, DYNAMICBAY_DEV_AUTOCONFIRM=1
 ```
+
+`DYNAMICBAY_DEV_SENDFILE=<Pfad>` schickt die Datei an das erste Gerät, das online kommt. Testinstanzen speichern
+Empfangenes in `%AppData%\DynamicBay-dev-<n>\Downloads`, nie in den echten Downloads. Was über den Link geht, steht ohne
+Inhalte im Log (`Link: status from …`, `Link: clipboard text (40 chars) …`, `Link: received … bytes`).
 

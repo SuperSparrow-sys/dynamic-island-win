@@ -1,6 +1,8 @@
 # Plan: PC und Laptop koppeln, CursorHop einbinden
 
-Stand 2026-10-11, noch nicht umgesetzt.
+Stand 2026-10-11: Teil A und Teil B 1–5 umgesetzt (Transport, Einstellungsseite, Status, Dateien, Zwischenablage,
+Mitteilungen, Musik, dazu das Hauptgerät). Offen: Timer übernehmen, Live-Test mit zwei echten Geräten. Beschreibung
+in [INTEGRATIONS.md](../INTEGRATIONS.md#geräte-koppeln).
 
 ## Ziel
 
