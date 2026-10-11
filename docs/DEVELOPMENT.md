@@ -28,6 +28,11 @@ Der Snapshot-Modus (`DynamicBay.exe --snapshot <dir>`) lädt Demo-Daten, durchl�
 Ablage, Mitteilungen, Drop und eigene Widget-Layouts an allen Kanten und speichert PNGs. Er verändert die echten
 Einstellungen nicht.
 
+`DYNAMICBAY_SNAPSHOT=frames` rendert jedes Bild, während die minimale Ruhelinie auf- und zugeht, als PNG
+(`DYNAMICBAY_SNAPSHOT_SCALE`, Standard 1.5 = 150 %) und schreibt ins Log, in wie vielen Bildern WPF die Form
+abgeschnitten hat (`FRAMES: … clipped by layout in 0` ist richtig). Mit `DYNAMICBAY_DEV=f` landet das Log in
+`%AppData%\DynamicBay-dev-f`.
+
 Speicher und Lecks: `powershell -File tools/memory-check.ps1` (siehe [performance/README.md](performance/README.md)).
 
 `tools/live-test.ps1` testet die echte App mit Maus: Hover, Screenshot-Peek (Testbild im Screenshot-Ordner), Ziehen an

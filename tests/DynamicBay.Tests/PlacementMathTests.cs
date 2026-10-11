@@ -121,4 +121,26 @@ public class FrameRateTests
         }
         finally { DynamicBay.Motion.FrameRate.Limit = 0; }
     }
+
+    [Fact]
+    public void Shape_size_survives_margin_and_padding_exactly()
+    {
+        // The island's shape sits in HitPad (margin 28, padding 6): WPF adds them for the desired size and subtracts them
+        // again when arranging. A value that comes back smaller makes WPF clip the shape (the minimal line's shadow
+        // flickered while it closed). Spring values like these broke the round trip; snapped ones never do.
+        var rng = new Random(7);
+        int rawBroken = 0;
+        for (int i = 0; i < 20000; i++)
+        {
+            double v = 1 + rng.NextDouble() * 700;
+            if (((v + 12) + 56) - 56 - 12 != v) rawBroken++;
+            double s = PlacementMath.SnapShape(v);
+            Assert.Equal(s, ((s + 12) + 56) - 56 - 12);
+            Assert.Equal(s, (s + 6 + 6) - 6 - 6);
+            Assert.True(Math.Abs(s - v) <= PlacementMath.ShapeStep / 2);
+        }
+        Assert.True(rawBroken > 0);
+        Assert.Equal(84, PlacementMath.SnapShape(84));
+        Assert.Equal(5, PlacementMath.SnapShape(4.999));
+    }
 }
