@@ -6,7 +6,8 @@ namespace DynamicBay.Core;
 
 internal static class ImageTools
 {
-    public static BitmapImage? Load(Stream stream, int decodeWidth = 0)
+    /// <summary>Decoded at <paramref name="decodeWidth"/> or <paramref name="decodeHeight"/> px (not both: keeps the aspect).</summary>
+    public static BitmapImage? Load(Stream stream, int decodeWidth = 0, int decodeHeight = 0)
     {
         try
         {
@@ -14,6 +15,7 @@ internal static class ImageTools
             img.BeginInit();
             img.CacheOption = BitmapCacheOption.OnLoad;
             if (decodeWidth > 0) img.DecodePixelWidth = decodeWidth;
+            else if (decodeHeight > 0) img.DecodePixelHeight = decodeHeight;
             img.StreamSource = stream;
             img.EndInit();
             img.Freeze();
@@ -22,12 +24,23 @@ internal static class ImageTools
         catch { return null; }
     }
 
-    public static BitmapImage? Load(string path, int decodeWidth = 0)
+    /// <summary>
+    /// What to decode a picture of this size at so its longer side is at most <paramref name="longSide"/> px: width or
+    /// height (the other stays 0), or (0, 0) for a picture that is small already - decoding it larger would only cost memory.
+    /// </summary>
+    public static (int width, int height) DecodeSize(int pixelWidth, int pixelHeight, int longSide)
+    {
+        if (pixelWidth <= 0 || pixelHeight <= 0) return (longSide, 0); // size unknown: by width, as before
+        if (Math.Max(pixelWidth, pixelHeight) <= longSide) return (0, 0);
+        return pixelHeight > pixelWidth ? (0, longSide) : (longSide, 0);
+    }
+
+    public static BitmapImage? Load(string path, int decodeWidth = 0, int decodeHeight = 0)
     {
         try
         {
             using var fs = File.OpenRead(path);
-            return Load(fs, decodeWidth);
+            return Load(fs, decodeWidth, decodeHeight);
         }
         catch { return null; }
     }

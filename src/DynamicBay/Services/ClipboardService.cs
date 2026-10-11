@@ -501,7 +501,10 @@ public sealed partial class ClipboardService : ObservableObject
                     if (i.IsImage)
                     {
                         if (i.ImagePath is null || !File.Exists(i.ImagePath)) continue;
-                        i.Thumbnail = ImageTools.Load(i.ImagePath, 320);
+                        // Longer side 320 px, like MakeThumb: by width alone a tall screenshot (scrolling capture) kept
+                        // thousands of rows, and small pictures were blown up to 320 px.
+                        var (dw, dh) = ImageTools.DecodeSize(i.PixelWidth, i.PixelHeight, 320);
+                        i.Thumbnail = ImageTools.Load(i.ImagePath, dw, dh);
                     }
                     keep.Add(i);
                 }

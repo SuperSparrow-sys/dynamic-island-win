@@ -497,6 +497,13 @@ public sealed partial class MediaService : ObservableObject
         RemainingText = "-" + Format(Math.Max(0, DurationSeconds - secs));
     }
 
+    /// <summary>The scrub was cut off (capture lost): no seek, the shown position follows the player again.</summary>
+    public void CancelScrub()
+    {
+        _scrubbing = false;
+        UpdateInterpolatedPosition();
+    }
+
     public async Task SeekAsync(double seconds)
     {
         _scrubbing = false;

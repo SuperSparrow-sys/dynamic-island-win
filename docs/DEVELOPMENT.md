@@ -26,6 +26,8 @@ Der Snapshot-Modus (`DynamicBay.exe --snapshot <dir>`) lädt Demo-Daten, durchl�
 Ablage, Mitteilungen, Drop und eigene Widget-Layouts an allen Kanten und speichert PNGs. Er verändert die echten
 Einstellungen nicht.
 
+Speicher und Lecks: `powershell -File tools/memory-check.ps1` (siehe [performance/README.md](performance/README.md)).
+
 `tools/live-test.ps1` testet die echte App mit Maus: Hover, Screenshot-Peek (Testbild im Screenshot-Ordner), Ziehen an
 den linken und unteren Rand. `tools/toast-test.ps1` schickt Test-Benachrichtigungen im Namen einer App.
 `tools/media-key.ps1` drückt eine Medientaste (weiter, zurück, Play/Pause), `tools/skip-test.ps1` nimmt die Insel beim

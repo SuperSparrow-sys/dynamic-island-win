@@ -75,18 +75,11 @@ public static class Snapshots
             System.Windows.Media.CompositionTarget.Rendering -= onFrame;
             return;
         }
-        // Leak check: DYNAMICBAY_SNAPSHOT=leak - opens and closes the settings window five times; memory must not grow.
+        // Leak check: DYNAMICBAY_SNAPSHOT=leak - cycles settings window, island states, widgets, scripts, covers and a
+        // mirror island; memory must not grow (see docs/performance/README.md).
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "leak")
         {
-            static long Live() { GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect(); return GC.GetTotalMemory(true) / 1048576; }
-            var w0 = new Settings.SettingsWindow(settings, vm); w0.Show(); await Task.Delay(800); w0.Close(); await Task.Delay(500);
-            long before = Live();
-            for (int i = 0; i < 5; i++)
-            {
-                var w = new Settings.SettingsWindow(settings, vm);
-                w.Show(); await Task.Delay(800); w.Close(); await Task.Delay(500);
-            }
-            Log.Info($"LEAK settings window x5: {before} MB -> {Live()} MB managed");
+            await LeakCheck.RunAsync(island, vm, settings, dir);
             return;
         }
         // CPU per state: DYNAMICBAY_SNAPSHOT=perf - measures this process in each island state for 15 s.

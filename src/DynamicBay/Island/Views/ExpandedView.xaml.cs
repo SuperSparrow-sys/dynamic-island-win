@@ -55,6 +55,7 @@ public partial class ExpandedView : UserControl
             _notesVm = Vm;
             if (_notesVm is not null) _notesVm.Notes.Added += OnNoteAdded;
             if (Vm is null) return;
+            if (_settings is not null) _settings.PropertyChanged -= OnSettingsChanged; // once, also if the context is set again
             _settings = Vm.Settings;
             _settings.PropertyChanged += OnSettingsChanged;
             LayoutHome();
@@ -68,6 +69,8 @@ public partial class ExpandedView : UserControl
         };
         HomeScroll.IsVisibleChanged += (_, _) => Dispatcher.BeginInvoke(FitHomeToViewport, System.Windows.Threading.DispatcherPriority.Loaded);
         Loaded += (_, _) => AttachGears();
+        Timeline.LostMouseCapture += Timeline_LostCapture;
+        VolumeBar.LostMouseCapture += Volume_LostCapture;
         SetVertical(false);
     }
 
@@ -388,7 +391,8 @@ public partial class ExpandedView : UserControl
     // ---- media ----
 
     // Timeline: click or drag; the time follows the cursor and the player seeks once on release.
-    private bool _scrubbing;
+    // Capture taken away (Alt+Tab, the island hiding) cancels: no seek, and the position runs on again.
+    private readonly Core.PointerGesture _scrub = new();
 
     private double TimelineSeconds(MouseEventArgs e) =>
         Math.Clamp(e.GetPosition(Timeline).X / Math.Max(1, Timeline.ActualWidth), 0, 1) * (Vm?.Media.DurationSeconds ?? 0);
@@ -397,23 +401,22 @@ public partial class ExpandedView : UserControl
     {
         e.Handled = true; // never start moving the island from here
         if (Vm is null || Vm.Media.DurationSeconds <= 0) return;
-        _scrubbing = true;
+        _scrub.Press();
         Timeline.CaptureMouse();
         Vm.Media.Scrub(TimelineSeconds(e));
     }
 
     private void Timeline_MouseMove(object sender, MouseEventArgs e)
     {
-        if (_scrubbing && Vm is not null) Vm.Media.Scrub(TimelineSeconds(e));
+        if (_scrub.IsPressed && Vm is not null) Vm.Media.Scrub(TimelineSeconds(e));
     }
 
     private async void Timeline_MouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_scrubbing || Vm is null) return;
-        _scrubbing = false;
+        if (_scrub.End() == Core.GestureEnd.None) return; // ended first: the lost capture below does not cancel
         Timeline.ReleaseMouseCapture();
         e.Handled = true;
-        await Vm.Media.SeekAsync(TimelineSeconds(e));
+        if (Vm is not null) await Vm.Media.SeekAsync(TimelineSeconds(e));
     }
 
     // ---- music volume: click or drag, like the timeline ----
@@ -422,10 +425,15 @@ public partial class ExpandedView : UserControl
 
     private double VolumeAt(MouseEventArgs e) => Math.Clamp(e.GetPosition(VolumeBar).X / Math.Max(1, VolumeBar.ActualWidth), 0, 1) * 100;
 
+    // Ends once: on release or when the capture is taken away (otherwise the slider stays "dragging" and stops
+    // following volume changes made in the player).
+    private readonly Core.PointerGesture _volumeDrag = new();
+
     private void Volume_MouseDown(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true; // never start moving the island from here
         if (Vm is null) return;
+        _volumeDrag.Press();
         VolumeBar.CaptureMouse();
         Vm.MusicVolume.BeginDrag();
         Vm.MusicVolume.Set(VolumeAt(e));
@@ -433,15 +441,25 @@ public partial class ExpandedView : UserControl
 
     private void Volume_MouseMove(object sender, MouseEventArgs e)
     {
-        if (VolumeBar.IsMouseCaptured && Vm is not null) Vm.MusicVolume.Set(VolumeAt(e));
+        if (_volumeDrag.IsPressed && Vm is not null) Vm.MusicVolume.Set(VolumeAt(e));
     }
 
     private void Volume_MouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (!VolumeBar.IsMouseCaptured || Vm is null) return;
+        if (_volumeDrag.End() == Core.GestureEnd.None) return;
         VolumeBar.ReleaseMouseCapture();
         e.Handled = true;
-        Vm.MusicVolume.EndDrag();
+        Vm?.MusicVolume.EndDrag();
+    }
+
+    private void Timeline_LostCapture(object sender, MouseEventArgs e)
+    {
+        if (_scrub.End() != Core.GestureEnd.None) Vm?.Media.CancelScrub();
+    }
+
+    private void Volume_LostCapture(object sender, MouseEventArgs e)
+    {
+        if (_volumeDrag.End() != Core.GestureEnd.None) Vm?.MusicVolume.EndDrag();
     }
 
     private void Volume_Wheel(object sender, MouseWheelEventArgs e)
