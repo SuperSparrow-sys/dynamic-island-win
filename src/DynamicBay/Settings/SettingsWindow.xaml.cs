@@ -194,6 +194,7 @@ public partial class SettingsWindow : Window
         (Widgets.Notes, "Icon.Pencil", "Notizen", "Notes", "Kurze Mitschriften, schnell geschrieben und wieder gelöscht", "Short notes, quickly written and deleted again"),
         (Widgets.Audio, "Icon.Headphones", "Audio", "Audio", "Ausgabe und Mikrofon wechseln, AirPods und andere Bluetooth-Geräte verbinden", "Switch output and microphone, connect AirPods and other Bluetooth devices"),
         (Widgets.Devices, "Icon.Bluetooth", "Geräte", "Devices", "Akkustand von PC, Kopfhörern, Tastatur und Maus", "Battery of this PC, headphones, keyboard and mouse"),
+        (Widgets.CursorHop, "Icon.Mouse", "CursorHop", "CursorHop", "Verbundene Geräte und wo die Maus gerade ist", "Connected devices and where the mouse is"),
         (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
         (Widgets.Todo, "Icon.Check", "Aufgaben", "Tasks", "Microsoft To Do: offene Aufgaben abhaken", "Microsoft To Do: tick off open tasks"),
         (Widgets.Teams, "Icon.User", "Teams-Status", "Teams status", "Eigenen Teams-Status sehen und umschalten", "See and change your Teams status"),

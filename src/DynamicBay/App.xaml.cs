@@ -216,6 +216,8 @@ public partial class App : Application
         await Next();
         Safe("Claude", () => vm.Claude.SetEnabled(_settings.ClaudeEnabled));
         Safe("Taildrop", () => taildrop.SetEnabled(_settings.TaildropEnabled));
+        Safe("CursorHop", () => vm.CursorHop.SetEnabled(_settings.CursorHopEnabled));
+        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.CursorHopEnabled)) vm.CursorHop.SetEnabled(_settings.CursorHopEnabled); };
         Safe("Todo", vm.Todo!.Start);
         Safe("Presence", vm.Presence!.Start);
         Safe("Contacts", vm.Contacts!.Start);
@@ -577,6 +579,58 @@ public partial class App : Application
             Seconds = error is null ? 2.8 : 6,
         }));
 
+        // CursorHop: the other PC connected or went away (debounced in the service), clipboard or files from it.
+        var hop = _vm!.CursorHop;
+        hop.PeerConnected += name =>
+        {
+            if (!_settings.CursorHopPeeks) return;
+            island.ShowPeek(new PeekItem
+            {
+                Icon = Icon(CursorHopService.IconFor(name)), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+                Title = Loc.German ? $"{name} verbunden" : $"{name} connected",
+                Subtitle = "CursorHop · " + hop.CursorText,
+                Seconds = 3,
+            });
+        };
+        hop.PeerDisconnected += name =>
+        {
+            if (!_settings.CursorHopPeeks) return;
+            island.ShowPeek(new PeekItem
+            {
+                Icon = Icon(CursorHopService.IconFor(name)), IconBrush = Res("B.Text2"), IconBackground = Tint("B.Text", 0x26),
+                Title = Loc.German ? $"{name} getrennt" : $"{name} disconnected",
+                Subtitle = "CursorHop",
+                Seconds = 3,
+            });
+        };
+        hop.ClipboardReceived += (name, format) =>
+        {
+            if (name is not null && _settings.ClipboardEnabled) clipboard.MarkFromDevice(name);
+            if (!_settings.CursorHopPeeks) return;
+            island.ShowPeek(new PeekItem
+            {
+                Icon = Icon("Icon.Clipboard"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+                Title = name is null ? (Loc.German ? "Zwischenablage empfangen" : "Clipboard received")
+                      : Loc.German ? $"Zwischenablage von {name}" : $"Clipboard from {name}",
+                Subtitle = CursorHopService.FormatText(format) + (Loc.German ? " · Strg+V fügt ein" : " · Ctrl+V pastes"),
+                Priority = PeekPriority.Low,
+                Seconds = 2.6,
+                OnClick = () => { if (_settings.ClipboardEnabled && _settings.ShowTrayTab) { _vm.Tab = 1; island.Expand(); } },
+            });
+        };
+        hop.FilesReceived += (name, count, folder) =>
+        {
+            if (!_settings.CursorHopPeeks) return;
+            island.ShowPeek(new PeekItem
+            {
+                Icon = Icon("Icon.Inbox"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
+                Title = count is int n ? (Loc.German ? $"{n} {(n == 1 ? "Datei" : "Dateien")}" : $"{n} {(n == 1 ? "file" : "files")}") : (Loc.German ? "Dateien empfangen" : "Files received"),
+                Subtitle = (Loc.German ? "Von " : "From ") + (name ?? "CursorHop"),
+                Seconds = 4,
+                OnClick = () => { if (folder is not null && Directory.Exists(folder)) try { Process.Start("explorer.exe", $"\"{folder}\""); } catch { } },
+            });
+        };
+
         // A download finished: the file, ready to drag out; a click shows it in its folder.
         _vm!.Downloads.Finished += path => island.ShowPeek(new PeekItem
         {
@@ -722,6 +776,7 @@ public partial class App : Application
         FlushAll();
         _settings.Save();
         _taildrop?.Dispose(); // ends the Tailscale event stream
+        _vm?.CursorHop.Dispose();
         _tray?.Dispose();
         _msg?.Dispose();
         Shutdown();

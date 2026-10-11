@@ -54,7 +54,7 @@ public class DownloadsMigrationTests
         s.CompactItems.Remove(Widgets.Downloads);
         s.Migrate();
         Assert.Contains(Widgets.Downloads, s.CompactItems);
-        Assert.Equal(10, s.SettingsVersion);
+        Assert.True(s.SettingsVersion >= 10); // later migrations may follow
         s.CompactItems.Remove(Widgets.Downloads); // switched off afterwards: stays off
         s.Migrate();
         Assert.DoesNotContain(Widgets.Downloads, s.CompactItems);

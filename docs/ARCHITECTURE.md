@@ -33,7 +33,7 @@ src/DynamicBay/
 ├─ Settings/              Einstellungsfenster (Mica), App-Auswahl, Theme hell/dunkel/wie Windows
 ├─ Controls/              Icon, Waveform, ProgressRing, SegmentStack, FitGrid, Converter
 └─ Themes/                Farben/Typo/Stile, Icon-Geometrien (generiert aus Lucide), eigene Glyphen
-tests/DynamicBay.Tests/   xUnit-Tests, Fixtures/Api: echte API-Antworten (Spotify, Graph, Google, CalDAV, GitHub)
+tests/DynamicBay.Tests/   xUnit-Tests, Fixtures/Api: echte API-Antworten (Spotify, Graph, Google, CalDAV, GitHub), Fixtures/CursorHop: Protokollzeilen
 packaging/                Identitäts-Paket (AppxManifest + Build-Skript)
 installer/                Inno-Setup-Skript
 tools/                    Snapshot-, Live-Test-, Update-Test-, Speicher-, Diagnose- und Icon-Skripte
@@ -79,6 +79,7 @@ Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird ansch
 | `ClaudeService` | `~/.claude/projects` lesen, Hooks über `127.0.0.1:43822`, Remote-Control-Links, PC-Abgleich |
 | `CloudTargets` | erkannte Sync-Ordner (OneDrive, iCloud Drive, Google Drive, Dropbox), im Hintergrund gesucht |
 | `TaildropService` | Dateien per Tailscale-Taildrop: liest `tailscale debug watch-ipn`, ordnet die Dateien in den Downloads zu |
+| `CursorHopService` | CursorHop (eine Maus für mehrere PCs): liest nur sein Protokoll mit (`CursorHopLog`: Parser, Zustand, Entprellung), startet es bei Bedarf; siehe [INTEGRATIONS.md](INTEGRATIONS.md#cursorhop) |
 | `ShortcutsService`, `AppIcons`, `InstalledApps` | Schnellstart, Simple-Icons-Palette (gzip, bei Bedarf geladen), Startmenü-Apps |
 | `Battery/Bluetooth/Timer/Clock/SystemService` | Akku, Geräte, Timer/Pomodoro, Uhr, CPU/RAM |
 

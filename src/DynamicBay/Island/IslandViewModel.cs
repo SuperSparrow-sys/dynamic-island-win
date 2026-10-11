@@ -92,6 +92,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public SystemService System { get; }
     public ShortcutsService Shortcuts { get; }
     public ClaudeService Claude { get; }
+    /// <summary>CursorHop (one mouse for several PCs): connected devices and where the mouse is.</summary>
+    public CursorHopService CursorHop { get; }
     public AudioService Audio { get; }
     public WorkModeService Work { get; }
     public TimeTrackingService Time { get; }
@@ -135,6 +137,7 @@ public sealed partial class IslandViewModel : ObservableObject
         System = new SystemService();
         Shortcuts = new ShortcutsService(settings);
         Claude = new ClaudeService(settings);
+        CursorHop = new CursorHopService(settings);
         Audio = new AudioService(settings);
         AudioDevices.DefaultChanged += Audio.DevicesChanged; // switched output: mute and volume follow at once
         Work = new WorkModeService(settings, Audio, timer);

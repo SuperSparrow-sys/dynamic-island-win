@@ -163,6 +163,14 @@ public static class Snapshots
             return;
         }
 
+        // CursorHop: DYNAMICBAY_SNAPSHOT_CURSORHOP=1 - the card on the System page (mouse there, here, not running)
+        // and the peeks, with demo data (CursorHop is neither started nor read).
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_CURSORHOP") == "1")
+        {
+            await CursorHopShotsAsync(island, vm, settings, dir, placements.Where(p => p.name is "top" or "left"));
+            return;
+        }
+
         // Script widgets: DYNAMICBAY_SNAPSHOT_SCRIPT=<file.js> - the script as large and small card and as Mini line.
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_SCRIPT") is { Length: > 0 } scriptFile && Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") != "settings")
         {
@@ -333,7 +341,8 @@ public static class Snapshots
                 // Second page "System": sound and devices live there
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.Media, Widgets.Calendar }) settings.HomeWidgets.Add(w);
-                foreach (var w in new[] { Widgets.Audio, Widgets.Devices }) settings.SystemWidgets.Add(w);
+                foreach (var w in new[] { Widgets.Audio, Widgets.Devices, Widgets.CursorHop }) settings.SystemWidgets.Add(w);
+                vm.CursorHop.LoadDemo("Desktop-PC", cursorThere: true);
                 vm.Tab = 3;
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8g-system-tab.png"), compact: true);
                 vm.Tab = 0;
@@ -391,6 +400,60 @@ public static class Snapshots
                 foreach (var w in saved) settings.HomeWidgets.Add(w);
             }
         }
+    }
+
+    private static async Task CursorHopShotsAsync(IslandWindow island, IslandViewModel vm, AppSettings settings, string dir,
+        IEnumerable<(string name, IslandEdge edge, IslandAlign align, double along)> placements)
+    {
+        Brush Res(string key) => (Brush)Application.Current.FindResource(key);
+        Geometry Icon(string key) => (Geometry)Application.Current.FindResource(key);
+        Brush Tint(string key)
+        {
+            var c = ((SolidColorBrush)Application.Current.FindResource(key)).Color;
+            return new SolidColorBrush(Color.FromArgb(0x2E, c.R, c.G, c.B));
+        }
+        vm.AudioDevices.LoadDemo();
+        settings.SystemWidgets.Clear();
+        foreach (var w in new[] { Widgets.CursorHop, Widgets.Audio, Widgets.Devices }) settings.SystemWidgets.Add(w);
+        foreach (var (name, edge, align, along) in placements)
+        {
+            settings.Edge = edge; settings.Align = align; settings.Inset = 8; settings.Along = along;
+            await Task.Delay(900);
+            vm.Tab = 3;
+            vm.CursorHop.LoadDemo("Desktop-PC", cursorThere: true);
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-cursorhop-1-there.png"), compact: false);
+            vm.CursorHop.LoadDemo("LaptopJonathan", cursorThere: false);
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-cursorhop-2-here.png"), compact: false);
+            vm.CursorHop.LoadDemo(null, cursorThere: false, running: false);
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-cursorhop-3-stopped.png"), compact: false);
+            vm.CursorHop.LoadDemo(null, cursorThere: false);
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-cursorhop-4-waiting.png"), compact: false);
+            vm.Tab = 0;
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon(CursorHopService.IconFor("LaptopJonathan")), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue"),
+                Title = Loc.German ? "LaptopJonathan verbunden" : "LaptopJonathan connected", Subtitle = "CursorHop · " + CursorHopService.CursorTextFor(null), Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-cursorhop-5-peek-connected.png"), compact: false);
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon(CursorHopService.IconFor("Desktop-PC")), IconBrush = Res("B.Text2"), IconBackground = Tint("B.Text"),
+                Title = Loc.German ? "Desktop-PC getrennt" : "Desktop-PC disconnected", Subtitle = "CursorHop", Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-cursorhop-6-peek-disconnected.png"), compact: false);
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.Clipboard"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue"),
+                Title = Loc.German ? "Zwischenablage von Desktop-PC" : "Clipboard from Desktop-PC",
+                Subtitle = CursorHopService.FormatText("PlainText") + (Loc.German ? " · Strg+V fügt ein" : " · Ctrl+V pastes"), Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-cursorhop-7-peek-clipboard.png"), compact: false);
+        }
+        // The clipboard list with an entry from the other PC.
+        var clip = new ClipItem { Kind = ClipKind.Text, Text = "Angebot_Speicher_v3.pdf liegt im Teams-Ordner", SourceDevice = "Desktop-PC" };
+        vm.Clipboard.Items.Insert(0, clip);
+        vm.Tab = 1;
+        await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, "cursorhop-8-clipboard-source.png"), compact: false);
     }
 
     private static async Task Shot(IslandWindow island, IslandViewModel vm, IslandMode mode, string file, bool compact)

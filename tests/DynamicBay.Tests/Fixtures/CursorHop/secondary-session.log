@@ -1,0 +1,194 @@
+2026-10-11T09:38:53.044420Z  INFO cursorhop::forwarding: [DISPLAY] geometry changed but no connected peers to notify
+2026-10-11T09:38:57.691385Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity edge-strip activity summary arm_cycles=1 drag_enters=0 file_drag_enters=0 drops=0 strips=0 registered=0 window_secs=60
+2026-10-11T09:39:48.992937Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:53631
+2026-10-11T09:39:48.998906Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:53633
+2026-10-11T09:39:49.079766Z  INFO cursorhop_net::connection: [TRANSFER-SOCKET] accepted inbound addr=192.168.10.***:53641
+2026-10-11T09:39:49.080715Z  INFO cursorhop_net::connection: [TRANSFER-SOCKET] inbound attached addr=192.168.10.***:53641 target_id=inbound-192.168.10.***:53633
+2026-10-11T09:39:49.150097Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:53633
+2026-10-11T09:39:49.154465Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:39:49.166403Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:53633
+2026-10-11T09:39:49.171843Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:39:49.174156Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=1 edges_changed=true gate_changed=false
+2026-10-11T09:39:49.174233Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=1 band_count=1 bands=1856,0 64x1200
+2026-10-11T09:39:49.174927Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:39:49.175641Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:39:49.195196Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=1
+2026-10-11T09:39:49.998830Z  INFO roaming.presence: cleared peer keyboard presence after disconnect event="peer_presence_cleared" peer=inbound-192.168.10.***:53633
+2026-10-11T09:39:49.999940Z  INFO cursorhop_net::room: room beacon started on UDP port 24801
+2026-10-11T09:39:50.003491Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=0 edges_changed=true gate_changed=false
+2026-10-11T09:39:50.003611Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=0 band_count=0 bands=none
+2026-10-11T09:39:50.014978Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=0
+2026-10-11T09:39:57.993987Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:51094
+2026-10-11T09:40:45.021907Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:16912
+2026-10-11T09:40:45.993001Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:17039
+2026-10-11T09:40:45.996547Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:17041
+2026-10-11T09:40:45.997577Z  INFO roaming.presence: accepted a paired roaming peer over a plaintext (non-Noise) connection - reduced trust, encryption is off event="roaming_trust_reduced_plaintext" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:40:45.997661Z  INFO cursorhop::forwarding: [LAYOUT] re-projecting the saved layout for a peer that was offline at load device=11111111-2222-4333-8444-555555555555
+2026-10-11T09:40:45.998241Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=1 edges_changed=true gate_changed=false
+2026-10-11T09:40:45.998265Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=1 band_count=1 bands=1856,0 64x1200
+2026-10-11T09:40:46.001081Z  INFO cursorhop::forwarding: [PEER] PeerHello processed — connection ready peer=11111111-2222-4333-8444-555555555555 name=Desktop-PC platform=Windows synthetic_id=inbound-192.168.10.***:17041 is_tofu_pending=false peer_is_primary_over_us=true
+2026-10-11T09:40:46.001755Z  INFO cursorhop_net::connection: [TRANSFER-SOCKET] accepted inbound addr=192.168.10.***:17042
+2026-10-11T09:40:46.001901Z  INFO cursorhop_net::connection: [TRANSFER-SOCKET] inbound attached addr=192.168.10.***:17042 target_id=inbound-192.168.10.***:17041
+2026-10-11T09:40:46.001917Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=1
+2026-10-11T09:40:46.002179Z  INFO roaming.presence: applied peer keyboard presence snapshot event="peer_snapshot_applied" peer=11111111-2222-4333-8444-555555555555 sequence=5
+2026-10-11T09:40:46.002332Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:17041
+2026-10-11T09:40:46.002797Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:17041
+2026-10-11T09:40:46.003647Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:40:46.004551Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:40:46.005131Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:40:46.042413Z  INFO cursorhop_net::room: room beacon stopped
+2026-10-11T09:40:46.388471Z  INFO cursorhop_net::room: room beacon stopped
+2026-10-11T09:40:47.529238Z  INFO cursorhop::forwarding: [DISPLAY] local monitor geometry changed (poll) new=DISPLAY1
+2026-10-11T09:40:47.531029Z  INFO cursorhop::forwarding: [DISPLAY] geometry changed, re-advertising hello to peers peer_count=1
+2026-10-11T09:40:47.543922Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:17041
+2026-10-11T09:40:47.547166Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:40:47.547875Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:41:01.317888Z  INFO roaming.presence: cleared peer keyboard presence after disconnect event="peer_presence_cleared" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:41:01.318278Z  INFO cursorhop_net::room: room beacon started on UDP port 24801
+2026-10-11T09:41:01.320793Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=0 edges_changed=true gate_changed=false
+2026-10-11T09:41:01.320868Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=0 band_count=0 bands=none
+2026-10-11T09:41:01.329622Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=0
+2026-10-11T09:41:15.993053Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:63377
+2026-10-11T09:41:16.008539Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:63379
+2026-10-11T09:41:16.009641Z  INFO roaming.presence: accepted a paired roaming peer over a plaintext (non-Noise) connection - reduced trust, encryption is off event="roaming_trust_reduced_plaintext" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:41:16.009845Z  INFO cursorhop::forwarding: [LAYOUT] re-projecting the saved layout for a peer that was offline at load device=11111111-2222-4333-8444-555555555555
+2026-10-11T09:41:16.010967Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=1 edges_changed=true gate_changed=false
+2026-10-11T09:41:16.010995Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=1 band_count=1 bands=1856,0 64x1200
+2026-10-11T09:41:16.011644Z  INFO cursorhop::forwarding: [PEER] PeerHello processed — connection ready peer=11111111-2222-4333-8444-555555555555 name=Desktop-PC platform=Windows synthetic_id=inbound-192.168.10.***:63379 is_tofu_pending=false peer_is_primary_over_us=true
+2026-10-11T09:41:16.013584Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=1
+2026-10-11T09:41:16.031393Z  INFO cursorhop_net::connection: [TRANSFER-SOCKET] accepted inbound addr=192.168.10.***:63380
+2026-10-11T09:41:16.031596Z  INFO cursorhop_net::connection: [TRANSFER-SOCKET] inbound attached addr=192.168.10.***:63380 target_id=inbound-192.168.10.***:63379
+2026-10-11T09:41:16.034314Z  INFO roaming.presence: applied peer keyboard presence snapshot event="peer_snapshot_applied" peer=11111111-2222-4333-8444-555555555555 sequence=5
+2026-10-11T09:41:16.034472Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:63379
+2026-10-11T09:41:16.035623Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:63379
+2026-10-11T09:41:16.044178Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:41:16.044993Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:41:16.045429Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:41:16.046160Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:41:17.331792Z  INFO cursorhop_net::room: room beacon stopped
+2026-10-11T09:41:32.241891Z  INFO roaming.presence: cleared peer keyboard presence after disconnect event="peer_presence_cleared" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:41:32.242781Z  INFO cursorhop_net::room: room beacon started on UDP port 24801
+2026-10-11T09:41:32.244461Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=0 edges_changed=true gate_changed=false
+2026-10-11T09:41:32.244522Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=0 band_count=0 bands=none
+2026-10-11T09:41:32.252443Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=0
+2026-10-11T09:41:45.995362Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:47132
+2026-10-11T09:41:46.001803Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:47134
+2026-10-11T09:41:46.002623Z  INFO roaming.presence: accepted a paired roaming peer over a plaintext (non-Noise) connection - reduced trust, encryption is off event="roaming_trust_reduced_plaintext" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:41:46.002951Z  INFO cursorhop::forwarding: [LAYOUT] re-projecting the saved layout for a peer that was offline at load device=11111111-2222-4333-8444-555555555555
+2026-10-11T09:41:46.005557Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=1 edges_changed=true gate_changed=false
+2026-10-11T09:41:46.005628Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=1 band_count=1 bands=1856,0 64x1200
+2026-10-11T09:41:46.006053Z  INFO roaming.presence: applied peer keyboard presence snapshot event="peer_snapshot_applied" peer=11111111-2222-4333-8444-555555555555 sequence=5
+2026-10-11T09:41:46.006401Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:47134
+2026-10-11T09:41:46.006591Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:47134
+2026-10-11T09:41:46.009650Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:41:46.010168Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:41:46.010977Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=1
+2026-10-11T09:41:46.011070Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:41:46.011188Z  INFO cursorhop_net::connection: [TRANSFER-SOCKET] accepted inbound addr=192.168.10.***:47135
+2026-10-11T09:41:46.011334Z  INFO cursorhop_net::connection: [TRANSFER-SOCKET] inbound attached addr=192.168.10.***:47135 target_id=inbound-192.168.10.***:47134
+2026-10-11T09:41:46.012610Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:41:46.012872Z  INFO cursorhop::forwarding: [PEER] PeerHello processed — connection ready peer=11111111-2222-4333-8444-555555555555 name=Desktop-PC platform=Windows synthetic_id=inbound-192.168.10.***:47134 is_tofu_pending=false peer_is_primary_over_us=true
+2026-10-11T09:41:46.253921Z  INFO cursorhop_net::room: room beacon stopped
+2026-10-11T09:41:48.951614Z  INFO roaming.presence: cleared peer keyboard presence after disconnect event="peer_presence_cleared" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:41:48.952284Z  INFO cursorhop_net::room: room beacon started on UDP port 24801
+2026-10-11T09:41:48.953205Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=0 edges_changed=true gate_changed=false
+2026-10-11T09:41:48.953234Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=0 band_count=0 bands=none
+2026-10-11T09:41:48.957521Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=0
+2026-10-11T09:42:08.598508Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:3618
+2026-10-11T09:42:08.599494Z  INFO roaming.presence: accepted a paired roaming peer over a plaintext (non-Noise) connection - reduced trust, encryption is off event="roaming_trust_reduced_plaintext" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:08.600121Z  INFO cursorhop::forwarding: [LAYOUT] re-projecting the saved layout for a peer that was offline at load device=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:08.601581Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=1 edges_changed=true gate_changed=false
+2026-10-11T09:42:08.601647Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=1 band_count=1 bands=1856,0 64x1200
+2026-10-11T09:42:08.602566Z  INFO cursorhop::forwarding: [PEER] PeerHello processed — connection ready peer=11111111-2222-4333-8444-555555555555 name=Desktop-PC platform=Windows synthetic_id=inbound-192.168.10.***:3618 is_tofu_pending=false peer_is_primary_over_us=true
+2026-10-11T09:42:08.607466Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=1
+2026-10-11T09:42:08.610129Z  INFO roaming.presence: applied peer keyboard presence snapshot event="peer_snapshot_applied" peer=11111111-2222-4333-8444-555555555555 sequence=4
+2026-10-11T09:42:08.610844Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:3618
+2026-10-11T09:42:08.611824Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:3618
+2026-10-11T09:42:08.612460Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:42:08.614550Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:42:08.614969Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:42:08.970031Z  INFO cursorhop_net::room: room beacon stopped
+2026-10-11T09:42:09.380832Z  INFO roaming.presence: cleared peer keyboard presence after disconnect event="peer_presence_cleared" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:09.381241Z  INFO cursorhop_net::room: room beacon started on UDP port 24801
+2026-10-11T09:42:09.382082Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=0 edges_changed=true gate_changed=false
+2026-10-11T09:42:09.382114Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=0 band_count=0 bands=none
+2026-10-11T09:42:09.385653Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=0
+2026-10-11T09:42:45.253447Z  INFO cursorhop_net::connection: accepted inbound peer connection addr=192.168.10.***:36285
+2026-10-11T09:42:45.264142Z  INFO roaming.presence: accepted a paired roaming peer over a plaintext (non-Noise) connection - reduced trust, encryption is off event="roaming_trust_reduced_plaintext" peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:45.265251Z  INFO cursorhop::forwarding: [LAYOUT] re-projecting the saved layout for a peer that was offline at load device=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:45.267221Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed drag edges published capture_enabled=true routed_edges=1 edges_changed=true gate_changed=false
+2026-10-11T09:42:45.267306Z  INFO cursorhop_input::windows::drop_target: [DRAG_DIAG] routed edge bands changed capture_enabled=true routed_edges=1 band_count=1 bands=1856,0 64x1200
+2026-10-11T09:42:45.267527Z  INFO roaming.presence: applied peer keyboard presence snapshot event="peer_snapshot_applied" peer=11111111-2222-4333-8444-555555555555 sequence=4
+2026-10-11T09:42:45.269263Z  INFO cursorhop::forwarding: [PEER] PeerHello processed — connection ready peer=11111111-2222-4333-8444-555555555555 name=Desktop-PC platform=Windows synthetic_id=inbound-192.168.10.***:36285 is_tofu_pending=false peer_is_primary_over_us=true
+2026-10-11T09:42:45.269431Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:36285
+2026-10-11T09:42:45.273832Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity OLE edge strips ready registered=1
+2026-10-11T09:42:45.274493Z  INFO cursorhop::injection: [LAYOUT_SYNC] layout saved from remote peer received=2 persisted=2 edges=0
+2026-10-11T09:42:45.274652Z  INFO cursorhop::injection: [SLEEP_POLICY] received from Primary prevent=false peer=inbound-192.168.10.***:36285
+2026-10-11T09:42:45.275033Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:42:45.276399Z  INFO cursorhop::injection: [SETTINGS_SYNC] applied synced settings from Primary keys=17
+2026-10-11T09:42:45.409581Z  INFO cursorhop_net::room: room beacon stopped
+2026-10-11T09:42:49.777884Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:42:50.602869Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:50.992675Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:42:51.351992Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:52.177367Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:42:52.633053Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:52.988241Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:42:53.326056Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:53.648041Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:42:55.213852Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:55.598648Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:42:56.001731Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:56.474486Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:42:56.723856Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:57.142574Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:42:58.891358Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:42:59.220761Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:42:59.723362Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:43:00.203204Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:43:01.816993Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:43:01.897861Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:43:02.199657Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:43:02.955415Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:43:03.511472Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:43:04.924706Z  INFO cursorhop::injection: [IDLE_CURSOR] hide reason=controller_left
+2026-10-11T09:48:58.034350Z  INFO cursorhop_ipc::handlers::license: [LICENSE] license verified paid tier tier=pro_plus game_mode=true power_sync=false clipboard_files=true file_transfer=true display_dimming=false roaming_primary=true
+2026-10-11T09:48:58.547217Z  INFO cursorhop_ipc::handlers::license: [LICENSE] license verified paid tier tier=pro_plus game_mode=true power_sync=false clipboard_files=true file_transfer=true display_dimming=false roaming_primary=true
+2026-10-11T09:49:03.343266Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:49:03.344297Z  INFO cursorhop::injection: [IDLE_CURSOR] reveal reason=remote_input peer=inbound-192.168.10.***:36285
+2026-10-11T09:49:23.166381Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:49:24.425770Z  INFO cursorhop::injection: [IDLE_CURSOR] hide reason=controller_left
+2026-10-11T09:49:57.883107Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity edge-strip activity summary arm_cycles=4 drag_enters=0 file_drag_enters=0 drops=0 strips=1 registered=1 window_secs=60
+2026-10-11T09:50:25.159569Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:50:25.161246Z  INFO cursorhop::injection: [IDLE_CURSOR] reveal reason=remote_input peer=inbound-192.168.10.***:36285
+2026-10-11T09:50:32.929264Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:50:33.065307Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:50:37.212447Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:50:38.525675Z  INFO cursorhop::injection: [IDLE_CURSOR] hide reason=controller_left
+2026-10-11T09:50:40.039393Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:50:40.039886Z  INFO cursorhop::injection: [IDLE_CURSOR] reveal reason=remote_input peer=inbound-192.168.10.***:36285
+2026-10-11T09:50:57.900046Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity edge-strip activity summary arm_cycles=2 drag_enters=0 file_drag_enters=0 drops=0 strips=1 registered=1 window_secs=60
+2026-10-11T09:51:57.921876Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity edge-strip activity summary arm_cycles=6 drag_enters=0 file_drag_enters=0 drops=0 strips=1 registered=1 window_secs=60
+2026-10-11T09:52:57.938113Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity edge-strip activity summary arm_cycles=1 drag_enters=0 file_drag_enters=0 drops=0 strips=1 registered=1 window_secs=60
+2026-10-11T09:53:57.951424Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity edge-strip activity summary arm_cycles=2 drag_enters=0 file_drag_enters=0 drops=0 strips=1 registered=1 window_secs=60
+2026-10-11T09:54:29.204098Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:54:30.425158Z  INFO cursorhop::injection: [IDLE_CURSOR] hide reason=controller_left
+2026-10-11T09:55:01.190113Z  INFO cursorhop::injection: [CLIP_RECV] received REGULAR clipboard frame — injecting to local clipboard (Ctrl+V will paste into focused window) format=PlainText data_len=32 peer=inbound-192.168.10.***:36285
+2026-10-11T09:55:38.832595Z  INFO cursorhop::injection: [CLIP_RECV] received REGULAR clipboard frame — injecting to local clipboard (Ctrl+V will paste into focused window) format=PlainText data_len=36 peer=inbound-192.168.10.***:36285
+2026-10-11T09:55:41.178624Z  INFO cursorhop::injection: [CLIP_RECV] received REGULAR clipboard frame — injecting to local clipboard (Ctrl+V will paste into focused window) format=PlainText data_len=36 peer=inbound-192.168.10.***:36285
+2026-10-11T09:55:48.093307Z  INFO cursorhop::injection: [CLIP_RECV] received REGULAR clipboard frame — injecting to local clipboard (Ctrl+V will paste into focused window) format=PlainText data_len=36 peer=inbound-192.168.10.***:36285
+2026-10-11T09:56:28.366316Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:56:28.366750Z  INFO cursorhop::injection: [IDLE_CURSOR] reveal reason=remote_input peer=inbound-192.168.10.***:36285
+2026-10-11T09:56:31.210858Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:56:32.524351Z  INFO cursorhop::injection: [IDLE_CURSOR] hide reason=controller_left
+2026-10-11T09:56:49.329031Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:56:49.331509Z  INFO cursorhop::injection: [IDLE_CURSOR] reveal reason=remote_input peer=inbound-192.168.10.***:36285
+2026-10-11T09:56:57.975895Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity edge-strip activity summary arm_cycles=1 drag_enters=0 file_drag_enters=0 drops=0 strips=1 registered=1 window_secs=60
+2026-10-11T09:57:18.718734Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:57:19.717797Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:57:27.178925Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555
+2026-10-11T09:57:28.624719Z  INFO cursorhop::injection: [IDLE_CURSOR] hide reason=controller_left
+2026-10-11T09:57:58.004039Z  INFO cursorhop_input::windows::ole_drag_helper: [DRAG_DIAG] normal-integrity edge-strip activity summary arm_cycles=11 drag_enters=0 file_drag_enters=0 drops=0 strips=1 registered=1 window_secs=60
+2026-10-11T09:59:34.246437Z  INFO cursorhop::injection: [ROLE] peer claimed Primary role — blocking local edge forwarding to them peer=11111111-2222-4333-8444-555555555555 synthetic=inbound-192.168.10.***:36285
+2026-10-11T09:59:34.246946Z  INFO cursorhop::injection: [IDLE_CURSOR] reveal reason=remote_input peer=inbound-192.168.10.***:36285
+2026-10-11T09:59:34.405112Z  INFO cursorhop::injection: [ROLE] peer released Primary role — edge forwarding re-enabled peer=11111111-2222-4333-8444-555555555555

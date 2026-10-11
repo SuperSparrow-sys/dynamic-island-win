@@ -17,8 +17,8 @@ public enum IslandShape { Island, Notch }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads";
-    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts };
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads", CursorHop = "cursorhop";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts, CursorHop };
     public const string Battery = "battery";
     /// <summary>Settings page and group heading (start of its text) of each widget - for the gear in the island and the board in the settings.</summary>
     public static (SettingsPage page, string? group) SettingsOf(string id) => id switch
@@ -188,7 +188,9 @@ public sealed partial class AppSettings : ObservableObject
     }
 
     /// <summary>Older versions stored one ICS URL; turn it into an account.</summary>
-    public void Migrate()
+    public void Migrate() => Migrate(Services.CursorHopService.IsInstalledOnDisk);
+
+    internal void Migrate(bool cursorHopInstalled)
     {
         // v2: track-change peek became opt-in (users found the island growing on every song distracting).
         if (SettingsVersion < 2) { MediaPeekOnTrackChange = false; SettingsVersion = 2; }
@@ -238,6 +240,13 @@ public sealed partial class AppSettings : ObservableObject
         {
             if (!CompactItems.Contains(Widgets.Downloads)) CompactItems.Add(Widgets.Downloads);
             SettingsVersion = 10;
+        }
+        // v11: CursorHop card on the System page, once, where CursorHop is installed.
+        if (SettingsVersion < 11)
+        {
+            if (cursorHopInstalled && CursorHopEnabled && !SystemWidgets.Contains(Widgets.CursorHop) && !HomeWidgets.Contains(Widgets.CursorHop))
+                SystemWidgets.Add(Widgets.CursorHop);
+            SettingsVersion = 11;
         }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });
@@ -315,6 +324,12 @@ public sealed partial class AppSettings : ObservableObject
 
     // Taildrop: files from other devices via Tailscale (see TaildropService). Folder "" = leave them in Downloads.
     [ObservableProperty] private bool _taildropEnabled = true;
+
+    // CursorHop (software KVM, see CursorHopService): read its log, start it when it is not running, peeks.
+    // Without CursorHop installed the service does nothing, so "on" is the right default everywhere.
+    [ObservableProperty] private bool _cursorHopEnabled = true;
+    [ObservableProperty] private bool _cursorHopAutoStart = true;
+    [ObservableProperty] private bool _cursorHopPeeks = true;
 
     // Microsoft 365 (MicrosoftAccount): own app registration; tenant "common" = work and personal accounts.
     [ObservableProperty] private string _microsoftClientId = "";

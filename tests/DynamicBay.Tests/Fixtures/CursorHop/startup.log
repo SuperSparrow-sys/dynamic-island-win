@@ -1,0 +1,6 @@
+2026-10-07T15:54:04.805621Z  INFO cursorhop: [STARTUP] clipboard-transfer safety active: filename-sanitize, sha256 integrity-verify, atomic-move delivery, startup temp-cleanup stale_temp_removed=0
+2026-10-07T15:54:04.808837Z  INFO cursorhop: CursorHop core starting version="0.12.0"
+2026-10-07T15:54:05.922726Z  INFO cursorhop_net::room: room beacon started on UDP port 24801
+2026-10-08T12:05:13.731461Z  INFO cursorhop: [STARTUP] clipboard-transfer safety active: filename-sanitize, sha256 integrity-verify, atomic-move delivery, startup temp-cleanup stale_temp_removed=0
+2026-10-08T12:05:13.733711Z  INFO cursorhop: CursorHop core starting version="0.12.0"
+2026-10-08T12:05:15.516925Z  INFO cursorhop_net::room: room beacon started on UDP port 24801
