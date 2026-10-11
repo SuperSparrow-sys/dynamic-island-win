@@ -185,8 +185,10 @@ public sealed partial class AudioService : ObservableObject
 
     private void ReadUsage(bool initial = false)
     {
-        var mic = ActiveApps("microphone");
-        var cam = ActiveApps("webcam");
+        var running = new Lazy<HashSet<string>>(RunningImagePaths); // only looked at when Windows reports a use
+        // No microphone at all: whatever the privacy list says, nothing can be recording
+        var mic = HasMicrophone() ? ActiveApps("microphone", running) : new List<string>();
+        var cam = ActiveApps("webcam", running);
         bool wasMic = MicInUse;
         MicInUse = mic.Count > 0;
         MicApp = mic.Count switch { 0 => "", 1 => mic[0], _ => $"{mic[0]} +{mic.Count - 1}" };
@@ -195,8 +197,17 @@ public sealed partial class AudioService : ObservableObject
         if (MicInUse && !wasMic && !initial) MicStarted?.Invoke(MicApp);
     }
 
-    /// <summary>Apps whose last usage has started but not stopped (that's how Windows marks "in use").</summary>
-    private static List<string> ActiveApps(string capability)
+    private bool HasMicrophone()
+    {
+        try { return Endpoint(EDataFlow.Capture, ERole.Console) is not null; }
+        catch { return true; } // unsure: keep the privacy list's word
+    }
+
+    /// <summary>
+    /// Apps whose last usage has started but not stopped (that's how Windows marks "in use") and that still run:
+    /// an app that crashed while recording leaves its entry "started" for good, and the mic stayed orange forever.
+    /// </summary>
+    private static List<string> ActiveApps(string capability, Lazy<HashSet<string>> running)
     {
         var result = new List<string>();
         try
@@ -211,13 +222,13 @@ public sealed partial class AudioService : ObservableObject
                     foreach (var exe in np?.GetSubKeyNames() ?? Array.Empty<string>())
                     {
                         using var k = np!.OpenSubKey(exe);
-                        if (InUse(k)) result.Add(FriendlyExe(exe));
+                        if (InUse(k) && StillRunning(exe, packaged: false, running.Value)) result.Add(FriendlyExe(exe));
                     }
                 }
                 else
                 {
                     using var k = root.OpenSubKey(name);
-                    if (InUse(k)) result.Add(FriendlyPackage(name));
+                    if (InUse(k) && StillRunning(name, packaged: true, running.Value)) result.Add(FriendlyPackage(name));
                 }
             }
         }
@@ -233,6 +244,53 @@ public sealed partial class AudioService : ObservableObject
         long stop = k.GetValue("LastUsedTimeStop") is long t ? t : -1;
         return start > 0 && stop == 0;
     }
+
+    /// <summary>
+    /// Whether the app of a privacy entry runs: an exe key ("C:#Program Files#Discord#Discord.exe") by its path, a package
+    /// family ("Microsoft.WindowsSoundRecorder_8wekyb3d8bbwe") by a process from its WindowsApps folder. Without a
+    /// process list (empty) every entry counts, as before.
+    /// </summary>
+    internal static bool StillRunning(string key, bool packaged, IReadOnlyCollection<string> runningPaths)
+    {
+        if (runningPaths.Count == 0) return true;
+        if (!packaged) return runningPaths.Contains(key.Replace('#', '\\'), StringComparer.OrdinalIgnoreCase);
+        int cut = key.LastIndexOf('_');
+        if (cut <= 0) return true;
+        string name = key[..cut], publisher = key[(cut + 1)..];
+        return runningPaths.Any(p => p.Contains(@"\WindowsApps\" + name + "_", StringComparison.OrdinalIgnoreCase)
+                                     && p.Contains("__" + publisher, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Full paths of the running processes this user may query (others are skipped).</summary>
+    private static HashSet<string> RunningImagePaths()
+    {
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in System.Diagnostics.Process.GetProcesses())
+        {
+            using (p)
+            {
+                IntPtr h = OpenProcess(0x1000 /* PROCESS_QUERY_LIMITED_INFORMATION */, false, p.Id);
+                if (h == IntPtr.Zero) continue;
+                try
+                {
+                    var sb = new System.Text.StringBuilder(1024);
+                    int size = sb.Capacity;
+                    if (QueryFullProcessImageName(h, 0, sb, ref size)) paths.Add(sb.ToString(0, size));
+                }
+                finally { CloseHandle(h); }
+            }
+        }
+        return paths;
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(int access, bool inherit, int pid);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern bool QueryFullProcessImageName(IntPtr process, int flags, System.Text.StringBuilder name, ref int size);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern bool CloseHandle(IntPtr handle);
 
     private static string FriendlyExe(string key)
     {
