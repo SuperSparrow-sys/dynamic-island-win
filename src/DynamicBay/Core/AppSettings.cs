@@ -376,6 +376,13 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>Snapshot runs and the like: Save and SaveSoon do nothing, the user's file stays as it is.</summary>
     public static bool ReadOnly { get; set; }
 
+    /// <summary>The settings as written to settings.json (export, see <see cref="SettingsTransfer"/>).</summary>
+    public string ToJson() => JsonSerializer.Serialize(this, Json);
+
+    /// <summary>Reads settings in the settings.json format; throws on broken JSON.</summary>
+    public static AppSettings FromJson(string json) =>
+        JsonSerializer.Deserialize<AppSettings>(json, Json) ?? throw new JsonException("empty settings");
+
     /// <summary>
     /// Reads settings.json. A broken file is copied aside (settings.corrupt-{time}.json) and the backup of the last
     /// good save is used instead; only without one the defaults apply.

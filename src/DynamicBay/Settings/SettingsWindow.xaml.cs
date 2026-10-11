@@ -1269,6 +1269,84 @@ public partial class SettingsWindow : Window
 
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e) => OpenFolder(AppSettings.Folder);
 
+    private void ShowTransferStatus(string text, bool error = false)
+    {
+        TransferStatus.Text = text;
+        TransferStatus.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, error ? "S.Red" : "S.Text2");
+        TransferStatus.Visibility = Visibility.Visible;
+    }
+
+    private void ExportSettings_Click(object sender, RoutedEventArgs e)
+    {
+        bool de = Loc.German;
+        var pin = new PinWindow(de ? "Einstellungen exportieren" : "Export settings",
+            de ? "Ohne den Code lässt sich die Datei nicht öffnen. Passwörter und Anmeldungen sind nicht enthalten."
+               : "The file can't be opened without the code. Passwords and sign-ins are not included.",
+            de ? "Weiter" : "Continue", confirm: true) { Owner = this };
+        if (pin.ShowDialog() != true) return;
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = de ? "Einstellungen exportieren" : "Export settings",
+            Filter = $"DynamicBay ({SettingsTransfer.Extension})|*{SettingsTransfer.Extension}",
+            FileName = $"DynamicBay-{(de ? "Einstellungen" : "Settings")}-{DateTime.Now:yyyy-MM-dd}{SettingsTransfer.Extension}",
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            var bundle = SettingsTransfer.Collect(_ctx.S, App.Version, Services.Scripting.ScriptWidgetsService.Folder, SecretStore.Get);
+            System.IO.File.WriteAllBytes(dlg.FileName, SettingsTransfer.Encrypt(bundle, pin.Code));
+            Log.Info($"Settings exported ({bundle.Scripts.Count} script files)");
+            ShowTransferStatus(de ? $"Gespeichert: {System.IO.Path.GetFileName(dlg.FileName)}" : $"Saved: {System.IO.Path.GetFileName(dlg.FileName)}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Settings export", ex);
+            ShowTransferStatus(de ? "Export fehlgeschlagen. Details im Log." : "Export failed. Details in the log.", error: true);
+        }
+    }
+
+    private void ImportSettings_Click(object sender, RoutedEventArgs e)
+    {
+        bool de = Loc.German;
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = de ? "Einstellungen importieren" : "Import settings",
+            Filter = $"DynamicBay ({SettingsTransfer.Extension})|*{SettingsTransfer.Extension}",
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        byte[] file;
+        try { file = System.IO.File.ReadAllBytes(dlg.FileName); }
+        catch (Exception ex)
+        {
+            Log.Error("Settings import read", ex);
+            ShowTransferStatus(de ? "Die Datei lässt sich nicht lesen." : "The file can't be read.", error: true);
+            return;
+        }
+        SettingsTransfer.Bundle? bundle = null;
+        var pin = new PinWindow(de ? "Einstellungen importieren" : "Import settings",
+            de ? "Ersetzt alle Einstellungen. Danach startet DynamicBay neu, du meldest dich nur noch an."
+               : "Replaces all settings. DynamicBay then restarts; you only sign in again.",
+            de ? "Importieren" : "Import", confirm: false, check: code =>
+            {
+                try { bundle = SettingsTransfer.Decrypt(file, code); return null; }
+                catch (SettingsTransfer.WrongPinException) { return de ? "Falscher Code." : "Wrong code."; }
+                catch (System.IO.InvalidDataException) { return de ? "Das ist keine DynamicBay-Sicherung." : "This is not a DynamicBay export."; }
+            }) { Owner = this };
+        if (pin.ShowDialog() != true || bundle is null) return;
+        try
+        {
+            SettingsTransfer.Apply(bundle, AppSettings.Folder, SecretStore.Set);
+            Log.Info($"Settings imported from {bundle.AppVersion} ({bundle.Created:yyyy-MM-dd}), restarting");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Settings import", ex);
+            ShowTransferStatus(de ? "Import fehlgeschlagen, nichts wurde geändert." : "Import failed, nothing was changed.", error: true);
+            return;
+        }
+        ((App)Application.Current).RestartAfterImport();
+    }
+
     private static void Open(string target)
     {
         try { Process.Start(new ProcessStartInfo(target) { UseShellExecute = true }); } catch { }

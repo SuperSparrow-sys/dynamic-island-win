@@ -218,6 +218,20 @@ public static class Snapshots
                 RenderWindow(tw, Path.Combine(dir, "time-window.png"));
                 tw.Close();
             }
+            // Code dialogs of the settings export and import (the import one with the wrong-code message)
+            foreach (bool export in new[] { true, false })
+            {
+                var pw = export
+                    ? new Settings.PinWindow("Einstellungen exportieren", "Ohne den Code lässt sich die Datei nicht öffnen. Passwörter und Anmeldungen sind nicht enthalten.", "Weiter", confirm: true)
+                    : new Settings.PinWindow("Einstellungen importieren", "Ersetzt alle Einstellungen. Danach startet DynamicBay neu, du meldest dich nur noch an.", "Importieren", confirm: false, check: _ => "Falscher Code.");
+                pw.Show();
+                ((System.Windows.Controls.PasswordBox)pw.FindName("Pin")).Password = "482913";
+                if (export) ((System.Windows.Controls.PasswordBox)pw.FindName("Repeat")).Password = "482913";
+                else ((System.Windows.Controls.Button)pw.FindName("OkButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                await Task.Delay(600);
+                RenderWindow(pw, Path.Combine(dir, export ? "pin-export.png" : "pin-import.png"));
+                pw.Close();
+            }
             var win = new Settings.SettingsWindow(settings, vm);
             win.Show();
             // Every page from top to bottom: settings-PP-N.png, one picture per screen height.

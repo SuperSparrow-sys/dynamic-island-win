@@ -717,6 +717,27 @@ public partial class App : Application
         _timeWindow.Activate();
     }
 
+    /// <summary>
+    /// After a settings import: the new settings.json is on disk and must not be overwritten by this run's settings.
+    /// Gives the Windows banners back and frees the single-instance lock before the new process starts, so the new
+    /// run sets everything up again and nothing of this run undoes it afterwards.
+    /// </summary>
+    public void RestartAfterImport()
+    {
+        FlushAll();
+        AppSettings.ReadOnly = true;
+        try { BannerSuppressor.RestoreAll(); } catch (Exception ex) { Log.Error("Import banners", ex); }
+        _running = false;
+        _taildrop?.Dispose();
+        _tray?.Dispose();
+        _msg?.Dispose();
+        _single?.ReleaseMutex();
+        _single?.Dispose();
+        _single = null;
+        SparsePackage.Restart();
+        Shutdown();
+    }
+
     private void Quit()
     {
         FlushAll();

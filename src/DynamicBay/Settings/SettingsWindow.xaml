@@ -1075,6 +1075,18 @@
                                     <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Folder}" Width="14" Height="14" /><TextBlock x:Name="DataFolderText" Margin="8,0,0,0" TextTrimming="CharacterEllipsis" /></StackPanel>
                                 </Button>
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Einstellungen übertragen', En='Transfer settings'}"
+                                            ToolTip="{core:L De='Alle Einstellungen in eine Datei mit Zahlencode, ohne Anmeldungen.', En='All settings in one file locked with a code, without sign-ins.'}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource S.Button}" Click="ExportSettings_Click">
+                                        <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Download}" Width="14" Height="14" /><TextBlock Margin="8,0,0,0" Text="{core:L De='Exportieren', En='Export'}" /></StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="ImportSettings_Click">
+                                        <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.FolderOpen}" Width="14" Height="14" /><TextBlock Margin="8,0,0,0" Text="{core:L De='Importieren', En='Import'}" /></StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </ContentControl>
+                            <TextBlock x:Name="TransferStatus" Style="{StaticResource ST.Desc}" Margin="16,0,16,10" TextWrapping="Wrap" Visibility="Collapsed" />
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='DynamicBay beenden', En='Quit DynamicBay'}"
                                             ToolTip="{core:L De='Auch in der Insel: Alt halten, der Ausblenden-Knopf wird zum Beenden-Knopf.', En='Also in the island: hold Alt and the hide button turns into a quit button.'}">
                                 <Button Style="{StaticResource S.Button}" Command="{Binding I.QuitCommand}" Foreground="{DynamicResource S.Red}"
