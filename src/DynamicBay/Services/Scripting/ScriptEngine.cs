@@ -170,7 +170,11 @@ public static class ScriptEngine
             return JsonSerializer.Serialize(new { status = (int)resp.StatusCode, body = text, error = resp.IsSuccessStatusCode ? null : $"HTTP {(int)resp.StatusCode}" });
         }
         catch (OperationCanceledException) { return Error("Zeitüberschreitung bei der Anfrage"); }
-        catch (Exception ex) { return Error(ex.InnerException?.Message ?? ex.Message); }
+        catch (Exception ex)
+        {
+            Log.Info($"Script fetch failed: {ex.InnerException?.Message ?? ex.Message}");
+            return Error(ErrorText.For(ex));
+        }
 
         static string Error(string m) => JsonSerializer.Serialize(new { status = 0, body = "", error = m });
     }
@@ -187,7 +191,7 @@ public static class ScriptEngine
         var host = uri.IdnHost;
         var addresses = IPAddress.TryParse(host.Trim('[', ']'), out var literal) ? new[] { literal! } : Dns.GetHostAddressesAsync(host, ct).GetAwaiter().GetResult();
         if (addresses.Length == 0 || (!AllowLocalAddresses && addresses.Any(IsForbidden)))
-            throw new HttpRequestException(Loc.German ? "Adressen in diesem PC oder im lokalen Netz sind gesperrt" : "Addresses on this PC or the local network are blocked");
+            throw new UserMessageException(Loc.German ? "Adressen in diesem PC oder im lokalen Netz sind gesperrt" : "Addresses on this PC or the local network are blocked");
     }
 
     /// <summary>Through the system proxy, following at most 5 redirects itself so every target is checked first.</summary>
@@ -202,7 +206,7 @@ public static class ScriptEngine
             var next = new Uri(req.RequestUri!, location);
             resp.Dispose();
             if (next.Scheme != Uri.UriSchemeHttp && next.Scheme != Uri.UriSchemeHttps)
-                throw new HttpRequestException("Nur http- und https-Adressen sind erlaubt");
+                throw new UserMessageException("Nur http- und https-Adressen sind erlaubt");
             // 307/308 keep method and body; the others continue with a GET, like the automatic redirects.
             var follow = new HttpRequestMessage(code is 307 or 308 ? req.Method : HttpMethod.Get, next);
             foreach (var h in req.Headers) if (!h.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase)) follow.Headers.TryAddWithoutValidation(h.Key, h.Value);
@@ -218,7 +222,7 @@ public static class ScriptEngine
         var addresses = IPAddress.TryParse(host.Trim('[', ']'), out var literal) ? new[] { literal! } : await Dns.GetHostAddressesAsync(host, ct);
         var allowed = addresses.Where(a => AllowLocalAddresses || !IsForbidden(a)).ToArray();
         if (allowed.Length == 0)
-            throw new HttpRequestException(Loc.German ? "Adressen in diesem PC oder im lokalen Netz sind gesperrt" : "Addresses on this PC or the local network are blocked");
+            throw new UserMessageException(Loc.German ? "Adressen in diesem PC oder im lokalen Netz sind gesperrt" : "Addresses on this PC or the local network are blocked");
         var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
         try
         {

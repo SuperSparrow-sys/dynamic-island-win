@@ -1,0 +1,45 @@
+{
+  "device": {
+    "id": null,
+    "is_active": true,
+    "is_private_session": false,
+    "is_restricted": true,
+    "name": "Wohnzimmer",
+    "supports_volume": false,
+    "type": "Speaker",
+    "volume_percent": null
+  },
+  "shuffle_state": false,
+  "repeat_state": "off",
+  "timestamp": 1760187700000,
+  "context": { "type": "show", "uri": "spotify:show:2MAi0BvDc6GTFvKFPXnkCL" },
+  "progress_ms": 1520000,
+  "item": {
+    "audio_preview_url": null,
+    "description": "Wir sprechen über Technik und Alltag.",
+    "duration_ms": 3721000,
+    "explicit": false,
+    "id": "512ojhOuo1ktJprKbVcKyQ",
+    "images": [
+      { "height": 640, "url": "https://i.scdn.co/image/ab6765630000ba8a0d5f5c2b9a7e7f4e7d2b9c51", "width": 640 }
+    ],
+    "is_playable": true,
+    "language": "de",
+    "name": "Folge 212: Inseln auf dem Desktop",
+    "release_date": "2026-10-09",
+    "resume_point": { "fully_played": false, "resume_position_ms": 1520000 },
+    "show": {
+      "id": "2MAi0BvDc6GTFvKFPXnkCL",
+      "images": [],
+      "name": "Technik-Talk",
+      "publisher": "Studio Nord",
+      "type": "show",
+      "uri": "spotify:show:2MAi0BvDc6GTFvKFPXnkCL"
+    },
+    "type": "episode",
+    "uri": "spotify:episode:512ojhOuo1ktJprKbVcKyQ"
+  },
+  "currently_playing_type": "episode",
+  "actions": { "disallows": { "toggling_shuffle": true } },
+  "is_playing": true
+}

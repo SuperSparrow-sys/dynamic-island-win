@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<multistatus xmlns="DAV:">
+  <response xmlns="DAV:">
+    <href>/1234567890/calendars/</href>
+    <propstat>
+      <prop>
+        <resourcetype><collection/></resourcetype>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+    <propstat>
+      <prop>
+        <displayname/>
+        <supported-calendar-component-set xmlns="urn:ietf:params:xml:ns:caldav"/>
+        <calendar-color xmlns="http://apple.com/ns/ical/"/>
+      </prop>
+      <status>HTTP/1.1 404 Not Found</status>
+    </propstat>
+  </response>
+  <response xmlns="DAV:">
+    <href>/1234567890/calendars/home/</href>
+    <propstat>
+      <prop>
+        <resourcetype><collection/><calendar xmlns="urn:ietf:params:xml:ns:caldav"/></resourcetype>
+        <displayname>Privat</displayname>
+        <supported-calendar-component-set xmlns="urn:ietf:params:xml:ns:caldav">
+          <comp name="VEVENT"/>
+        </supported-calendar-component-set>
+        <calendar-color xmlns="http://apple.com/ns/ical/" symbolic-color="blue">#1BADF8FF</calendar-color>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response xmlns="DAV:">
+    <href>/1234567890/calendars/work/</href>
+    <propstat>
+      <prop>
+        <resourcetype><collection/><calendar xmlns="urn:ietf:params:xml:ns:caldav"/></resourcetype>
+        <displayname>Arbeit &amp; Projekte</displayname>
+        <supported-calendar-component-set xmlns="urn:ietf:params:xml:ns:caldav">
+          <comp name="VEVENT"/>
+          <comp name="VTODO"/>
+        </supported-calendar-component-set>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+    <propstat>
+      <prop>
+        <calendar-color xmlns="http://apple.com/ns/ical/"/>
+      </prop>
+      <status>HTTP/1.1 404 Not Found</status>
+    </propstat>
+  </response>
+  <response xmlns="DAV:">
+    <href>/1234567890/calendars/tasks/</href>
+    <propstat>
+      <prop>
+        <resourcetype><collection/><calendar xmlns="urn:ietf:params:xml:ns:caldav"/></resourcetype>
+        <displayname>Erinnerungen</displayname>
+        <supported-calendar-component-set xmlns="urn:ietf:params:xml:ns:caldav">
+          <comp name="VTODO"/>
+        </supported-calendar-component-set>
+        <calendar-color xmlns="http://apple.com/ns/ical/">#FF9500FF</calendar-color>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response xmlns="DAV:">
+    <href>/1234567890/calendars/inbox/</href>
+    <propstat>
+      <prop>
+        <resourcetype><collection/><schedule-inbox xmlns="urn:ietf:params:xml:ns:caldav"/></resourcetype>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response xmlns="DAV:">
+    <href>/1234567890/calendars/F3A9-B2C1%20Geteilt/</href>
+    <propstat>
+      <prop>
+        <resourcetype><collection/><calendar xmlns="urn:ietf:params:xml:ns:caldav"/><shared-owner xmlns="http://calendarserver.org/ns/"/></resourcetype>
+        <displayname></displayname>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response xmlns="DAV:">
+    <propstat>
+      <prop>
+        <resourcetype><calendar xmlns="urn:ietf:params:xml:ns:caldav"/></resourcetype>
+        <displayname>Ohne href</displayname>
+      </prop>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+</multistatus>

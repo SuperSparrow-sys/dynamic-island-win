@@ -117,7 +117,7 @@ public sealed partial class MicrosoftAccount : ObservableObject
                 ? (Loc.German
                     ? "Die App ist nur für deine Firma registriert. Trag unter „Verzeichnis“ die Verzeichnis-ID (Mandant) von der Übersichtsseite der App ein – oder deine Firmen-Domain, z. B. firma.de."
                     : "The app is registered for your organisation only. Enter the directory (tenant) ID from the app's overview page under Directory - or your company domain, e.g. contoso.com.")
-                : (Loc.German ? "Anmeldung fehlgeschlagen: " : "Sign-in failed: ") + ex.Message;
+                : ErrorText.For(ex, Loc.T("Err.SignInFailed"));
         }
         finally { IsBusy = false; }
     }
@@ -150,7 +150,7 @@ public sealed partial class MicrosoftAccount : ObservableObject
         JsonNode? json = null;
         try { json = JsonNode.Parse(text); } catch when (!res.IsSuccessStatusCode) { } // e.g. an HTML error page
         if (!res.IsSuccessStatusCode)
-            throw new TokenException(json?["error"]?.ToString(),
+            throw new TokenException(res.StatusCode, json?["error"]?.ToString(),
                 FirstLine(json?["error_description"]?.ToString()) ?? json?["error"]?.ToString() ?? res.StatusCode.ToString());
         _accessToken = json!["access_token"]!.ToString();
         _expires = DateTime.UtcNow.AddSeconds((json["expires_in"]?.GetValue<int>() ?? 3600) - 120);
@@ -184,8 +184,9 @@ public sealed partial class MicrosoftAccount : ObservableObject
     }
 
     /// <summary>The token endpoint refused; <see cref="Error"/> is the OAuth error code ("invalid_grant", ...).</summary>
-    private sealed class TokenException(string? error, string message) : InvalidOperationException(message)
+    private sealed class TokenException(HttpStatusCode status, string? error, string message) : InvalidOperationException(message), IHttpStatusError, IOAuthError
     {
+        public HttpStatusCode Status { get; } = status;
         public string? Error { get; } = error;
     }
 
@@ -283,7 +284,7 @@ public sealed partial class MicrosoftAccount : ObservableObject
     private static string B64(byte[] b) => Convert.ToBase64String(b).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 }
 
-public sealed class GraphException(HttpStatusCode status, string message) : Exception(message)
+public sealed class GraphException(HttpStatusCode status, string message) : Exception(message), IHttpStatusError
 {
     public HttpStatusCode Status { get; } = status;
 }

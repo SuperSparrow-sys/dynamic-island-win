@@ -1,0 +1,29 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('jonas%40contoso.com')/contacts(displayName,emailAddresses,mobilePhone,businessPhones,homePhones)",
+  "value": [
+    {
+      "@odata.etag": "W/\"EQAAABYAAAA=\"",
+      "id": "AAMkADh6v5AAA=",
+      "displayName": "Jonas Becker",
+      "mobilePhone": null,
+      "businessPhones": [ "+49 89 9876543" ],
+      "homePhones": [],
+      "emailAddresses": [ { "name": "Jonas Becker", "address": "jonas.becker@example.com" } ]
+    },
+    {
+      "id": "AAMkADh6v5BBB=",
+      "displayName": "Oma",
+      "mobilePhone": "",
+      "businessPhones": [],
+      "homePhones": [ "+49 621 12345" ],
+      "emailAddresses": []
+    },
+    {
+      "id": "AAMkADh6v5CCC=",
+      "displayName": null,
+      "mobilePhone": "+49 170 0000000",
+      "emailAddresses": null
+    },
+    null
+  ]
+}

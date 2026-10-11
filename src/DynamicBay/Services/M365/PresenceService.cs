@@ -126,7 +126,7 @@ public sealed partial class PresenceService : ObservableObject
         {
             var p = await _account.GetAsync("me/presence");
             if (p is null) return;
-            Apply(p["availability"]?.ToString() ?? "PresenceUnknown");
+            Apply(ParseAvailability(p));
             if (_settings.TeamsChosenUntil <= DateTime.Now && _beforeAuto is null) Selected = "";
             Status = "";
         }
@@ -137,6 +137,9 @@ public sealed partial class PresenceService : ObservableObject
         }
         catch (Exception ex) { Log.Error("Teams presence", ex); }
     }
+
+    /// <summary>GET me/presence: "Available", "Busy", ... ("PresenceUnknown" if missing).</summary>
+    internal static string ParseAvailability(JsonNode? p) => p?["availability"]?.ToString() is { Length: > 0 } a ? a : "PresenceUnknown";
 
     /// <summary>What Teams reports right now (for the tooltip and the colour).</summary>
     private void Apply(string availability)
@@ -196,7 +199,7 @@ public sealed partial class PresenceService : ObservableObject
         catch (Exception ex)
         {
             Log.Error("Teams presence set", ex);
-            Status = (Loc.German ? "Teams-Status: " : "Teams status: ") + ex.Message;
+            Status = (Loc.German ? "Teams-Status: " : "Teams status: ") + ErrorText.For(ex);
         }
         return false;
     }

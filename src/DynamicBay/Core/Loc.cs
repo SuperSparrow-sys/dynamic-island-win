@@ -123,6 +123,19 @@ public static class Loc
         ["Action.Open"] = ("Öffnen", "Open"),
         ["Action.ShowInFolder"] = ("Im Ordner zeigen", "Show in folder"),
         ["Action.Remove"] = ("Entfernen", "Remove"),
+
+        // Failures shown to the user (see ErrorText): one short sentence, no codes.
+        ["Err.Network"] = ("Keine Verbindung, bitte Internet prüfen.", "No connection, please check the internet."),
+        ["Err.Timeout"] = ("Das hat zu lange gedauert, bitte nochmal versuchen.", "That took too long, please try again."),
+        ["Err.SignIn"] = ("Anmeldung abgelaufen, bitte neu anmelden.", "Sign-in expired, please sign in again."),
+        ["Err.ClientId"] = ("Die Client-ID stimmt nicht, bitte prüfen.", "The client ID is not right, please check it."),
+        ["Err.NotFound"] = ("Nicht gefunden, bitte die Adresse prüfen.", "Not found, please check the address."),
+        ["Err.TooMany"] = ("Zu viele Anfragen, bitte später nochmal versuchen.", "Too many requests, please try again later."),
+        ["Err.Service"] = ("Der Dienst ist gerade gestört, bitte später nochmal versuchen.", "The service has a problem, please try again later."),
+        ["Err.Address"] = ("Die Adresse ist ungültig.", "The address is not valid."),
+        ["Err.BadAnswer"] = ("Der Dienst hat unerwartet geantwortet.", "The service sent an unexpected answer."),
+        ["Err.SignInFailed"] = ("Anmeldung fehlgeschlagen, bitte nochmal versuchen.", "Sign-in failed, please try again."),
+        ["Err.Unknown"] = ("Etwas ist schiefgelaufen, bitte nochmal versuchen.", "Something went wrong, please try again."),
     };
 }
 

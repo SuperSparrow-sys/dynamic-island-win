@@ -1,0 +1,44 @@
+{
+  "href": "https://api.spotify.com/v1/me/playlists?offset=0&limit=40",
+  "limit": 40,
+  "next": null,
+  "offset": 0,
+  "previous": null,
+  "total": 4,
+  "items": [
+    {
+      "collaborative": false,
+      "description": "",
+      "id": "3cEYpjA9oz9GiPac4AsH4n",
+      "images": [
+        { "height": 640, "url": "https://mosaic.scdn.co/640/ab67616d00001e02aaa", "width": 640 },
+        { "height": 60, "url": "https://mosaic.scdn.co/60/ab67616d00001e02aaa", "width": 60 }
+      ],
+      "name": "Laufen",
+      "owner": { "display_name": "Jonas", "id": "jonas", "type": "user" },
+      "public": false,
+      "tracks": { "href": "https://api.spotify.com/v1/playlists/3cEYpjA9oz9GiPac4AsH4n/tracks", "total": 57 },
+      "type": "playlist",
+      "uri": "spotify:playlist:3cEYpjA9oz9GiPac4AsH4n"
+    },
+    {
+      "collaborative": false,
+      "id": "5a1b2c3d4e5f6a7b8c9d0e",
+      "images": null,
+      "name": "Neue Playlist",
+      "owner": { "display_name": null, "id": "jonas", "type": "user" },
+      "items": { "href": "https://api.spotify.com/v1/playlists/5a1b2c3d4e5f6a7b8c9d0e/items", "total": 0 },
+      "type": "playlist",
+      "uri": "spotify:playlist:5a1b2c3d4e5f6a7b8c9d0e"
+    },
+    null,
+    {
+      "id": "37i9dQZF1DXcBWIGoYBM5M",
+      "images": [ { "height": null, "url": "https://i.scdn.co/image/ab67706f00000002b3c0c2d1", "width": null } ],
+      "name": "Today's Top Hits",
+      "owner": { "display_name": "Spotify", "id": "spotify" },
+      "tracks": null,
+      "uri": "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M"
+    }
+  ]
+}

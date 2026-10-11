@@ -1,0 +1,49 @@
+{
+  "device": {
+    "id": "3f228e06c8562e2f439e22932da6c3231715ed53",
+    "is_active": true,
+    "name": "DESKTOP-JONAS",
+    "type": "Computer",
+    "volume_percent": 30
+  },
+  "shuffle_state": false,
+  "repeat_state": "track",
+  "timestamp": 1760187800000,
+  "context": null,
+  "progress_ms": 12000,
+  "item": {
+    "album": {
+      "album_type": null,
+      "artists": [],
+      "available_markets": [],
+      "external_urls": {},
+      "href": null,
+      "id": null,
+      "images": [],
+      "name": "Demo-Aufnahmen",
+      "release_date": null,
+      "release_date_precision": null,
+      "type": "album",
+      "uri": null
+    },
+    "artists": [ { "external_urls": {}, "href": null, "id": null, "name": "Band aus dem Keller", "type": "artist", "uri": null } ],
+    "available_markets": [],
+    "disc_number": 0,
+    "duration_ms": 184000,
+    "explicit": false,
+    "external_ids": {},
+    "external_urls": {},
+    "href": null,
+    "id": null,
+    "is_local": true,
+    "name": "Probe 3",
+    "popularity": 0,
+    "preview_url": null,
+    "track_number": 0,
+    "type": "track",
+    "uri": "spotify:local:Band+aus+dem+Keller:Demo-Aufnahmen:Probe+3:184"
+  },
+  "currently_playing_type": "track",
+  "actions": { "disallows": { "toggling_repeat_track": "yes" } },
+  "is_playing": false
+}

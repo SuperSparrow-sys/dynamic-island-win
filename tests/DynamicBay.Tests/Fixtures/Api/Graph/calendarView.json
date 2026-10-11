@@ -1,0 +1,67 @@
+{
+  "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users('jonas%40contoso.com')/calendars('AAMkAGI2TGuLAAA%3D')/calendarView(subject,start,end,isAllDay,location,isCancelled,onlineMeeting,onlineMeetingUrl,bodyPreview)",
+  "value": [
+    {
+      "@odata.etag": "W/\"ZlnW4RIAV06KYYwlrfNZvQAALfZeRQ==\"",
+      "id": "AAMkAGI2TG93AAA=",
+      "subject": "Weekly Sync",
+      "bodyPreview": "________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 123 456 789 0",
+      "isAllDay": false,
+      "isCancelled": false,
+      "onlineMeetingUrl": null,
+      "start": { "dateTime": "2026-10-12T09:30:00.0000000", "timeZone": "W. Europe Standard Time" },
+      "end": { "dateTime": "2026-10-12T10:00:00.0000000", "timeZone": "W. Europe Standard Time" },
+      "location": { "displayName": "Microsoft Teams Meeting", "locationType": "default", "uniqueId": "Microsoft Teams Meeting", "uniqueIdType": "private" },
+      "onlineMeeting": { "joinUrl": "https://teams.microsoft.com/l/meetup-join/19%3ameeting_NTg0NmQ3NTctZDVkZC00YzRhLThmNmEtOGQ3M2E0ODdmZDZk%40thread.v2/0?context=%7b%22Tid%22%3a%22a1b2%22%7d" }
+    },
+    {
+      "id": "AAMkAGI2TG93BBB=",
+      "subject": "Zahnarzt",
+      "bodyPreview": "",
+      "isAllDay": false,
+      "isCancelled": false,
+      "onlineMeetingUrl": null,
+      "start": { "dateTime": "2026-10-13T08:00:00.0000000", "timeZone": "UTC" },
+      "end": { "dateTime": "2026-10-13T09:00:00.0000000", "timeZone": "UTC" },
+      "location": null,
+      "onlineMeeting": null
+    },
+    {
+      "id": "AAMkAGI2TG93CCC=",
+      "subject": "Tag der Deutschen Einheit",
+      "isAllDay": true,
+      "isCancelled": false,
+      "start": { "dateTime": "2026-10-14T00:00:00.0000000", "timeZone": "UTC" },
+      "end": { "dateTime": "2026-10-15T00:00:00.0000000", "timeZone": "UTC" },
+      "location": { "displayName": "", "locationType": "default" },
+      "onlineMeeting": null
+    },
+    {
+      "id": "AAMkAGI2TG93DDD=",
+      "subject": "Abgesagt: Kundentermin",
+      "isAllDay": false,
+      "isCancelled": true,
+      "start": { "dateTime": "2026-10-12T14:00:00.0000000", "timeZone": "W. Europe Standard Time" },
+      "end": { "dateTime": "2026-10-12T15:00:00.0000000", "timeZone": "W. Europe Standard Time" }
+    },
+    {
+      "id": "AAMkAGI2TG93EEE=",
+      "subject": "Call mit dem Team in Seattle",
+      "isAllDay": false,
+      "isCancelled": false,
+      "start": { "dateTime": "2026-10-12T08:00:00.0000000", "timeZone": "Pacific Standard Time" },
+      "end": { "dateTime": "2026-10-12T08:30:00.0000000", "timeZone": "Pacific Standard Time" },
+      "location": { "displayName": "https://zoom.us/j/98765432100?pwd=abc", "locationType": "default" },
+      "onlineMeeting": null
+    },
+    {
+      "id": "AAMkAGI2TG93FFF=",
+      "subject": null,
+      "isAllDay": null,
+      "isCancelled": null,
+      "start": { "dateTime": "2026-10-16T11:00:00.0000000", "timeZone": "Unknown/Zone" },
+      "end": null
+    },
+    null
+  ]
+}

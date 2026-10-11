@@ -71,8 +71,11 @@ public sealed class GoogleCalendarClient
     private async Task TokenAsync(Dictionary<string, string> form)
     {
         using var res = await Auth.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(form));
-        var json = JsonNode.Parse(await res.Content.ReadAsStringAsync());
-        if (!res.IsSuccessStatusCode) throw new InvalidOperationException(json?["error_description"]?.ToString() ?? json?["error"]?.ToString() ?? res.StatusCode.ToString());
+        var text = await res.Content.ReadAsStringAsync();
+        JsonNode? json = null;
+        try { json = JsonNode.Parse(text); } catch when (!res.IsSuccessStatusCode) { } // e.g. an HTML error page
+        if (!res.IsSuccessStatusCode)
+            throw new TokenException(res.StatusCode, json?["error"]?.ToString(), json?["error_description"]?.ToString() ?? json?["error"]?.ToString() ?? res.StatusCode.ToString());
         _accessToken = json!["access_token"]!.ToString();
         _expires = DateTime.UtcNow.AddSeconds(json["expires_in"]!.GetValue<int>() - 60);
         if (json["refresh_token"] is JsonNode rt) RefreshToken = rt.ToString();
@@ -81,7 +84,7 @@ public sealed class GoogleCalendarClient
     private async Task EnsureTokenAsync()
     {
         if (_accessToken is not null && DateTime.UtcNow < _expires) return;
-        if (RefreshToken is null) throw new InvalidOperationException("not signed in");
+        if (RefreshToken is null) throw new Core.UserMessageException(Core.Loc.T("Err.SignIn"));
         await TokenAsync(new()
         {
             ["refresh_token"] = RefreshToken, ["client_id"] = _clientId, ["client_secret"] = _clientSecret, ["grant_type"] = "refresh_token",
@@ -108,40 +111,73 @@ public sealed class GoogleCalendarClient
         await EnsureTokenAsync();
         var list = JsonNode.Parse(await GetAsync("users/me/calendarList?minAccessRole=reader"));
         var events = new List<CalendarEvent>();
-        var all = (list?["items"]?.AsArray() ?? new JsonArray()).Where(c => c is not null && c["selected"]?.GetValue<bool>() != false).ToList();
-        foreach (var c in all)
-            Calendars.Add((c!["id"]!.ToString(), c["summaryOverride"]?.ToString() ?? c["summary"]?.ToString() ?? c["id"]!.ToString(), c["backgroundColor"]?.ToString()));
+        var all = ParseCalendarList(list);
+        Calendars.AddRange(all);
         // Switched-off calendars are not even fetched.
-        var calendars = all.Where(c => hidden is null || !hidden.Contains(c!["id"]!.ToString())).ToList();
+        var calendars = all.Where(c => hidden is null || !hidden.Contains(c.id)).ToList();
         // All calendars at once instead of one after another.
         var pages = await Task.WhenAll(calendars.Select(async cal =>
         {
-            string id = Uri.EscapeDataString(cal!["id"]!.ToString());
+            string id = Uri.EscapeDataString(cal.id);
             string url = $"calendars/{id}/events?singleEvents=true&orderBy=startTime&maxResults=50" +
                          $"&timeMin={Uri.EscapeDataString(from.ToUniversalTime().ToString("o"))}&timeMax={Uri.EscapeDataString(to.ToUniversalTime().ToString("o"))}";
             try { return (cal, data: JsonNode.Parse(await GetAsync(url))); } catch { return (cal, data: (JsonNode?)null); }
         }));
-        foreach (var (cal, data) in pages)
+        foreach (var (cal, data) in pages) events.AddRange(ParseEvents(data, cal.color));
+        return events;
+    }
+
+    /// <summary>users/me/calendarList: calendars switched off in Google ("selected": false) and ones without an id are left out.</summary>
+    internal static List<(string id, string name, string? color)> ParseCalendarList(JsonNode? list)
+    {
+        var result = new List<(string id, string name, string? color)>();
+        foreach (var c in list?["items"] as JsonArray ?? new JsonArray())
         {
-            foreach (var ev in data?["items"]?.AsArray() ?? new JsonArray())
+            if (c?["id"]?.ToString() is not { Length: > 0 } id) continue;
+            if (c["selected"] is JsonValue sel && sel.TryGetValue<bool>(out var on) && !on) continue;
+            result.Add((id, c["summaryOverride"]?.ToString() ?? c["summary"]?.ToString() ?? id, c["backgroundColor"]?.ToString()));
+        }
+        return result;
+    }
+
+    /// <summary>One calendar's events: all-day ones have "date", others "dateTime"; cancelled ones and ones without a start are left out.</summary>
+    internal static List<CalendarEvent> ParseEvents(JsonNode? data, string? color)
+    {
+        var events = new List<CalendarEvent>();
+        foreach (var ev in data?["items"] as JsonArray ?? new JsonArray())
+        {
+            if (ev is null || ev["status"]?.ToString() == "cancelled") continue;
+            bool allDay = ev["start"]?["date"] is not null;
+            if (Time(ev["start"], allDay) is not { } s) continue;
+            DateTime e = Time(ev["end"], allDay) ?? (allDay ? s.AddDays(1) : s.AddHours(1));
+            events.Add(new CalendarEvent
             {
-                if (ev?["status"]?.ToString() == "cancelled") continue;
-                var start = ev!["start"]; var end = ev["end"];
-                bool allDay = start?["date"] is not null;
-                DateTime s = allDay ? DateTime.Parse(start!["date"]!.ToString()) : DateTime.Parse(start!["dateTime"]!.ToString()).ToLocalTime();
-                DateTime e = allDay ? DateTime.Parse(end!["date"]!.ToString()) : DateTime.Parse(end!["dateTime"]!.ToString()).ToLocalTime();
-                events.Add(new CalendarEvent
-                {
-                    Title = ev["summary"]?.ToString() ?? "(ohne Titel)", Start = s, End = e, AllDay = allDay,
-                    Location = ev["location"]?.ToString(), Color = cal["backgroundColor"]?.ToString(),
-                    // Teams/Zoom add-ons put the link into conferenceData; invitations often only into the description.
-                    Meeting = MeetingLinks.Find(
-                        string.Join(" ", (ev["conferenceData"]?["entryPoints"] as JsonArray)?.Select(p => p?["uri"]?.ToString()) ?? Array.Empty<string?>()),
-                        ev["location"]?.ToString(), ev["description"]?.ToString()),
-                });
-            }
+                Title = ev["summary"]?.ToString() ?? "(ohne Titel)", Start = s, End = e, AllDay = allDay,
+                Location = ev["location"]?.ToString(), Color = color,
+                // Teams/Zoom add-ons put the link into conferenceData; invitations often only into the description.
+                Meeting = MeetingLinks.Find(
+                    string.Join(" ", (ev["conferenceData"]?["entryPoints"] as JsonArray)?.Select(p => p?["uri"]?.ToString()) ?? Array.Empty<string?>()),
+                    ev["location"]?.ToString(), ev["description"]?.ToString()),
+            });
         }
         return events;
+    }
+
+    /// <summary>All-day: the date as written ("2026-10-12"); otherwise the moment (with its offset) in local time.</summary>
+    private static DateTime? Time(JsonNode? t, bool allDay)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        if (allDay)
+            return DateTime.TryParseExact(t?["date"]?.ToString(), "yyyy-MM-dd", inv, System.Globalization.DateTimeStyles.None, out var day) ? day : null;
+        return DateTimeOffset.TryParse(t?["dateTime"]?.ToString(), inv, System.Globalization.DateTimeStyles.AssumeUniversal, out var at) ? at.LocalDateTime : null;
+    }
+
+    /// <summary>Google refused the token request; <see cref="Error"/> is its OAuth error code ("invalid_grant", ...).</summary>
+    private sealed class TokenException(HttpStatusCode status, string? error, string message)
+        : InvalidOperationException(message), Core.IHttpStatusError, Core.IOAuthError
+    {
+        public HttpStatusCode Status { get; } = status;
+        public string? Error { get; } = error;
     }
 
     private static int FreePort()
