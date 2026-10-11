@@ -140,20 +140,21 @@ public class SettingsTransferTests : IDisposable
         s.PairedDevices.Add(new PairedDevice { Id = "laptop-peer", Name = "PC", Fingerprint = "AA" });
         var bundle = SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k));
         Assert.DoesNotContain("laptop-peer", bundle.Settings);
-        Assert.DoesNotContain("LinkEnabled", bundle.Settings);
+        Assert.DoesNotContain("\"Laptop\"", bundle.Settings); // device name
+        Assert.Contains("\"LinkEnabled\": true", bundle.Settings); // a preference, it travels
 
         // The target PC is paired with someone else: it keeps that after the import
         string target = Path.Combine(_dir, "target");
         Directory.CreateDirectory(target);
-        var own = new AppSettings { LinkEnabled = true, LinkDeviceName = "Desktop" };
+        var own = new AppSettings { LinkEnabled = false, LinkDeviceName = "Desktop" };
         own.PairedDevices.Add(new PairedDevice { Id = "desktop-peer", Name = "Laptop", Fingerprint = "BB" });
         File.WriteAllText(Path.Combine(target, "settings.json"), own.ToJson());
         SettingsTransfer.Apply(SettingsTransfer.Decrypt(SettingsTransfer.Encrypt(bundle, "4829137705", FastIterations), "4829137705"), target, (_, _) => { });
 
         var after = AppSettings.FromJson(File.ReadAllText(Path.Combine(target, "settings.json")));
         Assert.Equal("spotify-client", after.SpotifyClientId);
-        Assert.True(after.LinkEnabled);
-        Assert.Equal("Desktop", after.LinkDeviceName);
+        Assert.True(after.LinkEnabled); // from the export
+        Assert.Equal("Desktop", after.LinkDeviceName); // stays
         Assert.Equal("desktop-peer", Assert.Single(after.PairedDevices).Id);
     }
 

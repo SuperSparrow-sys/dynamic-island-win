@@ -10,8 +10,8 @@ namespace DynamicBay.Core;
 /// <summary>
 /// Exports all settings into one file locked with a numeric code, and imports such a file on another PC.
 /// Included: settings.json (apps, widgets, calendars, client IDs ...), Google client secrets and the script widgets.
-/// Not included: passwords and sign-in tokens - after an import the user only signs in again - and the pairing with
-/// other devices, which belongs to the PC (its key never leaves it).
+/// Not included: passwords and sign-in tokens - after an import the user only signs in again - and the paired devices
+/// with their addresses, which belong to the PC (its key never leaves it). Pairing preferences are included.
 ///
 /// File: "DYNBAY01" | iterations (int32) | salt (16) | nonce (12) | tag (16) | AES-256-GCM(gzip(JSON)).
 /// The key comes from the code via PBKDF2-SHA256; the header is authenticated as associated data.
@@ -43,8 +43,12 @@ public static class SettingsTransfer
     public static bool IsValidPin(string? pin) => pin is { Length: >= MinPin and <= MaxPin } && pin.All(char.IsAsciiDigit);
 
     /// <summary>Which secrets travel along: the Google client secret (needed to sign in), never passwords or tokens.</summary>
-    /// <summary>Settings that belong to this PC, not to the user: the pairing with other devices (the key stays here).</summary>
-    internal static readonly string[] DeviceOnly = { nameof(AppSettings.PairedDevices), nameof(AppSettings.LinkEnabled), nameof(AppSettings.LinkDeviceName) };
+    /// <summary>
+    /// Settings that belong to this PC, not to the user: its paired devices (ids, fingerprints, IP addresses; the key
+    /// stays here anyway) and its own device name. Every other pairing setting (the switch, what is shared, which
+    /// device is the main one) is a normal preference and travels with the export.
+    /// </summary>
+    internal static readonly string[] DeviceOnly = { nameof(AppSettings.PairedDevices), nameof(AppSettings.LinkDeviceName) };
 
     public static bool IsTransferableSecret(string key) => key.StartsWith("cal:", StringComparison.Ordinal) && key.EndsWith(":secret", StringComparison.Ordinal);
 
