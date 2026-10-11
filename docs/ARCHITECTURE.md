@@ -10,6 +10,7 @@ src/DynamicBay/
 ├─ App.xaml(.cs)          Start, Single-Instance, Dienste verdrahten, Peeks auslösen, Wartungsbefehle (--uninstall …)
 ├─ TrayIcon.cs            Symbol im Infobereich mit dunklem Menü
 ├─ Snapshots.cs           Design-Prüfung: --snapshot rendert jeden Zustand als PNG
+├─ LeakCheck.cs           Speicher-Prüfung (DYNAMICBAY_SNAPSHOT=leak), siehe performance/README.md
 ├─ Core/                  Querschnitt ohne UI
 │  ├─ AppSettings.cs      alle Einstellungen (eine JSON-Datei), Enums, Widget-IDs, Kalender-Konten
 │  ├─ PlacementMath.cs    reine Positions-Mathematik (wo dockt die Insel, wo liegt das Fenster) – getestet
@@ -18,6 +19,9 @@ src/DynamicBay/
 │  ├─ SecretStore.cs      Passwörter/Tokens mit DPAPI
 │  ├─ SparsePackage.cs    Paket-Identität registrieren (für Mitteilungen)
 │  ├─ Loc.cs              Deutsch/Englisch, {core:T Key} und {core:L De=…, En=…}
+│  ├─ ErrorText.cs        Fehler → kurzer Satz für Nutzer (Deutsch/Englisch), Details nur ins Log
+│  ├─ PointerGesture.cs   Drücken/Ziehen mit genau einem Ende (Loslassen, Capture verloren, Insel versteckt)
+│  ├─ WindowTools.cs      offenes Fenster zurückholen (auch minimiert)
 │  └─ Log.cs, Hotkey.cs, Autostart.cs, ShellThumbnail.cs, ImageTools.cs, MessageWindow.cs
 ├─ Motion/                Spring (SwiftUI-artig: response + damping), SpringGroup (Render-Loop), SpringEase (für XAML)
 ├─ Island/
@@ -26,13 +30,17 @@ src/DynamicBay/
 │  ├─ IslandViewModel     Daten für alle Ansichten, entscheidet welche Live Activities sichtbar sind
 │  └─ Views/              CompactView, PeekView, DropView, ExpandedView (Widgets, Ablage, Mitteilungen)
 ├─ Services/              je ein Dienst pro Funktion (siehe unten)
-├─ Settings/              Einstellungsfenster (Mica), App-Auswahl, Theme hell/dunkel
+├─ Settings/              Einstellungsfenster (Mica), App-Auswahl, Theme hell/dunkel/wie Windows
 ├─ Controls/              Icon, Waveform, ProgressRing, SegmentStack, FitGrid, Converter
 └─ Themes/                Farben/Typo/Stile, Icon-Geometrien (generiert aus Lucide), eigene Glyphen
-tests/DynamicBay.Tests/   xUnit-Tests
+tests/DynamicBay.Tests/   xUnit-Tests, Fixtures/Api: echte API-Antworten (Spotify, Graph, Google, CalDAV, GitHub)
 packaging/                Identitäts-Paket (AppxManifest + Build-Skript)
 installer/                Inno-Setup-Skript
-tools/                    Snapshot-, Live-Test-, Diagnose- und Icon-Skripte
+tools/                    Snapshot-, Live-Test-, Update-Test-, Speicher-, Diagnose- und Icon-Skripte
+licenses/                 Lizenzhinweise der .NET-Laufzeit (mit THIRD-PARTY-NOTICES.txt ausgeliefert)
+docs/postmortems/         Ursache und Lehren schwerer Fehler
+docs/performance/         Messmethode und Messwerte
+CLAUDE.md                 Regeln für Coding-Agenten
 ```
 
 ## Die Insel

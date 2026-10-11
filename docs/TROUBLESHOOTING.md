@@ -4,6 +4,15 @@ Erste Anlaufstelle ist immer das **Protokoll**: `%AppData%\DynamicBay\logs\dynam
 (Einstellungen → Über → *Ordner öffnen*). Jeder Start schreibt Version und Identität, jede Platzierung Position,
 Skalierung und Arbeitsbereich, Fehler mit Stacktrace.
 
+## DynamicBay startet nicht: „Fehler bei der Installation“
+
+Betrifft Updates auf 1.0.17: Das Identitäts-Paket hängt, Windows verweigert den Start. Den Installer der aktuellen
+Version von Hand ausführen, er registriert das Paket neu. Oder in PowerShell (als normaler Benutzer):
+```powershell
+Add-AppxPackage -Path "C:\Program Files\DynamicBay\DynamicBay.msix" -ExternalLocation "C:\Program Files\DynamicBay" -ForceUpdateFromAnyVersion
+```
+Hintergrund: [postmortems/2026-10-11-identity-package.md](postmortems/2026-10-11-identity-package.md).
+
 ## Die Insel ist nicht zu sehen
 
 1. Tray-Symbol prüfen: Linksklick blendet ein/aus, Rechtsklick → *Insel einblenden*. Oder Tastenkürzel (Standard `Strg+Alt+I`).
@@ -48,8 +57,8 @@ wieder her (macht auch die Deinstallation). Gesichert wird in `%AppData%\Dynamic
 
 ## Kalender
 
-Der Status jedes Kontos steht in Einstellungen → Konten → Kalender (z. B. `OK · 4 Termine in 48 h` oder die
-Fehlermeldung). iCloud braucht ein **app-spezifisches** Passwort, nicht das Apple-ID-Passwort.
+Der Status jedes Kontos steht in Einstellungen → Konten → Kalender (z. B. `OK · 4 Termine in 48 h` oder ein kurzer
+Hinweis wie „Bitte neu anmelden“). Die genaue Fehlermeldung steht im Log. iCloud braucht ein **app-spezifisches** Passwort, nicht das Apple-ID-Passwort.
 
 ## Claude
 

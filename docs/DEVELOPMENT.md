@@ -52,6 +52,7 @@ Update-Test aus und legt ihn erst dann als GitHub-Release ab. Version kommt aus 
   einmalig angelegt mit `powershell -File tools/new-signing-cert.ps1`. Ohne die Secrets signiert jeder Build mit
   einem neuen Zertifikat.
 - Postmortems schwerer Fehler: `docs/postmortems/`.
+- Regeln für Coding-Agenten (Claude Code): `CLAUDE.md` im Hauptordner, bei Umbauten mitpflegen.
 
 ## Konventionen
 

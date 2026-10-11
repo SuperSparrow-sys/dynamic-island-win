@@ -543,3 +543,10 @@ Bewusst belassen:
 - Snapshot-Modus mit allen Zuständen an allen Kanten: Die Darstellung ist unverändert. Ich habe vor und nach dem Lauf geprüft, dass `%AppData%\DynamicBay` nicht verändert wurde.
 - Musik, Teams, Spotify und Graph wurden nicht angesprochen.
 - **Nicht live getestet:** der zweite Start neben der laufenden Insel (Befund 2). Den Prozessstart hat der Auto-Modus blockiert.
+
+### Nachtrag 1.0.17 und 1.0.18
+
+- **33 war eine Regression:** Die verzögerte Registrierung verliert den externen Ort. Nach dem Update auf 1.0.17 startete die App nicht mehr („Fehler bei der Installation“). Seit 1.0.18 registriert der Installer das Paket, solange die App geschlossen ist; die App selbst nur noch ohne jede Identität. Details: `docs/postmortems/2026-10-11-identity-package.md`.
+- **Update-Test:** `tools/update-smoke.ps1` prüft vor jedem Release auf einem frischen Windows 1.0.15 → 1.0.16 → neu. Gegen 1.0.17 schlägt er mit dem echten Fehler fehl.
+- **34:** Build und Installer unterstützen jetzt das feste Zertifikat (`tools/new-signing-cert.ps1`), der Installer räumt alte Kopien auf. Offen bleibt nur, die GitHub-Secrets anzulegen.
+- Weitere Fixes aus dem Abgleich mit ArtCraft: tolerante Parser mit API-Fixtures (Google ohne Start, leere Spotify-Einträge), Fehlertexte an einer Stelle (`ErrorText`), Gesten mit genau einem Ende (`PointerGesture`), Speicherprüfung ohne Leck. 336 Tests.

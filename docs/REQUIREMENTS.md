@@ -107,3 +107,14 @@ dann die optionale Zeiterfassung (Paket C).
 | 62 | Zweite Seite „System“ neben dem Nook; in den Einstellungen per Ziehen oder Auswahl verteilen, Tippen öffnet die Widget-Einstellungen | fertig (Live-Test) |
 | 63 | Notch-Design: wächst aus dem Bildschirmrand wie beim MacBook, in den Einstellungen wählbar | fertig (Live-Test) |
 | 64 | Einheitliche Formatierung: Kopfzeilen, Zeilenhöhen, Abstände und Radien | fertig |
+
+## Paket F: Einstellungen, Lizenzen und Release-Sicherheit
+
+| # | Anforderung | Status |
+|---|---|---|
+| 65 | Einstellungsfenster hell, dunkel oder wie Windows, wechselt sofort | fertig |
+| 66 | Lizenzen aller mitgelieferten Komponenten in der App (Über → Lizenzen) und im Installer | fertig |
+| 67 | Minimierte Einstellungen gehen beim Tippen auf das Zahnrad in der Insel wieder auf | fertig (Test) |
+| 68 | Update startet die App zuverlässig: Installer registriert die Paket-Identität, Update-Test vor jedem Release | fertig (CI) |
+| 69 | Festes Signaturzertifikat für das Identitäts-Paket | vorbereitet, Secrets fehlen |
+| 70 | Verständliche Fehlermeldungen (Deutsch/Englisch) statt Fehlercodes | fertig |

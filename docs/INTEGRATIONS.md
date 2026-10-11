@@ -42,7 +42,7 @@ Einstellungen → Konten → *Kalender*. Mehrere Konten gleichzeitig möglich.
 ## Mitteilungen
 
 Windows gibt Mitteilungen fremder Apps nur an Programme mit *Paket-Identität* heraus. Der Installer richtet das ein
-(Zertifikat in *Vertrauenswürdige Personen*, Registrierung beim ersten Start). Danach erscheinen WhatsApp, Outlook,
+(Zertifikat in *Vertrauenswürdige Personen*, Registrierung des Identitäts-Pakets, auch bei jedem Update). Danach erscheinen WhatsApp, Outlook,
 Teams usw. als Peek, im Mitteilungs-Tab und im Nachrichten-Widget. Antworten aus der Insel ist technisch nicht möglich.
 
 **Nur in der Insel:** Solange DynamicBay läuft, zeigt Windows unten rechts keine Banner und spielt keinen
