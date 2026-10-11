@@ -32,6 +32,7 @@ public static class BannerSuppressor
     /// </summary>
     public static void Apply(AppSettings s, bool islandShowsNotifications)
     {
+        if (Core.DevMode.On) return; // the installed DynamicBay owns the Windows banners
         try
         {
             _active = s.SuppressBanners && islandShowsNotifications && s.NotificationsEnabled && !s.Hidden;
@@ -72,6 +73,7 @@ public static class BannerSuppressor
     /// <summary>Puts every app back the way it was (app exit, uninstall: DynamicBay.exe --restore-banners).</summary>
     public static void RestoreAll()
     {
+        if (Core.DevMode.On) return;
         _active = false;
         // Unreadable: keep the file, it is the only record of the user's values.
         if ((_backup ?? LoadBackup()) is not { } backup) return;

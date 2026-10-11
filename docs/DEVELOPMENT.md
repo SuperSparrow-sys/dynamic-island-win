@@ -61,3 +61,16 @@ Update-Test aus und legt ihn erst dann als GitHub-Release ab. Version kommt aus 
 - Rundungen konzentrisch, keine ovalen Knöpfe (Chips: `Btn.Chip`, Radius 10).
 - Texte zweisprachig: Tabelle in `Core/Loc.cs` oder inline `{core:L De='…', En='…'}`.
 - Jede Funktion als Dienst in `Services/`, abschaltbar über `AppSettings`.
+
+## Test-Instanzen neben der Installation
+
+`DYNAMICBAY_DEV=a` startet den Build als eigene Instanz: Daten in `%AppData%\DynamicBay-dev-a`, eigene
+Single-Instance-Sperre, Insel unten. Sie ändert nichts an Windows (kein Autostart, keine Banner, kein
+Identitäts-Paket, kein Update-Check, keine Tastenkürzel). Für Kopplungstests auf einem PC:
+
+```powershell
+$env:DYNAMICBAY_DEV="a"; $env:DYNAMICBAY_LINK_PORT="43901"; $env:DYNAMICBAY_LINK_DISCOVERY_PORT="43911"
+$env:DYNAMICBAY_DEV_ALLOWPAIRING="1"; $env:DYNAMICBAY_DEV_AUTOCONFIRM="1"; .\DynamicBay.exe
+# zweite Konsole: DYNAMICBAY_DEV=b, Port 43902, DYNAMICBAY_DEV_PAIR=127.0.0.1:43901, DYNAMICBAY_DEV_AUTOCONFIRM=1
+```
+

@@ -42,7 +42,7 @@ Ablage. Das geht über LAN und über Tailscale.
 
 ## Teil B: DynamicBay mit DynamicBay koppeln (groß)
 
-1. **Finden:** im LAN per mDNS (`_dynamicbay._tcp`), über Tailscale die Geräte aus `tailscale status --json`
+1. **Finden:** im LAN per UDP-Broadcast (Port 43824), über Tailscale die Geräte aus `tailscale status --json`
    (gibt es schon für Taildrop). Port 43823.
 2. **Koppeln wie bei Bluetooth:** Auf einem Gerät „Gerät koppeln“, beide Inseln zeigen denselben 6-stelligen Code
    (aus dem Schlüsselaustausch abgeleitet), der Nutzer bestätigt auf beiden. Damit ist ein Angreifer in der Mitte

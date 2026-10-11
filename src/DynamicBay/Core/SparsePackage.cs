@@ -32,7 +32,7 @@ public static class SparsePackage
     /// </summary>
     public static async Task<bool> EnsureRegisteredAsync(AppSettings settings)
     {
-        if (!File.Exists(MsixPath)) return false;
+        if (!File.Exists(MsixPath) || DevMode.On) return false;
         // Updates of the package are registered by the installer while the app is closed (installer/DynamicBay.iss).
         // Never with DeferRegistrationWhenPackagesAreInUse: the deferred registration loses the external location,
         // fails with 0x80073CF9 and then blocks every start of the exe ("Fehler bei der Installation").

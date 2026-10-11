@@ -8,6 +8,7 @@ public static class Autostart
 
     public static void Apply(bool enabled)
     {
+        if (DevMode.On) return; // a test instance never goes into the Windows autostart
         try
         {
             using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);

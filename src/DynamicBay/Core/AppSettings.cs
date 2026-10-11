@@ -414,7 +414,7 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private int _calendarPeekMinutes = 10;
 
     [JsonIgnore] public static string Folder { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DynamicBay");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), DevMode.On ? "DynamicBay-dev-" + DevMode.Name : "DynamicBay");
 
     [JsonIgnore] public static string FilePath => Path.Combine(Folder, "settings.json");
 

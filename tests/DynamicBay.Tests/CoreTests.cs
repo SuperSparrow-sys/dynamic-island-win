@@ -571,3 +571,19 @@ public class TimeTrackingTests
         finally { File.Delete(file); }
     }
 }
+
+public class DevModeTests
+{
+    [Theory]
+    [InlineData("a", "a")]
+    [InlineData("Test2", "test2")]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    [InlineData("../x", null)]
+    [InlineData("a b", null)]
+    [InlineData("abcdefghijklmnopq", null)] // 17 characters
+    public void Only_short_plain_names_switch_dev_mode_on(string? value, string? name) => Assert.Equal(name, DynamicBay.Core.DevMode.Parse(value));
+
+    [Fact]
+    public void Tests_run_without_dev_mode() => Assert.False(DynamicBay.Core.DevMode.On);
+}

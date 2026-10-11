@@ -38,6 +38,7 @@ public static class UpdateCheck
     /// </summary>
     public static async Task RunAsync(IslandManager island, Action shutdown, Func<bool> enabled)
     {
+        if (Core.DevMode.On) return;
         _island = island;
         _shutdown = shutdown;
         if (_daily is null)

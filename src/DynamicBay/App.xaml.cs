@@ -59,7 +59,7 @@ public partial class App : Application
 
         if (snapshotDir is null)
         {
-            _single = new Mutex(true, "DynamicBay.SingleInstance", out bool first);
+            _single = new Mutex(true, DevMode.On ? "DynamicBay.Dev." + DevMode.Name : "DynamicBay.SingleInstance", out bool first);
             if (!first)
             {
                 // Second launch (e.g. from the start menu) opens settings in the running instance.
@@ -86,7 +86,11 @@ public partial class App : Application
 
         if (snapshotDir is null)
         {
+            bool fresh = !File.Exists(AppSettings.FilePath);
             _settings = AppSettings.Load();
+            // A new test instance starts at the bottom edge, away from the installed island at the top
+            if (DevMode.On && fresh) _settings.Edge = IslandEdge.Bottom;
+            if (DevMode.AllowPairingAtStart || DevMode.PairAtStart is not null) _settings.LinkEnabled = true;
             _settings.Migrate();
             _settings.Save();
             _running = true;
@@ -103,7 +107,7 @@ public partial class App : Application
         // Without the graphics card for the whole process (see IslandWindow.ApplyRenderMode): no Direct3D device at all,
         // which saves another ~70 MB. Switching back takes effect after a restart; the island itself switches live.
         if (!_settings.GpuRendering) System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
-        Log.Info($"DynamicBay {Version} starting (identity: {SparsePackage.HasIdentity})");
+        Log.Info($"DynamicBay {Version} starting (identity: {SparsePackage.HasIdentity}{(DevMode.On ? ", dev " + DevMode.Name : "")})");
         // Start-up cost before our code runs (runtime, assemblies) and UI stalls from here on.
         using (var me = System.Diagnostics.Process.GetCurrentProcess()) Log.Info($"Runtime start took {(DateTime.Now - me.StartTime).TotalMilliseconds:0} ms");
         UiStallMonitor.Start(Dispatcher);
@@ -253,12 +257,23 @@ public partial class App : Application
         }
         if (_link is not null) return;
         _linkIdentity = Services.Link.DeviceIdentity.LoadOrCreate();
-        var link = new Services.Link.LinkService(_linkIdentity, _settings.LinkDeviceName, _settings.PairedDevices, null,
+        var options = DevMode.LinkPort is { } port
+            ? new Services.Link.LinkOptions { Port = port, DiscoveryPort = DevMode.DiscoveryPort ?? Services.Link.LinkProtocol.DiscoveryPort }
+            : null;
+        var link = new Services.Link.LinkService(_linkIdentity, _settings.LinkDeviceName, _settings.PairedDevices, options,
             new DispatcherSynchronizationContext(Dispatcher));
+        if (DevMode.AutoConfirmPairing) link.PairingRequested += session => { Log.Info($"Dev: confirming pairing code {session.Code}"); session.Confirm(true); };
         link.PairedDevicesChanged += () => _settings.PairedDevices = new System.Collections.ObjectModel.ObservableCollection<PairedDevice>(link.PairedDevices);
         link.PairingFinished += (_, result) => { if (result == Services.Link.PairingResult.Paired) _settings.LinkEnabled = true; };
         _link = link;
-        try { link.Start(); } // logs its state changes itself (never keys)
+        try
+        {
+            link.Start(); // logs its state changes itself (never keys)
+            if (DevMode.AllowPairingAtStart) link.AllowPairing();
+            if (DevMode.PairAtStart is { } address)
+                _ = Task.Delay(3000).ContinueWith(_ => link.PairAsync(address), TaskScheduler.Default).Unwrap()
+                    .ContinueWith(t => Log.Info("Dev: pairing " + (t.IsFaulted ? "failed: " + t.Exception?.GetBaseException().Message : "started")), TaskScheduler.Default);
+        }
         catch
         {
             StopLink(); // e.g. the port is taken: nothing half started stays behind
@@ -730,7 +745,7 @@ public partial class App : Application
 
     private void RegisterHotkey()
     {
-        if (_msg is null) return;
+        if (_msg is null || DevMode.On) return; // the installed DynamicBay keeps its hotkeys
         Native.UnregisterHotKey(_msg.Handle, HotkeyId);
         if (Hotkey.TryParse(_settings.ToggleHotkey, out uint mods, out uint vk))
             if (!Native.RegisterHotKey(_msg.Handle, HotkeyId, mods | Native.MOD_NOREPEAT, vk))

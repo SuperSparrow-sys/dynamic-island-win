@@ -44,7 +44,7 @@ public sealed class TrayIcon : IDisposable
         _icon = new NotifyIcon
         {
             Icon = LoadIcon(),
-            Text = "DynamicBay",
+            Text = Core.DevMode.On ? "DynamicBay (dev " + Core.DevMode.Name + ")" : "DynamicBay",
             Visible = true,
             ContextMenuStrip = menu,
         };
