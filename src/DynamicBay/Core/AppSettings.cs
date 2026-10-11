@@ -356,6 +356,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _cursorHopEnabled = true;
     [ObservableProperty] private bool _cursorHopAutoStart = true;
     [ObservableProperty] private bool _cursorHopPeeks = true;
+    /// <summary>Hide CursorHop's own "Receiving" / "Transfer complete" pop-ups; the island shows them once.</summary>
+    [ObservableProperty] private bool _cursorHopHideOverlays = true;
 
     // Microsoft 365 (MicrosoftAccount): own app registration; tenant "common" = work and personal accounts.
     [ObservableProperty] private string _microsoftClientId = "";

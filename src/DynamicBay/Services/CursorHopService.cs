@@ -73,6 +73,28 @@ public sealed partial class CursorHopService : ObservableObject, IDisposable
 
     public static bool IsInstalledOnDisk => File.Exists(ExePath);
 
+    /// <summary>
+    /// The files CursorHop just wrote into its folder: the log only says how many, so the newest ones (at most
+    /// <paramref name="count"/>, changed within <paramref name="window"/>) are taken. Folders are skipped.
+    /// </summary>
+    public static List<string> RecentFiles(string? folder, int count, TimeSpan window, DateTime? now = null)
+    {
+        if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder) || count <= 0) return new();
+        var since = (now ?? DateTime.Now) - window;
+        try
+        {
+            return new DirectoryInfo(folder).EnumerateFiles()
+                .Where(f => (f.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == 0)
+                .Select(f => (f.FullName, Time: f.CreationTime > f.LastWriteTime ? f.CreationTime : f.LastWriteTime))
+                .Where(f => f.Time >= since)
+                .OrderByDescending(f => f.Time)
+                .Take(Math.Min(count, 50))
+                .Select(f => f.FullName)
+                .ToList();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return new(); }
+    }
+
     public static string LogFolder =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CursorHop", "logs");
 

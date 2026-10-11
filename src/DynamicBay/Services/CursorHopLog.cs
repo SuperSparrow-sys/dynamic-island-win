@@ -27,6 +27,8 @@ public enum CursorHopEventKind
     ClipboardReceived,
     /// <summary>Files from a peer were written to a folder (clipboard file transfer).</summary>
     FilesReceived,
+    /// <summary>A file transfer is being finished; the line names the folder it goes to ("paste_dir").</summary>
+    TransferFolder,
 }
 
 /// <summary>One line of the CursorHop log that DynamicBay understands. Fields that the line did not carry are null.</summary>
@@ -131,7 +133,12 @@ internal static class CursorHopLog
         if (msg.StartsWith("[CLIP_RECV] received", StringComparison.Ordinal))
             return Make(CursorHopEventKind.ClipboardReceived) with { Peer = Get(f, "peer"), Format = Get(f, "format") };
 
-        // Binary: "[CLIP_TRANSFER] files delivered to paste directory", "[CLIP_TRANSFER] files delivered to fallback folder"
+        // Seen: "[CLIP_TRANSFER] finalizing transfer transfer_id=… received=39749 expected=39749 elapsed_ms=4
+        //        paste_dir=Some("C:\\Users\\<user>\\OneDrive\\Desktop")" - right before "files delivered"
+        if (msg.StartsWith("[CLIP_TRANSFER] finalizing transfer", StringComparison.Ordinal))
+            return PasteDir.Match(msg) is { Success: true } pd ? Make(CursorHopEventKind.TransferFolder) with { Folder = UnmaskFolder(pd.Groups["p"].Value) } : null;
+
+        // Seen: "[CLIP_TRANSFER] files delivered to paste directory delivered=1" (also "… to fallback folder")
         if (msg.StartsWith("[CLIP_TRANSFER] files delivered", StringComparison.Ordinal))
             return Make(CursorHopEventKind.FilesReceived) with
             {
@@ -141,6 +148,20 @@ internal static class CursorHopLog
             };
 
         return null;
+    }
+
+    private static readonly Regex PasteDir = new(@"paste_dir=Some\(""(?<p>(?:[^""\\]|\\.)*)""\)", RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// The log writes the path Rust-escaped and with the user name masked: "C:\\Users\\&lt;user&gt;\\OneDrive\\Desktop".
+    /// <paramref name="profile"/> is this user's profile folder (default: the real one).
+    /// </summary>
+    internal static string UnmaskFolder(string logged, string? profile = null)
+    {
+        string path = logged.Replace(@"\\", @"\");
+        profile ??= Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        const string masked = @"C:\Users\<user>";
+        return path.StartsWith(masked, StringComparison.OrdinalIgnoreCase) ? profile + path[masked.Length..] : path;
     }
 
     private static Dictionary<string, string> Fields(string msg)
@@ -176,6 +197,7 @@ internal sealed class CursorHopState
     }
 
     private readonly List<PeerInfo> _peers = new();
+    private string? _transferFolder;
     public IReadOnlyList<PeerInfo> Peers => _peers;
     /// <summary>Name of the device the mouse is on, null = on this machine.</summary>
     public string? CursorOn { get; private set; }
@@ -234,9 +256,16 @@ internal sealed class CursorHopState
                 if (CursorOn != name) { CursorOn = name; changes.Add(e with { Name = name }); }
                 break;
             }
+            case CursorHopEventKind.TransferFolder:
+                _transferFolder = e.Folder;
+                break;
             case CursorHopEventKind.ClipboardReceived:
-            case CursorHopEventKind.FilesReceived:
                 changes.Add(e with { Name = NameOf(e.Peer) ?? (_peers.Count == 1 ? _peers[0].Name : null) });
+                break;
+            case CursorHopEventKind.FilesReceived:
+                // The folder comes on the "finalizing" line just before
+                changes.Add(e with { Name = NameOf(e.Peer) ?? (_peers.Count == 1 ? _peers[0].Name : null), Folder = e.Folder ?? _transferFolder });
+                _transferFolder = null;
                 break;
         }
         return changes;

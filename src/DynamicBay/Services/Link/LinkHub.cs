@@ -61,7 +61,11 @@ public sealed partial class LinkDeviceView : ObservableObject
 }
 
 /// <summary>A DynamicBay nearby that is not paired yet.</summary>
-public sealed record LinkFoundView(string Id, string Name, string Address, string ViaText);
+public sealed record LinkFoundView(string Id, string Name, string Address, string ViaText)
+{
+    /// <summary>All addresses the device was seen at, the most reliable first (Tailscale, then the local network).</summary>
+    public IReadOnlyList<string> Addresses { get; init; } = new[] { Address };
+}
 
 /// <summary>What plays on another device, for the media card.</summary>
 public sealed partial class RemoteMediaView : ObservableObject
@@ -457,8 +461,11 @@ public sealed partial class LinkHub : ObservableObject
         Found.Clear();
         foreach (var d in list)
         {
-            var via = d.Via.HasFlag(LinkVia.Tailscale) ? "Tailscale" : d.Via.HasFlag(LinkVia.Lan) ? "LAN" : (Loc.German ? "Adresse" : "Address");
-            Found.Add(new LinkFoundView(d.Id, d.Name, d.Addresses.FirstOrDefault() ?? "", via));
+            var addresses = OrderAddresses(d.Addresses);
+            string first = addresses.FirstOrDefault() ?? "";
+            // The label matches the address shown next to it (it said "Tailscale · 192.168.10.25" before)
+            var via = LinkProtocol.IsTailscaleAddress(first) ? "Tailscale" : d.Via.HasFlag(LinkVia.Lan) ? "LAN" : (Loc.German ? "Adresse" : "Address");
+            Found.Add(new LinkFoundView(d.Id, d.Name, first, via) { Addresses = addresses });
         }
         HasFound = Found.Count > 0;
     }
@@ -510,14 +517,17 @@ public sealed partial class LinkHub : ObservableObject
     public void Refresh() => Service?.RefreshDiscovery();
 
     /// <summary>Pairs with a found device or a typed address (IP, host or Tailscale name, optional ":port").</summary>
-    public async Task PairWithAsync(string address)
+    public async Task PairWithAsync(string address) => await PairWithAsync(address, tryNext: false);
+
+    /// <returns>False if the address could not be reached and <paramref name="tryNext"/> asks to go on quietly.</returns>
+    private async Task<bool> PairWithAsync(string address, bool tryNext)
     {
-        if (Service is not { } s || Busy) return;
+        if (Service is not { } s || Busy) return true;
         address = address.Trim();
         if (!LinkProtocol.TryParseAddress(address, LinkProtocol.Port, out _, out _))
         {
             SetStatus(Loc.German ? "Die Adresse stimmt nicht." : "That address is not valid.", error: true);
-            return;
+            return true;
         }
         Busy = true;
         SetStatus(Loc.German ? "Verbinde …" : "Connecting …", error: false);
@@ -526,13 +536,25 @@ public sealed partial class LinkHub : ObservableObject
             await s.PairAsync(address);
             SetStatus(Loc.German ? "Code auf beiden Geräten vergleichen." : "Compare the code on both devices.", error: false);
         }
+        catch (LinkException ex) when (tryNext && ex.Reason == "unreachable") { return false; }
         catch (LinkException ex) { SetStatus(PairErrorText(ex.Reason), error: true); }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException) { SetStatus(PairErrorText("protocol"), error: true); }
         finally { Busy = false; }
+        return true;
     }
 
     [RelayCommand]
-    private Task PairFound(LinkFoundView? found) => found is null ? Task.CompletedTask : PairWithAsync(found.Address);
+    private async Task PairFound(LinkFoundView? found)
+    {
+        if (found is null) return;
+        // One address after the other: a home network marked "public" in Windows may block the local one
+        foreach (var address in found.Addresses)
+            if (await PairWithAsync(address, tryNext: address != found.Addresses[^1])) return;
+    }
+
+    /// <summary>Tailscale addresses first (they get through the firewall in every network profile), then the rest.</summary>
+    internal static List<string> OrderAddresses(IEnumerable<string> addresses) =>
+        addresses.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(a => LinkProtocol.IsTailscaleAddress(a) ? 0 : 1).ToList();
 
     public static string PairErrorText(string reason) => reason switch
     {

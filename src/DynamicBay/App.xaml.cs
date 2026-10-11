@@ -241,7 +241,12 @@ public partial class App : Application
         Safe("Claude", () => vm.Claude.SetEnabled(_settings.ClaudeEnabled));
         Safe("Taildrop", () => taildrop.SetEnabled(_settings.TaildropEnabled));
         Safe("CursorHop", () => vm.CursorHop.SetEnabled(_settings.CursorHopEnabled));
-        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.CursorHopEnabled)) vm.CursorHop.SetEnabled(_settings.CursorHopEnabled); };
+        Safe("CursorHop pop-ups", ApplyCursorHopOverlay);
+        _settings.PropertyChanged += (_, ev) =>
+        {
+            if (ev.PropertyName == nameof(AppSettings.CursorHopEnabled)) vm.CursorHop.SetEnabled(_settings.CursorHopEnabled);
+            if (ev.PropertyName is nameof(AppSettings.CursorHopEnabled) or nameof(AppSettings.CursorHopHideOverlays)) ApplyCursorHopOverlay();
+        };
         Safe("Todo", vm.Todo!.Start);
         Safe("Presence", vm.Presence!.Start);
         Safe("Contacts", vm.Contacts!.Start);
@@ -261,6 +266,12 @@ public partial class App : Application
         // CPU and memory in the log every 90 s (no trimming: smooth animations matter more than a small working set).
         Safe("MemoryTrim", MemoryTrim.Start);
     }
+
+    private readonly CursorHopOverlay _hopOverlay = new();
+
+    /// <summary>CursorHop's own pop-ups go away while the island shows its peeks (test instances leave it alone).</summary>
+    private void ApplyCursorHopOverlay() =>
+        _hopOverlay.SetEnabled(!DevMode.On && _settings.CursorHopEnabled && _settings.CursorHopHideOverlays && CursorHopService.IsInstalledOnDisk);
 
     /// <summary>Starts or stops the link to paired devices. The paired list is saved whenever the link changes it.</summary>
     private void SetLinkEnabled(bool on)
@@ -725,14 +736,27 @@ public partial class App : Application
         };
         hop.FilesReceived += (name, count, folder) =>
         {
+            // The files themselves: the newest ones in CursorHop's folder (the log names the folder, not the files)
+            var files = CursorHopService.RecentFiles(folder, count ?? 1, TimeSpan.FromSeconds(30));
+            if (files.Count > 0) _vm!.Shelf.Add(files, announce: false);
             if (!_settings.CursorHopPeeks) return;
+            string from = (Loc.German ? "Von " : "From ") + (name ?? "CursorHop");
+            string? first = files.FirstOrDefault();
             island.ShowPeek(new PeekItem
             {
+                Kind = PeekKind.Local,
+                Image = first is null ? null : ShellThumbnail.Get(first, 96),
                 Icon = Icon("Icon.Inbox"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
-                Title = count is int n ? (Loc.German ? $"{n} {(n == 1 ? "Datei" : "Dateien")}" : $"{n} {(n == 1 ? "file" : "files")}") : (Loc.German ? "Dateien empfangen" : "Files received"),
-                Subtitle = (Loc.German ? "Von " : "From ") + (name ?? "CursorHop"),
+                Title = files.Count == 1 ? Path.GetFileName(first!)
+                    : count is int n ? (Loc.German ? $"{n} {(n == 1 ? "Datei" : "Dateien")}" : $"{n} {(n == 1 ? "file" : "files")}") : (Loc.German ? "Dateien empfangen" : "Files received"),
+                Subtitle = from + (files.Count > 0 ? (Loc.German ? " · in der Ablage" : " · in the tray") : ""),
+                DragPayload = files.Count > 0 ? files.ToArray() : null,
                 Seconds = 4,
-                OnClick = () => { if (folder is not null && Directory.Exists(folder)) try { Process.Start("explorer.exe", $"\"{folder}\""); } catch { } },
+                OnClick = () =>
+                {
+                    if (first is not null) { try { Process.Start("explorer.exe", $"/select,\"{first}\""); } catch { } }
+                    else if (folder is not null && Directory.Exists(folder)) { try { Process.Start("explorer.exe", $"\"{folder}\""); } catch { } }
+                },
             });
         };
 
@@ -1066,6 +1090,7 @@ public partial class App : Application
         _running = false;
         _taildrop?.Dispose();
         _vm?.CursorHop.Dispose();
+        _hopOverlay.Dispose();
         _vm?.Claude.Stop(); // frees the hook port for the new run
         StopLink(); // frees the link port for the new run
         _tray?.Dispose();
@@ -1083,6 +1108,7 @@ public partial class App : Application
         _settings.Save();
         _taildrop?.Dispose(); // ends the Tailscale event stream
         _vm?.CursorHop.Dispose();
+        _hopOverlay.Dispose();
         StopLink();
         _tray?.Dispose();
         _msg?.Dispose();

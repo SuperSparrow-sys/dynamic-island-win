@@ -579,7 +579,9 @@ public sealed partial class LinkService : IDisposable
         }
         catch (Exception ex)
         {
-            if (!ct.IsCancellationRequested && ex is not OperationCanceledException)
+            // A bare connect-and-close (the other side's discovery checks whether the port is open) is not worth a line
+            bool probe = conn is null && ex is IOException;
+            if (!ct.IsCancellationRequested && ex is not OperationCanceledException && !probe)
                 Log($"Link: incoming connection from {tcp.Client?.RemoteEndPoint?.ToString() ?? "?"} refused ({Short(ex)})");
             conn?.Close();
             try { ssl.Dispose(); } catch { }

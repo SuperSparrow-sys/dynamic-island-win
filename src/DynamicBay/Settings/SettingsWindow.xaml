@@ -1303,6 +1303,10 @@
                                             ToolTip="{core:L De='Verbunden, getrennt und Zwischenablage vom anderen Gerät.', En='Connected, disconnected and clipboard from the other device.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.CursorHopPeeks}" />
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.CursorHopEnabled}" Tag="{core:L De='Eigene Einblendungen von CursorHop ausblenden', En='Hide CursorHop pop-ups'}"
+                                            ToolTip="{core:L De='Empfangen und Übertragung fertig zeigt nur noch die Insel.', En='Only the island shows receiving and transfer complete.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.CursorHopHideOverlays}" />
+                            </ContentControl>
                         </StackPanel>
                     </Border>
                 </StackPanel>

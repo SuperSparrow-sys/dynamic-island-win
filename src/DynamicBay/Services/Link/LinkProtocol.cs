@@ -135,6 +135,10 @@ public static class LinkProtocol
         return newDialedByPreferred;
     }
 
+    /// <summary>An address in Tailscale's ranges (100.64.0.0/10 or fd7a:115c:a1e0::/48), with or without a port.</summary>
+    public static bool IsTailscaleAddress(string address) =>
+        TryParseAddress(address, Port, out var host, out _) && System.Net.IPAddress.TryParse(host, out var ip) && LinkDiscovery.IsTailscale(ip);
+
     /// <summary>"host", "host:port", "1.2.3.4:5", "[::1]:5" or "::1" → host and port (default <paramref name="defaultPort"/>).</summary>
     public static bool TryParseAddress(string? text, int defaultPort, out string host, out int port)
     {

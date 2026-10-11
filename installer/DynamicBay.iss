@@ -84,6 +84,7 @@ Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile
 ; Firewall rules of the link between paired devices (added in AddFirewallRules).
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""DynamicBay Link"""; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayFirewall"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""DynamicBay Link (Tailscale)"""; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayFirewallTailscale"
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""DynamicBay Link (Subnetz)"""; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayFirewallSubnet"
 
 [Code]
 function IsUpdate: Boolean;
@@ -127,6 +128,14 @@ begin
     Log('Firewall rule (TCP) failed: ' + IntToStr(Code));
   if not Exec(Netsh, Rule + ' protocol=UDP localport=43824', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
     Log('Firewall rule (UDP) failed: ' + IntToStr(Code));
+  // Windows often marks a home Wi-Fi as "public": there only devices of the own subnet get through (the TLS pin
+  // and the explicit pairing window protect the rest).
+  Exec(Netsh, 'advfirewall firewall delete rule name="DynamicBay Link (Subnetz)"', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Rule := 'advfirewall firewall add rule name="DynamicBay Link (Subnetz)"' + Prog + ' profile=public remoteip=localsubnet';
+  if not Exec(Netsh, Rule + ' protocol=TCP localport=43823', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+    Log('Firewall rule (subnet TCP) failed: ' + IntToStr(Code));
+  if not Exec(Netsh, Rule + ' protocol=UDP localport=43824', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+    Log('Firewall rule (subnet UDP) failed: ' + IntToStr(Code));
   // Tailscale in any network profile, but only on the Tailscale adapter: 100.64.0.0/10 alone would also match
   // carrier-grade NAT (mobile hotspots, some providers). netsh cannot bind a rule to an adapter, PowerShell can.
   // Without a Tailscale adapter (not installed) the rule is skipped; the private/domain rule above still works.
