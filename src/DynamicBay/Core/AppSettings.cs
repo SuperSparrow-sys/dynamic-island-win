@@ -447,7 +447,9 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private int _calendarPeekMinutes = 10;
 
     [JsonIgnore] public static string Folder { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), DevMode.On ? "DynamicBay-dev-" + DevMode.Name : "DynamicBay");
+        // DYNAMICBAY_DATA_DIR: the tests' own folder, so they never write into the user's settings, logs or secrets
+        Environment.GetEnvironmentVariable("DYNAMICBAY_DATA_DIR") is { Length: > 0 } testDir && Path.IsPathRooted(testDir) ? testDir
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), DevMode.On ? "DynamicBay-dev-" + DevMode.Name : "DynamicBay");
 
     [JsonIgnore] public static string FilePath => Path.Combine(Folder, "settings.json");
 

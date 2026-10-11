@@ -317,8 +317,8 @@
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Verstecken', En='Hiding'}" />
                     <Border Style="{StaticResource S.Card}">
                         <StackPanel>
-                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Automatisch einklappen', En='Auto-hide'}"
-                                            ToolTip="{core:L De='Ohne Aktivität schrumpft die Insel zu einer dünnen Linie.', En='Without activity the island shrinks to a thin line.'}">
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Aktivitäten einklappen', En='Collapse activities'}"
+                                            ToolTip="{core:L De='Nach dieser Zeit schrumpft die Insel auch bei Musik oder Timer zur Linie.', En='After this time the island shrinks to a line even with music or a timer.'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource ST.Desc}" Width="40" VerticalAlignment="Center" Text="{Binding S.AutoHideSeconds, StringFormat={}{0} s}" />
                                     <Slider Style="{StaticResource S.Slider}" Width="140" Minimum="2" Maximum="30" Value="{Binding S.AutoHideSeconds}" IsEnabled="{Binding S.AutoHide}" TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,0,14,0" />
