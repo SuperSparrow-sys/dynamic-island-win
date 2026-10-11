@@ -39,8 +39,17 @@ Titelwechsel alle 150 ms auf, `tools/screen-grab.ps1` fotografiert einen Bildsch
 
 ## Release
 
-Tag pushen: `git tag v1.0.1 && git push --tags` – der Workflow `release.yml` testet, baut den Installer und legt ihn als
-GitHub-Release ab. Version kommt aus dem Tag.
+Tag pushen: `git tag v1.0.1 && git push --tags` – der Workflow `release.yml` testet, baut den Installer, führt den
+Update-Test aus und legt ihn erst dann als GitHub-Release ab. Version kommt aus dem Tag.
+
+- **Update-Test** (`tools/update-smoke.ps1`): installiert 1.0.15 und 1.0.16, aktualisiert wie der In-App-Updater auf
+  den neuen Installer und prüft nach jedem Schritt, dass die App mit Paket-Identität startet. Läuft nur auf einem
+  Wegwerf-Windows (CI, VM), nie auf dem eigenen PC. Von Hand: Workflow „Update smoke test“ (Eingabe `release`, um
+  ein vorhandenes Release als neue Version zu prüfen).
+- **Signatur des Identitäts-Pakets:** festes Zertifikat aus den Secrets `SIGNING_PFX_BASE64` / `SIGNING_PFX_PASSWORD`,
+  einmalig angelegt mit `powershell -File tools/new-signing-cert.ps1`. Ohne die Secrets signiert jeder Build mit
+  einem neuen Zertifikat.
+- Postmortems schwerer Fehler: `docs/postmortems/`.
 
 ## Konventionen
 

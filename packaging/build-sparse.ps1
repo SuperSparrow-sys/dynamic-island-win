@@ -41,6 +41,11 @@ if ($generated) {
     Export-PfxCertificate -Cert $cert -FilePath $Pfx -Password (ConvertTo-SecureString $PfxPassword -AsPlainText -Force) | Out-Null
     Export-Certificate -Cert $cert -FilePath (Join-Path $Out "DynamicBay.cer") | Out-Null
     Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)"
+} else {
+    # Fixed certificate: ship its public part for the installer to trust.
+    $fixed = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($Pfx, $PfxPassword)
+    if ($fixed.Subject -ne $publisher) { throw "Certificate subject is '$($fixed.Subject)', expected '$publisher'" }
+    [IO.File]::WriteAllBytes((Join-Path $Out "DynamicBay.cer"), $fixed.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
 }
 & $signtool sign /fd SHA256 /f $Pfx /p $PfxPassword $msix | Out-Null
 $signed = $LASTEXITCODE

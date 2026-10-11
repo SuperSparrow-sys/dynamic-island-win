@@ -7,3 +7,6 @@ artifacts/
 installer/Output/
 packaging/out/
 *.pfx
+
+# Working copies of Claude Code helper agents
+.claude/worktrees/

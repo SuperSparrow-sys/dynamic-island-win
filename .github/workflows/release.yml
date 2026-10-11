@@ -38,7 +38,26 @@ jobs:
 
       - name: Build installer
         shell: pwsh
+        env:
+          SIGNING_PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          SIGNING_PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
         run: ./tools/build-release.ps1 -Version ${{ steps.v.outputs.version }}
+
+      # The installed app has to start after an update (older releases -> this one), with package identity.
+      - name: Update smoke test
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./tools/update-smoke.ps1 -NewInstaller artifacts/DynamicBay-Setup-${{ steps.v.outputs.version }}.exe -Work "${{ runner.temp }}/smoke"
+
+      - name: Upload smoke logs
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: smoke-logs
+          path: |
+            ${{ runner.temp }}/smoke/*.log
+            ~/AppData/Roaming/DynamicBay/logs/*.log
 
       - name: Publish release
         uses: softprops/action-gh-release@v2

@@ -125,7 +125,13 @@ begin
     if not ExecAsOriginalUser(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
       '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Add-AppxPackage -Path ''' + App + '\DynamicBay.msix'' -ExternalLocation ''' + App + ''' -ForceUpdateFromAnyVersion"',
       '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
-      Log('Identity package registration failed: ' + IntToStr(Code));
+      Log('Identity package registration failed: ' + IntToStr(Code))
+    else
+      // Registered with the shipped certificate: drop the older copies earlier builds left in TrustedPeople.
+      Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+        '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$keep = (New-Object Security.Cryptography.X509Certificates.X509Certificate2 ''' + App + '\DynamicBay.cer'').Thumbprint; ' +
+        'Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object { $_.Subject -eq ''CN=DynamicBay Open Source'' -and $_.Thumbprint -ne $keep } | Remove-Item -Force"',
+        '', SW_HIDE, ewWaitUntilTerminated, Code);
   end;
   if (CurStep = ssPostInstall) and IsUpdate then
   begin

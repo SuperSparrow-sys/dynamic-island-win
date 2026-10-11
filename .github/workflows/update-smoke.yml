@@ -1,0 +1,58 @@
+name: Update smoke test
+
+# Builds the installer from this commit (or takes the one of an existing release) and runs tools/update-smoke.ps1:
+# install older releases, update the way the in-app updater does, check that the app starts with package identity.
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Test this existing release as the new version instead of building (e.g. 1.0.17)"
+        required: false
+        default: ""
+      old:
+        description: "Older releases to install first, comma separated"
+        required: false
+        default: "1.0.15,1.0.16"
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        if: inputs.release == ''
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Installer
+        id: setup
+        shell: pwsh
+        env:
+          SIGNING_PFX_BASE64: ${{ secrets.SIGNING_PFX_BASE64 }}
+          SIGNING_PFX_PASSWORD: ${{ secrets.SIGNING_PFX_PASSWORD }}
+        run: |
+          if ("${{ inputs.release }}") {
+            $v = "${{ inputs.release }}"
+            gh release download "v$v" -p "DynamicBay-Setup-$v.exe" -D artifacts --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Download of v$v failed" }
+          } else {
+            $v = ([xml](Get-Content src\DynamicBay\DynamicBay.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+            if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+            ./tools/build-release.ps1 -Version $v
+          }
+          "installer=artifacts/DynamicBay-Setup-$v.exe" >> $env:GITHUB_OUTPUT
+
+      - name: Update smoke test
+        shell: powershell
+        run: ./tools/update-smoke.ps1 -NewInstaller ${{ steps.setup.outputs.installer }} -OldVersions ("${{ inputs.old }}" -split ',' | Where-Object { $_ }) -Work "${{ runner.temp }}/smoke"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: smoke-logs
+          path: |
+            ${{ runner.temp }}/smoke/*.log
+            ~/AppData/Roaming/DynamicBay/logs/*.log

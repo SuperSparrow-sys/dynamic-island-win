@@ -20,8 +20,17 @@ dotnet publish src\DynamicBay\DynamicBay.csproj -c Release -r win-x64 --self-con
     -p:Version=$Version -p:PublishReadyToRun=true -p:DebugType=none -o $publish
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 
-# 2) Identity package for notification access
-& "$root\packaging\build-sparse.ps1" -Version $Version -Out $package
+# 2) Identity package for notification access. Signed with the fixed certificate from SIGNING_PFX_BASE64 and
+#    SIGNING_PFX_PASSWORD (GitHub secrets, see tools/new-signing-cert.ps1); without them with a new self-signed one.
+if ($env:SIGNING_PFX_BASE64) {
+    $pfx = Join-Path ([IO.Path]::GetTempPath()) "dynamicbay-signing-$PID.pfx"
+    [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_PFX_BASE64))
+    try { & "$root\packaging\build-sparse.ps1" -Version $Version -Out $package -Pfx $pfx -PfxPassword $env:SIGNING_PFX_PASSWORD }
+    finally { Remove-Item $pfx -Force -ErrorAction SilentlyContinue }
+} else {
+    Write-Warning "SIGNING_PFX_BASE64 not set: signing with a new self-signed certificate"
+    & "$root\packaging\build-sparse.ps1" -Version $Version -Out $package
+}
 
 # 3) Installer
 $iscc = @(
