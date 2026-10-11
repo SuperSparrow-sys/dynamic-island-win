@@ -89,7 +89,7 @@ Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird ansch
 
 `%AppData%\DynamicBay\`: `settings.json`, `clipboard\` (Bilder + `index.json`), `shelf.json`, `secrets\` (DPAPI),
 `link\identity.bin` (Geräte-Zertifikat, DPAPI), `link-temp\` (große Zwischenablage-Bilder unterwegs),
-`banner-backup.json`, `logs\dynamicbay.log`.
+`banner-backup.json`, `audio-mute-backup.json` (nur solange der Ton auf einem anderen Gerät läuft), `logs\dynamicbay.log`.
 
 ## Link (Geräte koppeln)
 
@@ -126,7 +126,11 @@ genauso.
 
 **Für Funktionen.** `RegisterHandler(typ, …)` und `SendAsync(geräteId, typ, objekt)` (eigene Typen wie `clipboard`,
 `notification`, `media`, `status`; `hello`, `ping`, `pair.*`, `file.*` … gehören dem Link). Dateien: `SendFileAsync`,
-beim Empfänger `FileOffered` → `Accept(ordner, maxBytes)`/`Decline()`. Blöcke à 256 KiB in eine `.part`-Datei,
+beim Empfänger `FileOffered` → `Accept(ordner, maxBytes)`/`Decline()`. Lange Ströme (Ton) bekommen eine eigene
+TLS-Verbindung: `OpenStreamAsync(geräteId, "audio")` wählt die Adresse der Hauptverbindung mit demselben festgepinnten
+Zertifikat (Hello mit `intent: "stream"`, `purpose`), der Empfänger nimmt sie nur von gekoppelten Geräten, die gerade
+online sind, und meldet `StreamOpened`. Ein `LinkStream` trägt nackte Rahmen (4 Byte Länge + Bytes) und schließt mit
+seinem Gerät (offline, entkoppelt, Link aus). Blöcke à 256 KiB in eine `.part`-Datei,
 SHA-256 und Größe werden geprüft, dann umbenannt; Dateinamen bereinigt (`LinkProtocol.SanitizeFileName`), Ziel
 `Downloads\DynamicBay`, Mark of the Web wie bei Downloads. Ereignisse kommen auf dem UI-Thread an. Die Leseschleife
 wartet nie auf ein eigenes Senden (Antworten gehen ohne `await` raus): Sonst könnten sich zwei Geräte, die gleichzeitig
@@ -152,6 +156,7 @@ prüft es vorher dessen Schalter (`LinkPeerSwitch`, Typ `<funktion>.share`, beim
 | `LinkClipboardFeature` | `clipboard` | Text, Bild bis 700 KB in der Nachricht, bis 5 MB als übernommene Datei; dieselben Inhalte nicht innerhalb 60 s zurück |
 | `LinkNotificationsFeature` | `notification` | App, Titel, Text, Symbol (PNG); Empfangenes wird nie weitergeleitet |
 | `LinkMediaFeature` | `media`, `media.cmd` | Titel, Künstler, Cover (JPEG ≤ 300 px), Position; Befehle `playpause`/`next`/`previous` nur bei vorhandenem Player |
+| `LinkAudioFeature` | Strom `audio` | Ton dieses PCs auf dem anderen Gerät (siehe unten) |
 | `LinkRoleFeature` | `role`, `peek` | Hauptgerät (Einstellung relativ: `this`/`other`/`auto`, auf der Leitung die Geräte-ID, die neuere Wahl gewinnt), Leerlaufzeit und CursorHop-Maus für „Automatisch“, weitergereichte Einblendungen |
 | `LinkTimerFeature` | `timer`, `timer.share` | Zustand des Timers (läuft, Pause, Modus, Restzeit, Besitzer); die neuere Änderung gewinnt über einen Zähler (keine Uhrzeiten), beim Verbinden der laufende Timer; das Ende kommt nicht über die Leitung (`ShowsEnd`) |
 | `LinkQuietFeature` | `quiet` | „Nicht stören“ mit Zeitstempel (das neuere gewinnt), Anruf und Fokus als `AppSettings.PeerQuiet` (nie gespeichert, nie zurückgeschickt) |
@@ -163,6 +168,24 @@ Das stille Gerät leitet Einblendungen über `IslandManager.Divert` ans Hauptger
 `Notification` kommt über die Mitteilungs-Funktion); gleiche Einblendungen (Titel und Untertitel) und gleiche
 Mitteilungen innerhalb 10 s erscheinen einmal. Ausblenden läuft über dieselbe Unterdrückung wie bei Vollbild-Apps,
 `AppSettings.Hidden` bleibt unberührt.
+
+**Ton an anderes Gerät** (`LinkAudioFeature`, `Services/Link/Audio/`). Sender: WASAPI-Loopback der
+Standard-Ausgabe (NAudio, `LoopbackAudioSource`), `AudioConvert` auf 48 kHz Stereo, 20-ms-Blöcke mit Opus (Concentus,
+reines C#, 160 kbit/s VBR, Komplexität 5), höchstens 200 ms in der Sende-Warteschlange (älteste fliegen raus).
+Empfänger: Opus → `AudioJitterBuffer` → `WasapiAudioSink` (geteilter Modus, 40 ms). Der Puffer startet bei 100 ms (über
+Tailscale 150 ms), regelt die Uhrabweichung beider Soundkarten über die Lesegeschwindigkeit (höchstens ±0,5 %,
+lineare Interpolation), wirft nur bei mehr als dem Vierfachen ab und blendet beim Leerlaufen aus und beim Neustart
+ein (keine Klicks). Rahmen im Strom (`LinkAudioProtocol`): 1 Kopf (JSON: Angebot, Antwort `ok`/`reason`, Ende
+`end: off|output|stopped`), 2 Ton (Folgenummer, Millisekunden-Tick, Opus), 3 Lebenszeichen (jede Sekunde in beide
+Richtungen, 5 s Stille = tot). Endet der Strom ohne `end`, ist die Verbindung weg.
+Messung (11.10.2026, Realtek-Lautsprecher, Windows 11): WASAPI-Loopback liefert den Ton auch bei stummgeschaltetem
+Endpunkt und bei Lautstärke 2 % unverändert (ein erzeugter 440-Hz-Ton in den stummen Endpunkt gespielt, im Loopback
+wiedergefunden). Deshalb wird der eigene Endpunkt einfach stummgeschaltet (`LocalMuteGuard`, Vorher-Zustand in
+`audio-mute-backup.json`, nach einem Absturz beim nächsten Start zurück; was der Nutzer selbst stumm hatte, bleibt
+stumm). Läuft nichts, liefert Loopback gar keine Pakete; der Empfänger blendet dann aus und wartet. Treiber mit eigenen
+Klangeffekten (Realtek-Lautheit) können den Pegel im Loopback von der Lautstärke abhängig machen. Testinstanzen
+(`DYNAMICBAY_DEV`) senden einen erzeugten Ton, spielen nichts (`NullAudioSink`) und schalten nichts stumm, sie loggen
+nur, was sie täten.
 
 **Firewall.** Der Installer legt eingehende Regeln für `DynamicBay.exe` an (TCP 43823, UDP 43824): private und
 Domänen-Netze per `netsh`, dazu per `New-NetFirewallRule` eine Regel nur auf dem Adapter „Tailscale“ für

@@ -225,6 +225,9 @@ public sealed partial class LinkHub : ObservableObject
                     if (settings.LinkShareStatus) _ = Status?.PublishAsync(force: true);
                     else foreach (var d in Devices) { d.Battery = null; d.Charging = false; }
                     break;
+                case nameof(AppSettings.LinkShareAudio):
+                    SyncAudio();
+                    break;
                 case nameof(AppSettings.LinkShareMedia):
                     if (settings.LinkShareMedia) PublishMediaSoon(force: true);
                     else { _remoteMedia.Clear(); UpdateRemote(); }
@@ -259,6 +262,10 @@ public sealed partial class LinkHub : ObservableObject
             DiscoveryPort = DevMode.DiscoveryPort ?? LinkProtocol.DiscoveryPort,
             // Test instances keep received files in their own data folder, never in the real downloads.
             DownloadFolder = DevMode.On ? Path.Combine(AppSettings.Folder, "Downloads") : new LinkOptions().DownloadFolder,
+            // Two test instances on one PC: 127.0.0.1 only and no discovery, so Windows Firewall does not ask.
+            LoopbackOnly = DevMode.LoopbackOnly,
+            LanDiscovery = !DevMode.LoopbackOnly,
+            TailscaleDiscovery = !DevMode.LoopbackOnly,
         };
         var link = new LinkService(_identity, _settings.LinkDeviceName, _settings.PairedDevices, options, new DispatcherSynchronizationContext(_ui));
         Service = link;
@@ -289,8 +296,9 @@ public sealed partial class LinkHub : ObservableObject
     {
         _tick.Stop();
         DisposeTogether();
-        foreach (var f in new LinkFeature?[] { Status, Clipboard, Files, Notifications, Media, Role }) f?.Dispose();
-        Status = null; Files = null; Clipboard = null; Notifications = null; Media = null; Role = null;
+        foreach (var f in new LinkFeature?[] { Audio, Status, Clipboard, Files, Notifications, Media, Role }) f?.Dispose();
+        Status = null; Files = null; Clipboard = null; Notifications = null; Media = null; Role = null; Audio = null;
+        AudioFrom = "";
         UpdateRole(); // offline: this device shows everything again
         try { Service?.Dispose(); } catch (Exception ex) { Log.Error("Link stop", ex); }
         Service = null;
@@ -349,6 +357,8 @@ public sealed partial class LinkHub : ObservableObject
             UpdateRemote();
         };
         Media.CommandReceived += (id, cmd) => RunMediaCommand(cmd);
+
+        Audio = CreateAudio(link);
 
         Role = new LinkRoleFeature(link, _settings, IdleSeconds, () => CursorHop is { IsConnected: true } h ? h.CursorHere : null);
         Role.RoleChanged += UpdateRole;
@@ -428,6 +438,7 @@ public sealed partial class LinkHub : ObservableObject
         AnyOnline = IsRunning && Devices.Any(d => d.IsOnline);
         CanSendFiles = AnyOnline && _settings.LinkShareFiles;
         OnPropertyChanged(nameof(OnlineDevices));
+        SyncAudio();
     }
 
     /// <summary>"Tailscale" for 100.64.0.0/10 and fd7a:115c:a1e0::/48, "LAN" for the rest.</summary>

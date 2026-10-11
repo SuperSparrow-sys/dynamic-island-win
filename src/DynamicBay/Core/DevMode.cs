@@ -25,6 +25,9 @@ public static class DevMode
     /// <summary><c>DYNAMICBAY_DEV_PAIR=127.0.0.1:43901</c>: pair with that address right after the start (test instances).</summary>
     public static string? PairAtStart => On ? Environment.GetEnvironmentVariable("DYNAMICBAY_DEV_PAIR") is { Length: > 0 } a ? a : null : null;
 
+    /// <summary><c>DYNAMICBAY_DEV_LOOPBACK=1</c>: the link listens on 127.0.0.1 only, without discovery (two instances on one PC, no firewall prompt).</summary>
+    public static bool LoopbackOnly => On && Environment.GetEnvironmentVariable("DYNAMICBAY_DEV_LOOPBACK") == "1";
+
     internal static string? Parse(string? value) =>
         value is { Length: > 0 and <= 16 } v && v.All(char.IsAsciiLetterOrDigit) ? v.ToLowerInvariant() : null;
 

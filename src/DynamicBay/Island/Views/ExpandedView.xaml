@@ -1057,14 +1057,36 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type s:AudioDeviceItem}">
                                             <Button Style="{StaticResource Row.Item}"
-                                                    Background="{Binding IsDefault, Converter={StaticResource DefaultBg}}" ToolTip="{Binding Name}"
+                                                    Background="{Binding IsSelected, Converter={StaticResource DefaultBg}}" ToolTip="{Binding Name}"
                                                     Command="{Binding DataContext.AudioDevices.SelectCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
                                                 <DockPanel>
                                                     <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Check}" Width="11" Height="11" StrokeWidth="3" Foreground="{StaticResource B.Blue}"
-                                                            Visibility="{Binding IsDefault, Converter={StaticResource Vis}}" />
+                                                            Visibility="{Binding IsSelected, Converter={StaticResource Vis}}" />
                                                     <c:Icon DockPanel.Dock="Left" Data="{Binding Headphones, Converter={StaticResource OutputGlyph}}" Width="12" Height="12" Margin="0,0,7,0"
-                                                            Foreground="{Binding IsDefault, Converter={StaticResource OnBrush}}" />
+                                                            Foreground="{Binding IsSelected, Converter={StaticResource OnBrush}}" />
                                                     <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
+                                                </DockPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <!-- Paired devices as outputs: this PC's sound plays there ("Ton an Gerät") -->
+                                <ItemsControl ItemsSource="{Binding Link.AudioTargets, FallbackValue={x:Null}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type link:LinkDeviceView}">
+                                            <Button Style="{StaticResource Row.Item}" Height="36"
+                                                    Background="{Binding AudioSelected, Converter={StaticResource DefaultBg}}" ToolTip="{Binding Name}"
+                                                    Command="{Binding DataContext.Link.SelectAudioTargetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
+                                                <DockPanel>
+                                                    <c:Icon DockPanel.Dock="Right" Data="{StaticResource Icon.Check}" Width="11" Height="11" StrokeWidth="3" Foreground="{StaticResource B.Blue}"
+                                                            Visibility="{Binding AudioSelected, Converter={StaticResource Vis}}" />
+                                                    <c:Icon DockPanel.Dock="Left" Data="{Binding IsLaptop, Converter={StaticResource LaptopGlyph}}" Width="12" Height="12" Margin="0,0,7,0"
+                                                            Foreground="{Binding AudioSelected, Converter={StaticResource OnBrush}}" />
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
+                                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="9.5" Foreground="{StaticResource B.Text3}" TextTrimming="CharacterEllipsis"
+                                                                   Text="{core:L De='über Kopplung', En='via pairing'}" />
+                                                    </StackPanel>
                                                 </DockPanel>
                                             </Button>
                                         </DataTemplate>

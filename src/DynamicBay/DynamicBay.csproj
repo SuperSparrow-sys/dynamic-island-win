@@ -31,6 +31,9 @@
     <PackageReference Include="Jint" Version="4.17.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="Ical.Net" Version="4.2.0" />
+    <!-- Sound to a paired device: WASAPI loopback capture and playback (NAudio), Opus in pure C# (Concentus). -->
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <PackageReference Include="Concentus" Version="2.2.2" />
   </ItemGroup>
 
   <ItemGroup>

@@ -127,8 +127,26 @@ public sealed partial class IslandViewModel : ObservableObject
     public Services.M365.TodoService? Todo { get; set; }
     public Services.M365.PresenceService? Presence { get; set; }
     public Services.M365.ContactsService? Contacts { get; set; }
-    /// <summary>Paired devices (PC and laptop): pairing, status, mirrored clipboard, notifications, music, files.</summary>
-    public Services.Link.LinkHub? Link { get; set; }
+    /// <summary>Paired devices (PC and laptop): pairing, status, mirrored clipboard, notifications, music, files, sound.</summary>
+    public Services.Link.LinkHub? Link
+    {
+        get => _link;
+        set
+        {
+            if (_link is not null) _link.PropertyChanged -= OnLinkChanged;
+            _link = value;
+            if (_link is not null) _link.PropertyChanged += OnLinkChanged;
+            OnPropertyChanged();
+            RecomputeCompact();
+        }
+    }
+    private Services.Link.LinkHub? _link;
+    private void OnLinkChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Services.Link.LinkHub.IsForwardingAudio)) RecomputeCompact();
+    }
+    /// <summary>This PC's sound plays on a paired device ("Ton am Laptop").</summary>
+    [ObservableProperty] private bool _showAudioLink;
     [ObservableProperty] private bool _showMuted;
     [ObservableProperty] private bool _showMic;
     [ObservableProperty] private bool _showCamera;
@@ -196,18 +214,20 @@ public sealed partial class IslandViewModel : ObservableObject
         bool cal = all && s.CalendarEnabled && s.HasCompact(Widgets.Calendar) && Calendar.IsSoon;
         bool low = all && s.BatteryEnabled && s.HasCompact(Widgets.Battery) && Battery.IsLow;
         bool claude = all && s.ClaudeEnabled && s.HasCompact(Widgets.Claude) && (Claude.AnyWorking || Claude.AnyWaiting);
-        bool muted = all && s.AudioEnabled && s.HasCompact(Widgets.Muted) && Audio.SpeakerMuted;
+        // The sound plays on a paired device: shown like music (also when quiet); the output muted for it is no news.
+        bool audioLink = s.AudioEnabled && _link?.IsForwardingAudio == true;
+        bool muted = all && s.AudioEnabled && s.HasCompact(Widgets.Muted) && Audio.SpeakerMuted && !audioLink;
         bool mic = (all || meeting) && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.MicInUse;
         bool cam = (all || meeting) && s.AudioEnabled && s.HasCompact(Widgets.Mic) && Audio.CameraInUse;
         bool scripts = all && Scripts.CompactIds.Count > 0;
         bool download = all && s.HasCompact(Widgets.Downloads) && Downloads.IsActive;
-        bool activities = media || timer || cal || low || claude || muted || mic || cam || scripts || meeting || tracking || download;
+        bool activities = media || timer || cal || low || claude || muted || mic || cam || scripts || meeting || tracking || download || audioLink;
         // The clock shows either as a permanent segment, or as the idle face when nothing else is going on.
         bool clock = all && (s.HasCompact(Widgets.Clock) || (s.Idle == IdleStyle.Clock && !activities));
         bool any = activities || clock;
         bool changed = media != ShowMedia || timer != ShowTimer || cal != ShowCalendar || low != ShowBatteryLow
-                       || clock != ShowClock || claude != ShowClaude || muted != ShowMuted || mic != ShowMic || cam != ShowCamera || scripts != ShowScripts || meeting != ShowMeeting || tracking != ShowTimeTrack || download != ShowDownload || any != HasCompact;
-        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; ShowClaude = claude; ShowMuted = muted; ShowMic = mic; ShowCamera = cam; ShowStatus = mic || cam || muted; ShowScripts = scripts; ShowMeeting = meeting; ShowTimeTrack = tracking; ShowDownload = download; HasCompact = any;
+                       || clock != ShowClock || claude != ShowClaude || muted != ShowMuted || mic != ShowMic || cam != ShowCamera || scripts != ShowScripts || meeting != ShowMeeting || tracking != ShowTimeTrack || download != ShowDownload || audioLink != ShowAudioLink || any != HasCompact;
+        ShowMedia = media; ShowTimer = timer; ShowCalendar = cal; ShowBatteryLow = low; ShowClock = clock; ShowClaude = claude; ShowMuted = muted; ShowMic = mic; ShowCamera = cam; ShowStatus = mic || cam || muted; ShowScripts = scripts; ShowMeeting = meeting; ShowTimeTrack = tracking; ShowDownload = download; ShowAudioLink = audioLink; HasCompact = any;
         if (changed) CompactChanged?.Invoke();
     }
 

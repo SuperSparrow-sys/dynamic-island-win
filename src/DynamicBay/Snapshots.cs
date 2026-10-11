@@ -564,6 +564,28 @@ public static class Snapshots
             await Task.Delay(1300);
             Capture(island, Path.Combine(dir, $"{name}-link-10-timer.png"));
             vm.Timer.Stop();
+
+            // "Ton an Gerät": the laptop as the chosen output, the compact indicator and the peek.
+            link.LoadAudioDemo();
+            vm.AudioDevices.RemoteOutputActive = true;
+            // Two speakers instead of three, so the laptop row is in view without scrolling.
+            if (vm.AudioDevices.Outputs.FirstOrDefault(o => o.Name.StartsWith("DELL")) is { } monitor) vm.AudioDevices.Outputs.Remove(monitor);
+            vm.Tab = 3;
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-11-audio-card.png"), compact: false);
+            vm.Tab = 0;
+            await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-link-12-audio-compact.png"), compact: false);
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.Volume"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue"),
+                Title = App.AudioMovedTitle("LaptopJonathan", null), Subtitle = App.AudioMovedText("LaptopJonathan", null), Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-13-audio-peek.png"), compact: false);
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.Volume"), IconBrush = Res("B.Text2"), IconBackground = Tint("B.Text"),
+                Title = App.AudioMovedTitle("LaptopJonathan", Services.Link.AudioForwardEnd.LinkLost), Subtitle = App.AudioMovedText("LaptopJonathan", Services.Link.AudioForwardEnd.LinkLost), Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-14-audio-back.png"), compact: false);
         }
     }
 

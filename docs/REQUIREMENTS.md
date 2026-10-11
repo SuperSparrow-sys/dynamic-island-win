@@ -140,3 +140,4 @@ dann die optionale Zeiterfassung (Paket C).
 | 85 | Akku des Laptops (schwach, Ladegerät ein/aus, voll) als Einblendung auf dem Hauptgerät („Laptop: Akku 15 %“), dort einmal | fertig (Test, Snapshot, Live-Test mit Testinstanzen) |
 | 86 | Gemeinsam sperren (Schalter, aus): Sperren eines Geräts sperrt das andere, nur wenn es seit einer Minute unbenutzt ist; nie entsperren | fertig (Test mit Attrappe; Testinstanzen sperren nie) |
 | 87 | Bilder in der geteilten Zwischenablage in beide Richtungen | fertig (Test) |
+| 88 | Ton an anderes Gerät: im Audio-Widget das gekoppelte Gerät als Ausgabe wählen, der Ton dieses PCs spielt dort (hier stumm, danach genau wie vorher); Schalter „Ton“ auf beiden Seiten, Anzeige in der Insel, Einblendungen, Verbindung weg: Ton kommt zurück | fertig (Test, Snapshot, Live-Test mit Testinstanzen); mit zwei echten Geräten offen |

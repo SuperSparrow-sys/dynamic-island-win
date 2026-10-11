@@ -80,6 +80,12 @@ aus `%AppData%\DynamicBay-dev-<n>\dev-commands.txt` aus (eine Zeile pro Befehl, 
 `timer <min>`, `focus`, `pause`, `stop`, `handover`, `dnd on|off`, `main none|this|other|auto`, `battery low <Prozent>`,
 `ask [Sekunden]`, `answer yes|no`, `lock`, `set Link… on|off`, `state` (schreibt Timer, Ruhe und Hauptgerät ins Log).
 Testinstanzen sperren nie den PC, `lock` steht nur im Log des anderen. Testinstanzen speichern
+
+`DYNAMICBAY_DEV_LOOPBACK=1` lässt den Link nur auf 127.0.0.1 hören, ohne Suche (keine Firewall-Abfrage).
+`DYNAMICBAY_DEV_SENDAUDIO=<Sekunden>` schickt so lange Ton an das erste Gerät, das online kommt: Testinstanzen
+erzeugen einen 440-Hz-Ton statt aufzunehmen, spielen Empfangenes nirgends ab und schalten nichts stumm. Das Log zeigt
+`Audio link: received … frames …, buffer … ms, … level 0,071` (Pegel des Tons) und `sound back here (…)`.
+`DYNAMICBAY_DEV_SENDFILE=<Pfad>` schickt die Datei an das erste Gerät, das online kommt. Testinstanzen speichern
 Empfangenes in `%AppData%\DynamicBay-dev-<n>\Downloads`, nie in den echten Downloads. Was über den Link geht, steht ohne
 Inhalte im Log (`Link: status from …`, `Link: clipboard text (40 chars) …`, `Link: received … bytes`).
 

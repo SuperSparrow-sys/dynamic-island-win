@@ -139,6 +139,8 @@ angenommen):
 | Fragen | Einblendungen mit Knöpfen (Mikrofon aktiv – stumm?, Beitreten, eingehender Anruf, Kopfhörer verbinden …) des stillen Geräts erscheinen auf dem Hauptgerät, mit dessen Namen. Der Knopf dort wirkt auf dem Gerät, von dem die Frage kommt. Läuft die Zeit ab, gilt sie als abgelehnt; ist das Hauptgerät vorher weg, erscheint die Frage auf dem eigenen Gerät. |
 | Akku | Akku schwach, Ladegerät ein oder aus und voll erscheinen auf dem Hauptgerät als „Laptop: Akku 15 %“. Das stille Gerät zeigt sie dann nicht noch einmal selbst. |
 | Gemeinsam sperren | Aus, bis man es einschaltet (auf beiden Geräten). Wird ein Gerät gesperrt (Win+L), sperrt sich das andere mit, aber nur, wenn dort seit einer Minute niemand Maus oder Tastatur benutzt hat. Entsperrt wird nie über die Kopplung. |
+
+| Ton | Das andere Gerät erscheint im Audio-Widget unter „Ausgabe“ („über Kopplung“). Siehe [Ton an anderes Gerät](#ton-an-anderes-gerät). Beide Geräte müssen „Ton“ erlauben. |
 | Status | Name, Akku und Version für die Karte „Gekoppelt“ (System-Seite, kommt beim ersten Koppeln dazu). Verbunden und getrennt kommen als Einblendung (verbunden nach 3 s, getrennt nach 30 s; hat CursorHop dasselbe Gerät gerade gemeldet, nur einmal). |
 
 **Hauptgerät:** „Alles zeigt“ legt fest, welches Gerät die Einblendungen zeigt, solange beide verbunden sind: „Beide“
@@ -149,6 +151,27 @@ und Mitteilungen ans Hauptgerät, das jede Nachricht nur einmal zeigt. Die Wahl 
 „Insel auf dem anderen Gerät ausblenden“ blendet dort zusätzlich die ganze Insel aus. Ist die Verbindung weg, zeigt
 jedes Gerät wieder alles selbst. Fragen mit Knöpfen gehen mit dem Schalter „Fragen“ ebenfalls ans Hauptgerät, ohne
 ihn bleiben sie auf ihrem Gerät.
+
+### Ton an anderes Gerät
+
+Im Audio-Widget stehen unter „Ausgabe“ nach den eigenen Lautsprechern die verbundenen gekoppelten Geräte (Laptop-
+oder Monitor-Symbol, darunter „über Kopplung“). Ein Klick schickt den ganzen Ton dieses PCs dorthin: Musik, Videos,
+Systemklänge, Calls. Die Insel zeigt „Ton am …“ und kurz „Ton läuft jetzt am …“. Ein Klick auf eine eigene Ausgabe holt
+den Ton zurück („Ton wieder hier“).
+
+- **Hier stumm:** Solange der Ton drüben läuft, ist die eigene Ausgabe stummgeschaltet. Danach kommt genau der Zustand
+  von vorher zurück; war sie schon stumm, bleibt sie es. Auch nach einem Absturz: Der nächste Start schaltet sie wieder
+  ein. Wechselt Windows die Ausgabe (Kopfhörer verbunden), folgt der Ton der neuen.
+- **Verbindung weg** (Gerät aus, Schlaf, WLAN weg): Der Ton kommt sofort zurück, mit Einblendung „Verbindung zu …
+  getrennt“. Schaltet das andere Gerät „Ton“ aus oder beendet DynamicBay, genauso.
+- **Verzögerung:** etwa 150 bis 200 ms im LAN (20 ms Opus-Blöcke, Puffer 100 ms, über Tailscale 150 ms, plus die
+  Puffer beider Soundkarten). Für Musik und Videos ohne Bild gut, Lippen in Videos laufen sichtbar hinterher, für Spiele
+  zu spät.
+- **Bandbreite:** Opus, 48 kHz Stereo, bis 160 kbit/s; geht auch über ein Tailscale-Relay.
+- **Grenzen:** Aufgenommen wird, was Windows für die Ausgabe mischt (WASAPI-Loopback). Apps im exklusiven Modus
+  (manche Audio-Player und Spiele) und kopiergeschützte Wiedergabe (Netflix und Co. im Browser mit DRM) fehlen darin
+  oder kommen still an. Gespielt wird drüben auf der Standard-Ausgabe. Lauter oder leiser am Gerät, das spielt; mit
+  den Lautstärketasten hier hebt Windows die Stummschaltung auf, dann klingt es auf beiden.
 
 Der Installer gibt in der Windows-Firewall die Ports 43823 (TCP) und 43824 (UDP) frei: in privaten Netzen und im
 Domänennetz, dazu auf dem Tailscale-Adapter (in jedem Netzprofil, nur für Tailscale-Adressen). Ohne Tailscale beim

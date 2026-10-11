@@ -74,6 +74,19 @@
             </StackPanel>
         </Grid>
 
+        <!-- This PC's sound plays on a paired device: "Ton am Laptop" -->
+        <Grid Visibility="{Binding ShowAudioLink, Converter={StaticResource Vis}}" ToolTip="{Binding Link.AudioDeviceText}">
+            <StackPanel x:Name="AudioLinkH" Orientation="Horizontal">
+                <c:Icon Data="{StaticResource Icon.Volume}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                <TextBlock Margin="7,0,0,0" Style="{StaticResource T.Title}" FontSize="12" Foreground="{StaticResource B.Blue}" MaxWidth="130"
+                           TextTrimming="CharacterEllipsis" Text="{Binding Link.AudioDeviceText}" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel x:Name="AudioLinkV" Visibility="Collapsed">
+                <c:Icon Data="{StaticResource Icon.Volume}" Width="13" Height="13" StrokeWidth="2.2" Foreground="{StaticResource B.Blue}" HorizontalAlignment="Center" />
+                <c:Icon Data="{StaticResource Icon.Link}" Width="10" Height="10" StrokeWidth="2.4" Foreground="{StaticResource B.Text2}" Margin="0,4,0,0" HorizontalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
         <!-- Music -->
         <Grid x:Name="MediaSeg" Visibility="{Binding ShowMedia, Converter={StaticResource Vis}}">
             <StackPanel x:Name="MediaH" Orientation="Horizontal">
