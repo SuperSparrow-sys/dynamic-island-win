@@ -148,10 +148,13 @@ public sealed partial class LinkService
         long size = LinkProtocol.Long(env, "size") ?? -1;
         string? sha = LinkProtocol.Str(env, "sha256");
         string name = LinkProtocol.SanitizeFileName(LinkProtocol.Str(env, "name"));
-        async Task Decline(string reason)
+        // Runs in the read loop: answers are sent without waiting for them. If both sides waited here for a send while
+        // the other's buffer is full of file chunks, neither would read again (both stuck).
+        Task Decline(string reason)
         {
             Log($"Link: file {name} from {conn.PeerName} declined ({reason})");
-            await SendQuietly(conn, new JsonObject { ["t"] = LinkProtocol.FileDecline, ["fid"] = fid, ["reason"] = reason }).ConfigureAwait(false);
+            _ = SendQuietly(conn, new JsonObject { ["t"] = LinkProtocol.FileDecline, ["fid"] = fid, ["reason"] = reason });
+            return Task.CompletedTask;
         }
         if (size < 0 || sha is not { Length: 64 } || !sha.All(Uri.IsHexDigit)) { await Decline("invalid").ConfigureAwait(false); return; }
         if (size > _opts.MaxFileBytes) { await Decline("too-large").ConfigureAwait(false); return; }
@@ -251,7 +254,7 @@ public sealed partial class LinkService
         TaildropService.MarkFromInternet(final); // like a download: SmartScreen checks it before it runs
         lock (_gate) _incoming.Remove(fid);
         e.Hash.Dispose();
-        await SendQuietly(conn, new JsonObject { ["t"] = LinkProtocol.FileDone, ["fid"] = fid, ["ok"] = true }).ConfigureAwait(false);
+        _ = SendQuietly(conn, new JsonObject { ["t"] = LinkProtocol.FileDone, ["fid"] = fid, ["ok"] = true }); // not awaited: read loop
         Log($"Link: received {e.Offer.Size} bytes from {conn.PeerName}");
         Post(() => FileReceived?.Invoke(e.Offer, final));
     }

@@ -9,9 +9,16 @@ namespace DynamicBay.Island;
 
 public enum PeekPriority { Low, Normal, High }
 
+/// <summary>
+/// General: may go to the paired main device instead. Notification: a Windows notification (the link forwards those
+/// itself). Local: belongs to this device only (key feedback, pairing, transfers, things from the other device).
+/// </summary>
+public enum PeekKind { General, Notification, Local }
+
 /// <summary>A short-lived announcement (screenshot taken, device connected, notification...).</summary>
-public sealed class PeekItem
+public sealed class PeekItem : INotifyPropertyChanged
 {
+    public event PropertyChangedEventHandler? PropertyChanged;
     public Geometry? Icon { get; init; }
     public bool IconFilled { get; init; }
     public Brush IconBrush { get; init; } = Brushes.White;
@@ -23,11 +30,27 @@ public sealed class PeekItem
     public bool RoundImage { get; init; }
     public string Title { get; init; } = "";
     public string Subtitle { get; init; } = "";
-    public string? Trailing { get; init; }
+    /// <summary>Settable while shown (a transfer counting up); the peek updates in place.</summary>
+    public string? Trailing
+    {
+        get => _trailing;
+        set { _trailing = value; PropertyChanged?.Invoke(this, new(nameof(Trailing))); PropertyChanged?.Invoke(this, new(nameof(HasTrailing))); }
+    }
+    private string? _trailing;
     public Brush TrailingBrush { get; init; } = Brushes.White;
-    public double? Progress { get; init; }
+    public double? Progress
+    {
+        get => _progress;
+        set { _progress = value; PropertyChanged?.Invoke(this, new(nameof(Progress))); PropertyChanged?.Invoke(this, new(nameof(HasProgress))); }
+    }
+    private double? _progress;
+    /// <summary>The second button of a question peek was pressed (or it was dismissed by hand).</summary>
+    public Action? OnDismiss { get; init; }
     public double Seconds { get; init; } = 3.2;
     public PeekPriority Priority { get; init; } = PeekPriority.Normal;
+    public PeekKind Kind { get; init; } = PeekKind.General;
+    /// <summary>Name of the icon resource (Icon.Calendar …) so a forwarded peek keeps its symbol on the other device.</summary>
+    public string? IconKey { get; init; }
     /// <summary>Also shown in "Nicht stören" (timer finished, feedback to a key the user just pressed).</summary>
     public bool ShowInDnd { get; init; }
     public Action? OnClick { get; init; }
@@ -104,6 +127,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public Services.M365.TodoService? Todo { get; set; }
     public Services.M365.PresenceService? Presence { get; set; }
     public Services.M365.ContactsService? Contacts { get; set; }
+    /// <summary>Paired devices (PC and laptop): pairing, status, mirrored clipboard, notifications, music, files.</summary>
+    public Services.Link.LinkHub? Link { get; set; }
     [ObservableProperty] private bool _showMuted;
     [ObservableProperty] private bool _showMic;
     [ObservableProperty] private bool _showCamera;

@@ -17,8 +17,8 @@ public enum IslandShape { Island, Notch }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads", CursorHop = "cursorhop";
-    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts, CursorHop };
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads", CursorHop = "cursorhop", Paired = "paired";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts, CursorHop, Paired };
     public const string Battery = "battery";
     /// <summary>Settings page and group heading (start of its text) of each widget - for the gear in the island and the board in the settings.</summary>
     public static (SettingsPage page, string? group) SettingsOf(string id) => id switch
@@ -36,6 +36,8 @@ public static class Widgets
         Todo => (SettingsPage.Calendar, Loc.German ? "Aufgaben" : "Tasks"),
         Teams or Contacts => (SettingsPage.Accounts, "Microsoft 365"),
         TimeTrack => (SettingsPage.Calendar, Loc.German ? "Zeiterfassung" : "Time tracking"),
+        CursorHop => (SettingsPage.Devices, "CursorHop"),
+        Paired => (SettingsPage.Devices, Loc.German ? "Gekoppelte" : "Paired"),
         _ when id.StartsWith(ScriptPrefix, StringComparison.Ordinal) => (SettingsPage.Apps, Loc.German ? "Eigene Widgets" : "Own widgets"),
         _ => (SettingsPage.Content, null),
     };
@@ -365,6 +367,22 @@ public sealed partial class AppSettings : ObservableObject
     // Link: paired DynamicBay devices (see Services/Link). Off until the first pairing; LinkDeviceName "" = computer name.
     [ObservableProperty] private bool _linkEnabled;
     [ObservableProperty] private string _linkDeviceName = "";
+    // What is shared with paired devices (checked when sending and when receiving). All on: nothing goes anywhere
+    // before the link is switched on and a device is paired.
+    [ObservableProperty] private bool _linkShareFiles = true;
+    [ObservableProperty] private bool _linkShareClipboard = true;
+    [ObservableProperty] private bool _linkShareNotifications = true;
+    [ObservableProperty] private bool _linkShareMedia = true;
+    [ObservableProperty] private bool _linkShareStatus = true;
+    /// <summary>
+    /// Main device while a paired one is connected: "" = none (both show everything), "this", "other" (the paired
+    /// device) or "auto" (where the mouse is or that was used last). Relative on purpose: no ids, so it can be exported.
+    /// Synced between the devices (the newer <see cref="LinkMainChanged"/> wins).
+    /// </summary>
+    [ObservableProperty] private string _linkMain = "";
+    [ObservableProperty] private DateTime _linkMainChanged;
+    /// <summary>Hide the island on the device that is not the main one, while the other is connected.</summary>
+    [ObservableProperty] private bool _linkHideWhenNotMain;
     private ObservableCollection<PairedDevice> _pairedDevices = new();
     public ObservableCollection<PairedDevice> PairedDevices
     {

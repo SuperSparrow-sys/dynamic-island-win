@@ -1,0 +1,30 @@
+<Window x:Class="DynamicBay.Settings.PairingWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:DynamicBay.Core"
+        Width="380" SizeToContent="Height" WindowStartupLocation="CenterOwner"
+        Background="Transparent" FontFamily="{StaticResource Font.UI}" ShowInTaskbar="False" ResizeMode="NoResize">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40" GlassFrameThickness="-1" ResizeBorderThickness="0" UseAeroCaptionButtons="True" />
+    </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SettingsStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <StackPanel Margin="18,44,18,16">
+        <TextBlock Style="{StaticResource ST.Base}" FontSize="18" FontWeight="Bold" Text="{core:L De='Gerät koppeln', En='Pair device'}" />
+        <TextBlock x:Name="Hint" Style="{StaticResource ST.Desc}" Margin="0,2,0,14" TextWrapping="Wrap" />
+        <Border CornerRadius="10" Background="{DynamicResource S.Card}" BorderBrush="{DynamicResource S.CardBorder}" BorderThickness="1" Padding="12,14">
+            <TextBlock x:Name="Code" Style="{StaticResource ST.Base}" FontSize="40" FontWeight="Bold" HorizontalAlignment="Center"
+                       FontFamily="{StaticResource Font.UI}" Typography.NumeralAlignment="Tabular" />
+        </Border>
+        <TextBlock x:Name="Status" Style="{StaticResource ST.Desc}" Margin="0,10,0,0" TextWrapping="Wrap" HorizontalAlignment="Center" />
+        <StackPanel x:Name="Buttons" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button x:Name="DeclineButton" Style="{StaticResource S.Button}" Content="{core:L De='Ablehnen', En='Decline'}" IsCancel="True" Click="Decline_Click" />
+            <Button x:Name="ConfirmButton" Style="{StaticResource S.AccentButton}" Margin="8,0,0,0" IsDefault="True" Content="{core:L De='Bestätigen', En='Confirm'}" Click="Confirm_Click" />
+        </StackPanel>
+    </StackPanel>
+</Window>

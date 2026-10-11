@@ -112,18 +112,58 @@ public sealed class IslandManager
         }
         foreach (var device in wanted.Where(d => _mirrors.All(w => !string.Equals(w.MirrorDevice, d, StringComparison.OrdinalIgnoreCase))))
         {
-            var w = new IslandWindow(_vm, device);
+            var w = new IslandWindow(_vm, device) { LinkHidden = _linkHidden };
             _mirrors.Add(w);
             if (!_settings.Hidden) w.Show();
         }
         Log.Info($"Displays: {monitors.Count}, mode {_settings.Displays}, mirrors {_mirrors.Count}");
     }
 
+    /// <summary>
+    /// Set by the app while a paired device is the main one: returns true when the peek went there instead (it is
+    /// not shown here then).
+    /// </summary>
+    public Func<PeekItem, bool>? Divert { get; set; }
+
+    private readonly Dictionary<string, DateTime> _recentPeeks = new();
+    private bool _linkHidden;
+
+    /// <summary>The island makes way for the paired main device (or comes back); the user's own "hidden" stays as it is.</summary>
+    public void SetLinkHidden(bool hidden)
+    {
+        if (hidden == _linkHidden) return;
+        _linkHidden = hidden;
+        Log.Info(hidden ? "Island hidden: the paired main device shows everything" : "Island back: this device shows everything again");
+        foreach (var w in All) w.LinkHidden = hidden;
+    }
+
+    /// <summary>
+    /// The same message from both devices (a calendar reminder on PC and laptop, a peek forwarded by the other one)
+    /// shows once: plain peeks with the same title and subtitle within 10 s are dropped.
+    /// </summary>
+    internal static bool IsRepeat(Dictionary<string, DateTime> recent, PeekItem item, DateTime now)
+    {
+        if (item.Kind == PeekKind.Local || item.HasActions) return false;
+        foreach (var old in recent.Where(kv => now - kv.Value > TimeSpan.FromSeconds(10)).Select(kv => kv.Key).ToList()) recent.Remove(old);
+        string key = item.Title + "\n" + item.Subtitle;
+        if (recent.ContainsKey(key)) return true;
+        recent[key] = now;
+        return false;
+    }
+
     public void ShowPeek(PeekItem item)
     {
+        if (Divert?.Invoke(item) == true) return;
+        if (IsRepeat(_recentPeeks, item, DateTime.UtcNow)) return;
         // Questions (with buttons) appear once, on the main island; plain peeks on every island.
         if (item.HasActions) { Main.ShowPeek(item); return; }
         foreach (var w in All) w.ShowPeek(item);
+    }
+
+    /// <summary>Takes a peek away again on every island (shown or still waiting).</summary>
+    public void WithdrawPeek(PeekItem item)
+    {
+        foreach (var w in All) w.Withdraw(item);
     }
 
     /// <summary>Opens the island the user is most likely looking at (the one under the cursor, else the main one).</summary>

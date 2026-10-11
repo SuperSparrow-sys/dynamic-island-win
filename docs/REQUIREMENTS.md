@@ -118,3 +118,18 @@ dann die optionale Zeiterfassung (Paket C).
 | 68 | Update startet die App zuverlässig: Installer registriert die Paket-Identität, Update-Test vor jedem Release | fertig (CI) |
 | 69 | Festes Signaturzertifikat für das Identitäts-Paket | vorbereitet, Secrets fehlen |
 | 70 | Verständliche Fehlermeldungen (Deutsch/Englisch) statt Fehlercodes | fertig |
+
+## Paket G: PC und Laptop koppeln
+
+| # | Anforderung | Status |
+|---|---|---|
+| 71 | Einstellungen → Geräte: „Geräte koppeln“ an/aus, Gerätename, gekoppelte Geräte mit Zustand und Entkoppeln (Nachfrage in der Zeile), „Koppeln erlauben“ mit Restzeit, gefundene Geräte, Adresse (IP, Rechnername, Tailscale-Name) | fertig (Test, Snapshot) |
+| 72 | Koppel-Code groß in einem kleinen Fenster und als Einblendung mit „Bestätigen“/„Ablehnen“; Ergebnis kurz anzeigen | fertig (Snapshot, Live-Test mit Testinstanzen) |
+| 73 | Status des anderen Geräts (verbunden, Akku, Version) in der Karte „Gekoppelt“; Einblendung verbunden/getrennt, nicht doppelt mit CursorHop | fertig (Test, Live-Test mit Testinstanzen) |
+| 74 | Dateien aus der Ablage ans andere Gerät senden (Knopf, Menü, Ziehen); Empfang ohne Nachfrage in Downloads\DynamicBay und in die Ablage, Fortschritt bei großen Dateien | fertig (Test, Live-Test mit Testinstanzen) |
+| 75 | Zwischenablage teilen: Text und Bilder mit Gerätename im Verlauf, ohne Passwörter, ohne Echo, Windows-Zwischenablage bleibt | fertig (Test, Live-Test mit Testinstanzen) |
+| 76 | Mitteilungen des anderen Geräts mit „von …“, nie weitergeleitet, Ruhe und stumme Apps gelten | fertig (Test) |
+| 77 | Musik des anderen Geräts in der Medienkarte, steuern ohne je selbst Musik zu starten | fertig (Test, Snapshot) |
+| 78 | Jede Funktion einzeln abschaltbar, geprüft beim Senden und beim Empfangen | fertig (Test) |
+| 79 | Hauptgerät (beide, dieses, anderes, automatisch nach Maus oder letzter Benutzung): das andere Gerät bleibt still und schickt seine Einblendungen hin, gleiche Nachrichten einmal, Insel dort optional ausgeblendet; offline zeigt jedes Gerät alles | fertig (Test); mit zwei echten Geräten offen |
+| 80 | Härtung nach Review: fremdes Gerät unter alter Adresse macht die Kopplung nicht ungültig, Fundliste begrenzt, Koppel-Versuche pro Absender, RTLO in Dateinamen, keine gegenseitige Blockade beim Senden, Schlüsselreste nach hartem Beenden, Tailscale-Firewallregel nur auf dem Tailscale-Adapter | fertig (Test) |

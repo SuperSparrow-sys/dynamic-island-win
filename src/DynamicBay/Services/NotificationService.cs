@@ -21,6 +21,13 @@ public sealed class NotificationItem
     public string Body { get; init; } = "";
     public DateTime Time { get; init; }
     public ImageSource? Logo { get; init; }
+    /// <summary>A paired device it came from over the link (null: from this PC). Never forwarded again.</summary>
+    public string? Device { get; init; }
+    /// <summary>When it joined the list here (for "the same message from both devices shows once").</summary>
+    public DateTime Added { get; init; } = DateTime.Now;
+    public bool SameAs(string app, string title, string body) => App == app && Title == title && Body == body;
+    /// <summary>The app, and for notifications of another device "von Laptop".</summary>
+    public string AppLabel => Device is null ? App : $"{App} · {(Loc.German ? "von" : "from")} {Device}";
     public string TimeText => (DateTime.Now - Time).TotalMinutes < 1
         ? (Loc.German ? "jetzt" : "now")
         : Time.ToString("HH:mm");
@@ -61,6 +68,41 @@ public sealed partial class NotificationService : ObservableObject
     [ObservableProperty] private NotificationAccess _access = NotificationAccess.Unknown;
     [ObservableProperty] private int _count;
     [ObservableProperty] private bool _isEmpty = true;
+    /// <summary>The list shows: with access to Windows' notifications, or when a paired device sent some.</summary>
+    [ObservableProperty] private bool _showList;
+    /// <summary>No access and nothing from other devices: the tab explains why it stays empty.</summary>
+    [ObservableProperty] private bool _showUnavailable;
+    [ObservableProperty] private bool _showDenied;
+    private uint _remoteId = 0xF000_0000;
+
+    partial void OnAccessChanged(NotificationAccess value) => UpdateShow();
+
+    private void UpdateShow()
+    {
+        ShowList = Access == NotificationAccess.Allowed || Items.Any(i => i.Device is not null);
+        ShowUnavailable = !ShowList && Access is NotificationAccess.Unavailable or NotificationAccess.Unknown;
+        ShowDenied = !ShowList && Access == NotificationAccess.Denied;
+    }
+
+    /// <summary>
+    /// A notification of a paired device: into the list like a local one (muted apps stay out). True: it was added and
+    /// may be announced (the caller checks quiet hours like for local ones).
+    /// </summary>
+    public bool AddRemote(string device, string app, string title, string body, ImageSource? logo)
+    {
+        if (!_settings.NotificationsEnabled || _settings.MutedApps.Contains(app)) return false;
+        // WhatsApp, Teams … on both devices: the copy from the other one is the same message, shown once.
+        if (IsRepeat(app, title, body)) return false;
+        var item = new NotificationItem { Id = _remoteId++, App = app, Title = title, Body = body, Time = DateTime.Now, Logo = logo, Device = device };
+        Items.Insert(0, item);
+        while (Items.Count > 30) Items.RemoveAt(Items.Count - 1);
+        Log.Info($"Notification from {app} on {device}");
+        return true;
+    }
+
+    /// <summary>The same app, title and text joined the list in the last 10 s (from here or a paired device).</summary>
+    internal bool IsRepeat(string app, string title, string body) =>
+        Items.Any(i => i.SameAs(app, title, body) && (DateTime.Now - i.Added).TotalSeconds < 10);
 
     public event Action<NotificationItem>? Arrived;
     /// <summary>The user dismissed it in Windows (or it expired).</summary>
@@ -71,7 +113,8 @@ public sealed partial class NotificationService : ObservableObject
     public NotificationService(AppSettings settings)
     {
         _settings = settings;
-        Items.CollectionChanged += (_, _) => { Count = Items.Count; IsEmpty = Items.Count == 0; SyncMessages(); };
+        Items.CollectionChanged += (_, _) => { Count = Items.Count; IsEmpty = Items.Count == 0; SyncMessages(); UpdateShow(); };
+        UpdateShow();
     }
 
     public async Task StartAsync()
@@ -122,7 +165,8 @@ public sealed partial class NotificationService : ObservableObject
 
         var current = new HashSet<uint>(list.Select(n => n.Id));
         // Drop entries the user dismissed in Windows.
-        foreach (var gone in Items.Where(i => !current.Contains(i.Id)).ToList()) { Items.Remove(gone); Removed?.Invoke(gone); }
+        // (Notifications of paired devices are not in this list: they stay until dismissed here.)
+        foreach (var gone in Items.Where(i => i.Device is null && !current.Contains(i.Id)).ToList()) { Items.Remove(gone); Removed?.Invoke(gone); }
         if (_seen.Count > 2000) _seen.IntersectWith(current); // only ids still in the notification center matter
 
         foreach (var n in list.OrderBy(n => n.CreationTime))
@@ -131,6 +175,7 @@ public sealed partial class NotificationService : ObservableObject
             var item = await ToItemAsync(n);
             if (item is null) continue;
             if (_settings.MutedApps.Contains(item.App)) continue;
+            if (Items.Any(i => i.Device is not null && i.SameAs(item.App, item.Title, item.Body) && (DateTime.Now - i.Added).TotalSeconds < 10)) continue; // the paired device's copy came first
             if (_primed) Seen?.Invoke(item);
             if (!_settings.NotificationsEnabled) continue; // off: not shown in the island at all
             Items.Insert(0, item);
@@ -176,7 +221,7 @@ public sealed partial class NotificationService : ObservableObject
     [RelayCommand]
     public void Open(NotificationItem? item)
     {
-        if (item is null) return;
+        if (item is null || item.Device is not null || item.AppId.Length == 0) return; // the app of another device is not here
         try { Process.Start("explorer.exe", $"shell:AppsFolder\\{item.AppId}"); } catch { }
     }
 
@@ -185,6 +230,7 @@ public sealed partial class NotificationService : ObservableObject
     {
         if (item is null) return;
         Items.Remove(item);
+        if (item.Device is not null) return;
         try { _listener?.RemoveNotification(item.Id); } catch { }
     }
 

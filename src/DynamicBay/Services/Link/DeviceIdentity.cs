@@ -42,12 +42,13 @@ public sealed class DeviceIdentity : IDisposable
     public static DeviceIdentity LoadOrCreate(string? path = null)
     {
         path ??= DefaultPath;
+        DeleteLeftoverKey(path);
         if (File.Exists(path))
         {
             try
             {
                 var pfx = ProtectedData.Unprotect(File.ReadAllBytes(path), Entropy, DataProtectionScope.CurrentUser);
-                return new DeviceIdentity(Load(pfx));
+                return Remember(path, new DeviceIdentity(Load(pfx)));
             }
             catch (Exception ex) when (ex is CryptographicException or IOException)
             {
@@ -60,7 +61,44 @@ public sealed class DeviceIdentity : IDisposable
         string tmp = path + ".tmp";
         File.WriteAllBytes(tmp, ProtectedData.Protect(bytes, Entropy, DataProtectionScope.CurrentUser));
         File.Move(tmp, path, overwrite: true);
-        return new DeviceIdentity(Load(bytes));
+        return Remember(path, new DeviceIdentity(Load(bytes)));
+    }
+
+    // The key Schannel needs sits in the user's key store while the identity is loaded (see Load). A normal exit deletes
+    // it; after a hard kill it would stay, one more on every start. So the name of the loaded key is noted next to the
+    // identity file (a name, no secret), and a key still there from the last run is deleted before loading again.
+    private static string KeyNamePath(string path) => path + ".key";
+
+    internal static string? KeyNameOf(X509Certificate2 cert)
+    {
+        try { using var k = cert.GetECDsaPrivateKey(); return (k as ECDsaCng)?.Key.KeyName; }
+        catch (CryptographicException) { return null; }
+    }
+
+    private static DeviceIdentity Remember(string path, DeviceIdentity id)
+    {
+        try { if (KeyNameOf(id.Certificate) is { Length: > 0 } name) File.WriteAllText(KeyNamePath(path), name); }
+        catch (IOException) { }
+        return id;
+    }
+
+    internal static void DeleteLeftoverKey(string path)
+    {
+        try
+        {
+            var file = KeyNamePath(path);
+            if (!File.Exists(file)) return;
+            var name = File.ReadAllText(file).Trim();
+            // Only a name in the form the key store gives imported keys (a GUID), never anything else.
+            if (Guid.TryParse(name, out _) && CngKey.Exists(name, CngProvider.MicrosoftSoftwareKeyStorageProvider))
+            {
+                using var key = CngKey.Open(name, CngProvider.MicrosoftSoftwareKeyStorageProvider);
+                key.Delete();
+                Log.Info("Link: removed the key left over from the last run");
+            }
+            File.Delete(file);
+        }
+        catch (Exception ex) when (ex is CryptographicException or IOException or UnauthorizedAccessException) { Log.Info($"Link: old key not removed ({ex.GetType().Name})"); }
     }
 
     private static readonly byte[] Entropy = "DynamicBay-link-identity"u8.ToArray();

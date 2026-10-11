@@ -119,6 +119,7 @@ public partial class IslandWindow : Window
             _hoverBlocked = true;
             DismissPeek();
             if (yes) item?.Action?.Invoke();
+            else item?.OnDismiss?.Invoke();
         };
 
         ExpandedLayer.DragOutActive += active => { _dragOut = active; if (!active) ScheduleCollapseIfAway(); };
@@ -520,6 +521,7 @@ public partial class IslandWindow : Window
     }
 
     private bool _refreshQueued;
+    private PeekItem? _measuredPeek;
 
     /// <summary>Refresh after pending binding updates and layout have run (one coalesced refresh per burst).</summary>
     private void RefreshSoon()
@@ -581,6 +583,9 @@ public partial class IslandWindow : Window
             case IslandMode.Drop: return new Size(380, 132);
             case IslandMode.Peek:
                 PeekLayer.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                // A new peek is measured before its texts are bound (it got the 300 px minimum and cut longer
+                // texts): measure once more after layout, the shape then springs to the real width.
+                if (!ReferenceEquals(_measuredPeek, _peek.Peek)) { _measuredPeek = _peek.Peek; RefreshSoon(); }
                 return new Size(Math.Max(300, PeekLayer.DesiredSize.Width), 58);
             case IslandMode.Compact:
                 CompactLayer.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
@@ -868,6 +873,16 @@ public partial class IslandWindow : Window
     }
 
     /// <summary>Closes the current peek and continues with the next queued one.</summary>
+    /// <summary>Takes this one peek away, shown or waiting (a pairing that was answered elsewhere, a finished transfer).</summary>
+    public void Withdraw(PeekItem item)
+    {
+        if (_peek.Peek == item) { DismissPeek(); return; }
+        if (!_peekQueue.Contains(item)) return;
+        var rest = _peekQueue.Where(p => p != item).ToList();
+        _peekQueue.Clear();
+        foreach (var p in rest) _peekQueue.Enqueue(p);
+    }
+
     public void DismissPeek()
     {
         _peekTimer.Stop();
@@ -920,7 +935,9 @@ public partial class IslandWindow : Window
         _hoverTimer.Stop();
         if (_expanded)
         {
-            if (_settings.ShowTrayTab) _vm.Tab = 1; // show the shelf, drop lands on its card
+            // Show the shelf, the drop lands on its card - unless the page shows the paired devices (drop = send to one).
+            var page = _vm.Tab == 3 ? _settings.SystemWidgets : _vm.Tab == 0 ? _settings.HomeWidgets : null;
+            if (_settings.ShowTrayTab && page?.Contains(Widgets.Paired) != true) _vm.Tab = 1;
             return;
         }
         _dropActive = true;
@@ -1212,6 +1229,9 @@ public partial class IslandWindow : Window
 
     // ================= Hide / fullscreen / auto-hide =================
 
+    /// <summary>Hidden for the paired main device (see LinkHub.HideIsland), like for a fullscreen app.</summary>
+    public bool LinkHidden { get; set; }
+
     public void SetHidden(bool hidden)
     {
         if (_settings.Hidden != hidden) { _settings.Hidden = hidden; _settings.SaveSoon(); return; }
@@ -1297,6 +1317,8 @@ public partial class IslandWindow : Window
         // "Above everything": stays over fullscreen films and games instead of making way for them.
         bool fullscreen = !_snapshotMode && IsFullscreen(fg);
         if (_settings.HideInFullscreen && fullscreen && _settings.Layer != LayerMode.AboveAll) suppress = true;
+        // The paired main device shows everything: this island makes way while it is connected (never saved).
+        if (LinkHidden && !_snapshotMode) suppress = true;
         if (!suppress && _settings.ExcludedApps.Count > 0)
         {
             if (!IsOwnWindow(fg) && ExcludedApps.Matches(_settings.ExcludedApps, Native.ProcessName(fg), () => TaskbarIdentity.Read(fg)))

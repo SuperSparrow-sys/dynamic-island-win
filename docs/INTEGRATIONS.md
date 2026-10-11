@@ -102,23 +102,50 @@ unbekannt, die Einblendung öffnet ihn nur, wenn die Zeile einen Ordner nennt). 
 
 ## Geräte koppeln
 
-Zwei PCs mit DynamicBay (zum Beispiel PC und Laptop) lassen sich koppeln, im selben Netz oder über Tailscale. Die
-Seite dafür in den Einstellungen folgt; bisher gibt es die Verbindung selbst.
+Zwei PCs mit DynamicBay (zum Beispiel PC und Laptop) lassen sich koppeln, im selben Netz oder über Tailscale. Wer
+nur einen PC hat, merkt davon nichts: Ohne den Schalter ist der PC für andere unsichtbar und teilt nichts.
 
-So funktioniert das Koppeln:
+**Koppeln** (Einstellungen → Geräte):
 
-1. Auf dem einen Gerät „Koppeln erlauben“ wählen. Das Fenster dafür bleibt zwei Minuten offen.
-2. Auf dem anderen Gerät das erste in der Liste wählen (es findet sich im Netz und über Tailscale) oder seine Adresse
-   eintippen (IP oder Tailscale-Name).
-3. Beide Geräte zeigen einen sechsstelligen Code. Stimmt er überein, auf beiden bestätigen. Erst dann merken sie sich
-   gegenseitig.
+1. Auf beiden Geräten „Geräte koppeln“ einschalten. Unter „Gerätename“ steht, wie das andere Gerät diesen PC sieht
+   (leer: der Rechnername).
+2. Auf dem einen Gerät „Koppeln erlauben“ drücken. Das Fenster bleibt zwei Minuten offen, die Restzeit steht daneben.
+3. Auf dem anderen Gerät unter „Gefundene Geräte“ beim ersten auf „Koppeln“ drücken. Es findet sich im selben Netz
+   und über Tailscale; sonst unter „Adresse“ die IP, den Rechnernamen oder den Tailscale-Namen eintippen (optional mit
+   `:Port`).
+4. Beide Geräte zeigen denselben sechsstelligen Code: das gefragte Gerät in der Insel (mit „Bestätigen“ und
+   „Ablehnen“), ein Gerät mit offenen Einstellungen zusätzlich groß in einem kleinen Fenster. Stimmt er, auf beiden
+   bestätigen. Gespeichert wird erst, wenn beide bestätigt haben; das Ergebnis (gekoppelt, abgelehnt, Zeit abgelaufen)
+   steht kurz in der Insel und unter „Gerät hinzufügen“.
 
 Danach verbinden sich die beiden von selbst, auch nach dem Aufwachen, bei einem Netzwechsel und wenn Tailscale angeht.
-Die Verbindung ist verschlüsselt, und nur gekoppelte Geräte kommen durch. Entkoppelt ein Gerät das andere, zeigt das
-andere die Kopplung als abgelehnt und muss neu gekoppelt werden.
+Die Verbindung ist verschlüsselt, und nur gekoppelte Geräte kommen durch. „Gekoppelte Geräte“ zeigt jedes mit Punkt
+(grün verbunden, grau nicht verbunden, rot abgelehnt), Weg (LAN oder Tailscale) und Akku. „Entkoppeln“ fragt direkt in
+der Zeile noch einmal nach. Entkoppelt ein Gerät das andere, zeigt das andere die Kopplung als abgelehnt und muss neu
+gekoppelt werden. Ein anderes Gerät, das inzwischen unter der alten Adresse erreichbar ist, ändert daran nichts.
 
-Empfangene Dateien landen in `Downloads\DynamicBay`, nichts wird automatisch geöffnet. Der Installer gibt in der
-Windows-Firewall die Ports 43823 (TCP) und 43824 (UDP) frei, nur für private Netze und Tailscale.
+**Teilen mit gekoppelten Geräten** (jeder Schalter gilt auf beiden Seiten: Was hier aus ist, wird weder gesendet noch
+angenommen):
+
+| Schalter | Was passiert |
+|---|---|
+| Dateien | Auf einer Datei in der Ablage schickt der Laptop-Knopf sie an das verbundene Gerät (bei mehreren: kleines Menü). Beim Herausziehen einer Datei erscheinen die verbundenen Geräte unter der Ablage, Loslassen schickt sie hin; Dateien aus dem Explorer lassen sich auch auf die Karte „Gekoppelt“ ziehen. Empfangen wird ohne Nachfrage nach `Downloads\DynamicBay`, die Datei kommt in die Ablage und als Einblendung „Datei von …“; große Dateien zeigen ihren Fortschritt. Nichts wird automatisch geöffnet. |
+| Zwischenablage | Kopierte Texte und Bilder erscheinen im Verlauf des anderen Geräts mit dessen Namen. Die Windows-Zwischenablage dort ändert sich nicht (das macht CursorHop); ein Klick auf den Eintrag kopiert ihn. Inhalte aus Passwort-Managern, Einträge vom anderen Gerät und was CursorHop gebracht hat, werden nie weitergeschickt. Bilder bis 5 MB. |
+| Mitteilungen | Die Windows-Mitteilungen, die die Insel hier zeigt, erscheinen auch auf dem anderen Gerät, markiert „von …“. Dort gelten „Nicht stören“ und stummgeschaltete Apps wie für eigene. Eine Mitteilung vom anderen Gerät wird nie weitergeleitet; dieselbe Nachricht von beiden Geräten erscheint einmal. |
+| Musik | Läuft hier nichts, zeigt die Medienkarte die Wiedergabe des anderen Geräts mit Cover; Zurück, Pause und Weiter steuern es. Läuft auf beiden etwas, wechselt der Laptop-Knopf neben dem Titel. Musik startet nie von selbst: Ohne Player auf dem anderen Gerät passiert nichts. |
+| Status | Name, Akku und Version für die Karte „Gekoppelt“ (System-Seite, kommt beim ersten Koppeln dazu). Verbunden und getrennt kommen als Einblendung (verbunden nach 3 s, getrennt nach 30 s; hat CursorHop dasselbe Gerät gerade gemeldet, nur einmal). |
+
+**Hauptgerät:** „Alles zeigt“ legt fest, welches Gerät die Einblendungen zeigt, solange beide verbunden sind: „Beide“
+(wie ohne Wahl), „Dieses Gerät“, das andere Gerät oder „Automatisch“ (wo die Maus ist, laut CursorHop; ohne CursorHop
+das zuletzt benutzte Gerät). Das andere Gerät bleibt still und schickt seine Einblendungen (Termine, Timer, Akku …)
+und Mitteilungen ans Hauptgerät, das jede Nachricht nur einmal zeigt. Die Wahl gilt auf beiden Geräten, die letzte
+Änderung gewinnt; gespeichert wird sie als „dieses“ oder „anderes“ Gerät, ein Einstellungs-Export bleibt also richtig.
+„Insel auf dem anderen Gerät ausblenden“ blendet dort zusätzlich die ganze Insel aus. Ist die Verbindung weg, zeigt
+jedes Gerät wieder alles selbst. Fragen mit Knöpfen (Mikrofon stumm?, Beitreten) bleiben auf ihrem Gerät.
+
+Der Installer gibt in der Windows-Firewall die Ports 43823 (TCP) und 43824 (UDP) frei: in privaten Netzen und im
+Domänennetz, dazu auf dem Tailscale-Adapter (in jedem Netzprofil, nur für Tailscale-Adressen). Ohne Tailscale beim
+Installieren fehlt nur die zweite Regel.
 
 ## Audio und Bluetooth
 

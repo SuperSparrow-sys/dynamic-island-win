@@ -171,6 +171,14 @@ public static class Snapshots
             return;
         }
 
+        // Paired devices: DYNAMICBAY_SNAPSHOT_LINK=1 - the card, music of the laptop, the pairing peek, a file from the
+        // laptop and its notification in the list, with demo data (no connection is made).
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_LINK") == "1" && Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") != "settings")
+        {
+            await LinkShotsAsync(island, vm, settings, dir, placements.Where(p => p.name is "top" or "left"));
+            return;
+        }
+
         // Script widgets: DYNAMICBAY_SNAPSHOT_SCRIPT=<file.js> - the script as large and small card and as Mini line.
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_SCRIPT") is { Length: > 0 } scriptFile && Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") != "settings")
         {
@@ -238,6 +246,19 @@ public static class Snapshots
                 else ((System.Windows.Controls.Button)pw.FindName("OkButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                 await Task.Delay(600);
                 RenderWindow(pw, Path.Combine(dir, export ? "pin-export.png" : "pin-import.png"));
+                pw.Close();
+            }
+            // Devices page with two paired devices, one found nearby and the pairing window open; the code dialog.
+            settings.LinkEnabled = true;
+            vm.Link?.LoadDemo(DemoCover());
+            {
+                var pw = new Settings.PairingWindow(null, "LaptopJonathan", "482913");
+                pw.Show();
+                await Task.Delay(600);
+                RenderWindow(pw, Path.Combine(dir, "pairing-code.png"));
+                pw.ShowResult(Services.Link.PairingResult.Paired, "LaptopJonathan");
+                await Task.Delay(300);
+                RenderWindow(pw, Path.Combine(dir, "pairing-code-done.png"));
                 pw.Close();
             }
             var win = new Settings.SettingsWindow(settings, vm);
@@ -468,6 +489,61 @@ public static class Snapshots
         vm.Clipboard.Items.Insert(0, clip);
         vm.Tab = 1;
         await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, "cursorhop-8-clipboard-source.png"), compact: false);
+    }
+
+    private static async Task LinkShotsAsync(IslandWindow island, IslandViewModel vm, AppSettings settings, string dir,
+        IEnumerable<(string name, IslandEdge edge, IslandAlign align, double along)> placements)
+    {
+        Brush Res(string key) => (Brush)Application.Current.FindResource(key);
+        Geometry Icon(string key) => (Geometry)Application.Current.FindResource(key);
+        Brush Tint(string key)
+        {
+            var c = ((SolidColorBrush)Application.Current.FindResource(key)).Color;
+            return new SolidColorBrush(Color.FromArgb(0x2E, c.R, c.G, c.B));
+        }
+        var link = vm.Link!;
+        settings.LinkEnabled = true;
+        link.LoadDemo(DemoCover());
+        vm.CursorHop.LoadDemo("LaptopJonathan", cursorThere: false);
+        vm.AudioDevices.LoadDemo();
+        settings.SystemWidgets.Clear();
+        foreach (var w in new[] { Widgets.Paired, Widgets.CursorHop, Widgets.Audio }) settings.SystemWidgets.Add(w);
+        vm.Notifications.AddRemote("LaptopJonathan", "Teams", "Anna Weber", "Hast du kurz Zeit für das Angebot?", null);
+        foreach (var (name, edge, align, along) in placements)
+        {
+            settings.Edge = edge; settings.Align = align; settings.Inset = 8; settings.Along = along;
+            await Task.Delay(900);
+            vm.Tab = 3;
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-1-card.png"), compact: false);
+            vm.Tab = 0;
+            link.PreferRemote = true;
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-2-remote-music.png"), compact: false);
+            link.PreferRemote = false;
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-3-local-music-chip.png"), compact: false);
+            vm.Tab = 2;
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-4-notification.png"), compact: false);
+            vm.Tab = 0;
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.Link"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue"),
+                Title = "Code 482 913", Subtitle = Loc.German ? "Mit LaptopJonathan koppeln?" : "Pair with LaptopJonathan?",
+                ActionText = Loc.German ? "Bestätigen" : "Confirm", DismissText = Loc.German ? "Ablehnen" : "Decline", Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-5-pairing-peek.png"), compact: false);
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.Download"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue"),
+                Title = "Angebot_Speicher_v3.pdf", Subtitle = (Loc.German ? "Von " : "From ") + "LaptopJonathan · 48.2 MB",
+                Progress = 0.62, TrailingBrush = Res("B.Blue"), Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-6-file-progress.png"), compact: false);
+            island.SetPeekForSnapshot(new PeekItem
+            {
+                Icon = Icon("Icon.Laptop"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue"),
+                Title = Loc.German ? "LaptopJonathan verbunden" : "LaptopJonathan connected", Subtitle = Loc.German ? "Gekoppeltes Gerät" : "Paired device", Seconds = 60,
+            });
+            await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-7-connected.png"), compact: false);
+        }
     }
 
     private static async Task Shot(IslandWindow island, IslandViewModel vm, IslandMode mode, string file, bool compact)
