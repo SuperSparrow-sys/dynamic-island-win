@@ -205,19 +205,34 @@ public sealed partial class CursorHopService : ObservableObject, IDisposable
     {
         if (!_running) return;
         // The process every 5 s; the log every second (a length check when nothing was written).
-        if (++_tickCount % 5 == 0)
+        if (++_tickCount % 5 == 0 && !_checking)
         {
-            bool running = IsProcessRunning(ProcessCore);
-            if (running != IsRunning)
+            // The process list on a worker thread: it walks every process and took the UI thread with it.
+            _checking = true;
+            _ = Task.Run(() => IsProcessRunning(ProcessCore)).ContinueWith(t =>
             {
-                IsRunning = running;
-                // Closed or crashed: every connection is gone with it.
-                if (!running)
-                    foreach (var c in _state.Apply(new CursorHopEvent(CursorHopEventKind.CoreStarted, DateTime.UtcNow)))
-                        _announcer.Disconnected(c.Name!, DateTime.UtcNow);
-                Publish();
-            }
+                _checking = false;
+                if (t.IsCompletedSuccessfully && _running) ApplyRunning(t.Result);
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
+        TailLog();
+    }
+
+    private bool _checking;
+
+    private void ApplyRunning(bool running)
+    {
+        if (running == IsRunning) return;
+        IsRunning = running;
+        // Closed or crashed: every connection is gone with it.
+        if (!running)
+            foreach (var c in _state.Apply(new CursorHopEvent(CursorHopEventKind.CoreStarted, DateTime.UtcNow)))
+                _announcer.Disconnected(c.Name!, DateTime.UtcNow);
+        Publish();
+    }
+
+    private void TailLog()
+    {
         // New day (UTC, like the file names): finish yesterday's file, then follow the new one from its start.
         var today = LogFileFor(DateTime.UtcNow);
         if (_tail.File != today && File.Exists(today))

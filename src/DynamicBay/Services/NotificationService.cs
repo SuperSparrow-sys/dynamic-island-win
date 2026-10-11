@@ -159,20 +159,24 @@ public sealed partial class NotificationService : ObservableObject
         if (_listener is null) return;
         // Nothing needs them: neither the island (switched off) nor the Claude question detection.
         if (!_settings.NotificationsEnabled && !_settings.ClaudeEnabled) return;
-        IReadOnlyList<UserNotification> list;
-        try { list = await _listener.GetNotificationsAsync(NotificationKinds.Toast); }
+        // Off the UI thread: the list and each of its properties are calls into Windows' notification service, and new
+        // ones need their app logo. Every 1.2 s on the UI thread that held it for up to 900 ms on a busy PC.
+        var listener = _listener;
+        var seen = new HashSet<uint>(_seen);
+        (HashSet<uint> Current, List<(uint Id, NotificationItem? Item)> New)? read;
+        try { read = await Task.Run(() => ReadAsync(listener, seen)); }
         catch { return; }
+        if (read is not { } r) return;
 
-        var current = new HashSet<uint>(list.Select(n => n.Id));
+        var current = r.Current;
         // Drop entries the user dismissed in Windows.
         // (Notifications of paired devices are not in this list: they stay until dismissed here.)
         foreach (var gone in Items.Where(i => i.Device is null && !current.Contains(i.Id)).ToList()) { Items.Remove(gone); Removed?.Invoke(gone); }
         if (_seen.Count > 2000) _seen.IntersectWith(current); // only ids still in the notification center matter
 
-        foreach (var n in list.OrderBy(n => n.CreationTime))
+        foreach (var (id, item) in r.New)
         {
-            if (!_seen.Add(n.Id)) continue;
-            var item = await ToItemAsync(n);
+            if (!_seen.Add(id)) continue;
             if (item is null) continue;
             if (_settings.MutedApps.Contains(item.App)) continue;
             if (Items.Any(i => i.Device is not null && i.SameAs(item.App, item.Title, item.Body) && (DateTime.Now - i.Added).TotalSeconds < 10)) continue; // the paired device's copy came first
@@ -184,6 +188,32 @@ public sealed partial class NotificationService : ObservableObject
         }
         while (Items.Count > 30) Items.RemoveAt(Items.Count - 1);
         _primed = true;
+    }
+
+    /// <summary>
+    /// Reads the notification center on a worker thread: the ids of all toasts and the new ones (not in
+    /// <paramref name="seen"/>) as items, oldest first. Null when Windows does not answer.
+    /// </summary>
+    private static async Task<(HashSet<uint> Current, List<(uint Id, NotificationItem? Item)> New)?> ReadAsync(UserNotificationListener listener, HashSet<uint> seen)
+    {
+        IReadOnlyList<UserNotification> list;
+        try { list = await listener.GetNotificationsAsync(NotificationKinds.Toast); }
+        catch { return null; }
+        var current = new HashSet<uint>();
+        var fresh = new List<(UserNotification N, uint Id, DateTimeOffset Time)>();
+        foreach (var n in list)
+        {
+            try
+            {
+                uint id = n.Id;
+                current.Add(id);
+                if (!seen.Contains(id)) fresh.Add((n, id, n.CreationTime));
+            }
+            catch { } // gone meanwhile
+        }
+        var items = new List<(uint, NotificationItem?)>();
+        foreach (var f in fresh.OrderBy(f => f.Time)) items.Add((f.Id, await ToItemAsync(f.N)));
+        return (current, items);
     }
 
     private static async Task<NotificationItem?> ToItemAsync(UserNotification n)

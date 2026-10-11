@@ -512,17 +512,21 @@ public sealed partial class AppSettings : ObservableObject
     private void OnSaveTick(object? s, EventArgs e)
     {
         _saveTimer!.Stop();
-        Save();
+        if (ReadOnly) return;
+        // The text here (it reads the live collections), the disk write in the background: it held the UI for up to 900 ms.
+        try { Writer.Queue(JsonSerializer.Serialize(this, Json)); }
+        catch (Exception ex) { Log.Error("Settings save", ex); }
     }
 
+    // Temp file first, then swapped in: a crash while saving can't leave a half written file behind.
+    private static readonly BackgroundWriter Writer = new(text => AtomicFile.WriteAllText(FilePath, text), "Settings");
+
+    /// <summary>Saves now, on this thread (start, exit, import); newer than any pending background save.</summary>
     public void Save()
     {
         if (ReadOnly) return;
-        try
-        {
-            // Temp file first, then swapped in: a crash while saving can't leave a half written file behind.
-            AtomicFile.WriteAllText(FilePath, JsonSerializer.Serialize(this, Json));
-        }
+        _saveTimer?.Stop();
+        try { Writer.WriteNow(JsonSerializer.Serialize(this, Json)); }
         catch (Exception ex) { Log.Error("Settings save", ex); /* settings are best effort */ }
     }
 }

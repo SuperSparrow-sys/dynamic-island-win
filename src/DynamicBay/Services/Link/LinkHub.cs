@@ -65,6 +65,10 @@ public sealed record LinkFoundView(string Id, string Name, string Address, strin
 {
     /// <summary>All addresses the device was seen at, the most reliable first (Tailscale, then the local network).</summary>
     public IReadOnlyList<string> Addresses { get; init; } = new[] { Address };
+
+    /// <summary>Shows the same (the generated Equals compares the address list by reference).</summary>
+    public static bool Same(LinkFoundView a, LinkFoundView b) =>
+        a.Id == b.Id && a.Name == b.Name && a.Address == b.Address && a.ViaText == b.ViaText && a.Addresses.SequenceEqual(b.Addresses);
 }
 
 /// <summary>What plays on another device, for the media card.</summary>
@@ -457,16 +461,17 @@ public sealed partial class LinkHub : ObservableObject
     private void SyncFound()
     {
         if (Service is null) return;
-        var list = Service.Discovered.Where(d => d.Known && !d.Paired).ToList();
-        Found.Clear();
-        foreach (var d in list)
+        var found = new List<LinkFoundView>();
+        foreach (var d in Service.Discovered.Where(d => d.Known && !d.Paired))
         {
             var addresses = OrderAddresses(d.Addresses);
             string first = addresses.FirstOrDefault() ?? "";
             // The label matches the address shown next to it (it said "Tailscale · 192.168.10.25" before)
             var via = LinkProtocol.IsTailscaleAddress(first) ? "Tailscale" : d.Via.HasFlag(LinkVia.Lan) ? "LAN" : (Loc.German ? "Adresse" : "Address");
-            Found.Add(new LinkFoundView(d.Id, d.Name, first, via) { Addresses = addresses });
+            found.Add(new LinkFoundView(d.Id, d.Name, first, via) { Addresses = addresses });
         }
+        // Discovery reports often (every announcement): only real changes touch the list on the settings page.
+        CollectionSync.Apply(Found, found, f => f.Id.Length > 0 ? f.Id : f.Address, LinkFoundView.Same);
         HasFound = Found.Count > 0;
     }
 
@@ -686,10 +691,25 @@ public sealed partial class LinkHub : ObservableObject
             Remote.App = np.App;
             Remote.IsPlaying = np.Playing;
             Remote.Progress = np.Duration > 0 ? np.Position / np.Duration : 0;
-            Remote.Cover = np.Cover is { } c ? ImageTools.Load(new MemoryStream(c), 300) : null;
+            Remote.Cover = RemoteCover(np.Cover);
             Remote.Has = true;
         }
         UpdateMediaFlags();
+    }
+
+    private byte[]? _remoteCoverBytes;
+    private ImageSource? _remoteCover;
+
+    /// <summary>
+    /// The other device sends its cover with every update (play, pause, position): decoded once per picture, so the
+    /// media card keeps its image instead of getting a new one each time.
+    /// </summary>
+    private ImageSource? RemoteCover(byte[]? jpeg)
+    {
+        if (jpeg is null) { _remoteCoverBytes = null; return _remoteCover = null; }
+        if (_remoteCoverBytes is not null && jpeg.AsSpan().SequenceEqual(_remoteCoverBytes)) return _remoteCover;
+        _remoteCoverBytes = jpeg;
+        return _remoteCover = ImageTools.Load(new MemoryStream(jpeg), 300);
     }
 
     partial void OnPreferRemoteChanged(bool value) => UpdateMediaFlags();
