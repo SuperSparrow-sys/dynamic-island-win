@@ -15,6 +15,9 @@ public partial class App : Application
 {
     private static Mutex? _single;
     private TaildropService? _taildrop;
+    // DynamicBay on another PC (Services/Link). Runs only while LinkEnabled; the pages to pair and share come later.
+    private Services.Link.LinkService? _link;
+    private Services.Link.DeviceIdentity? _linkIdentity;
     private NotificationService? _notifications;
     private MessageWindow? _msg;
     private TrayIcon? _tray;
@@ -224,6 +227,12 @@ public partial class App : Application
         Safe("Contacts", vm.Contacts!.Start);
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.TaildropEnabled)) taildrop.SetEnabled(_settings.TaildropEnabled); };
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
+        Safe("Link", () => SetLinkEnabled(_settings.LinkEnabled));
+        _settings.PropertyChanged += (_, ev) =>
+        {
+            if (ev.PropertyName == nameof(AppSettings.LinkEnabled)) Safe("Link", () => SetLinkEnabled(_settings.LinkEnabled));
+            if (ev.PropertyName == nameof(AppSettings.LinkDeviceName) && _link is not null) _link.DeviceName = _settings.LinkDeviceName;
+        };
         await SafeAsync("Spotify", spotify.InitAsync);
         Log.Info($"Services started in {clock.ElapsedMilliseconds} ms");
         await SafeAsync("WarmUp", () => Task.WhenAll(warmApps, warmIcons));
@@ -232,6 +241,37 @@ public partial class App : Application
         _ = UpdateCheck.RunAsync(_islands, Quit, () => _settings.CheckForUpdates);
         // CPU and memory in the log every 90 s (no trimming: smooth animations matter more than a small working set).
         Safe("MemoryTrim", MemoryTrim.Start);
+    }
+
+    /// <summary>Starts or stops the link to paired devices. The paired list is saved whenever the link changes it.</summary>
+    private void SetLinkEnabled(bool on)
+    {
+        if (!on)
+        {
+            StopLink();
+            return;
+        }
+        if (_link is not null) return;
+        _linkIdentity = Services.Link.DeviceIdentity.LoadOrCreate();
+        var link = new Services.Link.LinkService(_linkIdentity, _settings.LinkDeviceName, _settings.PairedDevices, null,
+            new DispatcherSynchronizationContext(Dispatcher));
+        link.PairedDevicesChanged += () => _settings.PairedDevices = new System.Collections.ObjectModel.ObservableCollection<PairedDevice>(link.PairedDevices);
+        link.PairingFinished += (_, result) => { if (result == Services.Link.PairingResult.Paired) _settings.LinkEnabled = true; };
+        _link = link;
+        try { link.Start(); } // logs its state changes itself (never keys)
+        catch
+        {
+            StopLink(); // e.g. the port is taken: nothing half started stays behind
+            throw;
+        }
+    }
+
+    private void StopLink()
+    {
+        try { _link?.Dispose(); } catch (Exception ex) { Log.Error("Link stop", ex); }
+        _link = null;
+        _linkIdentity?.Dispose();
+        _linkIdentity = null;
     }
 
     private static void Safe(string name, Action start)
@@ -784,6 +824,8 @@ public partial class App : Application
         try { BannerSuppressor.RestoreAll(); } catch (Exception ex) { Log.Error("Import banners", ex); }
         _running = false;
         _taildrop?.Dispose();
+        _vm?.CursorHop.Dispose();
+        StopLink(); // frees the link port for the new run
         _tray?.Dispose();
         _msg?.Dispose();
         _single?.ReleaseMutex();
@@ -799,6 +841,7 @@ public partial class App : Application
         _settings.Save();
         _taildrop?.Dispose(); // ends the Tailscale event stream
         _vm?.CursorHop.Dispose();
+        StopLink();
         _tray?.Dispose();
         _msg?.Dispose();
         Shutdown();
@@ -812,6 +855,7 @@ public partial class App : Application
         {
             SaveAndRestore();
             _taildrop?.Dispose();
+            StopLink();
         }
         _tray?.Dispose();
         base.OnExit(e);

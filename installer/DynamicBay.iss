@@ -81,6 +81,9 @@ Filename: "{app}\DynamicBay.exe"; Description: "{cm:LaunchApp}"; Flags: nowait p
 Filename: "{app}\DynamicBay.exe"; Parameters: "--uninstall"; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayCleanup"
 ; Every copy of the signing certificate (each update may have added another one), only this exact subject in this store.
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -NonInteractive -Command ""Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object {{ $_.Subject -eq 'CN=DynamicBay Open Source' } | Remove-Item -Force"""; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayCert"
+; Firewall rules of the link between paired devices (added in AddFirewallRules).
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""DynamicBay Link"""; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayFirewall"
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""DynamicBay Link (Tailscale)"""; Flags: runhidden waituntilterminated; RunOnceId: "DynamicBayFirewallTailscale"
 
 [Code]
 function IsUpdate: Boolean;
@@ -107,6 +110,30 @@ begin
     Result := MsgBox(CustomMessage('CloseApp'), mbConfirmation, MB_OKCANCEL) = IDOK;
 end;
 
+// Link between paired DynamicBays (docs/ARCHITECTURE.md, "Link"): TCP 43823 for the encrypted connection, UDP 43824 for
+// the announcements. Private and domain networks, and any network for Tailscale addresses (100.64.0.0/10, fd7a:115c:a1e0::/48).
+// Deleted first, so updates never pile up copies of the same rule.
+procedure AddFirewallRules;
+var
+  Code: Integer;
+  Netsh, Prog, Rule: String;
+begin
+  Netsh := ExpandConstant('{sys}\netsh.exe');
+  Prog := ' dir=in action=allow program="' + ExpandConstant('{app}\DynamicBay.exe') + '" enable=yes';
+  Exec(Netsh, 'advfirewall firewall delete rule name="DynamicBay Link"', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Exec(Netsh, 'advfirewall firewall delete rule name="DynamicBay Link (Tailscale)"', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Rule := 'advfirewall firewall add rule name="DynamicBay Link"' + Prog + ' profile=private,domain';
+  if not Exec(Netsh, Rule + ' protocol=TCP localport=43823', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+    Log('Firewall rule (TCP) failed: ' + IntToStr(Code));
+  if not Exec(Netsh, Rule + ' protocol=UDP localport=43824', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+    Log('Firewall rule (UDP) failed: ' + IntToStr(Code));
+  Rule := 'advfirewall firewall add rule name="DynamicBay Link (Tailscale)"' + Prog + ' profile=any remoteip=100.64.0.0/10,fd7a:115c:a1e0::/48';
+  if not Exec(Netsh, Rule + ' protocol=TCP localport=43823', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+    Log('Firewall rule (Tailscale TCP) failed: ' + IntToStr(Code));
+  if not Exec(Netsh, Rule + ' protocol=UDP localport=43824', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+    Log('Firewall rule (Tailscale UDP) failed: ' + IntToStr(Code));
+end;
+
 // Auto-update (silent, /UPDATE): start the new version again as the logged-in user.
 // Setup runs elevated; launching through explorer.exe hands the start to the (non-elevated) desktop shell.
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -114,6 +141,8 @@ var
   Code: Integer;
   App: String;
 begin
+  if CurStep = ssPostInstall then
+    AddFirewallRules;
   // Identity package (needed for notification access): trust its signing certificate and register the package for
   // the logged-in user now, while the app is closed. The running app could only defer the registration, and a
   // deferred one loses the external location - Windows then refuses to start the exe (0x80073CF9).

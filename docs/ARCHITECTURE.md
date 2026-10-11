@@ -80,13 +80,55 @@ Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird ansch
 | `CloudTargets` | erkannte Sync-Ordner (OneDrive, iCloud Drive, Google Drive, Dropbox), im Hintergrund gesucht |
 | `TaildropService` | Dateien per Tailscale-Taildrop: liest `tailscale debug watch-ipn`, ordnet die Dateien in den Downloads zu |
 | `CursorHopService` | CursorHop (eine Maus für mehrere PCs): liest nur sein Protokoll mit (`CursorHopLog`: Parser, Zustand, Entprellung), startet es bei Bedarf; siehe [INTEGRATIONS.md](INTEGRATIONS.md#cursorhop) |
+| `Link/LinkService` | DynamicBay mit DynamicBay: finden, koppeln, verschlüsselte Verbindung, Nachrichten und Dateien (siehe unten) |
 | `ShortcutsService`, `AppIcons`, `InstalledApps` | Schnellstart, Simple-Icons-Palette (gzip, bei Bedarf geladen), Startmenü-Apps |
 | `Battery/Bluetooth/Timer/Clock/SystemService` | Akku, Geräte, Timer/Pomodoro, Uhr, CPU/RAM |
 
 ## Daten
 
 `%AppData%\DynamicBay\`: `settings.json`, `clipboard\` (Bilder + `index.json`), `shelf.json`, `secrets\` (DPAPI),
-`banner-backup.json`, `logs\dynamicbay.log`.
+`link\identity.bin` (Geräte-Zertifikat, DPAPI), `banner-backup.json`, `logs\dynamicbay.log`.
+
+## Link (Geräte koppeln)
+
+`Services/Link/` verbindet zwei DynamicBays (PC und Laptop). Läuft nur mit `LinkEnabled` (aus, bis zum ersten Koppeln).
+
+**Identität.** Jedes Gerät erzeugt einmal pro Windows-Benutzer ein selbst signiertes ECDSA-P-256-Zertifikat
+(`DeviceIdentity`, DPAPI in `link\identity.bin`). Geräte-ID = die ersten 16 Hex-Zeichen von SHA-256 über den
+öffentlichen Schlüssel, Fingerabdruck = SHA-256 über das Zertifikat. Gespeichert wird vom Partner nur der Fingerabdruck
+(`AppSettings.PairedDevices`).
+
+**Finden.** UDP 43824: alle 5 s und auf Anfrage eine Ansage `{t, id, name, port, proto}` als Broadcast (keine
+Geheimnisse). Tailscale: Online-Geräte aus `tailscale status --json`, per UDP gefragt und auf Port 43823 geprüft. Dazu
+eingetippte Adressen.
+
+**Verbindung.** TCP 43823, `SslStream` mit TLS 1.3 (1.2 als Rückfall), beide Seiten zeigen ihr Zertifikat. Die
+Prüfung läuft über den festgepinnten Fingerabdruck, nicht über eine Zertifizierungsstelle: Der Server nimmt nur
+gekoppelte Zertifikate an (während „Koppeln erlauben“ auch fremde, die dann nur koppeln dürfen), der Client erwartet
+genau den gespeicherten Fingerabdruck. Danach `hello` mit ID (muss zum Zertifikat passen), Name, Port und Boot-ID.
+Rahmen: 4 Byte Länge (Big Endian) + UTF-8-JSON `{ "t": Typ, "id": …, "p": Nutzdaten }`, optional gefolgt von einem
+Binär-Rahmen (`"bin": true`, für Dateiblöcke); höchstens 1 MiB pro Rahmen. Ping alle 15 s, nach 45 s Stille ist die
+Verbindung tot. Neuverbindung mit Backoff 1 s bis 60 s, sofort bei Netzwechsel, nach dem Aufwachen und wenn Tailscale
+angeht. Pro Gerät eine Verbindung: Wählen beide gleichzeitig, bleibt die, die das Gerät mit der kleineren ID gewählt
+hat (`LinkProtocol.KeepNew`); eine neue Boot-ID (Partner neu gestartet) gewinnt immer.
+
+**Koppeln (Zahlenvergleich).** Nur wenn der Empfänger „Koppeln erlauben“ geöffnet hat (2 min, höchstens 5 Versuche in
+10 min). Der Empfänger legt sich zuerst auf eine Zufallszahl fest (Commitment), dann tauschen beide ihre Zufallszahlen.
+Code = 6 Ziffern aus SHA-256(„DynamicBay-pair-v1“ ‖ beide Fingerabdrücke sortiert ‖ beide Zufallszahlen). Ein Gerät
+in der Mitte sieht andere Zertifikate und kann den Code wegen des Commitments nicht vorausberechnen. Gespeichert wird
+erst, wenn beide Nutzer innerhalb von 2 min bestätigt haben. Entkoppeln schickt `unpair`; der Partner zeigt die
+Kopplung dann als abgelehnt und wählt nicht mehr. Lehnt ein Gerät das Zertifikat dreimal hintereinander ab, gilt das
+genauso.
+
+**Für Funktionen.** `RegisterHandler(typ, …)` und `SendAsync(geräteId, typ, objekt)` (eigene Typen wie `clipboard`,
+`notification`, `media`, `status`; `hello`, `ping`, `pair.*`, `file.*` … gehören dem Link). Dateien: `SendFileAsync`,
+beim Empfänger `FileOffered` → `Accept(ordner, maxBytes)`/`Decline()`. Blöcke à 256 KiB in eine `.part`-Datei,
+SHA-256 und Größe werden geprüft, dann umbenannt; Dateinamen bereinigt (`LinkProtocol.SanitizeFileName`), Ziel
+`Downloads\DynamicBay`, Mark of the Web wie bei Downloads. Ereignisse kommen auf dem UI-Thread an.
+
+**Firewall.** Der Installer legt eingehende Regeln für `DynamicBay.exe` an (TCP 43823, UDP 43824): private und
+Domänen-Netze, dazu jedes Netz für Tailscale-Adressen (100.64.0.0/10, fd7a:115c:a1e0::/48). Die Deinstallation
+entfernt sie.
 
 ## Installation und Identität
 

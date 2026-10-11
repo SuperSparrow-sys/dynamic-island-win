@@ -1,0 +1,72 @@
+{
+  "Version": "1.90.6-t0123456789-gabcdef012",
+  "TUN": true,
+  "BackendState": "Running",
+  "HaveNodeKey": true,
+  "AuthURL": "",
+  "TailscaleIPs": ["100.101.102.103", "fd7a:115c:a1e0::1234:5678"],
+  "Self": {
+    "ID": "nSelf1CNTRL",
+    "HostName": "example-pc",
+    "DNSName": "example-pc.tail0000.ts.net.",
+    "OS": "windows",
+    "TailscaleIPs": ["100.101.102.103", "fd7a:115c:a1e0::1234:5678"],
+    "Online": true
+  },
+  "Health": [],
+  "MagicDNSSuffix": "tail0000.ts.net",
+  "CurrentTailnet": { "Name": "example@example.com", "MagicDNSSuffix": "tail0000.ts.net", "MagicDNSEnabled": true },
+  "CertDomains": ["example-pc.tail0000.ts.net"],
+  "Peer": {
+    "nodekey:1111111111111111111111111111111111111111111111111111111111111111": {
+      "ID": "nLaptop1CNTRL",
+      "NodeID": 1111111111111111,
+      "PublicKey": "nodekey:1111111111111111111111111111111111111111111111111111111111111111",
+      "HostName": "example-laptop",
+      "DNSName": "example-laptop.tail0000.ts.net.",
+      "OS": "windows",
+      "UserID": 2222222222222222,
+      "TailscaleIPs": ["fd7a:115c:a1e0::aaaa:bbbb", "100.64.10.20"],
+      "AllowedIPs": ["100.64.10.20/32", "fd7a:115c:a1e0::aaaa:bbbb/128"],
+      "Addrs": null,
+      "CurAddr": "192.0.2.15:41641",
+      "Relay": "fra",
+      "PeerRelay": "",
+      "RxBytes": 1024,
+      "TxBytes": 2048,
+      "Created": "2026-01-01T10:00:00.000000000Z",
+      "LastWrite": "2026-10-11T09:00:00.000000000Z",
+      "LastSeen": "0001-01-01T00:00:00Z",
+      "LastHandshake": "2026-10-11T09:00:00.000000000Z",
+      "Online": true,
+      "ExitNode": false,
+      "ExitNodeOption": false,
+      "Active": true,
+      "PeerAPIURL": ["http://100.64.10.20:44000"],
+      "TaildropTarget": 0,
+      "NoFileSharingReason": "",
+      "InNetworkMap": true,
+      "InMagicSock": true,
+      "InEngine": true,
+      "KeyExpiry": "2027-04-01T10:00:00Z"
+    },
+    "nodekey:3333333333333333333333333333333333333333333333333333333333333333": {
+      "ID": "nPhone1CNTRL",
+      "HostName": "example-phone",
+      "DNSName": "example-phone.tail0000.ts.net.",
+      "OS": "iOS",
+      "TailscaleIPs": ["100.80.1.2"],
+      "Online": false,
+      "LastSeen": "2026-10-07T09:00:00Z"
+    },
+    "nodekey:4444444444444444444444444444444444444444444444444444444444444444": {
+      "ID": "nNoIps1CNTRL",
+      "HostName": "example-shared-node",
+      "DNSName": "example-shared-node.other.ts.net.",
+      "TailscaleIPs": null,
+      "Online": true
+    }
+  },
+  "User": null,
+  "ClientVersion": null
+}
