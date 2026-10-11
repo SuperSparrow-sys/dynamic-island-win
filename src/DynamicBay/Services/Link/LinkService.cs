@@ -13,6 +13,42 @@ using Microsoft.Win32;
 
 namespace DynamicBay.Services.Link;
 
+/// <summary>
+/// Pairing attempts while "Koppeln erlauben" is open: at most <c>perAddress</c> per sender address in the period, so one
+/// noisy device cannot lock the window for the real one, plus four times that in total. Not thread-safe (caller locks).
+/// </summary>
+internal sealed class PairingLimiter(int perAddress, TimeSpan period)
+{
+    private readonly Dictionary<string, Queue<DateTime>> _byAddress = new(StringComparer.Ordinal);
+    private readonly Queue<DateTime> _all = new();
+
+    public int GlobalLimit => perAddress * 4;
+
+    /// <summary>True: this attempt may go on (and is counted).</summary>
+    public bool TryAttempt(System.Net.IPAddress? from, DateTime now)
+    {
+        if (from is { IsIPv4MappedToIPv6: true }) from = from.MapToIPv4();
+        string key = from?.ToString() ?? "?";
+        Trim(_all, now);
+        foreach (var k in _byAddress.Keys.ToList())
+        {
+            Trim(_byAddress[k], now);
+            if (_byAddress[k].Count == 0) _byAddress.Remove(k);
+        }
+        if (!_byAddress.TryGetValue(key, out var q)) q = new Queue<DateTime>();
+        if (q.Count >= perAddress || _all.Count >= GlobalLimit) return false;
+        q.Enqueue(now);
+        _byAddress[key] = q;
+        _all.Enqueue(now);
+        return true;
+    }
+
+    private void Trim(Queue<DateTime> q, DateTime now)
+    {
+        while (q.Count > 0 && now - q.Peek() > period) q.Dequeue();
+    }
+}
+
 /// <summary>Why a link operation did not work: "unpaired", "pair-closed", "rate-limited", "busy", "auth", "unreachable", "protocol".</summary>
 public sealed class LinkException(string reason, string? message = null, Exception? inner = null)
     : Exception(message ?? reason, inner)
@@ -38,7 +74,7 @@ public sealed partial class LinkService : IDisposable
     private readonly Dictionary<string, DialState> _dial = new(StringComparer.Ordinal);
     private readonly HashSet<LinkConnection> _pending = new();
     private readonly Dictionary<string, List<Action<LinkMessage>>> _handlers = new(StringComparer.Ordinal);
-    private readonly Queue<DateTime> _pairAttempts = new();
+    private readonly PairingLimiter _pairLimiter;
     private readonly string _boot = Convert.ToHexString(RandomNumberGenerator.GetBytes(8));
     private readonly LinkDiscovery _discovery;
     private TcpListener? _listener;
@@ -64,6 +100,7 @@ public sealed partial class LinkService : IDisposable
         _opts = options ?? new LinkOptions();
         _context = context;
         _deviceName = CleanName(deviceName);
+        _pairLimiter = new PairingLimiter(_opts.PairingRateLimit, _opts.PairingRatePeriod);
         foreach (var p in paired ?? Enumerable.Empty<PairedDevice>())
             if (p.Id.Length > 0 && p.Fingerprint.Length > 0) _paired[p.Id] = Clone(p);
         _discovery = new LinkDiscovery(_opts, () => DeviceId, () => DeviceName, () => ListeningPort, () => Post(() => DiscoveredChanged?.Invoke()));
@@ -551,11 +588,9 @@ public sealed partial class LinkService : IDisposable
         lock (_gate)
         {
             var now = DateTime.UtcNow;
-            while (_pairAttempts.Count > 0 && now - _pairAttempts.Peek() > _opts.PairingRatePeriod) _pairAttempts.Dequeue();
             if (now >= _pairingUntil) refuse = "pair-closed";
-            else if (_pairAttempts.Count >= _opts.PairingRateLimit) refuse = "rate-limited";
+            else if (!_pairLimiter.TryAttempt(conn.Remote?.Address, now)) refuse = "rate-limited";
             else if (_activePairing is not null || _pairingStarting) refuse = "busy";
-            if (refuse != "pair-closed") _pairAttempts.Enqueue(now);
         }
         if (refuse is not null)
         {
@@ -619,6 +654,9 @@ public sealed partial class LinkService : IDisposable
     {
         var ssl = new SslStream(tcp.GetStream(), false);
         LinkConnection? conn = null;
+        // Who said no matters: only a device that showed the pinned certificate and then refused ours counts toward
+        // "rejected". Another PC or DynamicBay at the old address (or anyone announcing the paired id) is just not it.
+        bool pinMatched = false, weRefused = false;
         try
         {
             using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct))
@@ -633,11 +671,17 @@ public sealed partial class LinkService : IDisposable
                         EnabledSslProtocols = SslProtocols.Tls13 | SslProtocols.Tls12,
                         CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
                         RemoteCertificateValidationCallback = (_, cert, _, _) =>
-                            cert is not null && (expectedFingerprint is null || DeviceIdentity.FingerprintOf(cert) == expectedFingerprint),
+                        {
+                            bool ok = cert is not null && (expectedFingerprint is null || DeviceIdentity.FingerprintOf(cert) == expectedFingerprint);
+                            if (ok) pinMatched = true; else weRefused = true;
+                            return ok;
+                        },
                     }, timeout.Token).ConfigureAwait(false);
                 }
-                // Refused certificate (ours or theirs). An I/O error here mostly means the same: TCP got through.
-                catch (Exception ex) when (ex is AuthenticationException or IOException) { throw new LinkException("auth", ex.Message, ex); }
+                catch (Exception ex) when (ex is AuthenticationException or IOException)
+                {
+                    throw new LinkException(FailureReason(pinMatched, weRefused), ex.Message, ex);
+                }
             }
             conn = NewConnection(tcp, ssl, outbound: true);
             await conn.SendAsync(HelloEnvelope(intent), null, ct).ConfigureAwait(false);
@@ -659,6 +703,13 @@ public sealed partial class LinkService : IDisposable
             throw;
         }
     }
+
+    /// <summary>
+    /// A failed TLS handshake: "auth" only when the other side showed the pinned certificate (then it refused ours),
+    /// "wrong-device" when we refused its certificate, "unreachable" when it never got that far (no TLS there).
+    /// </summary>
+    internal static string FailureReason(bool pinMatched, bool weRefused) =>
+        pinMatched ? "auth" : weRefused ? "wrong-device" : "unreachable";
 
     private LinkConnection NewConnection(TcpClient tcp, SslStream ssl, bool outbound)
     {

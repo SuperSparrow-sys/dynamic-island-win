@@ -478,7 +478,8 @@ public class LinkServiceTests : IDisposable
     [Fact]
     public async Task Pinned_certificate_must_match()
     {
-        // B knows A's id but an old certificate (A was set up again): B refuses A's server certificate.
+        // B knows A's id but another certificate: B refuses A's server certificate and never connects. That is B's own
+        // refusal (another device at the address), so the pairing is not marked rejected - B just keeps trying.
         var idA = NewIdentity("PC");
         var idOld = NewIdentity("PC-alt");
         var idB = NewIdentity("Laptop");
@@ -486,8 +487,10 @@ public class LinkServiceTests : IDisposable
         var stale = Know(idA, a);
         stale.Fingerprint = idOld.Fingerprint;
         var b = Start(idB, "Laptop", new[] { stale });
-        await Until(() => b.GetState(idA.DeviceId) == LinkPeerState.Rejected, "pin mismatch");
+        await Task.Delay(2500);
         Assert.False(a.IsOnline(idB.DeviceId));
+        Assert.False(b.IsOnline(idA.DeviceId));
+        Assert.NotEqual(LinkPeerState.Rejected, b.GetState(idA.DeviceId));
     }
 
     [Fact]

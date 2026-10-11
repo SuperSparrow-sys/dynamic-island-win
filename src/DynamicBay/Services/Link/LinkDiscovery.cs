@@ -98,16 +98,54 @@ internal sealed class LinkDiscovery
         lock (_gate) return _entries.TryGetValue(id, out var e) ? e.Addresses.ToList() : Array.Empty<string>();
     }
 
-    // LAN entries vanish when their device stopped announcing for a while.
-    private void Prune()
+    /// <summary>At most this many entries; the oldest go first (a flood of made-up ids cannot grow the list).</summary>
+    internal const int MaxEntries = 64;
+    internal static readonly TimeSpan LanAge = TimeSpan.FromSeconds(20), OtherAge = TimeSpan.FromSeconds(90);
+
+    internal int Count { get { lock (_gate) return _entries.Count; } }
+
+    /// <summary>
+    /// Entries vanish when nothing was heard from them for a while: 20 s for LAN-only ones (they announce every 5 s),
+    /// 90 s for the rest (Tailscale is asked every 30 s). Only addresses the user typed in stay.
+    /// </summary>
+    internal void Prune(DateTime? now = null)
     {
-        var cutoff = DateTime.UtcNow - TimeSpan.FromSeconds(20);
-        foreach (var k in _entries.Where(kv => kv.Value.Via == LinkVia.Lan && kv.Value.LastSeen < cutoff).Select(kv => kv.Key).ToList())
-            _entries.Remove(k);
+        lock (_gate)
+        {
+            var t = now ?? DateTime.UtcNow;
+            foreach (var k in _entries.Where(kv => !IsManual(kv.Value) && kv.Value.LastSeen < t - (kv.Value.Via == LinkVia.Lan ? LanAge : OtherAge)).Select(kv => kv.Key).ToList())
+                _entries.Remove(k);
+        }
+    }
+
+    private bool IsManual(Entry e) => e.Id.Length == 0 && e.Addresses.Any(_manual.Contains);
+
+    /// <summary>Room for one more: the entry heard from longest ago leaves (typed addresses stay).</summary>
+    private void MakeRoom()
+    {
+        while (_entries.Count >= MaxEntries)
+        {
+            var oldest = _entries.Where(kv => !IsManual(kv.Value)).OrderBy(kv => kv.Value.LastSeen).Select(kv => kv.Key).FirstOrDefault();
+            if (oldest is null) return;
+            _entries.Remove(oldest);
+        }
+    }
+
+    private int _changePending;
+
+    /// <summary>Tells the app at most twice a second (otherwise every UDP packet would reach the UI thread).</summary>
+    private void Changed()
+    {
+        if (Interlocked.Exchange(ref _changePending, 1) == 1) return;
+        _ = Task.Delay(500).ContinueWith(_ =>
+        {
+            Interlocked.Exchange(ref _changePending, 0);
+            _changed();
+        }, TaskScheduler.Default);
     }
 
     /// <summary>A device said who it is (announce from <paramref name="from"/>): one entry per id, address-only entries merge in.</summary>
-    internal void Upsert(string id, string name, IPAddress from, int port, LinkVia via)
+    internal void Upsert(string id, string name, IPAddress from, int port, LinkVia via, DateTime? now = null)
     {
         if (from.IsIPv4MappedToIPv6) from = from.MapToIPv4();
         string address = LinkProtocol.FormatAddress(from, port);
@@ -119,15 +157,15 @@ internal sealed class LinkDiscovery
                 via |= _entries[key].Via;
                 _entries.Remove(key);
             }
-            if (!_entries.TryGetValue(id, out var e)) _entries[id] = e = new Entry { Id = id };
+            if (!_entries.TryGetValue(id, out var e)) { MakeRoom(); _entries[id] = e = new Entry { Id = id }; }
             e.Name = name;
             e.Via |= via;
-            e.LastSeen = DateTime.UtcNow;
+            e.LastSeen = now ?? DateTime.UtcNow;
             e.Addresses.Remove(address);
             e.Addresses.Insert(0, address);
             if (e.Addresses.Count > 4) e.Addresses.RemoveRange(4, e.Addresses.Count - 4);
         }
-        _changed();
+        Changed();
     }
 
     private void UpsertAddressOnly(string address, string name, LinkVia via)
@@ -141,12 +179,12 @@ internal sealed class LinkDiscovery
             else
             {
                 string key = "addr:" + address;
-                if (!_entries.TryGetValue(key, out var e)) _entries[key] = e = new Entry { Name = name, Addresses = { address } };
+                if (!_entries.TryGetValue(key, out var e)) { MakeRoom(); _entries[key] = e = new Entry { Name = name, Addresses = { address } }; }
                 e.Via |= via;
                 e.LastSeen = DateTime.UtcNow;
             }
         }
-        _changed();
+        Changed();
     }
 
     private static bool SameHost(string address, IPAddress ip) =>
@@ -207,8 +245,8 @@ internal sealed class LinkDiscovery
             catch (OperationCanceledException) { return; }
             if (_udp is { } udp) await Broadcast(udp, Message("announce")).ConfigureAwait(false);
             bool pruned;
-            lock (_gate) { int n = _entries.Count; Prune(); pruned = n != _entries.Count; }
-            if (pruned) _changed();
+            int n = Count; Prune(); pruned = n != Count;
+            if (pruned) Changed();
         }
     }
 
@@ -374,12 +412,12 @@ internal sealed class LinkDiscovery
                 UpsertAddressOnly(address, p.HostName.Length > 0 ? p.HostName : p.DnsName, LinkVia.Tailscale);
             })).ConfigureAwait(false);
 
-            // Tailscale peers that went away (address-only entries; announced ones expire like LAN entries).
+            // Tailscale peers that went offline: their address-only entries go now (announced ones expire by age, see Prune).
             bool removed = false;
             lock (_gate)
                 foreach (var key in _entries.Where(kv => kv.Value.Id.Length == 0 && kv.Value.Via == LinkVia.Tailscale && !kv.Value.Addresses.Any(found.Contains)).Select(kv => kv.Key).ToList())
                     removed |= _entries.Remove(key);
-            if (removed) _changed();
+            if (removed) Changed();
         }
         catch (Exception ex) when (ex is not OutOfMemoryException) { _opts.Log($"Link: Tailscale scan failed ({ex.GetType().Name})"); }
         finally { Interlocked.Exchange(ref _scanning, 0); }

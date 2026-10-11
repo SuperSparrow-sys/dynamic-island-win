@@ -201,7 +201,8 @@ public static class LinkProtocol
         var invalid = Path.GetInvalidFileNameChars();
         var sb = new StringBuilder(name.Length);
         foreach (char c in name)
-            sb.Append(char.IsControl(c) || invalid.Contains(c) ? '_' : c);
+            // Format characters too: U+202E (right-to-left override) can make "invoice[RLO]fdp.exe" read as "invoiceexe.pdf".
+            sb.Append(char.IsControl(c) || invalid.Contains(c) || char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.Format ? '_' : c);
         name = sb.ToString().Trim().TrimEnd('.', ' ');
         if (name.Length == 0 || name.All(c => c is '.' or '_')) name = "Datei";
         string stem = name.Split('.')[0].TrimEnd(' ');
