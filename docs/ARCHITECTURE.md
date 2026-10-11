@@ -82,7 +82,9 @@ Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird ansch
 ## Installation und Identität
 
 Der Installer (Inno Setup) legt die self-contained App nach `Programme\DynamicBay`, vertraut dem Paket-Zertifikat
-(`TrustedPeople`) und startet die App als normaler Benutzer. Beim ersten Start registriert die App `DynamicBay.msix`
-als *Sparse Package* (externe Dateien = Installationsordner) und startet einmal neu – ab dann darf sie Mitteilungen
-lesen. Deinstallation: `DynamicBay.exe --uninstall` stellt Banner, Autostart und Claude-Hooks wieder her und entfernt
+(`TrustedPeople`) und registriert `DynamicBay.msix` für den angemeldeten Benutzer als *Sparse Package* (externe
+Dateien = Installationsordner), solange die App geschlossen ist. Bei Updates genauso. Ab dann darf sie Mitteilungen
+lesen. Schlägt das fehl, registriert die App das Paket beim ersten Start selbst und startet einmal neu. Nie aus der
+laufenden App mit `DeferRegistrationWhenPackagesAreInUse`: Die verzögerte Registrierung verliert den externen Ort,
+scheitert mit 0x80073CF9 und blockiert danach jeden Start der exe. Deinstallation: `DynamicBay.exe --uninstall` stellt Banner, Autostart und Claude-Hooks wieder her und entfernt
 das Paket.

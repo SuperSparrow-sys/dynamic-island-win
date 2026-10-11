@@ -33,11 +33,10 @@ public static class SparsePackage
     public static async Task<bool> EnsureRegisteredAsync(AppSettings settings)
     {
         if (!File.Exists(MsixPath)) return false;
-        if (HasIdentity)
-        {
-            _ = UpdateIfOutdatedAsync(); // in the background: the island must not wait for the package manager
-            return false;
-        }
+        // Updates of the package are registered by the installer while the app is closed (installer/DynamicBay.iss).
+        // Never with DeferRegistrationWhenPackagesAreInUse: the deferred registration loses the external location,
+        // fails with 0x80073CF9 and then blocks every start of the exe ("Fehler bei der Installation").
+        if (HasIdentity) return false;
         if (settings.SparseAttemptedVersion == App.Version) return false;
         settings.SparseAttemptedVersion = App.Version;
         settings.Save();
@@ -54,44 +53,6 @@ public static class SparsePackage
         {
             Log.Error("SparsePackage", ex);
             return false;
-        }
-    }
-
-    private static string AttemptFile => Path.Combine(AppSettings.Folder, "identity-attempt.txt");
-
-    /// <summary>
-    /// After an update the registered identity package still has the old version (and the old manifest). The new
-    /// DynamicBay.msix is registered over it; Windows applies it once this process has exited, so the next start runs
-    /// with it - no restart here. Tried once per version (remembered in a file of its own), so a failure never loops.
-    /// </summary>
-    private static async Task UpdateIfOutdatedAsync()
-    {
-        try
-        {
-            var asm = typeof(SparsePackage).Assembly.GetName().Version;
-            if (asm is null) return;
-            var own = new Version(asm.Major, asm.Minor, Math.Max(asm.Build, 0), 0); // like build-sparse.ps1: app version + .0
-            var p = Windows.ApplicationModel.Package.Current.Id.Version;
-            if (new Version(p.Major, p.Minor, p.Build, p.Revision) >= own) return;
-            string attempt = own.ToString();
-            try { if (File.Exists(AttemptFile) && File.ReadAllText(AttemptFile).Trim() == attempt) return; } catch { }
-            Directory.CreateDirectory(AppSettings.Folder);
-            File.WriteAllText(AttemptFile, attempt);
-
-            var pm = new PackageManager();
-            var options = new AddPackageOptions
-            {
-                ExternalLocationUri = new Uri(AppDir + "\\"),
-                ForceUpdateFromAnyVersion = true,
-                DeferRegistrationWhenPackagesAreInUse = true, // we are running with it right now
-            };
-            var result = await pm.AddPackageByUriAsync(new Uri(MsixPath), options);
-            if (result.ExtendedErrorCode is not null) throw result.ExtendedErrorCode;
-            Log.Info($"Identity package {p.Major}.{p.Minor}.{p.Build}.{p.Revision} -> {attempt} registered (applies after exit)");
-        }
-        catch (Exception ex)
-        {
-            Log.Error("SparseUpdate", ex);
         }
     }
 

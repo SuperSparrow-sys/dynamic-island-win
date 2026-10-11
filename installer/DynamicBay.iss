@@ -72,9 +72,8 @@ Name: "{autoprograms}\DynamicBay"; Filename: "{app}\DynamicBay.exe"
 Name: "{autodesktop}\DynamicBay"; Filename: "{app}\DynamicBay.exe"; Tasks: desktopicon
 
 [Run]
-; Trust the package signing certificate so the identity package can be registered (needed for notification access).
-Filename: "{sys}\certutil.exe"; Parameters: "-f -addstore TrustedPeople ""{app}\DynamicBay.cer"""; Flags: runhidden waituntilterminated; Tasks: notifications; StatusMsg: "Zertifikat wird eingerichtet..."
-; Start as the logged-in user (not elevated) - the app registers its identity package for that user on first run.
+; Certificate and identity package are set up in CurStepChanged (ssPostInstall), before the app starts.
+; Start as the logged-in user (not elevated).
 Filename: "{app}\DynamicBay.exe"; Description: "{cm:LaunchApp}"; Flags: nowait postinstall skipifsilent runasoriginaluser
 
 [UninstallRun]
@@ -113,7 +112,21 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Code: Integer;
+  App: String;
 begin
+  // Identity package (needed for notification access): trust its signing certificate and register the package for
+  // the logged-in user now, while the app is closed. The running app could only defer the registration, and a
+  // deferred one loses the external location - Windows then refuses to start the exe (0x80073CF9).
+  if (CurStep = ssPostInstall) and WizardIsTaskSelected('notifications') then
+  begin
+    App := ExpandConstant('{app}');
+    if not Exec(ExpandConstant('{sys}\certutil.exe'), '-f -addstore TrustedPeople "' + App + '\DynamicBay.cer"', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+      Log('certutil failed: ' + IntToStr(Code));
+    if not ExecAsOriginalUser(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+      '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Add-AppxPackage -Path ''' + App + '\DynamicBay.msix'' -ExternalLocation ''' + App + ''' -ForceUpdateFromAnyVersion"',
+      '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+      Log('Identity package registration failed: ' + IntToStr(Code));
+  end;
   if (CurStep = ssPostInstall) and IsUpdate then
   begin
     Log('Update finished - restarting DynamicBay');
