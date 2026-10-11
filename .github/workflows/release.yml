@@ -55,9 +55,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: smoke-logs
-          path: |
-            ${{ runner.temp }}/smoke/*.log
-            ~/AppData/Roaming/DynamicBay/logs/*.log
+          path: ${{ runner.temp }}/smoke/*.log
 
       - name: Publish release
         uses: softprops/action-gh-release@v2

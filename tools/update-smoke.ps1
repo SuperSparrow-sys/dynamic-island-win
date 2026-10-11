@@ -27,7 +27,10 @@ function Install([string]$setup, [string]$name, [switch]$Update) {
     $setupArgs = @("/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/LOG=`"$Work\setup-$name.log`"")
     if ($Update) { $setupArgs += "/UPDATE" }
     Write-Output "-- install $name$(if ($Update) { ' (update)' })"
-    $p = Start-Process $setup -ArgumentList $setupArgs -PassThru -Wait
+    # Wait for the setup itself only: -Wait would also wait for processes it starts (the app via Explorer, or the
+    # error dialog Explorer shows when the app cannot start), which never end on their own.
+    $p = Start-Process $setup -ArgumentList $setupArgs -PassThru
+    if (-not $p.WaitForExit(300000)) { throw "Setup $name did not finish within 5 minutes" }
     if ($p.ExitCode -ne 0) { throw "Setup $name failed with exit code $($p.ExitCode)" }
 }
 
@@ -66,35 +69,40 @@ function Assert-Starts([string]$version, [long]$from) {
     throw "DynamicBay $version did not report a start with identity within 90 s"
 }
 
-# Fresh state: nothing installed, no identity package, no settings
-Stop-App
-Get-AppxPackage DynamicBay | Remove-AppxPackage -ErrorAction SilentlyContinue
-Remove-Item "$env:APPDATA\DynamicBay" -Recurse -Force -ErrorAction SilentlyContinue
-
-$first = $true
-foreach ($v in $OldVersions) {
-    $setup = "$Work\DynamicBay-Setup-$v.exe"
-    if (-not (Test-Path $setup)) {
-        gh release download "v$v" -R $Repo -p "DynamicBay-Setup-$v.exe" -D $Work --clobber
-        if ($LASTEXITCODE -ne 0) { throw "Download of v$v failed" }
-    }
-    $from = LogLength
-    if ($first) { Install $setup $v } else { Install $setup $v -Update }
-    Assert-Starts $v $from
+try {
+    # Fresh state: nothing installed, no identity package, no settings
     Stop-App
-    $first = $false
+    Get-AppxPackage DynamicBay | Remove-AppxPackage -ErrorAction SilentlyContinue
+    Remove-Item "$env:APPDATA\DynamicBay" -Recurse -Force -ErrorAction SilentlyContinue
+
+    $first = $true
+    foreach ($v in $OldVersions) {
+        $setup = "$Work\DynamicBay-Setup-$v.exe"
+        if (-not (Test-Path $setup)) {
+            gh release download "v$v" -R $Repo -p "DynamicBay-Setup-$v.exe" -D $Work --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Download of v$v failed" }
+        }
+        $from = LogLength
+        if ($first) { Install $setup $v } else { Install $setup $v -Update }
+        Assert-Starts $v $from
+        Stop-App
+        $first = $false
+    }
+
+    # Version from the file name (DynamicBay-Setup-1.2.3.exe or -1.2.3-beta.1.exe)
+    $newVersion = [regex]::Match((Split-Path $NewInstaller -Leaf), '(\d+\.\d+\.\d+)').Groups[1].Value
+    if (-not $newVersion) { throw "No version in the installer name $NewInstaller" }
+
+    $from = LogLength
+    Install $NewInstaller $newVersion -Update:($OldVersions.Count -gt 0)
+    Assert-Starts $newVersion $from
+
+    $pkg = Get-AppxPackage DynamicBay
+    Write-Output "-- identity package: $($pkg.PackageFullName)"
+    if (-not $pkg -or $pkg.Version -ne "$newVersion.0") { throw "Identity package is $($pkg.Version), expected $newVersion.0" }
+    Stop-App
+    Write-Output "Update smoke test passed: $($OldVersions -join ' -> ') -> $newVersion"
+} finally {
+    # The app log next to the setup logs, for the CI artifact
+    if (Test-Path $log) { Copy-Item $log "$Work\dynamicbay.log" -Force }
 }
-
-# Version from the file name (DynamicBay-Setup-1.2.3.exe or -1.2.3-beta.1.exe)
-$newVersion = [regex]::Match((Split-Path $NewInstaller -Leaf), '(\d+\.\d+\.\d+)').Groups[1].Value
-if (-not $newVersion) { throw "No version in the installer name $NewInstaller" }
-
-$from = LogLength
-Install $NewInstaller $newVersion -Update:($OldVersions.Count -gt 0)
-Assert-Starts $newVersion $from
-
-$pkg = Get-AppxPackage DynamicBay
-Write-Output "-- identity package: $($pkg.PackageFullName)"
-if (-not $pkg -or $pkg.Version -ne "$newVersion.0") { throw "Identity package is $($pkg.Version), expected $newVersion.0" }
-Stop-App
-Write-Output "Update smoke test passed: $($OldVersions -join ' -> ') -> $newVersion"
