@@ -206,13 +206,7 @@ public static class AppVolume
         return found;
     }
 
-    /// <summary>
-    /// The Core Audio device enumerator, created from its CLSID. Not with "new" on a [ComImport] class: several services
-    /// declare one for the same CLSID, the runtime then hands out the first one's wrapper type and the cast fails
-    /// (only in the published app, depending on which service starts first).
-    /// </summary>
-    private static object CreateEnumerator() =>
-        Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
+    private static object CreateEnumerator() => AudioEndpoints.CreateEnumerator();
 
     // ---------- Core Audio interop ----------
 

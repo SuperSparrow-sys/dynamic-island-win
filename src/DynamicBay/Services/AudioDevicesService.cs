@@ -142,7 +142,7 @@ public sealed partial class AudioDevicesService : ObservableObject
     {
         try
         {
-            _enumerator = (AudioEndpoints.IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
+            _enumerator = (AudioEndpoints.IMMDeviceEnumerator)AudioEndpoints.CreateEnumerator();
             // A burst of callbacks (a headset connecting) ends in one reading, see the debounce timer.
             _notifier ??= new Notifier(() => _ui.BeginInvoke(() => { _debounce.Stop(); _debounce.Start(); }));
             int hr = _enumerator.RegisterEndpointNotificationCallback(_notifier);

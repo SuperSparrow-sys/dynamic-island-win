@@ -269,12 +269,21 @@ public static class AudioEndpoints
     private static readonly Guid KsPropSetBtAudio = new("7FA06C40-B8F6-4C7E-8556-E8C33A12E54D");
 
     /// <summary>
-    /// The Core Audio device enumerator, created from its CLSID. Not with "new" on a [ComImport] class: several services
-    /// declare one for the same CLSID, the runtime then hands out the first one's wrapper type and the cast fails
-    /// (only in the published app, depending on which service starts first).
+    /// The Core Audio device enumerator, wrapped in a runtime wrapper of its own. Windows hands out one enumerator per
+    /// process, and the runtime caches one wrapper per COM object: whoever creates it first fixes the wrapper type. A
+    /// shared plain wrapper made NAudio's "new MMDeviceEnumerator()" fail with InvalidCastException (sound from a paired
+    /// device never played); a [ComImport] class of our own did the same to the other services.
     /// </summary>
-    private static object CreateEnumerator() =>
-        Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
+    internal static object CreateEnumerator()
+    {
+        Guid clsid = new("BCDE0395-E52F-467C-8E3D-C4579291692E"), iunknown = new("00000000-0000-0000-C000-000000000046");
+        Marshal.ThrowExceptionForHR(CoCreateInstance(clsid, IntPtr.Zero, 1 /* CLSCTX_INPROC_SERVER */, iunknown, out var ptr));
+        try { return Marshal.GetUniqueObjectForIUnknown(ptr); }
+        finally { Marshal.Release(ptr); }
+    }
+
+    [DllImport("ole32.dll")]
+    private static extern int CoCreateInstance(in Guid clsid, IntPtr outer, int context, in Guid iid, out IntPtr ppv);
 
     // ---------- Core Audio interop ----------
 
