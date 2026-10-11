@@ -692,9 +692,9 @@ public partial class App : Application
 
     public void ShowSettings()
     {
-        if (_settingsWindow is { IsLoaded: true })
+        if (_settingsWindow is { IsLoaded: true } open)
         {
-            _settingsWindow.Activate();
+            WindowTools.BringBack(open); // also when minimized: Activate alone left it in the taskbar
             return;
         }
         var sw = System.Diagnostics.Stopwatch.StartNew();
