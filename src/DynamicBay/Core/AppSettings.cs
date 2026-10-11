@@ -87,6 +87,24 @@ public sealed class CalendarAccount
     public List<string> Hidden { get; set; } = new();
 }
 
+/// <summary>
+/// A device paired through the link (see Services/Link). Only the fingerprint of its certificate is stored; the private
+/// keys never leave their device.
+/// </summary>
+public sealed class PairedDevice
+{
+    /// <summary>First 16 hex characters of the SHA-256 of the device's public key.</summary>
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    /// <summary>SHA-256 of the device certificate (hex), pinned at pairing.</summary>
+    public string Fingerprint { get; set; } = "";
+    /// <summary>Where it was reached last ("host" or "host:port"), newest first.</summary>
+    public List<string> LastAddresses { get; set; } = new();
+    public DateTime PairedAt { get; set; }
+    /// <summary>The device removed this one (or got a new identity): no more connection attempts until paired again.</summary>
+    public bool Rejected { get; set; }
+}
+
 /// <summary>All user settings. Flat on purpose: binds directly into the settings window and serializes as one JSON file.</summary>
 public sealed partial class AppSettings : ObservableObject
 {
@@ -145,6 +163,7 @@ public sealed partial class AppSettings : ObservableObject
         _calendarAccounts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CalendarAccounts));
         _scriptWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ScriptWidgets));
         _bannerExceptions.CollectionChanged += (_, _) => OnPropertyChanged(nameof(BannerExceptions));
+        _pairedDevices.CollectionChanged += (_, _) => OnPropertyChanged(nameof(PairedDevices));
     }
 
     /// <summary>Collections raise PropertyChanged for their own name on every change, so listeners and autosave see edits.</summary>
@@ -324,6 +343,21 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>The Teams status permission was granted (asked for separately).</summary>
     [ObservableProperty] private bool _microsoftPresence;
     [ObservableProperty] private string _taildropFolder = "";
+
+    // Link: paired DynamicBay devices (see Services/Link). Off until the first pairing; LinkDeviceName "" = computer name.
+    [ObservableProperty] private bool _linkEnabled;
+    [ObservableProperty] private string _linkDeviceName = "";
+    private ObservableCollection<PairedDevice> _pairedDevices = new();
+    public ObservableCollection<PairedDevice> PairedDevices
+    {
+        get => _pairedDevices;
+        set
+        {
+            _pairedDevices = value ?? new();
+            _pairedDevices.CollectionChanged += (_, _) => OnPropertyChanged(nameof(PairedDevices));
+            OnPropertyChanged(nameof(PairedDevices));
+        }
+    }
 
     // Notifications
     [ObservableProperty] private bool _notificationsEnabled = true;

@@ -41,7 +41,7 @@ public sealed class TaildropService : IDisposable
 
     public static string DownloadsFolder => KnownFolders.Downloads;
 
-    private static string? TailscaleExe()
+    internal static string? TailscaleExe()
     {
         foreach (var p in new[]
         {
@@ -328,7 +328,7 @@ public sealed class TaildropService : IDisposable
     /// Mark of the Web (Zone.Identifier, internet zone) like a browser download: SmartScreen and Office's protected
     /// view check a received program or document before it opens.
     /// </summary>
-    private static void MarkFromInternet(string path)
+    internal static void MarkFromInternet(string path)
     {
         try
         {

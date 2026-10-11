@@ -68,6 +68,26 @@ in der Tailscale-Verwaltung eingeschaltet sein.
 `tailscale file cp --targets`). Auf iPhone und iPad landet sie in der Dateien-App im Ordner Tailscale. Text und Links
 kann Taildrop nicht übertragen.
 
+## Geräte koppeln
+
+Zwei PCs mit DynamicBay (zum Beispiel PC und Laptop) lassen sich koppeln, im selben Netz oder über Tailscale. Die
+Seite dafür in den Einstellungen folgt; bisher gibt es die Verbindung selbst.
+
+So funktioniert das Koppeln:
+
+1. Auf dem einen Gerät „Koppeln erlauben“ wählen. Das Fenster dafür bleibt zwei Minuten offen.
+2. Auf dem anderen Gerät das erste in der Liste wählen (es findet sich im Netz und über Tailscale) oder seine Adresse
+   eintippen (IP oder Tailscale-Name).
+3. Beide Geräte zeigen einen sechsstelligen Code. Stimmt er überein, auf beiden bestätigen. Erst dann merken sie sich
+   gegenseitig.
+
+Danach verbinden sich die beiden von selbst, auch nach dem Aufwachen, bei einem Netzwechsel und wenn Tailscale angeht.
+Die Verbindung ist verschlüsselt, und nur gekoppelte Geräte kommen durch. Entkoppelt ein Gerät das andere, zeigt das
+andere die Kopplung als abgelehnt und muss neu gekoppelt werden.
+
+Empfangene Dateien landen in `Downloads\DynamicBay`, nichts wird automatisch geöffnet. Der Installer gibt in der
+Windows-Firewall die Ports 43823 (TCP) und 43824 (UDP) frei, nur für private Netze und Tailscale.
+
 ## Audio und Bluetooth
 
 Das Widget „Audio“ wechselt Ausgabe und Mikrofon (Windows-Standardgerät für alles) und verbindet gekoppelte
