@@ -155,6 +155,15 @@ public partial class App
                             _ = link.Questions?.AnswerAsync(id, w.Length > 1 && w[1] == "yes");
                         }
                         break;
+                    case "media":
+                        // "media <count> [ms]": fake music for the other instance (a new title with a cover each time), nothing plays
+                        if (link.Media is { } media)
+                        {
+                            int count = w.Length > 1 ? int.Parse(w[1], System.Globalization.CultureInfo.InvariantCulture) : 10;
+                            int every = w.Length > 2 ? int.Parse(w[2], System.Globalization.CultureInfo.InvariantCulture) : 1000;
+                            _ = DevMediaAsync(media, count, every);
+                        }
+                        break;
                     case "set":
                         if (w.Length > 2 && typeof(AppSettings).GetProperty(w[1]) is { PropertyType: var pt } prop && pt == typeof(bool) && w[1].StartsWith("Link", StringComparison.Ordinal))
                             prop.SetValue(_settings, w[2] == "on");
@@ -163,5 +172,24 @@ public partial class App
             }
         };
         poll.Start();
+    }
+
+    private static async Task DevMediaAsync(LinkMediaFeature media, int count, int every)
+    {
+        var dv = new DrawingVisual();
+        using (var dc = dv.RenderOpen())
+            dc.DrawRectangle(new LinearGradientBrush(Colors.DarkSlateBlue, Colors.Coral, 45), null, new Rect(0, 0, 300, 300));
+        var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(300, 300, 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(dv);
+        var enc = new System.Windows.Media.Imaging.JpegBitmapEncoder { QualityLevel = 82 };
+        enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+        using var ms = new MemoryStream();
+        enc.Save(ms);
+        byte[] cover = ms.ToArray();
+        for (int i = 0; i < count; i++)
+        {
+            await media.PublishAsync(new LinkNowPlaying(true, $"Dev song {i % 3}", "Dev artist", "Dev", i % 2 == 0, i, 200, cover), force: true);
+            await Task.Delay(every);
+        }
     }
 }

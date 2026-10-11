@@ -550,7 +550,8 @@ public partial class IslandWindow : Window
         double speed = Math.Clamp(_settings.AnimationSpeed, 0.5, 2);
         // Opening gets a lively, slightly bouncy spring; closing settles without overshoot.
         double response = (grow ? 0.5 : 0.42) / speed;
-        double damping = grow ? 0.72 : 0.9;
+        // 1.0: critically damped. At 0.9 the minimal line (5 DIP) undershot to 4.8 and swelled back for 300 ms.
+        double damping = grow ? 0.72 : 1.0;
         foreach (var s in new[] { _w, _h, _r }) { s.Response = response; s.Damping = damping; }
         _w.Target = target.Width;
         _h.Target = target.Height;
@@ -652,7 +653,8 @@ public partial class IslandWindow : Window
 
     private void ApplyShape()
     {
-        double w = Math.Max(1, _w.Value), h = Math.Max(1, _h.Value);
+        // Snapped: in-between sizes made WPF clip the shape in single frames (shadow and edges flickered, see SnapShape).
+        double w = PlacementMath.SnapShape(Math.Max(1, _w.Value)), h = PlacementMath.SnapShape(Math.Max(1, _h.Value));
         double r = Math.Clamp(_r.Value, 0, Math.Min(w, h) / 2);
         Shape.Width = w;
         Shape.Height = h;
@@ -1401,6 +1403,12 @@ public partial class IslandWindow : Window
 
     public void SetPeekForSnapshot(PeekItem item) => _peek.Peek = item;
     public bool IsExpandedForTest => _expanded;
+
+    /// <summary>Shape springs and whether WPF clipped the shape in this frame (frames snapshot, see Snapshots).</summary>
+    public (string Springs, bool LayoutClip) ShapeStateForTest =>
+        (FormattableString.Invariant($"w={Shape.ActualWidth:0.000} h={Shape.ActualHeight:0.000} r={ShapeBg.CornerRadius.TopLeft:0.000} x={Shape.TranslatePoint(new Point(0, 0), this).X:0.000} y={Shape.TranslatePoint(new Point(0, 0), this).Y:0.000} ")
+         + string.Join(" ", _layers.Select(l => FormattableString.Invariant($"{l.Key.Name[..2]}={l.Key.Opacity:0.00}"))),
+         VisualTreeHelper.GetClip(Shape) is not null);
 
     public void ForceState(IslandMode mode, bool vertical = false)
     {

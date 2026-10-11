@@ -23,6 +23,17 @@ public static class PlacementMath
     public const double CornerZone = 0.18;   // fraction of the edge length that counts as "corner"
     public const double DefaultInsetDip = 8;
 
+    /// <summary>Step the island's shape size is snapped to while it morphs (DIP; 1/256 is far below a pixel).</summary>
+    public const double ShapeStep = 1.0 / 256;
+
+    /// <summary>
+    /// A spring value as shape size. WPF lays the shape out through its margin and padding (add, then subtract): with
+    /// arbitrary doubles the size came back a rounding error smaller in some frames, WPF then clipped the shape to its
+    /// bounds, and the shadow and the edges of the thin idle line flickered while it opened and closed. Multiples of
+    /// 1/256 add and subtract exactly.
+    /// </summary>
+    public static double SnapShape(double dip) => Math.Round(dip / ShapeStep) * ShapeStep;
+
     public const double OrientationHysteresisDip = 56;
 
     /// <summary>

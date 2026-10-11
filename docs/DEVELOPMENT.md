@@ -28,6 +28,11 @@ Der Snapshot-Modus (`DynamicBay.exe --snapshot <dir>`) lädt Demo-Daten, durchl�
 Ablage, Mitteilungen, Drop und eigene Widget-Layouts an allen Kanten und speichert PNGs. Er verändert die echten
 Einstellungen nicht.
 
+`DYNAMICBAY_SNAPSHOT=frames` rendert jedes Bild, während die minimale Ruhelinie auf- und zugeht (auch Linie, Compact und Peek zu Minimal und zurück; Größe, Lage und Bildabstand pro Bild im Log), als PNG
+(`DYNAMICBAY_SNAPSHOT_SCALE`, Standard 1.5 = 150 %) und schreibt ins Log, in wie vielen Bildern WPF die Form
+abgeschnitten hat (`FRAMES: … clipped by layout in 0` ist richtig). Mit `DYNAMICBAY_DEV=f` landet das Log in
+`%AppData%\DynamicBay-dev-f`.
+
 Speicher und Lecks: `powershell -File tools/memory-check.ps1` (siehe [performance/README.md](performance/README.md)).
 
 `tools/live-test.ps1` testet die echte App mit Maus: Hover, Screenshot-Peek (Testbild im Screenshot-Ordner), Ziehen an
@@ -78,7 +83,12 @@ $env:DYNAMICBAY_DEV_ALLOWPAIRING="1"; $env:DYNAMICBAY_DEV_AUTOCONFIRM="1"; .\Dyn
 `DYNAMICBAY_DEV_SENDFILE=<Pfad>` schickt die Datei an das erste Gerät, das online kommt. Eine Testinstanz führt Befehle
 aus `%AppData%\DynamicBay-dev-<n>\dev-commands.txt` aus (eine Zeile pro Befehl, die Datei wird danach gelöscht):
 `timer <min>`, `focus`, `pause`, `stop`, `handover`, `dnd on|off`, `main none|this|other|auto`, `battery low <Prozent>`,
-`ask [Sekunden]`, `answer yes|no`, `lock`, `set Link… on|off`, `state` (schreibt Timer, Ruhe und Hauptgerät ins Log).
+`ask [Sekunden]`, `answer yes|no`, `lock`, `set Link… on|off`, `state` (schreibt Timer, Ruhe und Hauptgerät ins Log),
+`media <Anzahl> [ms]` (erfundene Musik mit Cover an das andere Gerät, es spielt nichts).
+`DYNAMICBAY_DEV_SETTINGS=Devices` öffnet beim Start die Einstellungen auf dieser Seite (Namen aus `SettingsPage`).
+
+Hänger: `UI stall 878 ms` im Log kommt mit `Slow UI operation 870 ms: Background timer …` oder `await in …`, also
+dem, was den UI-Thread so lange hielt (ab 150 ms; Testinstanzen mit `DYNAMICBAY_DEV_SLOWOPS=<ms>` schon früher).
 Testinstanzen sperren nie den PC, `lock` steht nur im Log des anderen. Testinstanzen speichern
 
 `DYNAMICBAY_DEV_LOOPBACK=1` lässt den Link nur auf 127.0.0.1 hören, ohne Suche (keine Firewall-Abfrage).

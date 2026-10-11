@@ -75,6 +75,13 @@ public static class Snapshots
             System.Windows.Media.CompositionTarget.Rendering -= onFrame;
             return;
         }
+        // Morph frames: DYNAMICBAY_SNAPSHOT=frames - the minimal idle line opening and closing, every rendered frame as a
+        // PNG at DYNAMICBAY_SNAPSHOT_SCALE (default 1.5 = 150 %), to check that the line does not jitter.
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "frames")
+        {
+            await MorphFramesAsync(island, vm, settings, dir);
+            return;
+        }
         // Leak check: DYNAMICBAY_SNAPSHOT=leak - cycles settings window, island states, widgets, scripts, covers and a
         // mirror island; memory must not grow (see docs/performance/README.md).
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT") == "leak")
@@ -587,6 +594,104 @@ public static class Snapshots
             });
             await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, $"{name}-link-14-audio-back.png"), compact: false);
         }
+    }
+
+    /// <summary>
+    /// Renders every frame of the minimal idle line opening and closing into PNGs, from the island itself at a chosen
+    /// scale (DYNAMICBAY_SNAPSHOT_SCALE, default 1.5), so 150 % can be checked on any screen. Logs the springs per frame
+    /// and how often WPF clipped the shape (that made the line's shadow and edges flicker).
+    /// </summary>
+    private static async Task MorphFramesAsync(IslandWindow island, IslandViewModel vm, AppSettings settings, string dir)
+    {
+        double k = double.TryParse(Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_SCALE"), System.Globalization.NumberStyles.Float,
+                                   System.Globalization.CultureInfo.InvariantCulture, out var sc) ? sc : 1.5;
+        settings.CompactItems.Clear();
+        vm.Media.IsPlaying = false;
+        vm.Timer.IsActive = false;
+        settings.Idle = IdleStyle.Hidden;
+        settings.Edge = IslandEdge.Top; settings.Align = IslandAlign.Center; settings.Along = 0.5; settings.Inset = 8;
+        island.ForceState(IslandMode.Idle);
+        await Task.Delay(1500);
+        var root = (FrameworkElement)island.Content;
+        // The band at the top edge where the line lives, plus room for the open panel.
+        var crop = new Rect(0, 0, root.ActualWidth, Math.Min(root.ActualHeight, 340));
+        int frames = 0, clipped = 0;
+        async Task Record(string name, Action start, int ms, bool png = true)
+        {
+            int frame = 0;
+            bool pending = false;
+            double last = -1, gap = 0;
+            // After this frame's layout and render pass (Rendering runs before them).
+            EventHandler onFrame = (_, e) =>
+            {
+                double t = ((RenderingEventArgs)e).RenderingTime.TotalMilliseconds;
+                if (t == last) return; // Rendering can fire twice per frame
+                gap = last < 0 ? 0 : t - last;
+                last = t;
+                if (pending) return;
+                pending = true;
+                island.Dispatcher.BeginInvoke(() => { pending = false; Frame(); }, System.Windows.Threading.DispatcherPriority.Input);
+            };
+            void Frame()
+            {
+                var (springs, clip) = island.ShapeStateForTest;
+                frames++;
+                if (clip) clipped++;
+                if (!png)
+                {
+                    Log.Info(FormattableString.Invariant($"FRAME {name} {frame++}: gap={gap:0.0} {springs}{(clip ? " CLIPPED" : "")}"));
+                    return;
+                }
+                var dv = new DrawingVisual();
+                using (var dc = dv.RenderOpen())
+                {
+                    dc.DrawRectangle(Brushes.Gray, null, new Rect(0, 0, crop.Width, crop.Height)); // mid gray: the dark line, its light rim and the shadow all show
+                    dc.DrawRectangle(new VisualBrush(root) { ViewboxUnits = BrushMappingMode.Absolute, Viewbox = crop, Stretch = Stretch.None }, null,
+                                     new Rect(0, 0, crop.Width, crop.Height));
+                }
+                var rtb = new RenderTargetBitmap((int)Math.Round(crop.Width * k), (int)Math.Round(crop.Height * k), 96 * k, 96 * k, PixelFormats.Pbgra32);
+                rtb.Render(dv);
+                ImageTools.SavePng(rtb, Path.Combine(dir, $"{name}-{frame++:000}.png"));
+                Log.Info($"FRAME {name} {frame - 1}: {springs}{(clip ? " CLIPPED" : "")}");
+            }
+            System.Windows.Media.CompositionTarget.Rendering += onFrame;
+            start();
+            await Task.Delay(ms);
+            System.Windows.Media.CompositionTarget.Rendering -= onFrame;
+        }
+        await Record("idle", () => { }, 300);
+        await Record("open", () => island.ForceState(IslandMode.Expanded), 1400);
+        await Record("close", () => island.ForceState(IslandMode.Idle), 1400);
+        await Record("after", () => { }, 300);
+        // Without PNGs every frame is seen (logged with its gap): every morph that starts or ends in the minimal line.
+        for (int i = 0; i < 10; i++)
+        {
+            await Record("cycle", () => island.ForceState(IslandMode.Expanded), 900, png: false);
+            await Record("cycle", () => island.ForceState(IslandMode.Idle), 900, png: false);
+        }
+        await Record("m-open", () => island.ForceState(IslandMode.Expanded), 1000, png: false);
+        await Record("m-close", () => island.ForceState(IslandMode.Idle), 1000, png: false);
+        // The idle style changed live: wide bar -> minimal line and back.
+        settings.Idle = IdleStyle.Bar;
+        await Task.Delay(1200);
+        await Record("bar-to-min", () => settings.Idle = IdleStyle.Hidden, 1000, png: false);
+        await Record("min-to-bar", () => settings.Idle = IdleStyle.Bar, 1000, png: false);
+        settings.Idle = IdleStyle.Hidden;
+        await Task.Delay(1200);
+        // An activity starts and ends (the compact island grows out of the line and shrinks back into it).
+        settings.CompactItems.Add(Widgets.Timer);
+        await Record("min-to-compact", () => vm.Timer.IsActive = true, 1000, png: false);
+        await Record("compact-to-min", () => vm.Timer.IsActive = false, 1000, png: false);
+        // A message peeks out of the line and goes back.
+        await Record("min-to-peek", () => island.ShowPeek(new PeekItem { Title = "Test", Subtitle = "Peek", Seconds = 30 }), 1000, png: false);
+        await Record("peek-to-min", () => island.DismissPeek(), 1000, png: false);
+        // With PNGs for a look at the frames.
+        settings.Idle = IdleStyle.Bar;
+        await Task.Delay(1200);
+        await Record("png-bar-to-min", () => settings.Idle = IdleStyle.Hidden, 1000);
+        await Record("png-min-to-compact", () => vm.Timer.IsActive = true, 1000);
+        await Record("png-compact-to-min", () => vm.Timer.IsActive = false, 1000);
+        Log.Info($"FRAMES: {frames} frames, shape clipped by layout in {clipped}");
     }
 
     private static async Task Shot(IslandWindow island, IslandViewModel vm, IslandMode mode, string file, bool compact)

@@ -259,6 +259,8 @@ public partial class App : Application
         };
         await SafeAsync("Spotify", spotify.InitAsync);
         Log.Info($"Services started in {clock.ElapsedMilliseconds} ms");
+        // Test instances: DYNAMICBAY_DEV_SETTINGS=Devices opens the settings window on that page (live checks of a page).
+        if (DevMode.SettingsAtStart is { } page) { ShowSettings(); _settingsWindow?.ShowPage(page); }
         await SafeAsync("WarmUp", () => Task.WhenAll(warmApps, warmIcons));
         Safe("Shortcuts", vm.Shortcuts.Rebuild);
         Log.Info($"Background warm-up done after {clock.ElapsedMilliseconds} ms");
