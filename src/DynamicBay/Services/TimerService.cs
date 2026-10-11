@@ -24,8 +24,15 @@ public sealed partial class TimerService : ObservableObject
     [ObservableProperty] private double _progress; // 0..1 elapsed
     [ObservableProperty] private string _modeText = Loc.T("Timer.Title");
     [ObservableProperty] private int _completedFocusSessions;
+    /// <summary>
+    /// A timer of the paired device shown here (Services/Link/LinkTimerFeature): the id of the device it belongs to.
+    /// null: the timer is this device's own (started here or handed over to it).
+    /// </summary>
+    [ObservableProperty] private string? _remoteOwner;
 
     public event Action<TimerMode>? Finished;
+    /// <summary>The user started, paused, resumed, extended or stopped the timer here (not when it runs out or is applied from the link).</summary>
+    public event Action? Changed;
 
     public TimerService(AppSettings settings)
     {
@@ -48,6 +55,18 @@ public sealed partial class TimerService : ObservableObject
 
     private void Begin(TimerMode mode, TimeSpan duration)
     {
+        SetMode(mode);
+        Total = duration;
+        _endsAt = DateTime.UtcNow + duration;
+        RemoteOwner = null; // started here: this device's own timer
+        IsActive = IsRunning = true;
+        _tick.Start();
+        Update();
+        Changed?.Invoke();
+    }
+
+    private void SetMode(TimerMode mode)
+    {
         Mode = mode;
         ModeText = mode switch
         {
@@ -55,10 +74,38 @@ public sealed partial class TimerService : ObservableObject
             TimerMode.Break => Loc.T("Timer.Break"),
             _ => Loc.T("Timer.Title"),
         };
-        Total = duration;
-        _endsAt = DateTime.UtcNow + duration;
-        IsActive = IsRunning = true;
-        _tick.Start();
+    }
+
+    /// <summary>Time left right now (also while paused).</summary>
+    public TimeSpan TimeLeft => !IsActive ? TimeSpan.Zero : IsRunning ? _endsAt - DateTime.UtcNow : _remainingWhenPaused;
+
+    /// <summary>
+    /// Takes over the state of the paired device's timer (or its stop) without counting as a change here.
+    /// <paramref name="remoteOwner"/>: the device it belongs to, null when it belongs to this one.
+    /// </summary>
+    public void Apply(bool active, bool running, TimerMode mode, TimeSpan total, TimeSpan remaining, string? remoteOwner)
+    {
+        RemoteOwner = remoteOwner;
+        if (!active || remaining <= TimeSpan.Zero && running)
+        {
+            if (IsActive) StopCore();
+            return;
+        }
+        SetMode(mode);
+        Total = total > TimeSpan.Zero ? total : remaining;
+        if (running)
+        {
+            _endsAt = DateTime.UtcNow + remaining;
+            IsActive = IsRunning = true;
+            _tick.Start();
+        }
+        else
+        {
+            _remainingWhenPaused = remaining;
+            IsActive = true;
+            IsRunning = false;
+            _tick.Stop();
+        }
         Update();
     }
 
@@ -79,6 +126,7 @@ public sealed partial class TimerService : ObservableObject
             _tick.Start();
         }
         Update();
+        Changed?.Invoke();
     }
 
     [RelayCommand]
@@ -89,10 +137,18 @@ public sealed partial class TimerService : ObservableObject
         Total += add;
         if (IsRunning) _endsAt += add; else _remainingWhenPaused += add;
         Update();
+        Changed?.Invoke();
     }
 
     [RelayCommand]
     public void Stop()
+    {
+        bool was = IsActive;
+        StopCore();
+        if (was) Changed?.Invoke();
+    }
+
+    private void StopCore()
     {
         IsActive = IsRunning = false;
         _tick.Stop();
@@ -107,7 +163,7 @@ public sealed partial class TimerService : ObservableObject
         if (rem <= TimeSpan.Zero && IsRunning)
         {
             var mode = Mode;
-            Stop();
+            StopCore();
             if (mode == TimerMode.Focus) CompletedFocusSessions++;
             Finished?.Invoke(mode);
             return;

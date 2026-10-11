@@ -288,6 +288,7 @@ public sealed partial class LinkHub : ObservableObject
     public void Stop()
     {
         _tick.Stop();
+        DisposeTogether();
         foreach (var f in new LinkFeature?[] { Status, Clipboard, Files, Notifications, Media, Role }) f?.Dispose();
         Status = null; Files = null; Clipboard = null; Notifications = null; Media = null; Role = null;
         UpdateRole(); // offline: this device shows everything again
@@ -353,6 +354,7 @@ public sealed partial class LinkHub : ObservableObject
         Role.RoleChanged += UpdateRole;
         Role.ModeAdopted += () => OnPropertyChanged(nameof(MainChoice));
         Role.PeekReceived += p => RemotePeek?.Invoke(p);
+        CreateTogether(link);
     }
 
     /// <summary>Hooks the local services once (after they exist).</summary>

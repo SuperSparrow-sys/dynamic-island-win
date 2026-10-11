@@ -133,3 +133,10 @@ dann die optionale Zeiterfassung (Paket C).
 | 78 | Jede Funktion einzeln abschaltbar, geprüft beim Senden und beim Empfangen | fertig (Test) |
 | 79 | Hauptgerät (beide, dieses, anderes, automatisch nach Maus oder letzter Benutzung): das andere Gerät bleibt still und schickt seine Einblendungen hin, gleiche Nachrichten einmal, Insel dort optional ausgeblendet; offline zeigt jedes Gerät alles | fertig (Test); mit zwei echten Geräten offen |
 | 80 | Härtung nach Review: fremdes Gerät unter alter Adresse macht die Kopplung nicht ungültig, Fundliste begrenzt, Koppel-Versuche pro Absender, RTLO in Dateinamen, keine gegenseitige Blockade beim Senden, Schlüsselreste nach hartem Beenden, Tailscale-Firewallregel nur auf dem Tailscale-Adapter | fertig (Test) |
+| 81 | Tailscale-Suche nur bei eigenen Geräten: gleicher Tailscale-Benutzer, nur Windows und macOS; fremde Laptops, NAS und Handys im geteilten Tailnet werden nie gefragt, Adresse eintippen geht weiter | fertig (Test mit Fixture) |
+| 82 | Timer und Pomodoro auf beiden Geräten (Start, Pause, Stopp, Verlängern), „Timer übernehmen“ am Timer, das Ende einmal (Hauptgerät, sonst wo der Timer hingehört) | fertig (Test, Snapshot, Live-Test mit Testinstanzen) |
+| 83 | Ruhe und Fokus: „Nicht stören“ in beide Richtungen, Anruf oder Fokus auf einem Gerät macht das andere still | fertig (Test, Live-Test mit Testinstanzen) |
+| 84 | Fragen mit Knöpfen (Mikrofon stumm?, Beitreten, Anruf …) vom stillen Gerät auf dem Hauptgerät beantworten, ausgeführt auf dem Gerät der Frage; Zeit abgelaufen = abgelehnt; Hauptgerät weg = Frage erscheint auf dem eigenen Gerät | fertig (Test, Snapshot, Live-Test mit Testinstanzen) |
+| 85 | Akku des Laptops (schwach, Ladegerät ein/aus, voll) als Einblendung auf dem Hauptgerät („Laptop: Akku 15 %“), dort einmal | fertig (Test, Snapshot, Live-Test mit Testinstanzen) |
+| 86 | Gemeinsam sperren (Schalter, aus): Sperren eines Geräts sperrt das andere, nur wenn es seit einer Minute unbenutzt ist; nie entsperren | fertig (Test mit Attrappe; Testinstanzen sperren nie) |
+| 87 | Bilder in der geteilten Zwischenablage in beide Richtungen | fertig (Test) |

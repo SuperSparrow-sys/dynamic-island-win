@@ -147,6 +147,8 @@ public partial class App : Application
         };
         _link = new Services.Link.LinkHub(_settings, Dispatcher);
         _link.Attach(media, clipboard, notifications, shelf, battery);
+        _link.AttachTogether(timer);
+        _link.LockThisPc = LockThisPc;
         _link.CursorHop = _vm.CursorHop;
         // "Hauptgerät: automatisch" follows the mouse right away when CursorHop moves it to the other PC.
         _vm.CursorHop.CursorMoved += where => { if (_link.Role is { } role) { role.Update(); _ = role.AnnounceAsync(); } };
@@ -355,6 +357,8 @@ public partial class App : Application
 
         battery.Changed += ev =>
         {
+            // The quiet device of a pair leaves it to the main device, which shows it with this device's name.
+            if (_link?.ShowsOwnBatteryPeek() == false) return;
             var (icon, title, brush, prio) = ev switch
             {
                 BatteryEvent.PluggedIn => ("Icon.BatteryCharging", Loc.T("Battery.Charging"), "B.Green", PeekPriority.Normal),
@@ -457,6 +461,9 @@ public partial class App : Application
 
         timer.Finished += mode =>
         {
+            // A timer shared with the paired device ends once: on the main device, else where it belongs.
+            if (_link?.ShowsTimerEnd() == false) { Log.Info("Timer: ended, the paired device shows it"); return; }
+            Log.Info("Timer: ended, shown here");
             try { SystemSounds.Asterisk.Play(); } catch { }
             island.ShowPeek(new PeekItem
             {
@@ -820,7 +827,8 @@ public partial class App : Application
         // Main device: the quiet one hands its peeks over (its notifications come through the notifications feature).
         island.Divert = item =>
         {
-            if (link.Role is not { IsMain: false } role || item.Kind == PeekKind.Local || item.HasActions) return false;
+            if (link.Role is not { IsMain: false } role || item.Kind == PeekKind.Local) return false;
+            if (item.HasActions) return AskMainDevice(link, island, item);
             if (item.Kind == PeekKind.Notification) return link.Notifications?.Enabled == true;
             if (!_settings.LinkShareNotifications) return false;
             _ = role.ForwardPeekAsync(item.Title, item.Subtitle, item.IconKey ?? IconKeyOf(item.Icon));
@@ -832,6 +840,7 @@ public partial class App : Application
             Title = p.Title, Subtitle = p.Subtitle.Length > 0 ? p.Subtitle : p.PeerName, Seconds = 4,
         });
         link.RoleChanged += () => island.SetLinkHidden(link.HideIsland);
+        WireLinkTogether(link, island, Res, Icon, Tint);
 
         link.RemoteNotification += n =>
         {

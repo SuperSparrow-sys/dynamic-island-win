@@ -101,7 +101,9 @@ Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird ansch
 (`AppSettings.PairedDevices`).
 
 **Finden.** UDP 43824: alle 5 s und auf Anfrage eine Ansage `{t, id, name, port, proto}` als Broadcast (keine
-Geheimnisse). Tailscale: Online-Geräte aus `tailscale status --json`, per UDP gefragt und auf Port 43823 geprüft. Dazu
+Geheimnisse). Tailscale: Online-Geräte aus `tailscale status --json`, per UDP gefragt und auf Port 43823 geprüft, aber
+nur Windows- und macOS-Geräte desselben Tailscale-Benutzers (`Self.UserID` = `Peer.UserID`, `LinkDiscovery.OwnDesktops`):
+Im geteilten Tailnet werden Geräte anderer Leute, NAS, Handys und Server mit Tags nie gefragt. Dazu
 eingetippte Adressen.
 
 **Verbindung.** TCP 43823, `SslStream` mit TLS 1.3 (1.2 als Rückfall), beide Seiten zeigen ihr Zertifikat. Die
@@ -138,8 +140,10 @@ verlieren auch Unicode-Formatzeichen (RTLO). Den Schlüssel, den Schannel im Sch
 `link\identity.bin.key` mit Namen; bleibt er nach einem harten Beenden liegen, löscht ihn der nächste Start.
 
 **Funktionen** (`Services/Link/*Feature.cs`, Basis `LinkFeature`): je ein Nachrichtentyp und ein eigener Schalter
-(`LinkShare*`), der beim Senden und beim Empfangen geprüft wird; ohne WPF, damit zwei Link-Instanzen im Test
-miteinander reden. `LinkHub` verbindet sie mit den lokalen Diensten.
+(`LinkShare*`, `LinkLockTogether`), der beim Senden und beim Empfangen geprüft wird; ohne WPF, damit zwei
+Link-Instanzen im Test miteinander reden. `LinkHub` verbindet sie mit den lokalen Diensten (die Zusammenarbeit in
+`LinkHub.Together.cs`, die Einblendungen dazu in `App.Link.cs`). Lässt ein Gerät etwas weg, weil das andere es zeigt,
+prüft es vorher dessen Schalter (`LinkPeerSwitch`, Typ `<funktion>.share`, beim Verbinden und bei Änderung).
 
 | Funktion | Typ | Inhalt |
 |---|---|---|
@@ -149,6 +153,11 @@ miteinander reden. `LinkHub` verbindet sie mit den lokalen Diensten.
 | `LinkNotificationsFeature` | `notification` | App, Titel, Text, Symbol (PNG); Empfangenes wird nie weitergeleitet |
 | `LinkMediaFeature` | `media`, `media.cmd` | Titel, Künstler, Cover (JPEG ≤ 300 px), Position; Befehle `playpause`/`next`/`previous` nur bei vorhandenem Player |
 | `LinkRoleFeature` | `role`, `peek` | Hauptgerät (Einstellung relativ: `this`/`other`/`auto`, auf der Leitung die Geräte-ID, die neuere Wahl gewinnt), Leerlaufzeit und CursorHop-Maus für „Automatisch“, weitergereichte Einblendungen |
+| `LinkTimerFeature` | `timer`, `timer.share` | Zustand des Timers (läuft, Pause, Modus, Restzeit, Besitzer); die neuere Änderung gewinnt über einen Zähler (keine Uhrzeiten), beim Verbinden der laufende Timer; das Ende kommt nicht über die Leitung (`ShowsEnd`) |
+| `LinkQuietFeature` | `quiet` | „Nicht stören“ mit Zeitstempel (das neuere gewinnt), Anruf und Fokus als `AppSettings.PeerQuiet` (nie gespeichert, nie zurückgeschickt) |
+| `LinkQuestionFeature` | `ask`, `ask.answer`, `ask.share` | Fragen mit Knöpfen vom stillen Gerät; Antwort `yes`/`no`/`timeout` zurück, nur vom gefragten Gerät; Frist = Zeit der Frage + 10 s; Gerät weg = „lost“, die Frage erscheint dann lokal |
+| `LinkBatteryFeature` | `battery`, `battery.share` | `low`/`plugged`/`unplugged`/`full` mit Prozent; das stille Gerät lässt die eigene Einblendung weg, wenn das Hauptgerät sie zeigt |
+| `LinkLockFeature` | `lock` | Gesperrt (SessionSwitch); das andere Gerät sperrt nur nach 1 min ohne Eingabe, ohne Echo; nie entsperren |
 
 Das stille Gerät leitet Einblendungen über `IslandManager.Divert` ans Hauptgerät (`PeekKind`: `Local` bleibt immer,
 `Notification` kommt über die Mitteilungs-Funktion); gleiche Einblendungen (Titel und Untertitel) und gleiche

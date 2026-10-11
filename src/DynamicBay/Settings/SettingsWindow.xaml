@@ -1218,6 +1218,32 @@
                                 </ContentControl>
                             </StackPanel>
                         </Border>
+                        <!-- Working together: the second card of the same group -->
+                        <TextBlock Style="{StaticResource ST.Desc}" Margin="6,10,0,6" Text="{core:L De='Zusammen arbeiten', En='Working together'}" />
+                        <Border Style="{StaticResource S.Card}">
+                            <StackPanel>
+                                <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Timer', En='Timer'}"
+                                                ToolTip="{core:L De='Timer und Pomodoro laufen auf beiden Geräten, das Ende kommt einmal.', En='Timers and Pomodoro run on both devices, the end shows once.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareTimer}" />
+                                </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Ruhe und Fokus', En='Quiet and focus'}"
+                                                ToolTip="{core:L De='„Nicht stören“, Anrufe und Fokus gelten für beide Geräte.', En='“Do not disturb”, calls and focus apply to both devices.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareQuiet}" />
+                                </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Fragen', En='Questions'}"
+                                                ToolTip="{core:L De='Fragen mit Knöpfen beantwortest du auf dem Hauptgerät.', En='Questions with buttons are answered on the main device.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareQuestions}" />
+                                </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Akku', En='Battery'}"
+                                                ToolTip="{core:L De='Akku-Hinweise des Laptops erscheinen auf dem Hauptgerät.', En='Laptop battery alerts show on the main device.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkShareBattery}" />
+                                </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Gemeinsam sperren', En='Lock together'}"
+                                                ToolTip="{core:L De='Sperrt das andere Gerät mit, wenn es seit einer Minute unbenutzt ist.', En='Locks the other device too when it has been unused for a minute.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkLockTogether}" />
+                                </ContentControl>
+                            </StackPanel>
+                        </Border>
 
                         <!-- One device shows everything, the other stays quiet: no message twice -->
                         <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Hauptgerät', En='Main device'}" />

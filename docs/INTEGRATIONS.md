@@ -111,7 +111,8 @@ nur einen PC hat, merkt davon nichts: Ohne den Schalter ist der PC für andere u
    (leer: der Rechnername).
 2. Auf dem einen Gerät „Koppeln erlauben“ drücken. Das Fenster bleibt zwei Minuten offen, die Restzeit steht daneben.
 3. Auf dem anderen Gerät unter „Gefundene Geräte“ beim ersten auf „Koppeln“ drücken. Es findet sich im selben Netz
-   und über Tailscale; sonst unter „Adresse“ die IP, den Rechnernamen oder den Tailscale-Namen eintippen (optional mit
+   und über Tailscale (dort nur deine eigenen Windows- und Mac-Geräte: Laptops, NAS und Handys anderer Leute im
+   geteilten Tailnet werden nie gefragt); sonst unter „Adresse“ die IP, den Rechnernamen oder den Tailscale-Namen eintippen (optional mit
    `:Port`).
 4. Beide Geräte zeigen denselben sechsstelligen Code: das gefragte Gerät in der Insel (mit „Bestätigen“ und
    „Ablehnen“), ein Gerät mit offenen Einstellungen zusätzlich groß in einem kleinen Fenster. Stimmt er, auf beiden
@@ -133,6 +134,11 @@ angenommen):
 | Zwischenablage | Kopierte Texte und Bilder erscheinen im Verlauf des anderen Geräts mit dessen Namen. Die Windows-Zwischenablage dort ändert sich nicht (das macht CursorHop); ein Klick auf den Eintrag kopiert ihn. Inhalte aus Passwort-Managern, Einträge vom anderen Gerät und was CursorHop gebracht hat, werden nie weitergeschickt. Bilder bis 5 MB. |
 | Mitteilungen | Die Windows-Mitteilungen, die die Insel hier zeigt, erscheinen auch auf dem anderen Gerät, markiert „von …“. Dort gelten „Nicht stören“ und stummgeschaltete Apps wie für eigene. Eine Mitteilung vom anderen Gerät wird nie weitergeleitet; dieselbe Nachricht von beiden Geräten erscheint einmal. |
 | Musik | Läuft hier nichts, zeigt die Medienkarte die Wiedergabe des anderen Geräts mit Cover; Zurück, Pause und Weiter steuern es. Läuft auf beiden etwas, wechselt der Laptop-Knopf neben dem Titel. Musik startet nie von selbst: Ohne Player auf dem anderen Gerät passiert nichts. |
+| Timer | Timer und Pomodoro laufen auf beiden Geräten: Starten, Pause, Verlängern und Stoppen auf einem gilt auf dem anderen. Der Laptop-Knopf am laufenden Timer übergibt ihn ans andere Gerät oder holt ihn her. Das Ende erscheint einmal: auf dem Hauptgerät, ohne Hauptgerät dort, wo der Timer hingehört (gestartet oder übergeben). Fokus-Sitzungen zählen nur dort. |
+| Ruhe und Fokus | „Nicht stören“ gilt auf beiden Geräten, egal wo es geschaltet wird (die letzte Änderung gewinnt, auch nach einer Trennung). Ein Anruf oder eine Fokus-Sitzung auf einem Gerät macht das andere still, solange sie dauert. |
+| Fragen | Einblendungen mit Knöpfen (Mikrofon aktiv – stumm?, Beitreten, eingehender Anruf, Kopfhörer verbinden …) des stillen Geräts erscheinen auf dem Hauptgerät, mit dessen Namen. Der Knopf dort wirkt auf dem Gerät, von dem die Frage kommt. Läuft die Zeit ab, gilt sie als abgelehnt; ist das Hauptgerät vorher weg, erscheint die Frage auf dem eigenen Gerät. |
+| Akku | Akku schwach, Ladegerät ein oder aus und voll erscheinen auf dem Hauptgerät als „Laptop: Akku 15 %“. Das stille Gerät zeigt sie dann nicht noch einmal selbst. |
+| Gemeinsam sperren | Aus, bis man es einschaltet (auf beiden Geräten). Wird ein Gerät gesperrt (Win+L), sperrt sich das andere mit, aber nur, wenn dort seit einer Minute niemand Maus oder Tastatur benutzt hat. Entsperrt wird nie über die Kopplung. |
 | Status | Name, Akku und Version für die Karte „Gekoppelt“ (System-Seite, kommt beim ersten Koppeln dazu). Verbunden und getrennt kommen als Einblendung (verbunden nach 3 s, getrennt nach 30 s; hat CursorHop dasselbe Gerät gerade gemeldet, nur einmal). |
 
 **Hauptgerät:** „Alles zeigt“ legt fest, welches Gerät die Einblendungen zeigt, solange beide verbunden sind: „Beide“
@@ -141,7 +147,8 @@ das zuletzt benutzte Gerät). Das andere Gerät bleibt still und schickt seine E
 und Mitteilungen ans Hauptgerät, das jede Nachricht nur einmal zeigt. Die Wahl gilt auf beiden Geräten, die letzte
 Änderung gewinnt; gespeichert wird sie als „dieses“ oder „anderes“ Gerät, ein Einstellungs-Export bleibt also richtig.
 „Insel auf dem anderen Gerät ausblenden“ blendet dort zusätzlich die ganze Insel aus. Ist die Verbindung weg, zeigt
-jedes Gerät wieder alles selbst. Fragen mit Knöpfen (Mikrofon stumm?, Beitreten) bleiben auf ihrem Gerät.
+jedes Gerät wieder alles selbst. Fragen mit Knöpfen gehen mit dem Schalter „Fragen“ ebenfalls ans Hauptgerät, ohne
+ihn bleiben sie auf ihrem Gerät.
 
 Der Installer gibt in der Windows-Firewall die Ports 43823 (TCP) und 43824 (UDP) frei: in privaten Netzen und im
 Domänennetz, dazu auf dem Tailscale-Adapter (in jedem Netzprofil, nur für Tailscale-Adressen). Ohne Tailscale beim
