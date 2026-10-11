@@ -713,8 +713,8 @@ public partial class App : Application
             {
                 Kind = PeekKind.Local,
                 Icon = Icon("Icon.Link"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
-                Title = Loc.German ? $"Kopplung mit {session.PeerName}" : $"Pair with {session.PeerName}",
-                Subtitle = (Loc.German ? "Code " : "Code ") + Services.Link.PairingCodeText.Format(session.Code),
+                Title = "Code " + Services.Link.PairingCodeText.Format(session.Code),
+                Subtitle = Loc.German ? $"Mit {session.PeerName} koppeln?" : $"Pair with {session.PeerName}?",
                 ActionText = Loc.German ? "Bestätigen" : "Confirm", DismissText = Loc.German ? "Ablehnen" : "Decline",
                 Action = () => session.Confirm(true), OnDismiss = () => session.Confirm(false),
                 Priority = PeekPriority.High, ShowInDnd = true, Seconds = 120,

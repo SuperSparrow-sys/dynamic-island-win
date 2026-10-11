@@ -374,8 +374,9 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _linkShareMedia = true;
     [ObservableProperty] private bool _linkShareStatus = true;
     /// <summary>
-    /// Main device while a paired one is connected: "" = none (both show everything), "auto" = where the mouse is or was
-    /// used last, else the device id. Synced between the devices (the newer <see cref="LinkMainChanged"/> wins).
+    /// Main device while a paired one is connected: "" = none (both show everything), "this", "other" (the paired
+    /// device) or "auto" (where the mouse is or that was used last). Relative on purpose: no ids, so it can be exported.
+    /// Synced between the devices (the newer <see cref="LinkMainChanged"/> wins).
     /// </summary>
     [ObservableProperty] private string _linkMain = "";
     [ObservableProperty] private DateTime _linkMainChanged;

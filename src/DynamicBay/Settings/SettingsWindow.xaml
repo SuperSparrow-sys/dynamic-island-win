@@ -1165,7 +1165,8 @@
                                                         <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Padding="12,5" Content="{core:L De='Koppeln', En='Pair'}"
                                                                 IsEnabled="{Binding DataContext.I.Link.Busy, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource S.InvBool}}"
                                                                 Command="{Binding DataContext.I.Link.PairFoundCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" />
-                                                        <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Laptop}" Width="15" Height="15" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                                        <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Laptop}" Width="16" Height="16" Margin="0,0,12,0" VerticalAlignment="Center"
+                                                                Foreground="{DynamicResource S.Text2}" />
                                                         <StackPanel VerticalAlignment="Center">
                                                             <TextBlock Style="{StaticResource ST.Base}" Text="{Binding Name}" />
                                                             <TextBlock Style="{StaticResource ST.Desc}">

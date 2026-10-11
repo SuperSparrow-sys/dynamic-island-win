@@ -15,7 +15,15 @@ public sealed record LinkPeek(string PeerId, string PeerName, string Title, stri
 public sealed class LinkRoleFeature : LinkFeature
 {
     public const string Type = "role", PeekType = "peek";
-    public const string Auto = "auto";
+    public const string Auto = "auto", This = "this", Other = "other";
+
+    // The setting is relative ("this" / "other": it means the same after a settings export to another PC); on the
+    // wire the main device is named by its id, so both devices read the same choice.
+    internal string ToWire(string setting, string peerId) => setting switch { This => Link.DeviceId, Other => peerId, Auto => Auto, _ => "" };
+
+    /// <summary>The other device's choice as this device's setting; null: not a choice it knows.</summary>
+    internal string? FromWire(string wire, string peerId) =>
+        wire.Length == 0 ? "" : wire == Auto ? Auto : wire == peerId ? Other : wire == Link.DeviceId ? This : null;
     /// <summary>The other device must have been used this much more recently before this one steps back (no flapping).</summary>
     internal static readonly TimeSpan Margin = TimeSpan.FromSeconds(2);
 
@@ -73,7 +81,7 @@ public sealed class LinkRoleFeature : LinkFeature
 
     private Task<bool> SendStateAsync(string peerId) => SendAsync(peerId, Type, new JsonObject
     {
-        ["main"] = Settings.LinkMain, ["hide"] = Settings.LinkHideWhenNotMain, ["changed"] = Settings.LinkMainChanged.ToUniversalTime().Ticks,
+        ["main"] = ToWire(Settings.LinkMain, peerId), ["hide"] = Settings.LinkHideWhenNotMain, ["changed"] = Settings.LinkMainChanged.ToUniversalTime().Ticks,
         ["idle"] = Math.Round(Math.Max(0, _idleSeconds()), 1), ["cursor"] = _cursorHere(),
     });
 
@@ -85,17 +93,18 @@ public sealed class LinkRoleFeature : LinkFeature
         bool? cursor = m.Payload is JsonObject c && c["cursor"] is JsonValue v && v.TryGetValue<bool>(out var b) ? b : null;
         lock (_peers) _peers[m.PeerId] = (Math.Max(0, Num(m.Payload, "idle")), cursor);
         // The newer choice wins on both devices; an unknown value is no choice.
-        if (changed > Settings.LinkMainChanged.ToUniversalTime() && (main.Length == 0 || main == Auto || main == m.PeerId || main == Link.DeviceId))
+        var mine = FromWire(main, m.PeerId);
+        if (changed > Settings.LinkMainChanged.ToUniversalTime() && mine is not null)
         {
             Adopting = true;
             try
             {
                 Settings.LinkMainChanged = changed;
-                Settings.LinkMain = main;
+                Settings.LinkMain = mine;
                 Settings.LinkHideWhenNotMain = Bool(m.Payload, "hide");
             }
             finally { Adopting = false; }
-            Log.Info($"Link: main device set to \"{(main.Length == 0 ? "none" : main)}\" by {m.PeerName}");
+            Log.Info($"Link: main device set to \"{(mine!.Length == 0 ? "none" : mine)}\" by {m.PeerName}");
             ModeAdopted?.Invoke();
         }
         Update();
@@ -112,7 +121,7 @@ public sealed class LinkRoleFeature : LinkFeature
         return AnnounceAsync();
     }
 
-    /// <summary>The user picked a main device here ("" = none, "auto" or a device id): saved and sent to the other device.</summary>
+    /// <summary>The user picked a main device here ("" = none, "this", "other" or "auto"): saved and sent to the other device.</summary>
     public Task<int> ChooseAsync(string main)
     {
         Settings.LinkMainChanged = DateTime.UtcNow;
@@ -127,7 +136,7 @@ public sealed class LinkRoleFeature : LinkFeature
         var peer = OnlinePeers.FirstOrDefault();
         (double Idle, bool? Cursor)? state = null;
         if (peer is not null) lock (_peers) if (_peers.TryGetValue(peer.Id, out var s)) state = s;
-        bool main = IsMainDevice(Settings.LinkMain, Link.DeviceId, peer?.Id, _idleSeconds(), state?.Idle, _cursorHere(), state?.Cursor);
+        bool main = IsMainDevice(ToWire(Settings.LinkMain, peer?.Id ?? ""), Link.DeviceId, peer?.Id, _idleSeconds(), state?.Idle, _cursorHere(), state?.Cursor);
         string? mainPeer = main ? null : peer?.Id;
         if (main == _isMain && mainPeer == MainPeer) return;
         _isMain = main;

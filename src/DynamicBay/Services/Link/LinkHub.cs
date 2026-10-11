@@ -27,9 +27,9 @@ public sealed partial class LinkDeviceView : ObservableObject
     [ObservableProperty] private bool _confirmUnpair;
 
     partial void OnNameChanged(string value) { OnPropertyChanged(nameof(Glyph)); OnPropertyChanged(nameof(IsLaptop)); }
-    partial void OnStateChanged(LinkPeerState value) { OnPropertyChanged(nameof(IsOnline)); OnPropertyChanged(nameof(IsRejected)); OnPropertyChanged(nameof(StateText)); }
-    partial void OnViaChanged(string value) => OnPropertyChanged(nameof(StateText));
-    partial void OnBatteryChanged(int? value) { OnPropertyChanged(nameof(HasBattery)); OnPropertyChanged(nameof(BatteryText)); OnPropertyChanged(nameof(BatteryLevel)); OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(Glyph)); OnPropertyChanged(nameof(IsLaptop)); }
+    partial void OnStateChanged(LinkPeerState value) { OnPropertyChanged(nameof(IsOnline)); OnPropertyChanged(nameof(IsRejected)); OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(ShortState)); }
+    partial void OnViaChanged(string value) { OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(ShortState)); }
+    partial void OnBatteryChanged(int? value) { OnPropertyChanged(nameof(HasBattery)); OnPropertyChanged(nameof(BatteryText)); OnPropertyChanged(nameof(BatteryLevel)); OnPropertyChanged(nameof(StateText)); OnPropertyChanged(nameof(ShortState)); OnPropertyChanged(nameof(Glyph)); OnPropertyChanged(nameof(IsLaptop)); }
     partial void OnChargingChanged(bool value) => OnPropertyChanged(nameof(StateText));
 
     public bool IsOnline => State == LinkPeerState.Online;
@@ -40,6 +40,15 @@ public sealed partial class LinkDeviceView : ObservableObject
     /// <summary>Icon key: a laptop for names that sound like one or devices with a battery, else a monitor.</summary>
     public string Glyph => Battery is not null ? "Icon.Laptop" : CursorHopService.IconFor(Name);
     public bool IsLaptop => Glyph == "Icon.Laptop";
+
+    /// <summary>For the narrow island card: "LAN · 76 %".</summary>
+    public string ShortState => State switch
+    {
+        LinkPeerState.Online => (Via.Length > 0 ? Via : (Loc.German ? "Verbunden" : "Connected")) + (Battery is int b ? $" · {b} %" : ""),
+        LinkPeerState.Connecting => Loc.German ? "Verbindet …" : "Connecting …",
+        LinkPeerState.Rejected => Loc.German ? "Abgelehnt" : "Rejected",
+        _ => Loc.German ? "Nicht verbunden" : "Not connected",
+    };
 
     public string StateText => State switch
     {
@@ -115,21 +124,12 @@ public sealed partial class LinkHub : ObservableObject
     {
         get
         {
-            var m = _settings.LinkMain;
-            if (m.Length == 0) return 0;
-            if (m == LinkRoleFeature.Auto) return 3;
-            if (Service is { } s && m == s.DeviceId) return 1;
-            return Devices.Any(d => d.Id == m) ? 2 : 0;
+            return _settings.LinkMain switch { LinkRoleFeature.This => 1, LinkRoleFeature.Other => 2, LinkRoleFeature.Auto => 3, _ => 0 };
         }
         set
         {
-            string main = value switch
-            {
-                1 => Service?.DeviceId ?? "",
-                2 => Devices.FirstOrDefault()?.Id ?? "",
-                3 => LinkRoleFeature.Auto,
-                _ => "",
-            };
+            // Stored relative to this PC ("this" / "other"), so it still makes sense after a settings export.
+            string main = value switch { 1 => LinkRoleFeature.This, 2 => LinkRoleFeature.Other, 3 => LinkRoleFeature.Auto, _ => "" };
             if (main == _settings.LinkMain) return;
             if (Role is { } r) _ = r.ChooseAsync(main);
             else { _settings.LinkMainChanged = DateTime.UtcNow; _settings.LinkMain = main; }
@@ -741,7 +741,7 @@ public sealed partial class LinkHub : ObservableObject
         Devices.Add(new LinkDeviceView("0F1E2D3C4B5A6978", "PC-Büro") { State = LinkPeerState.Offline });
         Found.Clear();
         Found.Add(new LinkFoundView("1122334455667788", "Surface-Go", "100.64.10.20", "Tailscale"));
-        HasDevices = true; HasFound = true;
+        HasDevices = true; HasFound = true; OtherName = "LaptopJonathan";
         PairingOpen = true; PairingRemaining = "1:47";
         AnyOnline = true; CanSendFiles = true;
         Remote.PeerId = "A1B2C3D4E5F60708"; Remote.Device = "LaptopJonathan"; Remote.Title = "Ocean Lights"; Remote.Artist = "Lumen Drift";

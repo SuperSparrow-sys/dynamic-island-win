@@ -1169,8 +1169,6 @@
                                                     AllowDrop="True" DragOver="PairedDevice_DragOver" Drop="PairedDevice_Drop" Tag="{Binding}">
                                                 <DockPanel>
                                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
-                                                        <TextBlock Style="{StaticResource T.Numeric}" FontSize="11" Foreground="{StaticResource B.Text2}" Margin="0,0,6,0" VerticalAlignment="Center"
-                                                                   Text="{Binding BatteryText}" Visibility="{Binding HasBattery, Converter={StaticResource Vis}}" />
                                                         <Grid Width="16" Height="16" Visibility="{Binding HasBattery, Converter={StaticResource Vis}}" Margin="0,0,6,0">
                                                             <c:ProgressRing Thickness="2.5" Value="{Binding BatteryLevel}" RingBrush="{Binding Battery, Converter={StaticResource BatteryBrush}}" />
                                                         </Grid>
@@ -1180,7 +1178,7 @@
                                                             VerticalAlignment="Center" Foreground="{StaticResource B.Text2}" />
                                                     <StackPanel VerticalAlignment="Center">
                                                         <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" TextTrimming="CharacterEllipsis" Text="{Binding Name}" ToolTip="{Binding Name}" />
-                                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="10" TextTrimming="CharacterEllipsis" Text="{Binding StateText}" />
+                                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="10" TextTrimming="CharacterEllipsis" Text="{Binding ShortState}" ToolTip="{Binding StateText}" />
                                                     </StackPanel>
                                                 </DockPanel>
                                             </Border>

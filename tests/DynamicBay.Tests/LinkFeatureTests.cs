@@ -415,8 +415,8 @@ public class LinkFeatureTests : IDisposable
         Assert.True(ra!.IsMain && rb!.IsMain);
 
         // Chosen on A: the laptop (B) is main. B adopts it, A goes quiet.
-        await ra.ChooseAsync(p.IdB.DeviceId);
-        await Until(() => p.SB.LinkMain == p.IdB.DeviceId, "B adopts the choice");
+        await ra.ChooseAsync(LinkRoleFeature.Other);
+        await Until(() => p.SB.LinkMain == LinkRoleFeature.This, "B adopts the choice (as \"this device\")");
         Assert.False(ra.IsMain);
         Assert.True(rb!.IsMain);
         Assert.Equal(p.IdB.DeviceId, ra.MainPeer);
@@ -432,7 +432,13 @@ public class LinkFeatureTests : IDisposable
         p.SA.LinkMain = "";
         await ra.AnnounceAsync();
         await Task.Delay(Quiet);
-        Assert.Equal(p.IdB.DeviceId, p.SB.LinkMain);
+        Assert.Equal(LinkRoleFeature.This, p.SB.LinkMain);
+        // The choice is stored relative ("this"/"other"): no device id in the settings, so they can be exported.
+        foreach (var json in new[] { p.SA.ToJson(), p.SB.ToJson() })
+        {
+            Assert.DoesNotContain(p.IdA.DeviceId, json);
+            Assert.DoesNotContain(p.IdB.DeviceId, json);
+        }
 
         // B goes away: A shows everything itself again.
         p.B.Stop();
