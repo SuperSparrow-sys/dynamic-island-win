@@ -22,9 +22,13 @@ public sealed class CalDavClient : IDisposable
     public sealed record RemoteCalendar(Uri Url, string Name, string? Color);
 
     public CalDavClient(string server, string user, string password)
+        // Redirects are followed by hand (SendAsync): HttpClient drops the Authorization header on every redirect,
+        // and GMX/web.de redirect the server address (caldav.gmx.net -> /begenda/dav/users/), so sign-in failed there.
+        : this(server, user, password, new HttpClientHandler { AllowAutoRedirect = false }) { }
+
+    internal CalDavClient(string server, string user, string password, HttpMessageHandler handler)
     {
         _server = new Uri(server);
-        var handler = new HttpClientHandler { AllowAutoRedirect = true };
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(25) };
         // The password goes on each request to the server itself (see MaySendCredentials), not on every request.
         _auth = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{password}")));
@@ -54,11 +58,12 @@ public sealed class CalDavClient : IDisposable
     /// iCloud answers 503/429 when it is busy or gets too many requests at once: wait (as long as the server asks,
     /// at most 10 s) and try again, twice.
     /// </summary>
-    private async Task<XDocument> SendAsync(string method, Uri url, string body, int depth)
+    internal async Task<XDocument> SendAsync(string method, Uri url, string body, int depth)
     {
         if (_server.Scheme != Uri.UriSchemeHttps)
             throw new Core.UserMessageException(Core.Loc.German ? "Der Kalender-Server braucht eine https-Adresse" : "The calendar server needs an https address");
         HttpResponseMessage res;
+        int redirects = 0;
         for (int attempt = 0; ; attempt++)
         {
             var req = new HttpRequestMessage(new HttpMethod(method), url)
@@ -68,6 +73,15 @@ public sealed class CalDavClient : IDisposable
             if (MaySendCredentials(_server, url)) req.Headers.Authorization = _auth;
             req.Headers.Add("Depth", depth.ToString());
             res = await _http.SendAsync(req);
+            if (IsRedirect(res.StatusCode) && res.Headers.Location is { } location && redirects < 5)
+            {
+                // Same method and body to the new address; the password only goes along if the target may have it.
+                url = location.IsAbsoluteUri ? location : new Uri(url, location);
+                res.Dispose();
+                redirects++;
+                attempt--;
+                continue;
+            }
             bool busy = res.StatusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.TooManyRequests;
             if (!busy || attempt >= 2) break;
             var wait = res.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(attempt == 0 ? 2 : 5);
@@ -81,6 +95,10 @@ public sealed class CalDavClient : IDisposable
         if ((int)res.StatusCode >= 400) throw new HttpRequestException($"{method} {url} -> {(int)res.StatusCode}", null, res.StatusCode);
         return XDocument.Parse(await res.Content.ReadAsStringAsync());
     }
+
+    private static bool IsRedirect(HttpStatusCode code) =>
+        code is HttpStatusCode.MovedPermanently or HttpStatusCode.Found or HttpStatusCode.SeeOther
+            or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect;
 
     /// <summary>The href inside a property (current-user-principal, calendar-home-set); null if the server left it out.</summary>
     internal static string? Href(XDocument doc, XName prop) =>
