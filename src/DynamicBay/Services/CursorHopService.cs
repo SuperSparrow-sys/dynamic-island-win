@@ -126,8 +126,8 @@ public sealed partial class CursorHopService : ObservableObject, IDisposable
         IsRunning = IsProcessRunning(ProcessCore);
         Replay();
         _tick.Start();
-        // Not right away: at sign-in Windows starts CursorHop itself, a moment later than DynamicBay maybe.
-        if (_settings.CursorHopAutoStart) _ui.BeginInvoke(async () => { await Task.Delay(20000); EnsureRunning("DynamicBay start"); });
+        // Right away (the owner wants it up with DynamicBay); a CursorHop that Windows already started is left alone.
+        if (_settings.CursorHopAutoStart) _ui.BeginInvoke(() => EnsureRunning("DynamicBay start"));
         Log.Info($"CursorHop: watching the log (running {IsRunning}, connected: {(Devices.Length > 0 ? Devices : "none")})");
     }
 

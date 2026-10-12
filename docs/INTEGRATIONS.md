@@ -81,7 +81,7 @@ Datum in UTC, geöffnet mit Lese-, Schreib- und Lösch-Freigabe, damit CursorHop
   mehrmals neu; gemeldet wird eine Verbindung erst, wenn sie 3 s hält, eine Trennung erst nach 40 s.
   „Zwischenablage von PC-Büro“, und der Eintrag in der Zwischenablage zeigt das Gerät als Quelle.
 - **Mitstarten:** Läuft CursorHop nicht, startet DynamicBay es (wie der Windows-Autostart, `CursorHop.exe`): beim
-  eigenen Start, nach dem Aufwachen und wenn das Netzwerk zurückkommt. Nie eine zweite Instanz.
+  eigenen Start sofort, nach dem Aufwachen und wenn das Netzwerk zurückkommt. Nie eine zweite Instanz.
 - Einstellungen: `CursorHopEnabled`, `CursorHopAutoStart`, `CursorHopPeeks` (alle an; ohne CursorHop passiert nichts).
 
 Gelesene Zeilen (CursorHop 0.12, als Fixtures in `tests/DynamicBay.Tests/Fixtures/CursorHop`):
