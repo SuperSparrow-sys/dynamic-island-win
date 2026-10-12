@@ -224,7 +224,7 @@ public sealed partial class MediaService : ObservableObject
                 var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
                 if (!ReferenceEquals(session, _session)) return;
-                OfferCover(ms.ToArray(), Title);
+                OfferCover(ms.ToArray(), Title, ArtOwner(Title, Artist, Album));
             }
             else if (!InHold)
             {
@@ -401,11 +401,13 @@ public sealed partial class MediaService : ObservableObject
     // ---- artwork: never show the player's app icon as a cover ----
     // Browser web apps (Spotify in Chrome) report the browser icon as artwork for a moment on every track change.
     // 1) After a title change, artwork is applied only once updates settle (the last image wins).
-    // 2) An image that shows up for different titles is the app icon, not a cover, and is ignored from then on.
+    // 2) An image that shows up for different albums is the app icon, not a cover, and is ignored from then on.
+    //    (Tracks of one album share their cover: counting titles took real covers of Apple Music for app icons.)
 
     private readonly Dictionary<string, HashSet<string>> _artTitles = new();
     // Learned app icons are kept across restarts, so the first track after a start does not show the browser icon.
-    private static string PlaceholderFile => System.IO.Path.Combine(Core.AppSettings.Folder, "media-placeholders.txt");
+    // "-2": the list of older versions also holds real album covers (learned per title), it is not read any more.
+    private static string PlaceholderFile => System.IO.Path.Combine(Core.AppSettings.Folder, "media-placeholders-2.txt");
     private readonly HashSet<string> _placeholderArt = LoadPlaceholders();
 
     private static HashSet<string> LoadPlaceholders()
@@ -418,16 +420,29 @@ public sealed partial class MediaService : ObservableObject
     private string _coverTitle = "";
     private DispatcherTimer? _artSettle;
 
-    private void OfferCover(byte[] bytes, string title)
+    /// <summary>Whose image this is: the album (with its artist), else the title when the player names no album.</summary>
+    internal static string ArtOwner(string title, string artist, string album) =>
+        album.Length > 0 ? $"{artist}|{album}" : title;
+
+    /// <summary>
+    /// Notes that <paramref name="owner"/> showed the image <paramref name="hash"/>; true when it now showed up for two
+    /// different albums (or titles without album), so it is the player's app icon.
+    /// </summary>
+    internal static bool SeenForOthers(Dictionary<string, HashSet<string>> seen, string hash, string owner)
+    {
+        if (!seen.TryGetValue(hash, out var owners))
+        {
+            if (seen.Count > 64) seen.Clear(); // every cover lands here: keep it small (learned icons are kept apart)
+            seen[hash] = owners = new HashSet<string>();
+        }
+        owners.Add(owner);
+        return owners.Count > 1;
+    }
+
+    private void OfferCover(byte[] bytes, string title, string owner)
     {
         string hash = Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(bytes));
-        if (!_artTitles.TryGetValue(hash, out var titles))
-        {
-            if (_artTitles.Count > 64) _artTitles.Clear(); // every cover lands here: keep it small (learned icons are kept apart)
-            _artTitles[hash] = titles = new HashSet<string>();
-        }
-        titles.Add(title);
-        if (titles.Count > 1 && _placeholderArt.Add(hash))
+        if (SeenForOthers(_artTitles, hash, owner) && _placeholderArt.Add(hash))
         {
             Log.Info("Media: ignoring app icon used as artwork");
             try { System.IO.File.AppendAllLines(PlaceholderFile, new[] { hash }); } catch { }

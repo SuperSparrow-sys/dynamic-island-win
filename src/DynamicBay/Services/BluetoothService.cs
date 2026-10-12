@@ -38,7 +38,7 @@ public sealed partial class BluetoothService : ObservableObject
     private readonly HashSet<string> _lowWarned = new();
     private int _enumerated;
     private Dispatcher? _ui;
-    private readonly DispatcherTimer _batteryPoll = new() { Interval = TimeSpan.FromMinutes(5) };
+    private readonly DispatcherTimer _batteryPoll = new() { Interval = TimeSpan.FromMinutes(2) };
 
     /// <summary>Connected devices, for the widget (UI thread).</summary>
     public ObservableCollection<BluetoothDeviceInfo> Devices { get; } = new();
@@ -113,7 +113,8 @@ public sealed partial class BluetoothService : ObservableObject
                     var gone = Devices.FirstOrDefault(d => d.Id == id);
                     if (gone is not null) Devices.Remove(gone);
                     HasDevices = Devices.Count > 0;
-                    if (announce && gone is not null && !gone.IsInput) DeviceChanged?.Invoke(gone, false);
+                    if (gone is not null && TwinOf(gone) is { } twin) { _ = ShowTwinAsync(twin); return; } // still there under its other identity
+                    if (announce && gone is not null && !gone.IsInput && Calm(_lastChange, gone.Name, DateTime.UtcNow)) DeviceChanged?.Invoke(gone, false);
                 });
                 if (announce) Log.Info($"Bluetooth: {p.name} disconnected");
                 return;
@@ -125,23 +126,110 @@ public sealed partial class BluetoothService : ObservableObject
             {
                 // Disconnected again while it was being described: its removal has already run, do not list it.
                 lock (_paired) if (!_connected.Contains(id)) return;
-                if (Devices.Any(d => d.Id == id)) return;
-                // Same physical device over classic and LE: show it once.
-                if (Devices.Any(d => d.Name == info.Name)) return;
-                Devices.Add(info);
+                if (!Merge(Devices, info)) return;
                 HasDevices = true;
-                if (announce && !info.IsInput) DeviceChanged?.Invoke(info, true);
+                if (announce && !info.IsInput && Calm(_lastChange, info.Name, DateTime.UtcNow)) DeviceChanged?.Invoke(info, true);
                 CheckLow(info);
+                if (info.Battery is null) _ = RetryBatteryAsync(info);
             });
         }
         catch (Exception ex) { Log.Error("Bluetooth", ex); }
+    }
+
+    /// <summary>
+    /// Adds a connected device to the list. The same physical device over classic and LE shows once: when the one
+    /// already listed has no battery level yet, it takes the other one's. False: nothing new to show.
+    /// </summary>
+    internal static bool Merge(ICollection<BluetoothDeviceInfo> devices, BluetoothDeviceInfo info)
+    {
+        if (devices.Any(d => d.Id == info.Id)) return false;
+        if (devices.FirstOrDefault(d => SameDevice(d.Name, d.Kind, info.Name, info.Kind)) is { } twin)
+        {
+            twin.Battery ??= info.Battery;
+            return false;
+        }
+        devices.Add(info);
+        return true;
+    }
+
+    /// <summary>
+    /// The same physical device under two Bluetooth identities: the same name, or for phones one name the start of the
+    /// other (an iPhone shows up as "iPhone" with its battery and as "iPhone von Philipp" without).
+    /// </summary>
+    internal static bool SameDevice(string a, DeviceKind ka, string b, DeviceKind kb)
+    {
+        if (a == b) return true;
+        if (ka != DeviceKind.Phone || kb != DeviceKind.Phone) return false;
+        return b.StartsWith(a + " ", StringComparison.OrdinalIgnoreCase) || a.StartsWith(b + " ", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private readonly Dictionary<string, DateTime> _lastChange = new();
+
+    /// <summary>A connected id of the same device under its other identity (not listed, it was merged into this one).</summary>
+    private (string Id, string Name, bool Le)? TwinOf(BluetoothDeviceInfo d)
+    {
+        lock (_paired)
+            foreach (var id in _connected)
+                if (id != d.Id && _paired.GetValueOrDefault(id) is { name: { } n } p && SameDevice(d.Name, d.Kind, n, KindFromName(n)))
+                    return (id, n, p.le);
+        return null;
+    }
+
+    private async Task ShowTwinAsync((string Id, string Name, bool Le) twin)
+    {
+        var info = await DescribeAsync(twin.Id, twin.Name, twin.Le);
+        lock (_paired) if (!_connected.Contains(twin.Id)) return;
+        if (!Merge(Devices, info)) return;
+        HasDevices = true;
+        if (info.Battery is null) _ = RetryBatteryAsync(info);
+    }
+
+    /// <summary>
+    /// A device that connects and drops every few seconds (a phone's second identity) is announced once, not every
+    /// time: true when it has been quiet for a minute. Notes the change either way.
+    /// </summary>
+    internal static bool Calm(Dictionary<string, DateTime> last, string name, DateTime now)
+    {
+        bool calm = !last.TryGetValue(name, out var before) || now - before > TimeSpan.FromMinutes(1);
+        last[name] = now;
+        return calm;
+    }
+
+    /// <summary>A phone reports its battery a few seconds after it connects: look again soon instead of in 2 minutes.</summary>
+    internal static readonly int[] BatteryRetrySeconds = { 3, 10, 30, 60 };
+
+    private async Task RetryBatteryAsync(BluetoothDeviceInfo d)
+    {
+        foreach (int s in BatteryRetrySeconds)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(s));
+            if (!Devices.Contains(d) || d.Battery is not null) return;
+            if (await ReadBatteryOfAsync(d) is int level)
+            {
+                d.Battery = level;
+                Log.Info($"Bluetooth: {d.Name} battery {level} % (after {s} s)");
+                CheckLow(d);
+                return;
+            }
+        }
+    }
+
+    /// <summary>The battery of a listed device, also from its other connection (classic or LE) with the same name.</summary>
+    private async Task<int?> ReadBatteryOfAsync(BluetoothDeviceInfo d)
+    {
+        List<string> ids;
+        lock (_paired) ids = _connected.Where(id => id == d.Id || _paired.GetValueOrDefault(id).name is { } n && SameDevice(d.Name, d.Kind, n, KindFromName(n)))
+                                       .OrderBy(id => id != d.Id).ToList();
+        foreach (var id in ids)
+            if (await ReadBatteryAsync(id) is int level) return level;
+        return null;
     }
 
     private async Task RefreshBatteriesAsync()
     {
         foreach (var d in Devices.ToList())
         {
-            var level = await ReadBatteryAsync(d.Id);
+            var level = await ReadBatteryOfAsync(d);
             if (level is null) continue;
             d.Battery = level;
             CheckLow(d);

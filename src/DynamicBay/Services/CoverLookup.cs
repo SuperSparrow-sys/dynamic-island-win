@@ -27,7 +27,7 @@ public static class CoverLookup
     {
         string country = "us";
         try { country = RegionInfo.CurrentRegion.TwoLetterISORegionName.ToLowerInvariant(); } catch { }
-        string term = Uri.EscapeDataString($"{artist} {Clean(title)}".Trim());
+        string term = Uri.EscapeDataString($"{MainArtist(artist)} {Clean(title)}".Trim());
         return $"https://itunes.apple.com/search?term={term}&entity=song&limit=10&country={country}";
     }
 
@@ -38,7 +38,7 @@ public static class CoverLookup
         try { results = JsonNode.Parse(json)?["results"] as JsonArray; }
         catch (System.Text.Json.JsonException) { return null; }
         if (results is null) return null;
-        string wantTitle = Norm(Clean(title)), wantArtist = Norm(artist);
+        string wantTitle = Norm(Clean(title)), wantArtist = Norm(MainArtist(artist));
         if (wantTitle.Length == 0) return null;
         string? best = null;
         int bestScore = 0;
@@ -92,6 +92,13 @@ public static class CoverLookup
             if (i > 0 && i < cut) cut = i;
         }
         return title[..cut].Trim();
+    }
+
+    /// <summary>Apple Music for Windows names the artist as "Artist — Album": the store knows only the artist.</summary>
+    internal static string MainArtist(string artist)
+    {
+        int i = artist.IndexOf(" — ", StringComparison.Ordinal);
+        return (i > 0 ? artist[..i] : artist).Trim();
     }
 
     private static string? Str(JsonObject o, string name) =>

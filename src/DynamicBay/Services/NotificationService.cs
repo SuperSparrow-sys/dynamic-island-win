@@ -260,13 +260,21 @@ public sealed partial class NotificationService : ObservableObject
                 logo = ImageTools.Load(ms, 64);
             }
             catch { }
+            string appId = n.AppInfo.AppUserModelId;
+            string title = texts.FirstOrDefault() ?? app, body = string.Join("\n", texts.Skip(1));
+            // From the phone: Snapchat with its icon, not "Smartphone-Link".
+            if (PhoneLinkApps.IsPhoneNotification(appId) && PhoneLinkApps.Unwrap(texts) is { } phone)
+            {
+                (app, title, body) = phone;
+                logo = PhoneLinkApps.Icon(app) ?? logo;
+            }
             return new NotificationItem
             {
                 Id = n.Id,
                 App = app,
-                AppId = n.AppInfo.AppUserModelId,
-                Title = texts.FirstOrDefault() ?? app,
-                Body = string.Join("\n", texts.Skip(1)),
+                AppId = appId,
+                Title = title,
+                Body = body,
                 Time = n.CreationTime.LocalDateTime,
                 Logo = logo,
             };

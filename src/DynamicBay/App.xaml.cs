@@ -508,6 +508,7 @@ public partial class App : Application
                     Priority = PeekPriority.High, ShowInDnd = true, Seconds = 25,
                 });
             if (!_snapshotMode) BannerSuppressor.Seen(n.AppId);
+            if (!_snapshotMode && _vm!.Calls.Add(n)) Log.Info("Call added to the recent calls");
             if (_settings.ClaudeEnabled && ClaudeService.NeedsAnswer(n.App, n.AppId, n.Title, n.Body)) _vm!.Claude.RemoteAsked(n.Id);
         };
         notifications.Removed += n => _vm?.Claude.RemoteAnswered(n.Id);
