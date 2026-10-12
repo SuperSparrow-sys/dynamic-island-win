@@ -59,7 +59,7 @@ public sealed partial class RecentCalls : ObservableObject
     /// <summary>A call notification arrived: true when it was a call and was added.</summary>
     public bool Add(NotificationItem n)
     {
-        if (ParseCall(n.AppId, n.Title, n.Body) is not { } call) return false;
+        if (ParseCall(n.AppId, n.App, n.Title, n.Body) is not { } call) return false;
         Record(call.Who, call.Number, call.Missed, n.Time == default ? DateTime.Now : n.Time);
         Save();
         return true;
@@ -112,9 +112,9 @@ public sealed partial class RecentCalls : ObservableObject
     /// A phone call notification of Smartphone-Link: the caller (name or number), the number when there is one, and
     /// whether it was missed. Null for everything else (also Teams calls: they are called back in Teams).
     /// </summary>
-    internal static (string Who, string Number, bool Missed)? ParseCall(string appId, string title, string body)
+    internal static (string Who, string Number, bool Missed)? ParseCall(string appId, string app, string title, string body)
     {
-        if (!appId.Contains("YourPhone", StringComparison.OrdinalIgnoreCase)) return null;
+        if (!IsPhoneLink(appId, app)) return null;
         var texts = new[] { title }.Concat(body.Split('\n')).Select(t => t.Trim()).Where(t => t.Length > 0).ToList();
         bool calling = appId.Contains("YourPhoneCalling", StringComparison.OrdinalIgnoreCase);
         bool mentionsCall = texts.Any(t => CallWords.Any(w => t.Contains(w, StringComparison.OrdinalIgnoreCase)));
@@ -122,10 +122,27 @@ public sealed partial class RecentCalls : ObservableObject
         bool missed = texts.Any(t => MissedWords.Any(w => t.Contains(w, StringComparison.OrdinalIgnoreCase)));
         // A phone app's own notification that only mentions a call ("Anruf in Abwesenheit" from WhatsApp …) has no number: not ours.
         string number = texts.Select(NumberIn).FirstOrDefault(n => n.Length > 0) ?? "";
-        if (!calling && number.Length == 0 && !missed) return null;
+        if (!calling && number.Length == 0 && !missed && !RingingWords.Any(w => texts.Contains(w, StringComparer.OrdinalIgnoreCase))) return null;
         string who = texts.FirstOrDefault(t => !CallWords.Concat(MissedWords).Any(w => t.Contains(w, StringComparison.OrdinalIgnoreCase))) ?? number;
         if (who.Length == 0) return null;
         return (who, number, missed);
+    }
+
+    /// <summary>
+    /// Smartphone-Link itself, not a phone app shown through it (a WhatsApp call is called back in WhatsApp). Forwarded
+    /// from the paired device it has no app id, only its name.
+    /// </summary>
+    private static bool IsPhoneLink(string appId, string app) =>
+        app is "Smartphone-Link" or "Phone Link" || (app.Length == 0 && appId.Contains("YourPhone", StringComparison.OrdinalIgnoreCase));
+
+    private static readonly string[] RingingWords = { "Eingehender Anruf", "Incoming call" };
+
+    /// <summary>The phone rings: Smartphone-Link's call window, or its notification "Philipp" / "Eingehender Anruf".</summary>
+    public static bool IsRinging(string appId, string app, string title, string body)
+    {
+        if (appId.Contains("YourPhoneCalling", StringComparison.OrdinalIgnoreCase)) return true;
+        string text = title + "\n" + body;
+        return IsPhoneLink(appId, app) && RingingWords.Any(w => text.Contains(w, StringComparison.OrdinalIgnoreCase));
     }
 
     [GeneratedRegex(@"\+?\d[\d \-/()]{5,}\d")]

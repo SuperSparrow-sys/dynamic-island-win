@@ -40,12 +40,30 @@ public partial class App
             switch (answer)
             {
                 case LinkAnswer.Yes: item.Action?.Invoke(); break;
-                case LinkAnswer.No or LinkAnswer.Timeout: item.OnDismiss?.Invoke(); break;
+                case LinkAnswer.No: item.OnDismiss?.Invoke(); break;
+                case LinkAnswer.Timeout: if (item.TimeoutIsNo) item.OnDismiss?.Invoke(); break;
                 default:
                     if (DateTime.UtcNow - sentAt < TimeSpan.FromSeconds(item.Seconds)) { _askHere.Add(item); island.ShowPeek(item); }
-                    else item.OnDismiss?.Invoke();
+                    else if (item.TimeoutIsNo) item.OnDismiss?.Invoke();
                     break;
             }
+        }));
+    }
+
+    /// <summary>
+    /// Shown here and asked on the paired device as well (a ringing phone: "Annehmen" works on both). The answer there
+    /// runs the buttons here and takes the peek here away; no answer changes nothing.
+    /// </summary>
+    private void AskPairedToo(LinkHub link, IslandManager island, PeekItem item)
+    {
+        var q = new LinkQuestion(item.Title, item.Subtitle, item.IconKey ?? IconKeyOf(item.Icon), ColorOf(item.IconBrush),
+            item.ActionText!, item.DismissText ?? "OK", item.Seconds, item.Priority == PeekPriority.High, item.ShowInDnd);
+        link.TryAskPairedDevice(q, answer => Dispatcher.BeginInvoke(() =>
+        {
+            if (answer is not (LinkAnswer.Yes or LinkAnswer.No)) return;
+            island.WithdrawPeek(item);
+            if (answer == LinkAnswer.Yes) item.Action?.Invoke();
+            else item.OnDismiss?.Invoke();
         }));
     }
 

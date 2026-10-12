@@ -20,6 +20,10 @@ public class PhoneTests
         var (app, title, body) = PhoneLinkApps.Unwrap(new[] { "Snapchat", "Tim", "sent you a Snap" })!.Value;
         Assert.Equal(("Snapchat", "Tim", "sent you a Snap"), (app, title, body));
         Assert.Null(PhoneLinkApps.Unwrap(new[] { "Nur eine Zeile" }));
+        // Smartphone-Link's own call: two lines, no app line. A WhatsApp call: three lines with the app first.
+        Assert.Null(PhoneLinkApps.Unwrap(new[] { "Philipp", "Eingehender Anruf" }));
+        Assert.Equal(("WhatsApp", "Philipp Seeger", "Verpasster Sprachanruf"), PhoneLinkApps.Unwrap(new[] { "WhatsApp", "Philipp Seeger", "Verpasster Sprachanruf" })!.Value);
+        Assert.Equal(("Snapchat", "Tim", ""), PhoneLinkApps.Unwrap(new[] { "Snapchat", "Tim" })!.Value);
     }
 
     [Fact]
@@ -37,13 +41,20 @@ public class PhoneTests
     [Fact]
     public void Calls_of_the_phone_are_recognized_with_number_and_missed()
     {
-        Assert.Equal(("+49 176 41511149", "+4917641511149", true), RecentCalls.ParseCall(PhoneLink, "+49 176 41511149", "Verpasster Anruf"));
-        Assert.Equal(("Chung", "", false), RecentCalls.ParseCall(Calling, "Chung", "Eingehender Anruf"));
-        Assert.Equal(("Anna", "015123456789", false), RecentCalls.ParseCall(Calling, "Anna", "0151 23456789"));
+        const string SL = "Smartphone-Link";
+        // As it arrives from an iPhone: "Philipp" / "Eingehender Anruf", name only.
+        Assert.Equal(("Philipp", "", false), RecentCalls.ParseCall(PhoneLink, SL, "Philipp", "Eingehender Anruf"));
+        Assert.True(RecentCalls.IsRinging(PhoneLink, SL, "Philipp", "Eingehender Anruf"));
+        Assert.True(RecentCalls.IsRinging("", SL, "Philipp", "Eingehender Anruf")); // forwarded by the paired device
+        Assert.Equal(("+49 176 41511149", "+4917641511149", true), RecentCalls.ParseCall(PhoneLink, SL, "+49 176 41511149", "Verpasster Anruf"));
+        Assert.Equal(("Anna", "015123456789", false), RecentCalls.ParseCall(Calling, SL, "Anna", "0151 23456789"));
+        // A WhatsApp call through Smartphone-Link is called back in WhatsApp, not by phone.
+        Assert.Null(RecentCalls.ParseCall(PhoneLink, "WhatsApp", "Philipp Seeger", "Verpasster Sprachanruf"));
+        Assert.False(RecentCalls.IsRinging(PhoneLink, "WhatsApp", "Philipp Seeger", "Eingehender Anruf"));
         // Messages are no calls, Teams calls are called back in Teams.
-        Assert.Null(RecentCalls.ParseCall(PhoneLink, "Lotte", "sent you a Snap"));
-        Assert.Null(RecentCalls.ParseCall("MSTeams_8wekyb3d8bbwe!MSTeams", "Anna", "ruft an"));
-        Assert.Null(RecentCalls.ParseCall(PhoneLink, "Max", "Anruf morgen um 10?"));
+        Assert.Null(RecentCalls.ParseCall(PhoneLink, "Snapchat", "Lotte", "sent you a Snap"));
+        Assert.Null(RecentCalls.ParseCall("MSTeams_8wekyb3d8bbwe!MSTeams", "Microsoft Teams", "Anna", "ruft an"));
+        Assert.Null(RecentCalls.ParseCall(PhoneLink, SL, "Max", "Anruf morgen um 10?"));
     }
 
     [Fact]
@@ -154,5 +165,19 @@ public class PhoneTests
         Assert.Equal("", TeamsCalls.CallerFrom(new[] { "Mit Audio annehmen", "Anruf ablehnen" }));
         Assert.Contains("Mit Audio annehmen", TeamsCalls.AcceptNames);
         Assert.Contains("Anruf ablehnen", TeamsCalls.DeclineNames);
+    }
+
+    [Fact]
+    public void A_phone_call_is_answered_with_the_buttons_of_its_notification()
+    {
+        // As Smartphone-Link shows it: "Auf dem PC zulassen", "Nachricht", "Ablehnen".
+        Assert.Contains("Auf dem PC zulassen", PhoneLinkCalls.AcceptNames);
+        Assert.Contains("Ablehnen", PhoneLinkCalls.DeclineNames);
+        Assert.DoesNotContain("Nachricht", PhoneLinkCalls.AcceptNames.Concat(PhoneLinkCalls.DeclineNames));
+        Assert.True(PhoneLinkCalls.IsNotificationCenter("Benachrichtigungscenter"));
+        Assert.True(PhoneLinkCalls.IsNotificationCenter("Notification Center"));
+        Assert.False(PhoneLinkCalls.IsNotificationCenter("Smartphone-Link"));
+        // A question that runs out on the other device declines nothing for calls; other questions keep "timeout = no".
+        Assert.True(new DynamicBay.Island.PeekItem().TimeoutIsNo);
     }
 }

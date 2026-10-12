@@ -18,13 +18,16 @@ public static class PhoneLinkApps
         && !appId.Contains("YourPhoneCalling", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// The toast's lines as phone app, title and text. Null when there is no app line to take (a single line).
+    /// The toast's lines as phone app, title and text. Null when there is no app line: Smartphone-Link's own call
+    /// notification has two lines, caller and "Eingehender Anruf" (seen on the laptop), and is no app. Apps come with
+    /// three lines ("WhatsApp", "Philipp Seeger", "Verpasster Sprachanruf"), a known app also with two.
     /// </summary>
     public static (string App, string Title, string Body)? Unwrap(IReadOnlyList<string> texts)
     {
         if (texts.Count < 2) return null;
         string app = texts[0].Trim();
         if (app.Length == 0 || app.Length > 40 || app.Contains('\n')) return null;
+        if (texts.Count == 2 && !Ids.ContainsKey(AppIcons.Normalize(app))) return null;
         return (app, texts[1], string.Join("\n", texts.Skip(2)));
     }
 
