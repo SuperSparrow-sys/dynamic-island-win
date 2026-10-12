@@ -15,6 +15,7 @@ public partial class App : Application
 {
     private static Mutex? _single;
     private TaildropService? _taildrop;
+    private TeamsCalls? _teamsCalls;
     private FullscreenGames? _fullscreenGames;
     // DynamicBay on another PC (Services/Link): the hub runs the link only while LinkEnabled.
     private Services.Link.LinkHub? _link;
@@ -234,6 +235,7 @@ public partial class App : Application
         Safe("Shelf", shelf.Load);
         await Next();
         Safe("Battery", battery.Start);
+        if (!_snapshotMode) Safe("Teams calls", () => _teamsCalls?.Start());
         if (_settings.AudioEnabled) Safe("Audio", vm.Audio.Start);
         Safe("Work", vm.Work.Start);
         Safe("Time", vm.Time.WatchSession);
@@ -497,18 +499,15 @@ public partial class App : Application
         notifications.Seen += n =>
         {
             // Incoming call (Smartphone-Link, Teams): always shown, also when the island is quiet - but never while sharing the screen.
-            // Teams: answered right there (Teams' own shortcuts); Smartphone-Link: opened to answer it.
-            bool teams = IsTeamsCall(n);
+            // (Teams' own call window is watched by TeamsCalls, with Annehmen / Ablehnen; this is the Windows notification.)
             if (IsIncomingCall(n) && !_settings.Sharing)
                 island.ShowPeek(new PeekItem
                 {
                     Image = n.Logo, Icon = n.Logo is null ? Icon("Icon.Call") : null,
                     IconBrush = Res("B.Green"), IconBackground = Tint("B.Green", 0x2E),
                     Title = n.Title, Subtitle = (Loc.German ? "Anruf · " : "Call · ") + n.App,
-                    ActionText = teams ? (Loc.German ? "Annehmen" : "Accept") : (Loc.German ? "Öffnen" : "Open"),
-                    DismissText = teams ? (Loc.German ? "Ablehnen" : "Decline") : (Loc.German ? "Später" : "Later"),
-                    Action = teams ? () => Task.Run(() => { if (!TeamsCalls.Answer(true)) Dispatcher.BeginInvoke(() => notifications.Open(n)); }) : () => notifications.Open(n),
-                    OnDismiss = teams ? () => Task.Run(() => TeamsCalls.Answer(false)) : null,
+                    ActionText = Loc.German ? "Öffnen" : "Open", DismissText = Loc.German ? "Später" : "Later",
+                    Action = () => notifications.Open(n),
                     Priority = PeekPriority.High, ShowInDnd = true, Seconds = 25,
                 });
             if (!_snapshotMode) BannerSuppressor.Seen(n.AppId);
@@ -516,6 +515,31 @@ public partial class App : Application
             if (_settings.ClaudeEnabled && ClaudeService.NeedsAnswer(n.App, n.AppId, n.Title, n.Body)) _vm!.Claude.RemoteAsked(n.Id);
         };
         notifications.Removed += n => _vm?.Claude.RemoteAnswered(n.Id);
+
+        // Teams rings in its own window: the island asks with Annehmen / Ablehnen and presses Teams' buttons.
+        var teamsCalls = _teamsCalls = new TeamsCalls(_settings);
+        PeekItem? teamsPeek = null;
+        teamsCalls.Ringing += caller =>
+        {
+            if (_settings.Sharing) return;
+            teamsPeek = new PeekItem
+            {
+                Kind = PeekKind.Local, // rings on every device signed in to Teams: each answers its own
+                Icon = Icon("Icon.Call"), IconBrush = Res("B.Green"), IconBackground = Tint("B.Green", 0x2E),
+                Title = caller.Length > 0 ? caller : (Loc.German ? "Teams-Anruf" : "Teams call"),
+                Subtitle = Loc.German ? "Anruf · Microsoft Teams" : "Call · Microsoft Teams",
+                ActionText = Loc.German ? "Annehmen" : "Accept", DismissText = Loc.German ? "Ablehnen" : "Decline",
+                Action = () => _ = teamsCalls.AnswerAsync(true),
+                OnDismiss = () => _ = teamsCalls.AnswerAsync(false),
+                Priority = PeekPriority.High, ShowInDnd = true, Seconds = 30,
+            };
+            island.ShowPeek(teamsPeek);
+        };
+        teamsCalls.Ended += () =>
+        {
+            if (teamsPeek is { } p) island.WithdrawPeek(p);
+            teamsPeek = null;
+        };
         notifications.Arrived += n =>
         {
             if (IsIncomingCall(n)) return; // shown by Seen above, with buttons
@@ -984,9 +1008,6 @@ public partial class App : Application
         }
         return _iconKeys.TryGetValue(g, out var name) ? name : null;
     }
-
-    private static bool IsTeamsCall(NotificationItem n) =>
-        n.AppId.Contains("Teams", StringComparison.OrdinalIgnoreCase) && IsIncomingCall(n);
 
     /// <summary>A call notification from Smartphone-Link (YourPhoneCalling) or Teams ("ruft an", "is calling").</summary>
     private static bool IsIncomingCall(NotificationItem n)

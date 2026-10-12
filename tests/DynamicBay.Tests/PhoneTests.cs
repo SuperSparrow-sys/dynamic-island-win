@@ -138,9 +138,21 @@ public class PhoneTests
     }
 
     [Fact]
-    public void Teams_calls_are_answered_with_Teams_own_shortcuts()
+    public void Teams_call_window_is_found_and_moved_under_the_island()
     {
-        Assert.Equal((ushort)'S', TeamsCalls.KeyFor(accept: true));
-        Assert.Equal((ushort)'D', TeamsCalls.KeyFor(accept: false));
+        // As seen on the laptop: the call toast 465x315 bottom right, the main window carries chat and tenant in its title.
+        Assert.True(TeamsCalls.IsToast("Microsoft Teams", 465, 315));
+        Assert.True(TeamsCalls.IsToast("Microsoft Teams", 465, 170));
+        Assert.False(TeamsCalls.IsToast("Chat | Jonathan Seeger | Regenery GmbH | Microsoft Teams", 1536, 864));
+        Assert.False(TeamsCalls.IsToast("Microsoft Teams", 1458, 911));
+
+        var work = new DynamicBay.Core.Native.RECT { Left = 0, Top = 0, Right = 1920, Bottom = 1032 };
+        Assert.Equal((727, 64), TeamsCalls.TopCenter(work, 465, 1.0));
+        Assert.Equal((727, 96), TeamsCalls.TopCenter(work, 465, 1.5));
+
+        Assert.Equal("Anna Schmidt", TeamsCalls.CallerFrom(new[] { "Microsoft Teams", "", "Anna Schmidt", "Eingehender Anruf" }));
+        Assert.Equal("", TeamsCalls.CallerFrom(new[] { "Mit Audio annehmen", "Anruf ablehnen" }));
+        Assert.Contains("Mit Audio annehmen", TeamsCalls.AcceptNames);
+        Assert.Contains("Anruf ablehnen", TeamsCalls.DeclineNames);
     }
 }

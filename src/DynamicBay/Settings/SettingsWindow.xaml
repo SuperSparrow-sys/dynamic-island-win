@@ -562,6 +562,10 @@
                                     <Slider Style="{StaticResource S.Slider}" Minimum="2" Maximum="15" Value="{Binding S.NotificationSeconds}" TickFrequency="1" IsSnapToTickEnabled="True" />
                                 </StackPanel>
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Teams-Anrufe oben zeigen', En='Show Teams calls at the top'}"
+                                            ToolTip="{core:L De='Das Anruffenster von Teams rückt unter die Insel, annehmen geht auch in der Insel.', En='Teams'' call window moves under the island, you can also answer in the island.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.TeamsCallOnTop}" />
+                            </ContentControl>
                         </StackPanel>
                     </Border>
 
