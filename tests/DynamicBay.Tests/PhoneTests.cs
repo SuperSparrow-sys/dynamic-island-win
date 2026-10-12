@@ -39,43 +39,6 @@ public class PhoneTests
     }
 
     [Fact]
-    public void Calls_of_the_phone_are_recognized_with_number_and_missed()
-    {
-        const string SL = "Smartphone-Link";
-        // As it arrives from an iPhone: "Philipp" / "Eingehender Anruf", name only.
-        Assert.Equal(("Philipp", "", false), RecentCalls.ParseCall(PhoneLink, SL, "Philipp", "Eingehender Anruf"));
-        Assert.True(RecentCalls.IsRinging(PhoneLink, SL, "Philipp", "Eingehender Anruf"));
-        Assert.True(RecentCalls.IsRinging("", SL, "Philipp", "Eingehender Anruf")); // forwarded by the paired device
-        Assert.Equal(("+49 176 41511149", "+4917641511149", true), RecentCalls.ParseCall(PhoneLink, SL, "+49 176 41511149", "Verpasster Anruf"));
-        Assert.Equal(("Anna", "015123456789", false), RecentCalls.ParseCall(Calling, SL, "Anna", "0151 23456789"));
-        // A WhatsApp call through Smartphone-Link is called back in WhatsApp, not by phone.
-        Assert.Null(RecentCalls.ParseCall(PhoneLink, "WhatsApp", "Philipp Seeger", "Verpasster Sprachanruf"));
-        Assert.False(RecentCalls.IsRinging(PhoneLink, "WhatsApp", "Philipp Seeger", "Eingehender Anruf"));
-        // Messages are no calls, Teams calls are called back in Teams.
-        Assert.Null(RecentCalls.ParseCall(PhoneLink, "Snapchat", "Lotte", "sent you a Snap"));
-        Assert.Null(RecentCalls.ParseCall("MSTeams_8wekyb3d8bbwe!MSTeams", "Microsoft Teams", "Anna", "ruft an"));
-        Assert.Null(RecentCalls.ParseCall(PhoneLink, SL, "Max", "Anruf morgen um 10?"));
-    }
-
-    [Fact]
-    public void Calls_of_one_caller_fold_into_one_line()
-    {
-        var calls = new RecentCalls(load: false);
-        var t = new DateTime(2026, 10, 11, 19, 0, 0);
-        calls.Record("+49 176 41511149", "+4917641511149", missed: true, t);
-        calls.Record("Chung", "", missed: false, t.AddMinutes(5));
-        calls.Record("0176 41511149", "017641511149", missed: false, t.AddMinutes(30)); // same number, written differently
-        calls.Record("+49 176 41511149", "+4917641511149", missed: true, t.AddMinutes(30.5)); // the same call again (incoming, then missed)
-
-        Assert.Equal(2, calls.Items.Count);
-        var top = calls.Items[0];
-        Assert.Equal("+4917641511149", top.Number);
-        Assert.Equal((2, 2), (top.Count, top.Missed));
-        Assert.Equal("Chung", calls.Items[1].Who);
-        Assert.False(calls.IsEmpty);
-    }
-
-    [Fact]
     public void The_phone_listed_once_takes_the_battery_of_its_second_connection()
     {
         var devices = new ObservableCollection<BluetoothDeviceInfo>();
@@ -146,24 +109,5 @@ public class PhoneTests
         Assert.Empty(n.Items);
         n.HiddenHere = false;
         Assert.True(n.AddRemote("Laptop", "WhatsApp", "Lena", "Jetzt hier", null));
-    }
-
-    [Fact]
-    public void Teams_call_window_is_found_and_moved_out_of_sight()
-    {
-        // As seen on the laptop: the call toast 465x315 bottom right, the main window carries chat and tenant in its title.
-        Assert.True(TeamsCalls.IsToast("Microsoft Teams", 465, 315));
-        Assert.True(TeamsCalls.IsToast("Microsoft Teams", 465, 170));
-        Assert.False(TeamsCalls.IsToast("Chat | Jonathan Seeger | Regenery GmbH | Microsoft Teams", 1536, 864));
-        Assert.False(TeamsCalls.IsToast("Microsoft Teams", 1458, 911));
-
-        // Out of sight left of all screens (also with a monitor left of the main one, at -1920).
-        Assert.Equal(-665, TeamsCalls.HiddenX(0, 465));
-        Assert.Equal(-2585, TeamsCalls.HiddenX(-1920, 465));
-
-        Assert.Equal("Anna Schmidt", TeamsCalls.CallerFrom(new[] { "Microsoft Teams", "", "Anna Schmidt", "Eingehender Anruf" }));
-        Assert.Equal("", TeamsCalls.CallerFrom(new[] { "Mit Audio annehmen", "Anruf ablehnen" }));
-        Assert.Contains("Mit Audio annehmen", TeamsCalls.AcceptNames);
-        Assert.Contains("Anruf ablehnen", TeamsCalls.DeclineNames);
     }
 }

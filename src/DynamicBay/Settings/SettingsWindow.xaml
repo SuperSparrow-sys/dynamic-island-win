@@ -562,10 +562,6 @@
                                     <Slider Style="{StaticResource S.Slider}" Minimum="2" Maximum="15" Value="{Binding S.NotificationSeconds}" TickFrequency="1" IsSnapToTickEnabled="True" />
                                 </StackPanel>
                             </ContentControl>
-                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Teams-Anrufe nur in der Insel', En='Teams calls only in the island'}"
-                                            ToolTip="{core:L De='Das Anruffenster von Teams verschwindet, angenommen wird in der Insel.', En='Teams'' call window goes away, you answer in the island.'}">
-                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.TeamsCallHide}" />
-                            </ContentControl>
                         </StackPanel>
                     </Border>
 

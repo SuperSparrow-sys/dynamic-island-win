@@ -127,8 +127,6 @@ public sealed partial class IslandViewModel : ObservableObject
     public Services.M365.TodoService? Todo { get; set; }
     public Services.M365.PresenceService? Presence { get; set; }
     public Services.M365.ContactsService? Contacts { get; set; }
-    /// <summary>Recent calls of the linked phone, one line per caller, to call back (no Microsoft account needed).</summary>
-    public RecentCalls Calls { get; } = new();
     /// <summary>Paired devices (PC and laptop): pairing, status, mirrored clipboard, notifications, music, files, sound.</summary>
     public Services.Link.LinkHub? Link
     {

@@ -59,7 +59,7 @@
         <c:BoolPick x:Key="LikeGlyph" True="{StaticResource Glyph.Heart}" False="{StaticResource Icon.Heart}" />
         <c:BoolPick x:Key="OnBrush" True="{StaticResource B.Green}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="LaptopGlyph" True="{StaticResource Icon.Laptop}" False="{StaticResource Icon.Monitor}" />
-        <c:BoolPick x:Key="ContactsEmpty" True="{core:L De='Noch keine Anrufe oder Kontakte', En='No calls or contacts yet'}" False="{core:L De='Anrufe vom Handy erscheinen hier, Kontakte mit Microsoft unter Konten', En='Calls from the phone show here, contacts with Microsoft under Accounts'}" />
+        <c:BoolPick x:Key="ContactsEmpty" True="{core:L De='Noch keine Kontakte', En='No contacts yet'}" False="{core:L De='In den Einstellungen unter Konten mit Microsoft verbinden', En='Connect Microsoft under Accounts in the settings'}" />
         <c:BoolPick x:Key="TrackBg" True="#330A84FF" False="{StaticResource B.Fill2}" />
         <c:BoolPick x:Key="OverdueBrush" True="{StaticResource B.Red}" False="{StaticResource B.Text2}" />
         <c:BoolPick x:Key="DoneOpacity"><c:BoolPick.True><sys:Double>0.4</sys:Double></c:BoolPick.True><c:BoolPick.False><sys:Double>1</sys:Double></c:BoolPick.False></c:BoolPick>
@@ -779,7 +779,7 @@
 
             <!-- Optional widgets (shown when enabled in settings; laid out in code) -->
             <Grid x:Name="ExtraCards" Visibility="Collapsed">
-                <!-- Contacts: recent calls to call back, frequent people with Teams chat, Teams call and phone (via Smartphone-Link) -->
+                <!-- Contacts: frequent people with Teams chat, Teams call and phone (via Smartphone-Link) -->
                 <Border x:Name="ContactsCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Height="22">
@@ -787,57 +787,10 @@
                             <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Kontakte', En='Contacts'}" />
                         </StackPanel>
                         <Grid Margin="0,6,0,0">
-                            <TextBlock FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
-                                       Text="{Binding Microsoft.IsConnected, Converter={StaticResource ContactsEmpty}}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock" BasedOn="{StaticResource T.Caption}">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <MultiDataTrigger>
-                                                <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding Contacts.IsEmpty}" Value="True" />
-                                                    <Condition Binding="{Binding Calls.IsEmpty}" Value="True" />
-                                                </MultiDataTrigger.Conditions>
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </MultiDataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding Contacts.IsEmpty, Converter={StaticResource Vis}}"
+                                       Text="{Binding Microsoft.IsConnected, Converter={StaticResource ContactsEmpty}}" />
                             <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-                                <StackPanel>
-                                <!-- Recent calls of the linked phone, one line per caller: call back -->
-                                <ItemsControl ItemsSource="{Binding Calls.Items}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type s:CallEntry}">
-                                            <DockPanel Margin="0,0,0,6" Background="Transparent">
-                                                <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="24" Height="24" VerticalAlignment="Center"
-                                                        ToolTip="{core:L De='Zurückrufen', En='Call back'}"
-                                                        Command="{Binding DataContext.Calls.CallBackCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
-                                                    <c:Icon Data="{StaticResource Icon.Call}" Width="13" Height="13" Foreground="{StaticResource B.Green}" />
-                                                </Button>
-                                                <Border Width="26" Height="26" CornerRadius="13" Background="{StaticResource B.Fill2}" Margin="0,0,8,0" VerticalAlignment="Center">
-                                                    <c:Icon Data="{StaticResource Icon.Call}" Width="11" Height="11" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <c:Icon.Style>
-                                                            <Style TargetType="c:Icon">
-                                                                <Setter Property="Foreground" Value="{StaticResource B.Text2}" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsMissed}" Value="True">
-                                                                        <Setter Property="Foreground" Value="{StaticResource B.Red}" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </c:Icon.Style>
-                                                    </c:Icon>
-                                                </Border>
-                                                <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Style="{StaticResource T.Base}" FontSize="11.5" TextTrimming="CharacterEllipsis" Text="{Binding Who}" />
-                                                    <TextBlock Style="{StaticResource T.Caption}" FontSize="10" TextTrimming="CharacterEllipsis" Text="{Binding Detail}" />
-                                                </StackPanel>
-                                            </DockPanel>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
                                 <ItemsControl ItemsSource="{Binding Contacts.Items}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate DataType="{x:Type ms:ContactItem}">
@@ -867,7 +820,6 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                </StackPanel>
                             </ScrollViewer>
                         </Grid>
                     </DockPanel>

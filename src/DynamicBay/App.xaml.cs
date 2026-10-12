@@ -15,23 +15,6 @@ public partial class App : Application
 {
     private static Mutex? _single;
     private TaildropService? _taildrop;
-    private TeamsCalls? _teamsCalls;
-    private (uint Id, PeekItem Peek)? _ringingPhone;
-
-    /// <summary>
-    /// The phone rings: the island alone, green receiver and the caller, no Smartphone-Link logo. It is answered on the
-    /// phone (Windows lets no other app answer a Smartphone-Link call). A click opens Smartphone-Link.
-    /// </summary>
-    private PeekItem PhoneRingPeek(string caller, Action? open) => new()
-    {
-        Kind = PeekKind.Local, // each device decides itself: the one with the phone, or the main one it is forwarded to
-        Icon = (Geometry)FindResource("Icon.Call"), IconBrush = (Brush)FindResource("B.Green"), IconBackground = GreenTint,
-        Title = caller, Subtitle = Loc.German ? "Anruf · iPhone" : "Call · iPhone",
-        Priority = PeekPriority.High, ShowInDnd = true, Seconds = 30, OnClick = open,
-    };
-
-    private static readonly Brush GreenTint = Frozen(new SolidColorBrush(Color.FromArgb(0x2E, 0x30, 0xD1, 0x58)));
-    private static Brush Frozen(Brush b) { b.Freeze(); return b; }
     private FullscreenGames? _fullscreenGames;
     // DynamicBay on another PC (Services/Link): the hub runs the link only while LinkEnabled.
     private Services.Link.LinkHub? _link;
@@ -251,7 +234,6 @@ public partial class App : Application
         Safe("Shelf", shelf.Load);
         await Next();
         Safe("Battery", battery.Start);
-        if (!_snapshotMode) Safe("Teams calls", () => _teamsCalls?.Start());
         if (_settings.AudioEnabled) Safe("Audio", vm.Audio.Start);
         Safe("Work", vm.Work.Start);
         Safe("Time", vm.Time.WatchSession);
@@ -515,18 +497,7 @@ public partial class App : Application
         notifications.Seen += n =>
         {
             // Incoming call (Smartphone-Link, Teams): always shown, also when the island is quiet - but never while sharing the screen.
-            // (Teams' own call window is watched by TeamsCalls, with Annehmen / Ablehnen; this is the Windows notification.)
-            if (IsIncomingCall(n) && !_settings.Sharing && RecentCalls.IsRinging(n.AppId, n.App, n.Title, n.Body))
-            {
-                // Once: on the quiet device of a pair the main one shows it (the notification is forwarded there).
-                if (_link?.Role is not { IsMain: false })
-                {
-                    var peek = PhoneRingPeek(n.Title, () => notifications.Open(n));
-                    _ringingPhone = (n.Id, peek);
-                    island.ShowPeek(peek);
-                }
-            }
-            else if (IsIncomingCall(n) && !_settings.Sharing)
+            if (IsIncomingCall(n) && !_settings.Sharing)
                 island.ShowPeek(new PeekItem
                 {
                     Image = n.Logo, Icon = n.Logo is null ? Icon("Icon.Call") : null,
@@ -537,43 +508,9 @@ public partial class App : Application
                     Priority = PeekPriority.High, ShowInDnd = true, Seconds = 25,
                 });
             if (!_snapshotMode) BannerSuppressor.Seen(n.AppId);
-            if (!_snapshotMode && _vm!.Calls.Add(n)) Log.Info("Call added to the recent calls");
             if (_settings.ClaudeEnabled && ClaudeService.NeedsAnswer(n.App, n.AppId, n.Title, n.Body)) _vm!.Claude.RemoteAsked(n.Id);
         };
-        notifications.Removed += n =>
-        {
-            _vm?.Claude.RemoteAnswered(n.Id);
-            // The call was answered on the phone or ended: its peek goes away.
-            if (_ringingPhone is { } r && r.Id == n.Id) { island.WithdrawPeek(r.Peek); _ringingPhone = null; }
-        };
-
-        // Teams rings in its own window: the island asks with Annehmen / Ablehnen and presses Teams' buttons.
-        var teamsCalls = _teamsCalls = new TeamsCalls(_settings);
-        // Shown in the island, so Teams' own window goes (sharing the screen: Teams keeps it, the island stays out).
-        teamsCalls.Hide = () => _settings.TeamsCallHide && !_settings.Sharing;
-        PeekItem? teamsPeek = null;
-        teamsCalls.Ringing += caller =>
-        {
-            // Teams rings on every device signed in: the island asks once, on the main device of a pair.
-            if (_settings.Sharing || _link?.Role is { IsMain: false }) return;
-            teamsPeek = new PeekItem
-            {
-                Kind = PeekKind.Local, // Teams rings on the main device itself: answered there
-                Icon = Icon("Icon.Call"), IconBrush = Res("B.Green"), IconBackground = Tint("B.Green", 0x2E),
-                Title = caller.Length > 0 ? caller : (Loc.German ? "Teams-Anruf" : "Teams call"),
-                Subtitle = Loc.German ? "Anruf · Microsoft Teams" : "Call · Microsoft Teams",
-                ActionText = Loc.German ? "Annehmen" : "Accept", DismissText = Loc.German ? "Ablehnen" : "Decline",
-                Action = () => _ = teamsCalls.AnswerAsync(true),
-                OnDismiss = () => _ = teamsCalls.AnswerAsync(false),
-                Priority = PeekPriority.High, ShowInDnd = true, Seconds = 30,
-            };
-            island.ShowPeek(teamsPeek);
-        };
-        teamsCalls.Ended += () =>
-        {
-            if (teamsPeek is { } p) island.WithdrawPeek(p);
-            teamsPeek = null;
-        };
+        notifications.Removed += n => _vm?.Claude.RemoteAnswered(n.Id);
         notifications.Arrived += n =>
         {
             if (IsIncomingCall(n)) return; // shown by Seen above, with buttons
@@ -1010,11 +947,7 @@ public partial class App : Application
 
         link.RemoteNotification += n =>
         {
-            // The phone is linked to the other device: its calls still land in the list here, to call back.
-            if (_vm!.Calls.Add(n)) Log.Info("Call from the paired device added to the recent calls");
             if (!_settings.NotificationsEnabled || link.HideNotifications) return;
-            // The other device's phone rings: the same green peek as there, not the Smartphone-Link logo.
-            if (RecentCalls.IsRinging("", n.App, n.Title, n.Body)) { island.ShowPeek(PhoneRingPeek(n.Title, null)); return; }
             island.ShowPeek(new PeekItem
             {
                 Kind = PeekKind.Local,
@@ -1050,10 +983,10 @@ public partial class App : Application
     /// <summary>A call notification from Smartphone-Link (YourPhoneCalling) or Teams ("ruft an", "is calling").</summary>
     private static bool IsIncomingCall(NotificationItem n)
     {
-        if (RecentCalls.IsRinging(n.AppId, n.App, n.Title, n.Body)) return true;
+        if (n.AppId.Contains("YourPhoneCalling", StringComparison.OrdinalIgnoreCase)) return true;
         bool teams = n.AppId.Contains("Teams", StringComparison.OrdinalIgnoreCase);
         string text = n.Title + " " + n.Body;
-        return teams && (text.Contains("ruft an", StringComparison.OrdinalIgnoreCase) || text.Contains("ruft Sie an", StringComparison.OrdinalIgnoreCase) || text.Contains("calling", StringComparison.OrdinalIgnoreCase)
+        return teams && (text.Contains("ruft an", StringComparison.OrdinalIgnoreCase) || text.Contains("calling", StringComparison.OrdinalIgnoreCase)
                          || text.Contains("Eingehender Anruf", StringComparison.OrdinalIgnoreCase) || text.Contains("Incoming call", StringComparison.OrdinalIgnoreCase));
     }
 

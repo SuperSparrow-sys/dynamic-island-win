@@ -399,7 +399,6 @@ public static class Snapshots
                     vm.Todo.LoadDemo();
                     vm.Presence.LoadDemo();
                     vm.Contacts?.LoadDemo();
-                    vm.Calls.LoadDemo();
                     settings.HomeWidgets.Clear();
                     settings.ClockAnalog = true;
                     foreach (var w in new[] { Widgets.Calendar, Widgets.Contacts, Widgets.TimeTrack, Widgets.Clock, Widgets.Teams }) settings.HomeWidgets.Add(w);
