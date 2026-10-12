@@ -423,7 +423,7 @@
                 <StackPanel Visibility="{Binding Page, Converter={StaticResource EqVis}, ConverterParameter=5}">
                     <TextBlock Style="{StaticResource ST.PageTitle}" Text="{core:L De='Insel-Inhalte', En='Island content'}" />
                     <TextBlock Style="{StaticResource ST.Group}" Margin="4,0,0,8" Text="{core:L De='Aufgeklappte Insel', En='Open island'}" />
-                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" TextWrapping="Wrap" Text="{core:L De='Widgets zwischen Nook, System und Aus ziehen. Tippen öffnet ihre Einstellungen.', En='Drag widgets between Nook, System and Off. Tap to open their settings.'}" />
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,-4,0,10" TextWrapping="Wrap" Text="{core:L De='An den Strichen zwischen Nook, System und Aus ziehen. Klicken öffnet die Einstellungen.', En='Drag by the lines between Nook, System and Off. Click to open the settings.'}" />
                     <Grid x:Name="WidgetBoard" Margin="0,0,0,4" />
 
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Kompakte Insel', En='Compact island'}" />
