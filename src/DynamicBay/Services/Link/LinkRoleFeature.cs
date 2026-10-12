@@ -81,7 +81,7 @@ public sealed class LinkRoleFeature : LinkFeature
 
     private Task<bool> SendStateAsync(string peerId) => SendAsync(peerId, Type, new JsonObject
     {
-        ["main"] = ToWire(Settings.LinkMain, peerId), ["hide"] = Settings.LinkHideWhenNotMain, ["changed"] = Settings.LinkMainChanged.ToUniversalTime().Ticks,
+        ["main"] = ToWire(Settings.LinkMain, peerId), ["hide"] = Settings.LinkHideWhenNotMain, ["mute"] = Settings.LinkMuteNotificationsWhenNotMain, ["changed"] = Settings.LinkMainChanged.ToUniversalTime().Ticks,
         ["idle"] = Math.Round(Math.Max(0, _idleSeconds()), 1), ["cursor"] = _cursorHere(),
     });
 
@@ -102,6 +102,8 @@ public sealed class LinkRoleFeature : LinkFeature
                 Settings.LinkMainChanged = changed;
                 Settings.LinkMain = mine;
                 Settings.LinkHideWhenNotMain = Bool(m.Payload, "hide");
+                // Older versions do not send it: their choice keeps ours.
+                if (m.Payload is JsonObject p && p.ContainsKey("mute")) Settings.LinkMuteNotificationsWhenNotMain = Bool(p, "mute");
             }
             finally { Adopting = false; }
             Log.Info($"Link: main device set to \"{(mine!.Length == 0 ? "none" : mine)}\" by {m.PeerName}");

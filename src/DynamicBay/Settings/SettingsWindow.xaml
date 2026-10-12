@@ -1295,6 +1295,10 @@
                                                 ToolTip="{core:L De='Solange beide verbunden sind, zeigt nur das Hauptgerät die Insel.', En='While both are connected, only the main device shows the island.'}">
                                     <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkHideWhenNotMain}" />
                                 </ContentControl>
+                                <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Mitteilungen auf dem anderen Gerät ausblenden', En='Hide notifications on the other device'}"
+                                                ToolTip="{core:L De='Solange beide verbunden sind, zeigt nur das Hauptgerät Mitteilungen.', En='While both are connected, only the main device shows notifications.'}">
+                                    <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.LinkMuteNotificationsWhenNotMain}" />
+                                </ContentControl>
                             </StackPanel>
                         </Border>
                     </StackPanel>

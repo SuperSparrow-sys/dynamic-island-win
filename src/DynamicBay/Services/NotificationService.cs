@@ -77,6 +77,18 @@ public sealed partial class NotificationService : ObservableObject
 
     partial void OnAccessChanged(NotificationAccess value) => UpdateShow();
 
+    /// <summary>
+    /// The paired main device shows the notifications, this one none at all ("Mitteilungen auf dem anderen Gerät
+    /// ausblenden"): the list empties and stays empty, no peeks. Calls and Claude questions are still seen.
+    /// </summary>
+    [ObservableProperty] private bool _hiddenHere;
+
+    partial void OnHiddenHereChanged(bool value)
+    {
+        if (value) Items.Clear();
+        Log.Info(value ? "Notifications hidden here: the main device shows them" : "Notifications shown here again");
+    }
+
     private void UpdateShow()
     {
         ShowList = Access == NotificationAccess.Allowed || Items.Any(i => i.Device is not null);
@@ -90,7 +102,7 @@ public sealed partial class NotificationService : ObservableObject
     /// </summary>
     public bool AddRemote(string device, string app, string title, string body, ImageSource? logo)
     {
-        if (!_settings.NotificationsEnabled || _settings.MutedApps.Contains(app)) return false;
+        if (HiddenHere || !_settings.NotificationsEnabled || _settings.MutedApps.Contains(app)) return false;
         // WhatsApp, Teams … on both devices: the copy from the other one is the same message, shown once.
         if (IsRepeat(app, title, body)) return false;
         var item = new NotificationItem { Id = _remoteId++, App = app, Title = title, Body = body, Time = DateTime.Now, Logo = logo, Device = device };
@@ -187,7 +199,7 @@ public sealed partial class NotificationService : ObservableObject
             if (_settings.MutedApps.Contains(item.App)) continue;
             if (Items.Any(i => i.Device is not null && i.SameAs(item.App, item.Title, item.Body) && (DateTime.Now - i.Added).TotalSeconds < 10)) continue; // the paired device's copy came first
             if (_primed) Seen?.Invoke(item);
-            if (!_settings.NotificationsEnabled) continue; // off: not shown in the island at all
+            if (!_settings.NotificationsEnabled || HiddenHere) continue; // off, or the main device shows them: not in the island at all
             Items.Insert(0, item);
             if (_primed) Log.Info($"Notification from {item.App} ({item.AppId})");
             if (_primed && _settings.NotificationsEnabled && !_settings.Quiet) Arrived?.Invoke(item);

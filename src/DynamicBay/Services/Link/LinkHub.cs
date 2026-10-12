@@ -119,6 +119,8 @@ public sealed partial class LinkHub : ObservableObject
     [ObservableProperty] private bool _isMain = true;
     /// <summary>The island makes way: another device is main and "Insel ausblenden" is on.</summary>
     [ObservableProperty] private bool _hideIsland;
+    /// <summary>This device is not the main one and shows no notifications meanwhile ("Mitteilungen ausblenden").</summary>
+    [ObservableProperty] private bool _hideNotifications;
     /// <summary>Name of the first paired device, for the choice "Hauptgerät".</summary>
     [ObservableProperty] private string _otherName = "";
     public event Action? RoleChanged;
@@ -164,6 +166,7 @@ public sealed partial class LinkHub : ObservableObject
         bool main = Role?.IsMain ?? true;
         IsMain = main;
         HideIsland = !main && _settings.LinkHideWhenNotMain;
+        HideNotifications = !main && _settings.LinkMuteNotificationsWhenNotMain;
         RoleChanged?.Invoke();
     }
 
@@ -259,7 +262,7 @@ public sealed partial class LinkHub : ObservableObject
                     Role?.Update();
                     OnPropertyChanged(nameof(MainChoice));
                     break;
-                case nameof(AppSettings.LinkHideWhenNotMain):
+                case nameof(AppSettings.LinkHideWhenNotMain) or nameof(AppSettings.LinkMuteNotificationsWhenNotMain):
                     if (Role is { } role) _ = role.HideChangedAsync();
                     UpdateRole();
                     break;

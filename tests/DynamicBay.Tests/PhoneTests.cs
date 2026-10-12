@@ -123,4 +123,24 @@ public class PhoneTests
         Assert.Equal("M83", CoverLookup.MainArtist("M83"));
         Assert.Contains("term=Pastel%20Ghost%20Habits&", CoverLookup.SearchUrl("Habits (Feat. X)", "Pastel Ghost — Habits - EP"));
     }
+
+    [Fact]
+    public void On_the_other_device_notifications_stay_out_completely()
+    {
+        var n = new NotificationService(new DynamicBay.Core.AppSettings { NotificationsEnabled = true });
+        Assert.True(n.AddRemote("Laptop", "WhatsApp", "Lena", "Hallo", null));
+        n.HiddenHere = true;
+        Assert.Empty(n.Items);
+        Assert.False(n.AddRemote("Laptop", "WhatsApp", "Lena", "Noch da?", null));
+        Assert.Empty(n.Items);
+        n.HiddenHere = false;
+        Assert.True(n.AddRemote("Laptop", "WhatsApp", "Lena", "Jetzt hier", null));
+    }
+
+    [Fact]
+    public void Teams_calls_are_answered_with_Teams_own_shortcuts()
+    {
+        Assert.Equal((ushort)'S', TeamsCalls.KeyFor(accept: true));
+        Assert.Equal((ushort)'D', TeamsCalls.KeyFor(accept: false));
+    }
 }

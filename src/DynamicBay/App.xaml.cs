@@ -497,14 +497,18 @@ public partial class App : Application
         notifications.Seen += n =>
         {
             // Incoming call (Smartphone-Link, Teams): always shown, also when the island is quiet - but never while sharing the screen.
+            // Teams: answered right there (Teams' own shortcuts); Smartphone-Link: opened to answer it.
+            bool teams = IsTeamsCall(n);
             if (IsIncomingCall(n) && !_settings.Sharing)
                 island.ShowPeek(new PeekItem
                 {
                     Image = n.Logo, Icon = n.Logo is null ? Icon("Icon.Call") : null,
                     IconBrush = Res("B.Green"), IconBackground = Tint("B.Green", 0x2E),
                     Title = n.Title, Subtitle = (Loc.German ? "Anruf · " : "Call · ") + n.App,
-                    ActionText = Loc.German ? "Öffnen" : "Open", DismissText = Loc.German ? "Später" : "Later",
-                    Action = () => notifications.Open(n),
+                    ActionText = teams ? (Loc.German ? "Annehmen" : "Accept") : (Loc.German ? "Öffnen" : "Open"),
+                    DismissText = teams ? (Loc.German ? "Ablehnen" : "Decline") : (Loc.German ? "Später" : "Later"),
+                    Action = teams ? () => Task.Run(() => { if (!TeamsCalls.Answer(true)) Dispatcher.BeginInvoke(() => notifications.Open(n)); }) : () => notifications.Open(n),
+                    OnDismiss = teams ? () => Task.Run(() => TeamsCalls.Answer(false)) : null,
                     Priority = PeekPriority.High, ShowInDnd = true, Seconds = 25,
                 });
             if (!_snapshotMode) BannerSuppressor.Seen(n.AppId);
@@ -926,7 +930,7 @@ public partial class App : Application
         {
             if (link.Role is not { IsMain: false } role || item.Kind == PeekKind.Local) return false;
             if (item.HasActions) return AskMainDevice(link, island, item);
-            if (item.Kind == PeekKind.Notification) return link.Notifications?.Enabled == true;
+            if (item.Kind == PeekKind.Notification) return link.HideNotifications || link.Notifications?.Enabled == true;
             if (!_settings.LinkShareNotifications) return false;
             _ = role.ForwardPeekAsync(item.Title, item.Subtitle, item.IconKey ?? IconKeyOf(item.Icon));
             return true;
@@ -939,12 +943,16 @@ public partial class App : Application
             Icon = Icon(p.IconKey ?? "Icon.Bell"), IconBrush = Res("B.Blue"), IconBackground = Tint("B.Blue", 0x2E),
             Title = p.Title, Subtitle = p.Subtitle.Length > 0 ? p.Subtitle : p.PeerName, Seconds = 4,
         });
-        link.RoleChanged += () => island.SetLinkHidden(link.HideIsland);
+        link.RoleChanged += () =>
+        {
+            island.SetLinkHidden(link.HideIsland);
+            _notifications!.HiddenHere = link.HideNotifications;
+        };
         WireLinkTogether(link, island, Res, Icon, Tint);
 
         link.RemoteNotification += n =>
         {
-            if (!_settings.NotificationsEnabled) return;
+            if (!_settings.NotificationsEnabled || link.HideNotifications) return;
             island.ShowPeek(new PeekItem
             {
                 Kind = PeekKind.Local,
@@ -977,13 +985,16 @@ public partial class App : Application
         return _iconKeys.TryGetValue(g, out var name) ? name : null;
     }
 
+    private static bool IsTeamsCall(NotificationItem n) =>
+        n.AppId.Contains("Teams", StringComparison.OrdinalIgnoreCase) && IsIncomingCall(n);
+
     /// <summary>A call notification from Smartphone-Link (YourPhoneCalling) or Teams ("ruft an", "is calling").</summary>
     private static bool IsIncomingCall(NotificationItem n)
     {
         if (n.AppId.Contains("YourPhoneCalling", StringComparison.OrdinalIgnoreCase)) return true;
         bool teams = n.AppId.Contains("Teams", StringComparison.OrdinalIgnoreCase);
         string text = n.Title + " " + n.Body;
-        return teams && (text.Contains("ruft an", StringComparison.OrdinalIgnoreCase) || text.Contains("calling", StringComparison.OrdinalIgnoreCase)
+        return teams && (text.Contains("ruft an", StringComparison.OrdinalIgnoreCase) || text.Contains("ruft Sie an", StringComparison.OrdinalIgnoreCase) || text.Contains("calling", StringComparison.OrdinalIgnoreCase)
                          || text.Contains("Eingehender Anruf", StringComparison.OrdinalIgnoreCase) || text.Contains("Incoming call", StringComparison.OrdinalIgnoreCase));
     }
 
