@@ -54,7 +54,7 @@ public enum CalendarKind { Ics, ICloud, Google, Microsoft }
 public enum ScriptSize { Small, Large }
 
 /// <summary>A user script widget (JavaScript, Scriptable-style API) - see docs/SCRIPTS.md. The code lives in scripts{File}.</summary>
-/// <summary>Where the island sits for one arrangement of displays (see IslandManager: dock profiles).</summary>
+/// <summary>Where the island sits and how it looks for one arrangement of displays (see IslandManager: dock profiles).</summary>
 public sealed class DockProfile
 {
     public IslandEdge Edge { get; set; }
@@ -62,6 +62,27 @@ public sealed class DockProfile
     public double Along { get; set; }
     public double Inset { get; set; }
     public string Monitor { get; set; } = "";
+    /// <summary>Island or notch; null in profiles saved before 1.1.4 (the shape then stays as it is).</summary>
+    public IslandShape? Shape { get; set; }
+
+    public static DockProfile From(AppSettings s) => new()
+    {
+        Edge = s.Edge, Align = s.Align, Along = s.Along, Inset = s.Inset, Monitor = s.Monitor, Shape = s.ShapeStyle,
+    };
+
+    public bool SameAs(AppSettings s) =>
+        Edge == s.Edge && Align == s.Align && Math.Abs(Along - s.Along) < 0.001 && Math.Abs(Inset - s.Inset) < 0.01
+        && string.Equals(Monitor, s.Monitor, StringComparison.OrdinalIgnoreCase) && (Shape is null || Shape == s.ShapeStyle);
+
+    public void ApplyTo(AppSettings s)
+    {
+        s.Monitor = Monitor;
+        s.Edge = Edge;
+        s.Align = Align;
+        s.Along = Along;
+        s.Inset = Inset;
+        if (Shape is { } shape) s.ShapeStyle = shape;
+    }
 }
 
 public sealed class ScriptWidgetConfig

@@ -66,7 +66,7 @@ dann die optionale Zeiterfassung (Paket C).
 | 38 | Bildschirmfreigabe oder Präsentation: Insel wird zum Strich (auch bei Musik), Mitteilungen ohne Text | fertig (Live-Test) |
 | 39 | Text aus Screenshots (OCR, Windows-eigene Texterkennung) kopieren | fertig (Live-Test) |
 | 40 | Fokus-Sitzung: Pomodoro schaltet „Nicht stören“ mit ein, kleine Tagesübersicht | fertig (Live-Test) |
-| 41 | Dock-Profile: Position der Insel je Bildschirm-Anordnung merken und beim An-/Abdocken wiederherstellen | fertig (Live-Test) |
+| 41 | Dock-Profile: Position und Form (Insel oder Notch) je Bildschirm-Anordnung merken und beim An-/Abdocken wiederherstellen | fertig (Live-Test; Form: Test) |
 
 ### Paket B – Microsoft 365 (eine Anmeldung)
 | # | Anforderung | Status |

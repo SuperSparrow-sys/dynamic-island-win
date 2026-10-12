@@ -256,8 +256,8 @@
                                     </StackPanel>
                                 </Border>
                             </ContentControl>
-                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Position je Bildschirm-Anordnung merken', En='Remember position per display setup'}"
-                                            ToolTip="{core:L De='Eigener Platz für Laptop und Büro-Monitor.', En='Own spot for laptop and office monitor.'}">
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Je Bildschirm-Anordnung merken', En='Remember per display setup'}"
+                                            ToolTip="{core:L De='Platz und Form (Insel oder Notch) für Laptop allein und mit Monitor.', En='Spot and shape (island or notch) for the laptop alone and with a monitor.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.DockProfiles}" />
                             </ContentControl>
                         </StackPanel>

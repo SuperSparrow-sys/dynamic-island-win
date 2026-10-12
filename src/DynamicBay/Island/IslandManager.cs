@@ -42,7 +42,7 @@ public sealed class IslandManager
         if (e.PropertyName is nameof(AppSettings.Displays)) SyncMirrors(force: true);
         // The user placed the island (drag, settings): remember it for this arrangement of displays.
         if (!_applyingProfile && e.PropertyName is nameof(AppSettings.Edge) or nameof(AppSettings.Align) or nameof(AppSettings.Along)
-                or nameof(AppSettings.Inset) or nameof(AppSettings.Monitor))
+                or nameof(AppSettings.Inset) or nameof(AppSettings.Monitor) or nameof(AppSettings.ShapeStyle))
             RememberPlacement();
     }
 
@@ -58,10 +58,7 @@ public sealed class IslandManager
     private void RememberPlacement()
     {
         if (!_settings.DockProfiles || _profileKey.Length == 0) return;
-        _settings.DockProfileMap[_profileKey] = new DockProfile
-        {
-            Edge = _settings.Edge, Align = _settings.Align, Along = _settings.Along, Inset = _settings.Inset, Monitor = _settings.Monitor,
-        };
+        _settings.DockProfileMap[_profileKey] = DockProfile.From(_settings);
         _settings.SaveSoon();
     }
 
@@ -69,27 +66,38 @@ public sealed class IslandManager
     private void ApplyProfile(string key, bool arrangementChanged)
     {
         _profileKey = key;
-        if (!_settings.DockProfiles) return;
-        if (!_settings.DockProfileMap.TryGetValue(key, out var p))
-        {
-            // First time with these displays: start from the current placement.
-            RememberPlacement();
-            return;
-        }
-        if (!arrangementChanged) return;
-        if (p.Edge == _settings.Edge && p.Align == _settings.Align && Math.Abs(p.Along - _settings.Along) < 0.001
-            && Math.Abs(p.Inset - _settings.Inset) < 0.01 && string.Equals(p.Monitor, _settings.Monitor, StringComparison.OrdinalIgnoreCase)) return;
         _applyingProfile = true;
-        try
-        {
-            _settings.Monitor = p.Monitor;
-            _settings.Edge = p.Edge;
-            _settings.Align = p.Align;
-            _settings.Along = p.Along;
-            _settings.Inset = p.Inset;
-        }
+        DockProfile? applied;
+        try { applied = SwitchProfile(_settings, key, arrangementChanged); }
         finally { _applyingProfile = false; }
-        Log.Info($"Dock profile applied: {p.Edge}/{p.Align} on {(p.Monitor.Length == 0 ? "primary" : p.Monitor)}");
+        if (_settings.DockProfiles) _settings.SaveSoon();
+        if (applied is not null)
+        {
+            Log.Info($"Dock profile applied: {_settings.ShapeStyle} {applied.Edge}/{applied.Align} on {(applied.Monitor.Length == 0 ? "primary" : applied.Monitor)}");
+        }
+    }
+
+    /// <summary>
+    /// The displays are now <paramref name="key"/>: a new arrangement starts from the current look, a known one gets its
+    /// own back (when it really changed, not at the start). A profile from before the shape was remembered keeps the
+    /// current shape and remembers it from now on. Returns the profile that was applied.
+    /// </summary>
+    internal static DockProfile? SwitchProfile(AppSettings s, string key, bool arrangementChanged)
+    {
+        if (!s.DockProfiles || key.Length == 0) return null;
+        if (!s.DockProfileMap.TryGetValue(key, out var p))
+        {
+            s.DockProfileMap[key] = DockProfile.From(s);
+            return null;
+        }
+        if (!arrangementChanged || p.SameAs(s))
+        {
+            p.Shape ??= s.ShapeStyle;
+            return null;
+        }
+        p.ApplyTo(s);
+        p.Shape ??= s.ShapeStyle;
+        return p;
     }
 
     private void SyncMirrors(bool force = false)
