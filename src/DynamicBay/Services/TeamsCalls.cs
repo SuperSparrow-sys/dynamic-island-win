@@ -8,8 +8,9 @@ namespace DynamicBay.Services;
 
 /// <summary>
 /// A ringing Teams call: new Teams shows it in its own small window (class "TeamsWebView", title "Microsoft Teams",
-/// bottom right) with the buttons "Mit Audio annehmen" and "Anruf ablehnen". This finds that window, moves it up under
-/// the island if wanted, and presses its buttons for the island's "Annehmen" / "Ablehnen" (only on a click).
+/// bottom right) with the buttons "Mit Audio annehmen" and "Anruf ablehnen". This finds that window, moves it out of
+/// sight while the island shows the call, and presses its buttons for the island's "Annehmen" / "Ablehnen" (only on a
+/// click).
 /// </summary>
 public sealed class TeamsCalls
 {
@@ -22,6 +23,9 @@ public sealed class TeamsCalls
     public event Action<string>? Ringing;
     /// <summary>It stopped ringing (answered, declined, missed) - here or in Teams.</summary>
     public event Action? Ended;
+
+    /// <summary>Teams' window goes out of sight: the island shows the call (here, or on the paired main device).</summary>
+    public Func<bool> Hide { get; set; } = () => false;
 
     public TeamsCalls(AppSettings settings)
     {
@@ -38,8 +42,8 @@ public sealed class TeamsCalls
         _checking = true;
         try
         {
-            bool top = _settings.TeamsCallOnTop;
-            var found = await Task.Run(() => FindCall(top));
+            bool hide = Hide();
+            var found = await Task.Run(() => FindCall(hide));
             if (found is { } call && _ringing == IntPtr.Zero)
             {
                 _ringing = call.Window;
@@ -68,16 +72,15 @@ public sealed class TeamsCalls
     internal static bool IsToast(string title, int width, int height) =>
         title == "Microsoft Teams" && width is > 200 and < 700 && height is > 60 and < 600;
 
-    /// <summary>Where the call window goes: centred at the top of the work area, under the island.</summary>
-    internal static (int X, int Y) TopCenter(Native.RECT work, int width, double scale) =>
-        (work.Left + (work.Right - work.Left - width) / 2, work.Top + (int)Math.Round(64 * scale));
+    /// <summary>Out of sight: left of all screens. Still a normal window, so its buttons can be pressed.</summary>
+    internal static int HiddenX(int virtualLeft, int width) => virtualLeft - width - 200;
 
     /// <summary>The caller: the first text of the toast that is not one of Teams' own labels.</summary>
     internal static string CallerFrom(IEnumerable<string> texts) =>
         texts.Select(t => t.Trim()).FirstOrDefault(t => t.Length > 0 && !OwnLabels.Contains(t, StringComparer.OrdinalIgnoreCase)
             && !AcceptNames.Concat(DeclineNames).Contains(t, StringComparer.OrdinalIgnoreCase)) ?? "";
 
-    private static (IntPtr Window, string Caller)? FindCall(bool moveToTop)
+    private static (IntPtr Window, string Caller)? FindCall(bool hide)
     {
         for (IntPtr h = FindWindowEx(IntPtr.Zero, IntPtr.Zero, "TeamsWebView", null); h != IntPtr.Zero;
              h = FindWindowEx(IntPtr.Zero, h, "TeamsWebView", null))
@@ -88,13 +91,9 @@ public sealed class TeamsCalls
             if (!IsToast(title.ToString(), r.Right - r.Left, r.Bottom - r.Top)) continue;
             var root = AutomationElement.FromHandle(h);
             if (Button(root, AcceptNames) is null) continue; // a chat message, not a call
-            if (moveToTop)
-            {
-                var m = Monitors.FromPoint((r.Left + r.Right) / 2, (r.Top + r.Bottom) / 2);
-                var (x, y) = TopCenter(m.Work, r.Right - r.Left, m.Scale);
-                if (Math.Abs(r.Left - x) > 2 || Math.Abs(r.Top - y) > 2)
-                    Native.SetWindowPos(h, IntPtr.Zero, x, y, 0, 0, 0x0001 | 0x0004 | 0x0010); // NOSIZE | NOZORDER | NOACTIVATE
-            }
+            int hiddenX = HiddenX(GetSystemMetrics(76), r.Right - r.Left); // SM_XVIRTUALSCREEN
+            if (hide && r.Left != hiddenX)
+                Native.SetWindowPos(h, IntPtr.Zero, hiddenX, r.Top, 0, 0, 0x0001 | 0x0004 | 0x0010); // NOSIZE | NOZORDER | NOACTIVATE
             var texts = root.FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text))
                 .Cast<AutomationElement>().Take(12).Select(e => { try { return e.Current.Name; } catch { return ""; } });
             return (h, CallerFrom(texts));
@@ -131,5 +130,6 @@ public sealed class TeamsCalls
     });
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string? cls, string? title);
+    [DllImport("user32.dll")] private static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, StringBuilder buf, int max);
 }

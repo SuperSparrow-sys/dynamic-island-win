@@ -213,22 +213,6 @@ public sealed partial class LinkHub
         }
     }
 
-    /// <summary>
-    /// Asks the first connected paired device too, whatever the main device is (a ringing phone can be answered on
-    /// either). False: none can be asked.
-    /// </summary>
-    public bool TryAskPairedDevice(LinkQuestion q, Action<LinkAnswer> done)
-    {
-        if (Questions is not { } f || f.OnlinePeers.FirstOrDefault(p => f.CanAsk(p.Id)) is not { } peer) return false;
-        _ = Ask();
-        return true;
-
-        async Task Ask()
-        {
-            if (!await f.AskAsync(peer.Id, q, done)) done(LinkAnswer.Lost);
-        }
-    }
-
     /// <summary>Show this device's own battery peek? Not on the quiet device when the main device shows it.</summary>
     public bool ShowsOwnBatteryPeek()
     {

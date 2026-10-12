@@ -46,11 +46,6 @@ public sealed class PeekItem : INotifyPropertyChanged
     private double? _progress;
     /// <summary>The second button of a question peek was pressed (or it was dismissed by hand).</summary>
     public Action? OnDismiss { get; init; }
-    /// <summary>
-    /// A question that ran out on the other device counts as the second button (default). Not for calls: a call is
-    /// never declined just because nobody pressed anything.
-    /// </summary>
-    public bool TimeoutIsNo { get; init; } = true;
     public double Seconds { get; init; } = 3.2;
     public PeekPriority Priority { get; init; } = PeekPriority.Normal;
     public PeekKind Kind { get; init; } = PeekKind.General;

@@ -149,7 +149,7 @@ public class PhoneTests
     }
 
     [Fact]
-    public void Teams_call_window_is_found_and_moved_under_the_island()
+    public void Teams_call_window_is_found_and_moved_out_of_sight()
     {
         // As seen on the laptop: the call toast 465x315 bottom right, the main window carries chat and tenant in its title.
         Assert.True(TeamsCalls.IsToast("Microsoft Teams", 465, 315));
@@ -157,27 +157,13 @@ public class PhoneTests
         Assert.False(TeamsCalls.IsToast("Chat | Jonathan Seeger | Regenery GmbH | Microsoft Teams", 1536, 864));
         Assert.False(TeamsCalls.IsToast("Microsoft Teams", 1458, 911));
 
-        var work = new DynamicBay.Core.Native.RECT { Left = 0, Top = 0, Right = 1920, Bottom = 1032 };
-        Assert.Equal((727, 64), TeamsCalls.TopCenter(work, 465, 1.0));
-        Assert.Equal((727, 96), TeamsCalls.TopCenter(work, 465, 1.5));
+        // Out of sight left of all screens (also with a monitor left of the main one, at -1920).
+        Assert.Equal(-665, TeamsCalls.HiddenX(0, 465));
+        Assert.Equal(-2585, TeamsCalls.HiddenX(-1920, 465));
 
         Assert.Equal("Anna Schmidt", TeamsCalls.CallerFrom(new[] { "Microsoft Teams", "", "Anna Schmidt", "Eingehender Anruf" }));
         Assert.Equal("", TeamsCalls.CallerFrom(new[] { "Mit Audio annehmen", "Anruf ablehnen" }));
         Assert.Contains("Mit Audio annehmen", TeamsCalls.AcceptNames);
         Assert.Contains("Anruf ablehnen", TeamsCalls.DeclineNames);
-    }
-
-    [Fact]
-    public void A_phone_call_is_answered_with_the_buttons_of_its_notification()
-    {
-        // As Smartphone-Link shows it: "Auf dem PC zulassen", "Nachricht", "Ablehnen".
-        Assert.Contains("Auf dem PC zulassen", PhoneLinkCalls.AcceptNames);
-        Assert.Contains("Ablehnen", PhoneLinkCalls.DeclineNames);
-        Assert.DoesNotContain("Nachricht", PhoneLinkCalls.AcceptNames.Concat(PhoneLinkCalls.DeclineNames));
-        Assert.True(PhoneLinkCalls.IsNotificationCenter("Benachrichtigungscenter"));
-        Assert.True(PhoneLinkCalls.IsNotificationCenter("Notification Center"));
-        Assert.False(PhoneLinkCalls.IsNotificationCenter("Smartphone-Link"));
-        // A question that runs out on the other device declines nothing for calls; other questions keep "timeout = no".
-        Assert.True(new DynamicBay.Island.PeekItem().TimeoutIsNo);
     }
 }

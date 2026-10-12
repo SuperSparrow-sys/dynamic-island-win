@@ -423,8 +423,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _linkHideWhenNotMain;
     /// <summary>No notifications at all on the device that is not the main one, while the other is connected.</summary>
     [ObservableProperty] private bool _linkMuteNotificationsWhenNotMain;
-    /// <summary>Teams' call window (bottom right) moves up under the island while it rings.</summary>
-    [ObservableProperty] private bool _teamsCallOnTop = true;
+    /// <summary>Teams' call window (bottom right) goes out of sight while it rings: only the island shows the call.</summary>
+    [ObservableProperty] private bool _teamsCallHide = true;
     private ObservableCollection<PairedDevice> _pairedDevices = new();
     public ObservableCollection<PairedDevice> PairedDevices
     {
