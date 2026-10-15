@@ -177,12 +177,13 @@ public static class Snapshots
             return;
         }
 
-        // Devices widget with the real Bluetooth devices: DYNAMICBAY_SNAPSHOT_DEVICES=1
+        // Devices and AirPods widgets with the real Bluetooth devices: DYNAMICBAY_SNAPSHOT_DEVICES=1
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_DEVICES") == "1")
         {
             vm.Bluetooth?.Start();
+            if (vm.Bluetooth is not null) vm.AirPods.Start(vm.Bluetooth);
             settings.HomeWidgets.Clear();
-            foreach (var w in new[] { Widgets.Devices, Widgets.Media, Widgets.Calendar }) settings.HomeWidgets.Add(w);
+            foreach (var w in new[] { Widgets.AirPods, Widgets.Devices, Widgets.Calendar }) settings.HomeWidgets.Add(w);
             await Task.Delay(5000);
             foreach (var (name, edge, align, along) in placements.Where(p => p.name is "top" or "left"))
             {
@@ -192,6 +193,7 @@ public static class Snapshots
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-devices.png"), compact: false);
             }
             Log.Info("Devices snapshot: " + string.Join(", ", vm.Bluetooth?.Devices.Select(d => $"{d.Name}={d.Kind}/{d.Battery}") ?? Array.Empty<string>()));
+            Log.Info($"AirPods snapshot: {vm.AirPods.Name} connected={vm.AirPods.Connected} reading={vm.AirPods.HasReading} L={vm.AirPods.Left} R={vm.AirPods.Right} case={vm.AirPods.Case}");
             return;
         }
 
@@ -409,6 +411,13 @@ public static class Snapshots
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.Media, Widgets.Audio, Widgets.Devices }) settings.HomeWidgets.Add(w);
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8d-audio.png"), compact: true);
+                // AirPods widget: earbuds and case, then not connected (connect chip).
+                vm.AirPods.LoadDemo();
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.AirPods, Widgets.Devices, Widgets.Media }) settings.HomeWidgets.Add(w);
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8i-airpods.png"), compact: true);
+                vm.AirPods.LoadDemo(connected: false);
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8j-airpods-off.png"), compact: true);
                 // Second page "System": sound and devices live there
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.Media, Widgets.Calendar }) settings.HomeWidgets.Add(w);

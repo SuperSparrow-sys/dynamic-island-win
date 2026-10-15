@@ -189,6 +189,17 @@ mit Intels Bluetooth-Audio-Offload). Einstellungen → Audio und Geräte → *Ko
   Teams nutzt das, wenn dort als Gerät „Standard“ eingestellt ist.
 - Werden die Kopfhörer getrennt, pausiert die Musik.
 
+### AirPods
+
+Das Widget „AirPods“ zeigt den Akku beider Ohrhörer und des Case; Windows selbst kennt bei AirPods keinen Akkustand.
+Im Widget „Geräte“ stehen die AirPods mit dem leereren Ohrhörer.
+Die Werte stammen aus der Bluetooth-Werbung, die AirPods etwa einmal pro Sekunde an alle in der Nähe senden (Apple,
+Firma 0x004C, Typ 0x07 „Proximity Pairing“; Aufbau wie bei OpenPods und AirPodsDesktop, `AirPodsAdvert`). Die Insel
+hört nur passiv zu und sendet nichts an die AirPods. Gelesen wird nur, solange AirPods verbunden sind und eines der beiden Widgets
+auf einer Seite liegt. Fremde AirPods im Raum: Es bleibt beim ersten Absender, ein anderer zählt nur, wenn er 8 dB
+stärker ist oder der bisherige 15 s schweigt (AirPods wechseln ihre Adresse alle paar Minuten). Stufen in 10 %; das
+Case meldet sich nur bei offenem Deckel, bis dahin bleibt der letzte Wert stehen.
+
 Screenshot-Ordner aller OneDrive-Konten werden automatisch überwacht.
 
 ## Claude

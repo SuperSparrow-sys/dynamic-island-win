@@ -1178,6 +1178,70 @@
                     </DockPanel>
                 </Border>
 
+                <!-- AirPods: battery of each earbud and the case from their Bluetooth advertisements; connect when they are not -->
+                <Border x:Name="AirPodsCard" Style="{StaticResource Card}" Padding="12,9,12,12">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Height="22">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Chip}" Padding="10,0" Height="22" FontSize="10.5" VerticalAlignment="Center"
+                                    Visibility="{Binding AirPods.CanConnect, Converter={StaticResource Vis}}"
+                                    IsEnabled="{Binding AirPods.Headset.Busy, Converter={StaticResource Not}, FallbackValue=False}"
+                                    Background="{StaticResource B.Blue}" Content="{core:L De='Verbinden', En='Connect'}"
+                                    Command="{Binding AudioDevices.ToggleCommand}" CommandParameter="{Binding AirPods.Headset}" />
+                            <c:Icon Data="{StaticResource Icon.Headphones}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       Text="{Binding AirPods.Name}" />
+                        </DockPanel>
+                        <Grid Margin="0,8,0,0">
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding AirPods.HasReading, Converter={StaticResource NotVis}}" Text="{Binding AirPods.StateText}" />
+                            <Viewbox StretchDirection="DownOnly" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                     Visibility="{Binding AirPods.HasReading, Converter={StaticResource Vis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <StackPanel Width="60">
+                                        <Grid Width="46" Height="46">
+                                            <c:ProgressRing Thickness="4" Value="{Binding AirPods.Left, Converter={StaticResource BatteryValue}}"
+                                                            RingBrush="{Binding AirPods.Left, Converter={StaticResource BatteryBrush}}" />
+                                            <TextBlock Style="{StaticResource T.Title}" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" Text="L" />
+                                        </Grid>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <c:Icon Data="{StaticResource Icon.Zap}" Width="10" Height="10" Margin="0,0,2,0" Foreground="{StaticResource B.Green}" VerticalAlignment="Center"
+                                                    Visibility="{Binding AirPods.LeftCharging, Converter={StaticResource Vis}}" />
+                                            <TextBlock Style="{StaticResource T.Numeric}" FontSize="11.5" Text="{Binding AirPods.Left, Converter={StaticResource BatteryText}}" />
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="9.5" HorizontalAlignment="Center" Text="{core:L De='Links', En='Left'}" />
+                                    </StackPanel>
+                                    <StackPanel Width="60">
+                                        <Grid Width="46" Height="46">
+                                            <c:ProgressRing Thickness="4" Value="{Binding AirPods.Right, Converter={StaticResource BatteryValue}}"
+                                                            RingBrush="{Binding AirPods.Right, Converter={StaticResource BatteryBrush}}" />
+                                            <TextBlock Style="{StaticResource T.Title}" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" Text="R" />
+                                        </Grid>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <c:Icon Data="{StaticResource Icon.Zap}" Width="10" Height="10" Margin="0,0,2,0" Foreground="{StaticResource B.Green}" VerticalAlignment="Center"
+                                                    Visibility="{Binding AirPods.RightCharging, Converter={StaticResource Vis}}" />
+                                            <TextBlock Style="{StaticResource T.Numeric}" FontSize="11.5" Text="{Binding AirPods.Right, Converter={StaticResource BatteryText}}" />
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="9.5" HorizontalAlignment="Center" Text="{core:L De='Rechts', En='Right'}" />
+                                    </StackPanel>
+                                    <StackPanel Width="60">
+                                        <Grid Width="46" Height="46">
+                                            <c:ProgressRing Thickness="4" Value="{Binding AirPods.Case, Converter={StaticResource BatteryValue}}"
+                                                            RingBrush="{Binding AirPods.Case, Converter={StaticResource BatteryBrush}}" />
+                                            <c:Icon Data="{StaticResource Icon.EarbudCase}" Width="18" Height="18" Foreground="{StaticResource B.Text}" />
+                                        </Grid>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,5,0,0">
+                                            <c:Icon Data="{StaticResource Icon.Zap}" Width="10" Height="10" Margin="0,0,2,0" Foreground="{StaticResource B.Green}" VerticalAlignment="Center"
+                                                    Visibility="{Binding AirPods.CaseCharging, Converter={StaticResource Vis}}" />
+                                            <TextBlock Style="{StaticResource T.Numeric}" FontSize="11.5" Text="{Binding AirPods.Case, Converter={StaticResource BatteryText}}" />
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="9.5" HorizontalAlignment="Center" Text="Case" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Viewbox>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
                 <!-- Paired devices (link): online, battery; files dropped on a device go to it -->
                 <Border x:Name="PairedCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>

@@ -93,6 +93,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public MusicVolumeService MusicVolume { get; }
     /// <summary>Sound output, microphone and Bluetooth headsets (the "Audio" widget and its rules).</summary>
     public AudioDevicesService AudioDevices { get; }
+    /// <summary>Battery of each earbud and the case (the "AirPods" widget).</summary>
+    public AirPodsService AirPods { get; }
     /// <summary>Quick notes (the "Notizen" widget).</summary>
     public NotesService Notes { get; } = new();
     /// <summary>Browser downloads (size, speed; the finished file is announced).</summary>
@@ -176,6 +178,7 @@ public sealed partial class IslandViewModel : ObservableObject
         Timer = timer; Calendar = calendar; Battery = battery; Spotify = spotify;
         MusicVolume = new MusicVolumeService(media, spotify);
         AudioDevices = new AudioDevicesService(settings, media);
+        AirPods = new AirPodsService(settings, AudioDevices);
         Clock = new ClockService(settings);
         System = new SystemService();
         Shortcuts = new ShortcutsService(settings);

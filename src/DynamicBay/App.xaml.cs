@@ -241,6 +241,7 @@ public partial class App : Application
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.CompactItems)) vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads)); };
         Safe("Bluetooth", bluetooth.Start);
         Safe("AudioDevices", vm.AudioDevices.Start);
+        Safe("AirPods", () => vm.AirPods.Start(bluetooth));
         vm.Audio.AudioServiceRestarted += vm.AudioDevices.Reconnect; // Windows Audio restarted: register for device changes again
         Safe("Calendar", calendar.Start);
         Safe("Scripts", vm.Scripts.Start);

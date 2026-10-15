@@ -17,8 +17,8 @@ public enum IslandShape { Island, Notch }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads", CursorHop = "cursorhop", Paired = "paired";
-    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, Todo, Teams, TimeTrack, Contacts, CursorHop, Paired };
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads", CursorHop = "cursorhop", Paired = "paired", AirPods = "airpods";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, AirPods, Todo, Teams, TimeTrack, Contacts, CursorHop, Paired };
     public const string Battery = "battery";
     /// <summary>Settings page and group heading (start of its text) of each widget - for the gear in the island and the board in the settings.</summary>
     public static (SettingsPage page, string? group) SettingsOf(string id) => id switch
@@ -31,7 +31,7 @@ public static class Widgets
         Claude => (SettingsPage.Apps, "Claude"),
         CursorHop => (SettingsPage.Devices, "CursorHop"),
         Messenger => (SettingsPage.Notifications, null),
-        Devices => (SettingsPage.Audio, "Bluetooth"),
+        Devices or AirPods => (SettingsPage.Audio, "Bluetooth"),
         Audio => (SettingsPage.Audio, Loc.German ? "Kopfhörer" : "Headphones"),
         Todo => (SettingsPage.Calendar, Loc.German ? "Aufgaben" : "Tasks"),
         Teams or Contacts => (SettingsPage.Accounts, "Microsoft 365"),

@@ -84,6 +84,7 @@ Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird ansch
 | `Link/LinkHub` | Startet den Link mit „Geräte koppeln“, hält die Funktionen und die Listen für Einstellungen und Insel |
 | `ShortcutsService`, `AppIcons`, `InstalledApps` | Schnellstart, Simple-Icons-Palette (gzip, bei Bedarf geladen), Startmenü-Apps |
 | `Battery/Bluetooth/Timer/Clock/SystemService` | Akku, Geräte, Timer/Pomodoro, Uhr, CPU/RAM |
+| `AirPodsService` | Akku beider Ohrhörer und des Case aus der Bluetooth-Werbung der AirPods (`AirPodsAdvert`), siehe [INTEGRATIONS.md](INTEGRATIONS.md#airpods) |
 
 ## Daten
 
