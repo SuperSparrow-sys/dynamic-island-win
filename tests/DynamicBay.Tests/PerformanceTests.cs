@@ -66,6 +66,53 @@ public class PerformanceTests
     }
 
     [Fact]
+    public void Nobody_sees_the_island_while_locked_or_with_the_display_off()
+    {
+        var a = new ActivityState();
+        int changes = 0;
+        a.Changed += () => changes++;
+        Assert.False(a.Away);
+
+        a.Set(locked: true);
+        Assert.True(a.Away);
+        a.Set(displayOff: true); // still away: no second change
+        a.Set(locked: false);
+        Assert.True(a.Away); // the display is still off
+        Assert.Equal(1, changes);
+        a.Set(displayOff: false);
+        Assert.False(a.Away);
+        Assert.Equal(2, changes);
+
+        // Endless animations run only while someone can see them
+        Assert.True(ActivityState.ShouldAnimate(visible: true, loaded: true, away: false));
+        Assert.False(ActivityState.ShouldAnimate(visible: true, loaded: true, away: true));
+        Assert.False(ActivityState.ShouldAnimate(visible: false, loaded: true, away: false));
+    }
+
+    [Theory]
+    [InlineData(0, true)]   // off
+    [InlineData(1, false)]  // on
+    [InlineData(2, false)]  // dimmed: still visible
+    public void The_display_state_comes_from_the_power_setting_message(int state, bool off)
+    {
+        // POWERBROADCAST_SETTING: GUID PowerSetting, DWORD DataLength, BYTE Data[]
+        var data = new byte[24];
+        ActivityState.ConsoleDisplayState.ToByteArray().CopyTo(data, 0);
+        BitConverter.GetBytes(4).CopyTo(data, 16);
+        BitConverter.GetBytes(state).CopyTo(data, 20);
+        var p = System.Runtime.InteropServices.Marshal.AllocHGlobal(data.Length);
+        try
+        {
+            System.Runtime.InteropServices.Marshal.Copy(data, 0, p, data.Length);
+            Assert.Equal(off, ActivityState.DisplayOff(p));
+            Guid.NewGuid().ToByteArray().CopyTo(data, 0); // another power setting
+            System.Runtime.InteropServices.Marshal.Copy(data, 0, p, data.Length);
+            Assert.Null(ActivityState.DisplayOff(p));
+        }
+        finally { System.Runtime.InteropServices.Marshal.FreeHGlobal(p); }
+    }
+
+    [Fact]
     public async Task A_failed_read_does_not_block_the_next_one()
     {
         int runs = 0;

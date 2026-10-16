@@ -136,6 +136,7 @@ public sealed partial class ClaudeService : ObservableObject
 
     private void OnScanTick(object? sender, EventArgs e)
     {
+        if (ActivityState.Current.Away) return; // the list is only shown; hooks still report finished and waiting sessions
         bool busy = Sessions.Any(x => x.State != ClaudeState.Idle || x.ActiveAgents > 0);
         bool shared = !string.IsNullOrWhiteSpace(_settings.ClaudeShareFolder);
         if (_watcher is not null && !_dirty && !busy && !shared && DateTime.UtcNow - _lastScan < TimeSpan.FromMinutes(1)) return;

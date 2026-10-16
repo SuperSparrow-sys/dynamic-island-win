@@ -18,6 +18,7 @@ src/DynamicBay/
 │  ├─ Native.cs           Win32-P/Invoke
 │  ├─ SecretStore.cs      Passwörter/Tokens mit DPAPI
 │  ├─ SparsePackage.cs    Paket-Identität registrieren (für Mitteilungen)
+│  ├─ ActivityState.cs    gesperrt oder Bildschirm aus: Dauer-Animationen und reine Anzeige-Abfragen pausieren
 │  ├─ Loc.cs              Deutsch/Englisch, {core:T Key} und {core:L De=…, En=…}
 │  ├─ ErrorText.cs        Fehler → kurzer Satz für Nutzer (Deutsch/Englisch), Details nur ins Log
 │  ├─ PointerGesture.cs   Drücken/Ziehen mit genau einem Ende (Loslassen, Capture verloren, Insel versteckt)
@@ -61,6 +62,11 @@ die Form wächst. Ein Retarget behält die Geschwindigkeit – unterbrochene Ani
 und Bildschirm. `PlacementMath.FromDrop` bestimmt das beim Loslassen (nächste Kante, Ecken-Zone 18 %, magnetisches
 Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird anschließend auf seinen Bildschirm begrenzt
 (`ClampToMonitor`), die Form behält ihre Position über eine Gegen-Verschiebung.
+
+**Niemand schaut hin.** `ActivityState` merkt sich Sperre (`SessionSwitch`) und Bildschirm aus
+(`GUID_CONSOLE_DISPLAY_STATE` an das Meldungsfenster). Dann halten Dauer-Animationen (`Waveform`, `c:Loop`) an, und
+Abfragen, deren Ergebnis nur angezeigt wird (Stummschaltung, Claude-Liste), lassen ihre Arbeit aus. Was andere Teile
+steuert (Mikrofon-Nutzung für den Anrufmodus, Timer, Zeiterfassung), läuft weiter.
 
 **Konzentrische Rundungen.** Innenradius = Außenradius − Abstand: Panel 32 → Karten 20 (Abstand 12) → Kacheln/Cover 10
 (Abstand 10). Peek 22 → Cover 13 (Abstand 9).

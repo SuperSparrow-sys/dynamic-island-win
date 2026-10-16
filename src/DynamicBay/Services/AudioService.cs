@@ -36,7 +36,9 @@ public sealed partial class AudioService : ObservableObject
     public AudioService(AppSettings settings)
     {
         _settings = settings;
-        _fast.Tick += (_, _) => ReadMute();
+        // Mute and volume are only shown: nobody looking (locked, display off), nothing to read. The microphone use stays
+        // polled, it decides about the call mode that the paired device follows.
+        _fast.Tick += (_, _) => { if (!ActivityState.Current.Away) ReadMute(); };
         _usage.Tick += (_, _) => ReadUsage();
     }
 

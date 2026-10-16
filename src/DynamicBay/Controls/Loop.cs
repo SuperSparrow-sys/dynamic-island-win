@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media.Animation;
+using DynamicBay.Core;
 
 namespace DynamicBay.Controls;
 
@@ -8,6 +9,7 @@ namespace DynamicBay.Controls;
 /// <c>&lt;c:Loop.Storyboard&gt;&lt;Storyboard RepeatBehavior="Forever"&gt;…&lt;/Storyboard&gt;&lt;/c:Loop.Storyboard&gt;</c>.
 /// A storyboard started from a Loaded trigger keeps ticking while its layer is hidden, and any running animation makes
 /// WPF redraw the whole (transparent, software-composited) island window every frame - a constant CPU load.
+/// It also stops while nobody can see the island (locked, display off: <see cref="ActivityState"/>).
 /// </summary>
 public static class Loop
 {
@@ -27,6 +29,7 @@ public static class Loop
         el.IsVisibleChanged += OnVisibility;
         el.Unloaded -= OnUnloaded;
         el.Unloaded += OnUnloaded;
+        ActivityState.Current.Watch(el, Update);
         Update(el);
     }
 
@@ -37,7 +40,7 @@ public static class Loop
     {
         var sb = GetStoryboard(el);
         if (sb is null) return;
-        bool run = el.IsVisible && el.IsLoaded;
+        bool run = ActivityState.ShouldAnimate(el);
         bool running = (bool)el.GetValue(RunningProperty);
         if (run == running) return;
         el.SetValue(RunningProperty, run);

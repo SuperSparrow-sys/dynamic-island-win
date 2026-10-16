@@ -197,6 +197,7 @@ public partial class App : Application
 
         _msg = new MessageWindow();
         _msg.Message += OnMessage;
+        ActivityState.Current.Start(_msg, Dispatcher);
         RegisterHotkey();
         _settings.PropertyChanged += (_, ev) =>
         {

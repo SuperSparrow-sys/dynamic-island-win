@@ -7,7 +7,7 @@ echten Einstellungen ohne Link, 40 s Anlauf, 90 s Messung, CPU in Prozent eines 
 | Paket | Punkt | Erfolgskriterium | Status |
 |---|---|---|---|
 | 1. Mitteilungen über Ereignis | 1 | Abfrage kostet unter 0,5 Punkte | erledigt 16.10.: 0,2 statt 3,4–4,1 Punkte |
-| 2. Aktivitätszustand | 2 | Ausgeblendet, gesperrt oder Bildschirm aus: nahe 0,75 % | offen |
+| 2. Aktivitätszustand | 2 | Ausgeblendet, gesperrt oder Bildschirm aus: nahe 0,75 % | erledigt 16.10.: Bildschirm aus 1,72 % statt 17,78 %, ausgeblendet 2,95 % |
 | 3. Claude-Dienst | 5, 8 | Kein String über 85 KB pro Scan | erledigt 16.10.: unter 64 KB statt über 1 MB; Symbol-Animation (Punkt 8) wartet auf Entscheidung |
 | 4. Ereignisse statt Abfragen | 4 | Stummschaltung, Freigaben ohne Takt; keine Prozessliste auf dem UI-Thread | offen |
 | 5. UI-Thread frei | 6, 7 | Zwischenablage, InstalledApps, AudioService, UpdateCheck nicht mehr als `Slow UI operation` | offen |

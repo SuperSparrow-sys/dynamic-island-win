@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
+using DynamicBay.Core;
 
 namespace DynamicBay.Controls;
 
@@ -41,6 +42,7 @@ public sealed class Waveform : FrameworkElement
         Loaded += (_, _) => UpdateRunning();
         Unloaded += (_, _) => Unhook();
         IsVisibleChanged += (_, _) => UpdateRunning();
+        ActivityState.Current.Watch(this, static e => ((Waveform)e).UpdateRunning());
     }
 
     private void Ensure()
@@ -54,8 +56,8 @@ public sealed class Waveform : FrameworkElement
     private void UpdateRunning()
     {
         Ensure();
-        // Keep animating briefly after pause so bars settle down smoothly.
-        if (IsVisible && IsLoaded) Hook(); else Unhook();
+        // Keep animating briefly after pause so bars settle down smoothly. Nobody looking (locked, display off): stop.
+        if (ActivityState.ShouldAnimate(this)) Hook(); else Unhook();
     }
 
     private void Hook()

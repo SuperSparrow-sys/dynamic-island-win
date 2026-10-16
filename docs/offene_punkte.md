@@ -59,8 +59,17 @@ wären es 0,75 %.
 ausgewertet; `SessionSwitch` nutzen nur die Zeiterfassung und die Link-Sperre. Timer laufen weiter, bis ihr Dienst
 abgeschaltet wird.
 
-**Zu tun:** Ein Dienst „Aktivität“ (sichtbar, gesperrt, Bildschirm aus, Energiesparen, Leerlauf). Timer melden sich mit
-einem Takt an und werden langsamer oder halten an. Erledigt, wenn die App bei ausgeblendeter Insel nahe 0,75 % liegt.
+**Erledigt 16.10.2026:** `Core/ActivityState.cs` wertet Sperre und Bildschirm aus. Solange niemand hinsieht, halten
+`Waveform` und `c:Loop` an, und die Stummschaltungs-Abfrage (500 ms) sowie der Claude-Scan lassen ihre Arbeit aus.
+Die Mikrofon-Nutzung bleibt abgefragt, weil sie den Anrufmodus steuert, dem das gekoppelte Gerät folgt. Gemessen an
+einer Testinstanz bei laufender Musik und arbeitender Claude-Sitzung, mit der echten Windows-Meldung „Bildschirm aus“
+an ihr Meldungsfenster: sichtbar 17,78 %, Bildschirm aus 1,72 % (je 60 s). Ausgeblendete Insel: 2,95 % statt
+6,6–7,4 %, hauptsächlich dank Punkt 1. Test `PerformanceTests` (Zustand, Meldung lesen, Gegenprobe rot).
+
+Nicht umgesetzt: Energiesparmodus und Leerlauf als eigene Zustände. Es gibt keine Messung, die einen Gewinn
+belegt, und Leerlauf bei sichtbarer Insel würde die sichtbare Bewegung verändern. Nicht live geprüft: die echte Sperre
+(dafür hätte der PC gesperrt werden müssen); der Weg über `SessionSwitch` ist derselbe wie bei Zeiterfassung und
+Link-Sperre.
 
 ## 3. Waveform kostet 2,4 Punkte mehr als nötig
 
