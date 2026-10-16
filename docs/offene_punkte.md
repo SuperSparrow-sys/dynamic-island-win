@@ -72,6 +72,11 @@ isoliertes WPF-Testprogramm mit derselben Waveform braucht bei 60 Bildern/s 3,7 
 **Ursache:** noch offen. Die 3,7 % sind die festen Kosten von WPF in Software. Woher die übrigen 2,4 Punkte in der App
 kommen, ist ungeklärt.
 
+**Nachtrag 16.10.2026:** Wahrscheinlich keine echte Lücke. Das Testprogramm schwankt mit derselben Waveform zwischen 3,6
+und 5,3 % (`harness-results`, sechs Läufe), und in der App laufen pro Bild nur WPFs eigene Render-Aufträge (Zählung
+bei Punkt 8). Was bleibt, ist der Umbau auf `Windows.UI.Composition` für alle Dauer-Animationen (Waveform, Claude-Symbol):
+erst ein Prototyp mit Messung, dann Entscheidung.
+
 **Zu tun:** Die Bildrate bleibt unverändert. Die Lücke mit einem instrumentierten Build eingrenzen. Als größerer Umbau
 denkbar: die Waveform als `Windows.UI.Composition`-Visual, das im DWM läuft; vorher mit einem Prototyp messen.
 Geschätzter Gewinn: etwa 2 Punkte über die Lücke, mit Composition bis etwa 5 (unsicher).
@@ -104,8 +109,11 @@ Ruckeln während Anrufen.
 **Ursache:** `Services/ClaudeService.cs:393` liest bis zu 512 KB als einen String (1 MB, landet auf dem LOH) und
 zerlegt ihn mit `Split('\n')`. Das passiert alle 5 s, solange eine Claude-Sitzung arbeitet.
 
-**Zu tun:** Rückwärts in Blöcken mit geliehenem Puffer lesen und nur die nötigen Zeilen parsen. Geschätzter Gewinn:
-20–25 MB weniger belegter Speicher.
+**Erledigt 16.10.2026:** Die letzten 512 KB landen in einem geliehenen Puffer (`ArrayPool`), die Zeilen werden von hinten
+als Bytes durchsucht und mit `Utf8JsonReader` gelesen; nur die gesuchten Werte werden zu Strings
+(`ClaudeService.ParseTail`). Test `PerformanceTests`: ein Lesevorgang mit zwei 200-KB-Zeilen braucht unter 64 KB
+(vorher über 1 MB, Gegenprobe rot). An sechs echten Transcripts geprüft: Titel, Ordner, letzte Eingabe und
+Remote-Link stimmen.
 
 ## 6. Synchrone Arbeit hält den UI-Thread fest
 
@@ -142,10 +150,15 @@ Einträge nicht mehr als `Slow UI operation` im Log stehen.
 `wpfgfx_cor3.dll` 1,5 %. Die laufende Sitzung hat ein Transcript von mehreren MB. In der Prüfung vom 15.10. zeigte
 dieselbe Ablation fast keinen Unterschied (5,02 % gegen 4,86 %).
 
-**Ursache:** noch offen. Verdacht: das Lesen der letzten 512 KB alle 5 s (Punkt 5) und die Anzeige der Sitzung.
+**Ursache:** nachgewiesen. Der Scan kostet nur etwa 30 ms CPU alle 5 s (0,6 Punkte). Den Rest kostet das drehende
+Sparkles-Symbol in der kompakten Insel (`Island/Views/CompactView.xaml`, `c:Loop`, 4 s pro Umdrehung bei 60 Bildern/s).
+Es läuft, solange irgendeine Sitzung arbeitet, also bei viel Claude-Nutzung fast den ganzen Tag. Gezählt pro 20 s:
+1198 Render-Aufträge, sonst nur Timer; die App macht pro Bild nichts Überflüssiges. Ein 60-Hz-Bild kostet in WPF mit
+Software-Rendering einfach etwa 4 Punkte, egal wie klein das bewegte Element ist (siehe Punkt 3).
 
-**Zu tun:** Mit Punkt 5 eingrenzen: Scan und Anzeige getrennt messen. Erledigt, wenn die Testinstanz mit Claude bei
-laufender Sitzung höchstens 0,5 Punkte über der ohne Claude liegt, ohne sichtbare Animationen zu drosseln.
+**Zu tun:** Eine Entscheidung des Besitzers: das Symbol so lassen, oder die Bewegung anders gestalten (zum Beispiel
+eine Umdrehung, dann Pause; oder ein ruhiges Symbol). Die Bildrate wird nicht gesenkt. Gewinn: bis etwa 4–5 Punkte,
+solange Claude arbeitet.
 
 # Zurückgestellt
 

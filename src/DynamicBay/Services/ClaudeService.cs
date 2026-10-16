@@ -374,6 +374,51 @@ public sealed partial class ClaudeService : ObservableObject
         : working > 1 ? (Loc.German ? $"{working} aktiv" : $"{working} active")
         : "";
 
+    internal readonly record struct TranscriptMeta(string Title, string Prompt, string Cwd, string Bridge);
+
+    /// <summary>
+    /// The newest title, last prompt, working folder and Remote Control id in the end of a transcript, read line by line
+    /// from the back as bytes: only the values become strings, never a line (tool results are hundreds of KB).
+    /// </summary>
+    internal static TranscriptMeta ParseTail(ReadOnlySpan<byte> tail, bool startsMidLine)
+    {
+        string title = "", prompt = "", cwd = "", bridge = "";
+        int end = tail.Length;
+        while (end > 0 && !(title.Length > 0 && prompt.Length > 0 && cwd.Length > 0))
+        {
+            int start = tail[..end].LastIndexOf((byte)'\n') + 1;
+            var line = tail[start..end];
+            end = start - 1;
+            if (start == 0 && startsMidLine) break; // the tail begins inside a line
+            if (line.Length == 0) continue;
+            if (title.Length == 0 && line.IndexOf("\"custom-title\""u8) >= 0) title = TopLevelString(line, "customTitle"u8);
+            if (title.Length == 0 && line.IndexOf("\"ai-title\""u8) >= 0) title = TopLevelString(line, "aiTitle"u8);
+            if (prompt.Length == 0 && line.IndexOf("\"last-prompt\""u8) >= 0) prompt = TopLevelString(line, "lastPrompt"u8);
+            if (cwd.Length == 0 && line.IndexOf("\"cwd\""u8) >= 0) cwd = TopLevelString(line, "cwd"u8);
+            if (bridge.Length == 0 && line.IndexOf("\"bridge-session\""u8) >= 0) bridge = TopLevelString(line, "bridgeSessionId"u8);
+        }
+        return new(title, prompt, cwd, bridge);
+    }
+
+    /// <summary>A string property of a JSON object line, "" when missing or not a string; other values are skipped unread.</summary>
+    private static string TopLevelString(ReadOnlySpan<byte> json, ReadOnlySpan<byte> name)
+    {
+        try
+        {
+            var r = new System.Text.Json.Utf8JsonReader(json);
+            if (!r.Read() || r.TokenType != System.Text.Json.JsonTokenType.StartObject) return "";
+            while (r.Read() && r.TokenType == System.Text.Json.JsonTokenType.PropertyName)
+            {
+                bool hit = r.ValueTextEquals(name);
+                if (!r.Read()) return "";
+                if (hit) return r.TokenType == System.Text.Json.JsonTokenType.String ? r.GetString() ?? "" : "";
+                r.Skip();
+            }
+        }
+        catch (System.Text.Json.JsonException) { }
+        return "";
+    }
+
     /// <summary>Reads cwd from the head and the latest title / last prompt from the tail (files can be large).</summary>
     private static (string cwd, string title, string prompt, string bridge) ReadMeta(string path)
     {
@@ -390,19 +435,18 @@ public sealed partial class ClaudeService : ObservableObject
                     if (line.Contains("\"cwd\"")) cwd = JsonNode.Parse(line)?["cwd"]?.ToString() ?? "";
                 }
             }
-            long tail = Math.Min(fs.Length, 512 * 1024);
-            fs.Seek(-tail, SeekOrigin.End);
-            using var reader = new StreamReader(fs, Encoding.UTF8);
-            var lines = reader.ReadToEnd().Split('\n');
-            foreach (var line in lines.Reverse())
+            // The last 512 KB into a pooled buffer, not into one string: that was 1 MB on the large object heap per scan.
+            int tail = (int)Math.Min(fs.Length, 512 * 1024);
+            var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(tail);
+            try
             {
-                if (title.Length == 0 && line.Contains("\"custom-title\"")) title = JsonNode.Parse(line)?["customTitle"]?.ToString() ?? "";
-                if (title.Length == 0 && line.Contains("\"ai-title\"")) title = JsonNode.Parse(line)?["aiTitle"]?.ToString() ?? "";
-                if (prompt.Length == 0 && line.Contains("\"last-prompt\"")) prompt = JsonNode.Parse(line)?["lastPrompt"]?.ToString() ?? "";
-                if (cwd.Length == 0 && line.Contains("\"cwd\"")) try { cwd = JsonNode.Parse(line)?["cwd"]?.ToString() ?? ""; } catch { }
-                if (bridge.Length == 0 && line.Contains("\"bridge-session\"")) try { bridge = JsonNode.Parse(line)?["bridgeSessionId"]?.ToString() ?? ""; } catch { }
-                if (title.Length > 0 && prompt.Length > 0 && cwd.Length > 0) break;
+                fs.Seek(-tail, SeekOrigin.End);
+                fs.ReadExactly(buffer, 0, tail);
+                var meta = ParseTail(buffer.AsSpan(0, tail), startsMidLine: tail < fs.Length);
+                (title, prompt, bridge) = (meta.Title, meta.Prompt, meta.Bridge);
+                if (cwd.Length == 0) cwd = meta.Cwd;
             }
+            finally { System.Buffers.ArrayPool<byte>.Shared.Return(buffer); }
         }
         catch { }
         prompt = prompt.Replace('\n', ' ').Trim();
