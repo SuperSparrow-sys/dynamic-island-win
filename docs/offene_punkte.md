@@ -27,7 +27,7 @@ Leistungsprüfung vom 15.10.2026 (Version 1.1.8), nach Wirkung sortiert. CPU-Wer
 (i7-13700H, 60 Hz, Release-Build). Gemessen an der installierten App (nur beobachtet) und an Testinstanzen
 (`DYNAMICBAY_DEV`) mit einer Kopie der echten Einstellungen, ohne Konten und ohne Link; je ein Dienst abgeschaltet.
 
-## 1. Mitteilungsabfrage verursacht den Großteil der Grundlast
+## 1. Mitteilungsabfrage verursacht den Großteil der Grundlast (erledigt)
 
 **Gemeldet:** 15.10.2026, Leistungsprüfung, 1.1.8.
 
@@ -48,7 +48,7 @@ und werden pro App zwischengespeichert. Gemessen (Medien aus, Musik lief): mit M
 Abfrage kostet also noch etwa 0,2 statt 3,4–4,1 Punkte. SHCORE-Threads 0,1 % statt 2,6 %. Das Kriterium „alle Dienste
 unter 2 %“ ist damit nicht erreicht, weil der Claude-Dienst bei laufender Sitzung 5,4 Punkte kostet (Punkt 8).
 
-## 2. Kein Dienst pausiert bei ausgeblendeter Insel, Sperre, Bildschirm aus oder Akku
+## 2. Kein Dienst pausiert bei ausgeblendeter Insel, Sperre, Bildschirm aus oder Akku (erledigt)
 
 **Gemeldet:** 15.10.2026, Leistungsprüfung, 1.1.8.
 
@@ -90,26 +90,7 @@ erst ein Prototyp mit Messung, dann Entscheidung.
 denkbar: die Waveform als `Windows.UI.Composition`-Visual, das im DWM läuft; vorher mit einem Prototyp messen.
 Geschätzter Gewinn: etwa 2 Punkte über die Lücke, mit Composition bis etwa 5 (unsicher).
 
-## 4. Übrige Abfragen statt Ereignisse
-
-**Gemeldet:** 15.10.2026, Leistungsprüfung, 1.1.8.
-
-**Beobachtet:** Zusammen etwa 0,7 Punkte (1,42 % gegen 0,75 %). Einzelkosten pro Aufruf:
-
-- Prozessliste: 7 ms CPU alle 1,5 s während Anrufen, auf dem UI-Thread (`AudioService.RunningImagePaths`)
-- `GetProcessesByName`: 3,9 ms alle 5 s (CursorHop)
-- Netzwerkkarten: 5,5 ms alle 5 s, bei 54 Adaptern (`LinkDiscovery.BroadcastAddresses`)
-- `tailscale status --json`: 12,5 ms plus ein Kindprozess alle 30 s
-- `GetMute`: alle 500 ms
-
-**Ursache:** Abfragen in festen Abständen, teils auf dem UI-Thread.
-
-**Zu tun:** Ereignisse statt Abfragen: `IAudioEndpointVolumeCallback` für Stummschaltung und Lautstärke,
-`RegNotifyChangeKeyValue` für die Mikrofon- und Kamera-Freigaben, ein FileSystemWatcher für das CursorHop-Log.
-Prozess-Abfragen nur für betroffene PIDs und nicht auf dem UI-Thread. Geschätzter Gewinn: bis 0,7 Punkte, dazu kein
-Ruckeln während Anrufen.
-
-## 5. Große Strings fragmentieren den Large Object Heap
+## 5. Große Strings fragmentieren den Large Object Heap (erledigt)
 
 **Gemeldet:** 15.10.2026, Leistungsprüfung, 1.1.8.
 
@@ -124,7 +105,7 @@ als Bytes durchsucht und mit `Utf8JsonReader` gelesen; nur die gesuchten Werte w
 (vorher über 1 MB, Gegenprobe rot). An sechs echten Transcripts geprüft: Titel, Ordner, letzte Eingabe und
 Remote-Link stimmen.
 
-## 6. Synchrone Arbeit hält den UI-Thread fest
+## 6. Synchrone Arbeit hält den UI-Thread fest (teilweise erledigt)
 
 **Gemeldet:** 15.10.2026, Leistungsprüfung, 1.1.8.
 
@@ -151,8 +132,13 @@ Einträge nicht mehr als `Slow UI operation` im Log stehen.
   `Ready`-Rückruf (ein Shell-Symbol pro Kachel auf dem UI-Thread). Die Symbole kommen jetzt vom STA-Thread, die
   neueste Liste gewinnt. Screenshot im Snapshot-Modus: Kacheln wie vorher.
 
-Offen: `AudioService`-Timer (COM-Endpunkte, bis 3,1 s, meist nach dem Aufwachen) und `UpdateCheck.InstallAsync`.
-Das Laden der Screenshot-Datei aus dem Bilder-Ordner (`OnScreenshotFile`) läuft noch auf dem UI-Thread.
+Offen: `AudioService`-Timer (COM-Endpunkte, bis 3,1 s, meist kurz nach dem Aufwachen oder einem anderen Hänger des
+ganzen PCs) und das Laden der Screenshot-Datei aus dem Bilder-Ordner (`OnScreenshotFile`).
+
+Bewusst unverändert: `UpdateCheck`. `Process.Start` mit `runas` wartet, solange die Windows-Bestätigung offen ist
+(bis 11,8 s), und das Öffnen der frisch geladenen Setup-Datei vermutlich auf den Virenscan (bis 2,3 s). Beides passiert
+nur beim Update, während die Bestätigung den Bildschirm verdeckt. Der Weg lässt sich hier nicht testen, ohne zu
+installieren, und hatte schon einmal einen schweren Fehler (`docs/postmortems/2026-10-11-identity-package.md`).
 
 ## 7. Start dauert bis zu 8 s
 
@@ -163,6 +149,10 @@ Das Laden der Screenshot-Datei aus dem Bilder-Ordner (`OnScreenshotFile`) läuft
 **Ursache:** wie bei Punkt 6, vor allem die synchronen Schritte in `App.OnStartup` und `InstalledApps`.
 
 **Zu tun:** Mit Punkt 6 erledigen, danach neu messen. Geringe Priorität.
+
+**Nachgemessen 16.10.2026** (Testinstanz, drei Starts nach Punkt 6): Laufzeit 2,2 / 0,5 / 0,6 s, Dienste 5,1 / 1,5 /
+1,4 s; der erste Start war kalt. `InstalledApps` steht nicht mehr als Hänger im Log (vorher 717–819 ms pro Start).
+Übrig sind `App.OnStartup`-Schritte mit 180–615 ms. Offen lassen, bis die installierte App einige Starts geloggt hat.
 
 ## 8. Claude-Dienst kostet 5,4 Punkte, solange eine Sitzung arbeitet
 
@@ -185,6 +175,31 @@ solange Claude arbeitet.
 # Zurückgestellt
 
 Bewusst nicht jetzt, mit Begründung.
+
+## 4. Übrige Abfragen statt Ereignisse
+
+**Gemeldet:** 15.10.2026, Leistungsprüfung, 1.1.8.
+
+**Beobachtet:** Zusammen etwa 0,7 Punkte (1,42 % gegen 0,75 %). Einzelkosten pro Aufruf:
+
+- Prozessliste: 7 ms CPU alle 1,5 s während Anrufen, auf dem UI-Thread (`AudioService.RunningImagePaths`)
+- `GetProcessesByName`: 3,9 ms alle 5 s (CursorHop)
+- Netzwerkkarten: 5,5 ms alle 5 s, bei 54 Adaptern (`LinkDiscovery.BroadcastAddresses`)
+- `tailscale status --json`: 12,5 ms plus ein Kindprozess alle 30 s
+- `GetMute`: alle 500 ms
+
+**Ursache:** Abfragen in festen Abständen, teils auf dem UI-Thread.
+
+**Zu tun:** Ereignisse statt Abfragen: `IAudioEndpointVolumeCallback` für Stummschaltung und Lautstärke,
+`RegNotifyChangeKeyValue` für die Mikrofon- und Kamera-Freigaben, ein FileSystemWatcher für das CursorHop-Log.
+Prozess-Abfragen nur für betroffene PIDs und nicht auf dem UI-Thread. Geschätzter Gewinn: bis 0,7 Punkte, dazu kein
+Ruckeln während Anrufen.
+
+**Zurückgestellt 16.10.2026:** Nach Punkt 1 und 2 nachgemessen (ausgeblendete Insel, UI-Thread pro Minute):
+`GetMute` 124 ms, Freigaben 91 ms, CursorHop 41 ms, zusammen etwa 0,5 Punkte. Die Prozessliste während Anrufen
+(7 ms) bleibt unter einem Bild (16 ms) und ruckelt nicht. Ereignisse bräuchten COM-Rückrufe in den Audiodienst, die
+auch bei seinem Neustart und beim Gerätewechsel neu angemeldet werden. Das Risiko ist größer als der Gewinn. Wieder
+aufnehmen, wenn die Grundlast sonst unter 1 % liegt.
 
 ## Geprüft und verworfen (15.10.2026)
 
