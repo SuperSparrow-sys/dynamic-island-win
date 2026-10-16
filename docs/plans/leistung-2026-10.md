@@ -11,7 +11,7 @@ echten Einstellungen ohne Link, 40 s Anlauf, 90 s Messung, CPU in Prozent eines 
 | 3. Claude-Dienst | 5, 8 | Kein String über 85 KB pro Scan | erledigt 16.10.: unter 64 KB statt über 1 MB; Symbol-Animation (Punkt 8) wartet auf Entscheidung |
 | 4. Ereignisse statt Abfragen | 4 | Stummschaltung, Freigaben ohne Takt; keine Prozessliste auf dem UI-Thread | zurückgestellt 16.10.: nur noch etwa 0,5 Punkte |
 | 5. UI-Thread frei | 6, 7 | Zwischenablage, InstalledApps, AudioService, UpdateCheck nicht mehr als `Slow UI operation` | teilweise 16.10.: Zwischenablage und Startleiste erledigt, AudioService offen, UpdateCheck bewusst unverändert |
-| 6. Waveform-Lücke | 3, 8 | Ursache der 2,4 Punkte belegt | 16.10.: wohl Messrauschen; Composition-Prototyp und Claude-Symbol warten auf Entscheidung |
+| 6. Waveform-Lücke | 3, 8 | Ursache der 2,4 Punkte belegt | 16.10.: Messrauschen; Composition-Prototyp spart im System nichts (11,1 gegen 12,1 Punkte), Claude-Symbol bleibt (Besitzer) |
 
 ## 1. Mitteilungen über Ereignis
 

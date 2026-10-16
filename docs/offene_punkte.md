@@ -71,7 +71,7 @@ belegt, und Leerlauf bei sichtbarer Insel würde die sichtbare Bewegung verände
 (dafür hätte der PC gesperrt werden müssen); der Weg über `SessionSwitch` ist derselbe wie bei Zeiterfassung und
 Link-Sperre.
 
-## 3. Waveform kostet 2,4 Punkte mehr als nötig
+## 3. Waveform kostet 2,4 Punkte mehr als nötig (geprüft, verworfen)
 
 **Gemeldet:** 15.10.2026, Leistungsprüfung, 1.1.8.
 
@@ -85,6 +85,20 @@ kommen, ist ungeklärt.
 und 5,3 % (`harness-results`, sechs Läufe), und in der App laufen pro Bild nur WPFs eigene Render-Aufträge (Zählung
 bei Punkt 8). Was bleibt, ist der Umbau auf `Windows.UI.Composition` für alle Dauer-Animationen (Waveform, Claude-Symbol):
 erst ein Prototyp mit Messung, dann Entscheidung.
+
+**Prototyp gemessen 16.10.2026, verworfen:** Testprogramm mit geschichtetem Fenster wie die Insel, die Waveform als
+`ShapeVisual` mit Keyframe-Animation über `DesktopWindowTarget` (funktioniert auch auf dem geschichteten Fenster). Sechs
+Runden zu 30 s, abwechselnd, CPU des eigenen Prozesses und von `dwm.exe` (Leistungszähler):
+
+| Variante | Prozess | DWM | DWM über Ruhe | Summe |
+|---|---|---|---|---|
+| nichts bewegt sich | 0,1 % | 22,6 % | – | – |
+| WPF-Waveform | 6,0 % | 28,7 % | +6,1 | 12,1 |
+| Composition | 0,1 % | 33,6 % | +11,0 | 11,1 |
+
+Composition verlagert die Arbeit nur in den DWM; im ganzen System ist der Unterschied kleiner als die Streuung (DWM in
+Ruhe 19–26 %). Eine Dauer-Animation kostet damit etwa 12 Punkte im System, die Hälfte davon im DWM, egal wie sie
+gezeichnet wird. Sparen lässt sich nur, wenn sie anhält (Punkt 2). Der Prototyp liegt nicht im Repository.
 
 **Zu tun:** Die Bildrate bleibt unverändert. Die Lücke mit einem instrumentierten Build eingrenzen. Als größerer Umbau
 denkbar: die Waveform als `Windows.UI.Composition`-Visual, das im DWM läuft; vorher mit einem Prototyp messen.
@@ -168,9 +182,9 @@ Es läuft, solange irgendeine Sitzung arbeitet, also bei viel Claude-Nutzung fas
 1198 Render-Aufträge, sonst nur Timer; die App macht pro Bild nichts Überflüssiges. Ein 60-Hz-Bild kostet in WPF mit
 Software-Rendering einfach etwa 4 Punkte, egal wie klein das bewegte Element ist (siehe Punkt 3).
 
-**Zu tun:** Eine Entscheidung des Besitzers: das Symbol so lassen, oder die Bewegung anders gestalten (zum Beispiel
-eine Umdrehung, dann Pause; oder ein ruhiges Symbol). Die Bildrate wird nicht gesenkt. Gewinn: bis etwa 4–5 Punkte,
-solange Claude arbeitet.
+**Entschieden 16.10.2026 (Besitzer):** Das Symbol dreht sich weiter dauernd. Verworfen: eine Umdrehung mit Pause
+(etwa ein Drittel der Kosten) und ein ruhiges Symbol. Die Kosten sinken nur, wenn das Bild selbst billiger wird
+(Composition-Prototyp, Punkt 3); bei Sperre und Bildschirm aus hält es seit Punkt 2 ohnehin an.
 
 # Zurückgestellt
 
