@@ -141,6 +141,19 @@ dem Standby passen (etwa 28 s und 7 s, ohne gleich langen „UI stall“), sind 
 **Zu tun:** In Hintergrund-Threads verlagern. `InstalledApps` erst bei Bedarf, über `IShellItem`. Erledigt, wenn diese
 Einträge nicht mehr als `Slow UI operation` im Log stehen.
 
+**Teilweise erledigt 16.10.2026:**
+
+- Zwischenablage: Lesen (OLE wartet auf die kopierende App, auch bei Text: 906 ms vor „clipboard text (243 chars)“)
+  und PNG-Speichern (4K-Screenshot etwa 450 ms) laufen auf einem eigenen STA-Thread (`Core/StaWorker.cs`). Live an
+  einer Testinstanz mit Text geprüft: 14 + 10 ms auf dem UI-Thread. Der Bildweg ist nicht live geprüft, weil die
+  installierte App ein Testbild in ihren Verlauf übernommen und an den Laptop geschickt hätte.
+- `InstalledApps.WarmUpAsync`: Die Liste lud schon im Hintergrund; langsam war `ShortcutsService.Rebuild` im
+  `Ready`-Rückruf (ein Shell-Symbol pro Kachel auf dem UI-Thread). Die Symbole kommen jetzt vom STA-Thread, die
+  neueste Liste gewinnt. Screenshot im Snapshot-Modus: Kacheln wie vorher.
+
+Offen: `AudioService`-Timer (COM-Endpunkte, bis 3,1 s, meist nach dem Aufwachen) und `UpdateCheck.InstallAsync`.
+Das Laden der Screenshot-Datei aus dem Bilder-Ordner (`OnScreenshotFile`) läuft noch auf dem UI-Thread.
+
 ## 7. Start dauert bis zu 8 s
 
 **Gemeldet:** 15.10.2026, Leistungsprüfung, 1.1.8.

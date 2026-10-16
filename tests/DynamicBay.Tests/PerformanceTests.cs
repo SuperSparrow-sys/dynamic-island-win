@@ -1,3 +1,4 @@
+using System.IO;
 using DynamicBay.Core;
 
 namespace DynamicBay.Tests;
@@ -110,6 +111,48 @@ public class PerformanceTests
             Assert.Null(ActivityState.DisplayOff(p));
         }
         finally { System.Runtime.InteropServices.Marshal.FreeHGlobal(p); }
+    }
+
+    [Fact]
+    public async Task Clipboard_work_runs_on_its_own_sta_thread_one_after_the_other()
+    {
+        // Reading the clipboard waits for the app that copied (it renders the data on request), and a 4K screenshot
+        // takes about 450 ms to save as PNG: on the UI thread that stalled the island for up to 1.9 s (15.10.2026).
+        using var worker = new StaWorker("Test");
+        int caller = Environment.CurrentManagedThreadId;
+        var order = new List<int>();
+        var first = worker.Run(() => { Thread.Sleep(50); lock (order) order.Add(1); return Thread.CurrentThread.GetApartmentState(); });
+        var second = worker.Run(() => { lock (order) order.Add(2); return Environment.CurrentManagedThreadId; });
+        Assert.Equal(ApartmentState.STA, await first);
+        Assert.NotEqual(caller, await second);
+        Assert.Equal(new[] { 1, 2 }, order);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => worker.Run<int>(() => throw new InvalidOperationException()));
+        Assert.Equal(3, await worker.Run(() => 3)); // an exception does not stop the thread
+    }
+
+    [Fact]
+    public async Task Launcher_icons_load_off_the_calling_thread_and_the_newest_list_wins()
+    {
+        // 12 shell icons on the UI thread held the start for up to 2.1 s (InstalledApps.Ready → Rebuild).
+        var dir = Directory.CreateTempSubdirectory("dynamicbay-shortcuts").FullName;
+        try
+        {
+            string a = Path.Combine(dir, "a.txt"), b = Path.Combine(dir, "b.txt");
+            File.WriteAllText(a, "a");
+            File.WriteAllText(b, "b");
+            var settings = new AppSettings();
+            var svc = new DynamicBay.Services.ShortcutsService(settings);
+            settings.Shortcuts.Add(a);
+            svc.Rebuild();
+            Assert.Empty(svc.Items); // returned at once: the shell icon is still loading elsewhere
+            settings.Shortcuts.Clear();
+            settings.Shortcuts.Add(b);
+            svc.Rebuild(); // changed while the first list was still loading
+            for (int i = 0; i < 100 && svc.Items.Count == 0; i++) await Task.Delay(50);
+            await Task.Delay(200);
+            Assert.Equal(new[] { b }, svc.Items.Select(x => x.Path));
+        }
+        finally { Directory.Delete(dir, true); }
     }
 
     [Fact]

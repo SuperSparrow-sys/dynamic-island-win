@@ -47,21 +47,32 @@ public sealed partial class ShortcutsService
     private static readonly Brush MonoTile = Frozen(new LinearGradientBrush(Color.FromRgb(0x2E, 0x2E, 0x31), Color.FromRgb(0x24, 0x24, 0x26), 90));
     private static readonly Brush MonoGlyph = Frozen(new SolidColorBrush(Color.FromRgb(0xA8, 0xA8, 0xAE)));
 
-    public void Rebuild()
+    /// <summary>Shell icons come from their own thread: 12 tiles held the UI thread for up to 2.1 s at every start.</summary>
+    private static readonly StaWorker IconReader = new("Shortcut icons");
+    private int _build;
+
+    public async void Rebuild()
     {
-        Items.Clear();
-        foreach (var p in _settings.Shortcuts)
+        var paths = _settings.Shortcuts.ToList();
+        var style = _settings.AppIcons;
+        int build = ++_build;
+        try
         {
-            bool shellApp = p.StartsWith("shell:", StringComparison.OrdinalIgnoreCase);
-            if (!shellApp && !File.Exists(p) && !Directory.Exists(p)) continue;
-            Items.Add(Create(p, _settings.AppIcons));
+            var found = await IconReader.Run(() => paths
+                .Where(p => p.StartsWith("shell:", StringComparison.OrdinalIgnoreCase) || File.Exists(p) || Directory.Exists(p))
+                .Select(p => (Path: p, Icon: ShellThumbnail.Get(p, 64, iconOnly: true))).ToList());
+            if (build != _build) return; // changed meanwhile: the newer build fills the list
+            Items.Clear();
+            foreach (var (p, icon) in found) Items.Add(Create(p, style, icon));
         }
+        catch (Exception ex) { Log.Error("Shortcuts", ex); }
     }
 
-    public static ShortcutItem Create(string path, AppIconStyle style)
+    public static ShortcutItem Create(string path, AppIconStyle style) => Create(path, style, ShellThumbnail.Get(path, 64, iconOnly: true));
+
+    private static ShortcutItem Create(string path, AppIconStyle style, ImageSource? icon)
     {
         string name = InstalledApps.DisplayName(path);
-        var icon = ShellThumbnail.Get(path, 64, iconOnly: true);
         var glyph = style == AppIconStyle.Original ? null : AppIcons.Find(name, path);
         if (glyph is null)
         {

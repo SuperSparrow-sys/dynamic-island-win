@@ -126,44 +126,51 @@ public sealed partial class ClipboardService : ObservableObject
 
     private void OnClipboardChanged() => OnClipboardChanged(0);
 
-    private void OnClipboardChanged(int attempt)
+    /// <summary>
+    /// Reads the clipboard and saves images on their own STA thread: the app that copied renders the data only when
+    /// asked, and a 4K screenshot takes about 450 ms to encode. On the UI thread that stalled the island for up to 1.9 s.
+    /// </summary>
+    private readonly StaWorker _reader = new("Clipboard");
+
+    /// <summary>What the clipboard held: an image or a text (the other is null), and the app that put it there.</summary>
+    private sealed record ClipRead(BitmapSource? Image, string? Text, string? Owner);
+
+    private async void OnClipboardChanged(int attempt)
     {
         if (!_settings.ClipboardEnabled) return;
         if (attempt == 0 && _suppressNext) { _suppressNext = false; return; }
+        bool wantText = _settings.ClipboardText;
+        ClipRead? read;
+        try { read = await _reader.Run(() => ReadClipboard(wantText)); }
+        catch (System.Runtime.InteropServices.ExternalException ex) when (ex.HResult == ClipboardCantOpen && attempt < 2)
+        {
+            // Still held open by the app that wrote it: read again in a moment instead of losing the copy.
+            _ = RetryAsync(attempt + 1);
+            return;
+        }
+        catch { return; } // clipboard is often locked by another process; skip this change
+        if (read is null || !_settings.ClipboardEnabled) return;
         try
         {
-            if (Native.IsClipboardFormatAvailable(_fmtExclude) || Native.IsClipboardFormatAvailable(_fmtIgnore)) return;
-            if (Native.IsClipboardFormatAvailable(_fmtNoHistory))
+            string? owner = read.Owner;
+            if (read.Image is { } img)
             {
-                // Password managers set CanIncludeInClipboardHistory = 0.
-                if (Clipboard.GetData("CanIncludeInClipboardHistory") is MemoryStream ms && ms.Length >= 4)
-                {
-                    var b = new byte[4];
-                    ms.Read(b, 0, 4);
-                    if (BitConverter.ToInt32(b, 0) == 0) return;
-                }
-            }
-
-            string? owner = Native.ProcessName(Native.GetClipboardOwner());
-            if (Clipboard.ContainsImage())
-            {
-                var img = ReadImage();
-                if (img is null) return;
                 bool screenshot = owner is not null &&
                                   (owner.Contains("ScreenClipping", StringComparison.OrdinalIgnoreCase) ||
                                    owner.Contains("SnippingTool", StringComparison.OrdinalIgnoreCase) ||
                                    owner.Contains("ShellExperienceHost", StringComparison.OrdinalIgnoreCase));
                 // Win+PrtScn writes the file and the clipboard; the folder watcher may have added it already.
-                var dup = Items.FirstOrDefault(i => i.IsImage && (DateTime.Now - i.Created).TotalSeconds < 4 &&
-                                                    i.PixelWidth == img.PixelWidth && i.PixelHeight == img.PixelHeight);
-                if (dup is not null) return;
-                CopiedHere?.Invoke(AddImage(img, screenshot, owner));
+                if (IsRecentImage(img)) return;
+                var item = NewImageItem(img, screenshot, owner, null);
+                item.Thumbnail = await _reader.Run(() => { ImageTools.SavePng(img, item.ImagePath!); return MakeThumb(img); });
+                if (IsRecentImage(img)) { try { File.Delete(item.ImagePath!); } catch { } return; } // the folder watcher was faster
+                AddImage(item);
+                CopiedHere?.Invoke(item);
                 return;
             }
-            if (_settings.ClipboardText && Clipboard.ContainsText())
+            if (read.Text is { } text)
             {
-                var text = Clipboard.GetText();
-                if (string.IsNullOrWhiteSpace(text) || text.Length > 200_000 || text == _lastText) return;
+                if (text == _lastText) return;
                 _lastText = text;
                 var existing = Items.FirstOrDefault(i => i.IsText && i.Text == text);
                 if (existing is not null) Items.Remove(existing);
@@ -172,12 +179,31 @@ public sealed partial class ClipboardService : ObservableObject
                 CopiedHere?.Invoke(item);
             }
         }
-        catch (System.Runtime.InteropServices.ExternalException ex) when (ex.HResult == ClipboardCantOpen && attempt < 2)
+        catch (Exception ex) { Log.Error("Clipboard", ex); }
+    }
+
+    private bool IsRecentImage(BitmapSource img) =>
+        Items.Any(i => i.IsImage && (DateTime.Now - i.Created).TotalSeconds < 4 && i.PixelWidth == img.PixelWidth && i.PixelHeight == img.PixelHeight);
+
+    /// <summary>On the clipboard thread: null for nothing to keep (excluded, empty, too long).</summary>
+    private ClipRead? ReadClipboard(bool wantText)
+    {
+        if (Native.IsClipboardFormatAvailable(_fmtExclude) || Native.IsClipboardFormatAvailable(_fmtIgnore)) return null;
+        if (Native.IsClipboardFormatAvailable(_fmtNoHistory))
         {
-            // Still held open by the app that wrote it: read again in a moment instead of losing the copy.
-            _ = RetryAsync(attempt + 1);
+            // Password managers set CanIncludeInClipboardHistory = 0.
+            if (Clipboard.GetData("CanIncludeInClipboardHistory") is MemoryStream ms && ms.Length >= 4)
+            {
+                var b = new byte[4];
+                ms.Read(b, 0, 4);
+                if (BitConverter.ToInt32(b, 0) == 0) return null;
+            }
         }
-        catch { /* clipboard is often locked by another process; skip this change */ }
+        string? owner = Native.ProcessName(Native.GetClipboardOwner());
+        if (Clipboard.ContainsImage()) return ReadImage() is { } img ? new ClipRead(img, null, owner) : null;
+        if (!wantText || !Clipboard.ContainsText()) return null;
+        var text = Clipboard.GetText();
+        return string.IsNullOrWhiteSpace(text) || text.Length > 200_000 ? null : new ClipRead(null, text, owner);
     }
 
     private async Task RetryAsync(int attempt)
@@ -212,7 +238,7 @@ public sealed partial class ClipboardService : ObservableObject
         catch { return null; }
     }
 
-    private ClipItem AddImage(BitmapSource img, bool screenshot, string? source, string? existingPath = null)
+    private ClipItem NewImageItem(BitmapSource img, bool screenshot, string? source, string? existingPath)
     {
         var item = new ClipItem
         {
@@ -224,11 +250,14 @@ public sealed partial class ClipboardService : ObservableObject
         };
         item.ImagePath = existingPath ?? Path.Combine(_folder, item.Id + ".png");
         item.SavedPath = existingPath;
-        if (existingPath is null) ImageTools.SavePng(img, item.ImagePath);
-        item.Thumbnail = MakeThumb(img);
-        Insert(item);
-        if (screenshot) ScreenshotCaptured?.Invoke(item);
         return item;
+    }
+
+    /// <summary>A saved image with its thumbnail joins the history.</summary>
+    private void AddImage(ClipItem item)
+    {
+        Insert(item);
+        if (item.IsScreenshot) ScreenshotCaptured?.Invoke(item);
     }
 
     /// <summary>
@@ -418,7 +447,9 @@ public sealed partial class ClipboardService : ObservableObject
             SaveIndexSoon();
             return;
         }
-        AddImage(img, true, "Screenshots", path);
+        var item = NewImageItem(img, true, "Screenshots", path);
+        item.Thumbnail = MakeThumb(img);
+        AddImage(item);
     }
 
     // ---- actions ----
