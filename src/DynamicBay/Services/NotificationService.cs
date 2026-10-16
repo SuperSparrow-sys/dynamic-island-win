@@ -44,7 +44,14 @@ public sealed partial class NotificationService : ObservableObject
     private readonly AppSettings _settings;
     private UserNotificationListener? _listener;
     private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromMilliseconds(1200) };
+    private readonly Dispatcher _ui = Dispatcher.CurrentDispatcher;
+    private readonly CoalescedRun _read;
+    /// <summary>Windows reports each new and removed toast: read on that, plus once a minute for an event that went missing.</summary>
+    private bool _changeEvents;
+    private static readonly TimeSpan SafetyRead = TimeSpan.FromMinutes(1);
     private readonly HashSet<uint> _seen = new();
+    /// <summary>App logos by app id, decoded once (a new toast of the same app no longer asks Windows for it).</summary>
+    private readonly Dictionary<string, ImageSource> _logos = new();
     private bool _primed;
 
     public ObservableCollection<NotificationItem> Items { get; } = new();
@@ -125,6 +132,7 @@ public sealed partial class NotificationService : ObservableObject
     public NotificationService(AppSettings settings)
     {
         _settings = settings;
+        _read = new CoalescedRun(PollCoreAsync);
         Items.CollectionChanged += (_, _) => { Count = Items.Count; IsEmpty = Items.Count == 0; SyncMessages(); UpdateShow(); };
         UpdateShow();
     }
@@ -139,9 +147,18 @@ public sealed partial class NotificationService : ObservableObject
             Access = status == UserNotificationListenerAccessStatus.Allowed ? NotificationAccess.Allowed : NotificationAccess.Denied;
             Log.Info($"Notification access: {Access}");
             if (Access != NotificationAccess.Allowed) return;
-            _poll.Tick += async (_, _) => await PollAsync();
+            // Reading the list every 1.2 s cost 3-4 % of a core here and 1.7 % in Windows' notification service, also
+            // with the island hidden or the PC locked (15.10.2026). The change event arrives on a worker thread.
+            try
+            {
+                _listener.NotificationChanged += (_, _) => _ui.BeginInvoke(Read);
+                _changeEvents = true;
+                _poll.Interval = SafetyRead;
+            }
+            catch (Exception ex) { Log.Info($"Notifications: no change events ({ex.HResult:X8}), reading every 1.2 s"); }
+            _poll.Tick += (_, _) => Read();
             _poll.Start();
-            await PollAsync();
+            await _read.RequestAsync();
         }
         catch
         {
@@ -155,16 +172,11 @@ public sealed partial class NotificationService : ObservableObject
         catch { return false; }
     }
 
-    private bool _polling;
-
-    /// <summary>One poll at a time: a slow one (many logos to load) must not overlap the next tick and show items twice.</summary>
-    private async Task PollAsync()
-    {
-        if (_polling) return;
-        _polling = true;
-        try { await PollCoreAsync(); }
-        finally { _polling = false; }
-    }
+    /// <summary>
+    /// One read at a time: a slow one must not overlap the next and show items twice. A change during a read leads to
+    /// one more read afterwards.
+    /// </summary>
+    private async void Read() => await _read.RequestAsync();
 
     private async Task PollCoreAsync()
     {
@@ -172,17 +184,22 @@ public sealed partial class NotificationService : ObservableObject
         // Nothing needs them: neither the island (switched off) nor the Claude question detection.
         if (!_settings.NotificationsEnabled && !_settings.ClaudeEnabled) return;
         // Off the UI thread: the list and each of its properties are calls into Windows' notification service, and new
-        // ones need their app logo. Every 1.2 s on the UI thread that held it for up to 900 ms on a busy PC.
+        // ones need their app logo. On the UI thread that held it for up to 900 ms on a busy PC.
         var listener = _listener;
         var seen = new HashSet<uint>(_seen);
-        // Every ~30 s a full read anyway (a removal and an arrival between two polls keep the count)
-        bool full = _polls++ % 25 == 0;
+        var withLogo = new HashSet<string>(_logos.Keys);
+        // Without change events every ~30 s a full read anyway (a removal and an arrival between two polls keep the count)
+        bool full = _changeEvents || _polls++ % 25 == 0;
         var last = _lastSignature;
-        (HashSet<uint> Current, List<(uint Id, NotificationItem? Item)> New, (int, uint) Signature)? read;
-        try { read = await Task.Run(() => ReadAsync(listener, seen, full ? null : last)); }
+        (HashSet<uint> Current, List<(uint Id, RawToast? Toast)> New, (int, uint) Signature)? read;
+        try { read = await Task.Run(() => ReadAsync(listener, seen, withLogo, full ? null : last)); }
         catch { return; }
         if (read is not { } r) return;
-        if (_polls % 2500 == 1) Log.Info($"Notifications in the notification center: {r.Signature.Item1}"); // about every 50 min
+        if (DateTime.UtcNow - _countLogged > TimeSpan.FromMinutes(50))
+        {
+            _countLogged = DateTime.UtcNow;
+            Log.Info($"Notifications in the notification center: {r.Signature.Item1}{(_changeEvents ? "" : " (polled)")}");
+        }
         _lastSignature = r.Signature;
         if (r.Current is null) return; // nothing changed since the last poll
 
@@ -192,10 +209,10 @@ public sealed partial class NotificationService : ObservableObject
         foreach (var gone in Items.Where(i => i.Device is null && !current.Contains(i.Id)).ToList()) { Items.Remove(gone); Removed?.Invoke(gone); }
         if (_seen.Count > 2000) _seen.IntersectWith(current); // only ids still in the notification center matter
 
-        foreach (var (id, item) in r.New)
+        foreach (var (id, toast) in r.New)
         {
             if (!_seen.Add(id)) continue;
-            if (item is null) continue;
+            if (toast is null || ToItem(toast) is not { } item) continue;
             if (_settings.MutedApps.Contains(item.App)) continue;
             if (Items.Any(i => i.Device is not null && i.SameAs(item.App, item.Title, item.Body) && (DateTime.Now - i.Added).TotalSeconds < 10)) continue; // the paired device's copy came first
             if (_primed) Seen?.Invoke(item);
@@ -208,12 +225,16 @@ public sealed partial class NotificationService : ObservableObject
         _primed = true;
     }
 
+    /// <summary>A toast as read from Windows, before anything of WPF is made of it (that happens on the UI thread).</summary>
+    private sealed record RawToast(uint Id, string App, string AppId, List<string> Texts, DateTime Time, byte[]? Logo);
+
     /// <summary>
     /// Reads the notification center on a worker thread: the ids of all toasts and the new ones (not in
-    /// <paramref name="seen"/>) as items, oldest first. Null when Windows does not answer.
+    /// <paramref name="seen"/>), oldest first, with the logo of apps not in <paramref name="withLogo"/>. Null when
+    /// Windows does not answer.
     /// </summary>
-    private static async Task<(HashSet<uint> Current, List<(uint Id, NotificationItem? Item)> New, (int, uint) Signature)?> ReadAsync(
-        UserNotificationListener listener, HashSet<uint> seen, (int Count, uint LastId)? unchangedIf)
+    private static async Task<(HashSet<uint> Current, List<(uint Id, RawToast? Toast)> New, (int, uint) Signature)?> ReadAsync(
+        UserNotificationListener listener, HashSet<uint> seen, HashSet<string> withLogo, (int Count, uint LastId)? unchangedIf)
     {
         IReadOnlyList<UserNotification> list;
         try { list = await listener.GetNotificationsAsync(NotificationKinds.Toast); }
@@ -235,12 +256,13 @@ public sealed partial class NotificationService : ObservableObject
             }
             catch { } // gone meanwhile
         }
-        var items = new List<(uint, NotificationItem?)>();
-        foreach (var f in fresh.OrderBy(f => f.Time)) items.Add((f.Id, await ToItemAsync(f.N)));
+        var items = new List<(uint, RawToast?)>();
+        foreach (var f in fresh.OrderBy(f => f.Time)) items.Add((f.Id, await ReadToastAsync(f.N, withLogo)));
         return (current, items, signature);
     }
 
     private int _polls;
+    private DateTime _countLogged;
     private (int, uint) _lastSignature = (-1, 0);
 
     /// <summary>Count and the id of the last entry (Windows lists them oldest first): two calls instead of one per entry.</summary>
@@ -254,40 +276,57 @@ public sealed partial class NotificationService : ObservableObject
         catch { return (-1, 0); } // changed meanwhile: read it all
     }
 
-    private static async Task<NotificationItem?> ToItemAsync(UserNotification n)
+    private static async Task<RawToast?> ReadToastAsync(UserNotification n, HashSet<string> withLogo)
     {
         try
         {
             var binding = n.Notification.Visual.GetBinding(KnownNotificationBindings.ToastGeneric);
             var texts = binding?.GetTextElements().Select(t => t.Text).Where(t => !string.IsNullOrWhiteSpace(t)).ToList() ?? new();
             string app = n.AppInfo.DisplayInfo.DisplayName;
-            ImageSource? logo = null;
-            try
-            {
-                var stream = await n.AppInfo.DisplayInfo.GetLogo(new Windows.Foundation.Size(64, 64)).OpenReadAsync();
-                using var s = stream.AsStreamForRead();
-                var ms = new MemoryStream();
-                await s.CopyToAsync(ms);
-                ms.Position = 0;
-                logo = ImageTools.Load(ms, 64);
-            }
-            catch { }
             string appId = n.AppInfo.AppUserModelId;
-            string title = texts.FirstOrDefault() ?? app, body = string.Join("\n", texts.Skip(1));
+            byte[]? logo = null;
+            if (!withLogo.Contains(appId))
+                try
+                {
+                    var stream = await n.AppInfo.DisplayInfo.GetLogo(new Windows.Foundation.Size(64, 64)).OpenReadAsync();
+                    using var s = stream.AsStreamForRead();
+                    var ms = new MemoryStream();
+                    await s.CopyToAsync(ms);
+                    logo = ms.ToArray();
+                }
+                catch { }
+            return new RawToast(n.Id, app, appId, texts, n.CreationTime.LocalDateTime, logo);
+        }
+        catch { return null; }
+    }
+
+    /// <summary>On the UI thread: a WPF image made on a worker thread gave that thread a dispatcher of its own.</summary>
+    private NotificationItem? ToItem(RawToast t)
+    {
+        try
+        {
+            ImageSource? logo = null;
+            if (t.Logo is not null && ImageTools.Load(new MemoryStream(t.Logo), 64) is { } decoded)
+            {
+                if (_logos.Count > 100) _logos.Clear();
+                _logos[t.AppId] = logo = decoded;
+            }
+            else _logos.TryGetValue(t.AppId, out logo);
+            string app = t.App, title = t.Texts.FirstOrDefault() ?? app, body = string.Join("\n", t.Texts.Skip(1));
             // From the phone: Snapchat with its icon, not "Smartphone-Link".
-            if (PhoneLinkApps.IsPhoneNotification(appId) && PhoneLinkApps.Unwrap(texts) is { } phone)
+            if (PhoneLinkApps.IsPhoneNotification(t.AppId) && PhoneLinkApps.Unwrap(t.Texts) is { } phone)
             {
                 (app, title, body) = phone;
                 logo = PhoneLinkApps.Icon(app) ?? logo;
             }
             return new NotificationItem
             {
-                Id = n.Id,
+                Id = t.Id,
                 App = app,
-                AppId = appId,
+                AppId = t.AppId,
                 Title = title,
                 Body = body,
-                Time = n.CreationTime.LocalDateTime,
+                Time = t.Time,
                 Logo = logo,
             };
         }

@@ -40,6 +40,7 @@ tools/                    Snapshot-, Live-Test-, Update-Test-, Speicher-, Diagno
 licenses/                 Lizenzhinweise der .NET-Laufzeit (mit THIRD-PARTY-NOTICES.txt ausgeliefert)
 docs/postmortems/         Ursache und Lehren schwerer Fehler
 docs/performance/         Messmethode und Messwerte
+docs/offene_punkte.md     offene Aufgaben (zuletzt: Leistungsprüfung 15.10.2026)
 CLAUDE.md                 Regeln für Coding-Agenten
 ```
 
@@ -72,7 +73,7 @@ Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird ansch
 | `SpotifyService` | Spotify Web API, OAuth PKCE mit eigener Client-ID, Token in DPAPI |
 | `ClipboardService` | `WM_CLIPBOARDUPDATE`, PNG aus der Zwischenablage, Screenshot-Ordner aller OneDrive-Konten |
 | `ShelfService` | Dateiliste mit Explorer-Vorschaubildern |
-| `NotificationService` | `UserNotificationListener` (braucht Paket-Identität), Messenger-Filter |
+| `NotificationService` | `UserNotificationListener` (braucht Paket-Identität), liest bei `NotificationChanged` und jede Minute, Messenger-Filter |
 | `BannerSuppressor` | setzt `ShowBanner=0` für alle Apps und schaltet den Mitteilungston aus, stellt beim Beenden wieder her |
 | `CalendarService` | ICS, iCloud (`CalDavClient`), Google (`GoogleCalendarClient`) |
 | `Scripting/ScriptWidgetsService` | Eigene Skript-Widgets: `ScriptEngine` (Jint-Sandbox, Scriptable-API aus `ScriptPrelude.js`), `ScriptRenderer` (Widget-Baum → WPF), `ScriptWidgetView`; siehe [SCRIPTS.md](SCRIPTS.md) |
