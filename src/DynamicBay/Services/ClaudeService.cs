@@ -28,7 +28,10 @@ public sealed partial class ClaudeSession : ObservableObject
     /// <summary>claude.ai/code link when the session runs with Remote Control (open from any device).</summary>
     public string? RemoteUrl { get; set; }
     public string Machine { get; init; } = Environment.MachineName;
-    public bool IsLocal => string.Equals(Machine, Environment.MachineName, StringComparison.OrdinalIgnoreCase);
+    /// <summary>Set for a session Rubus reports: the channel its clicks go back to.</summary>
+    public string? RubusChannel { get; init; }
+    public bool IsRubus => RubusChannel is not null;
+    public bool IsLocal => !IsRubus && string.Equals(Machine, Environment.MachineName, StringComparison.OrdinalIgnoreCase);
     public bool HasRemote => !string.IsNullOrEmpty(RemoteUrl);
     public string Where => IsLocal ? Project : $"{Project} · {Machine}";
     public string Age => (DateTime.Now - Updated) switch
@@ -38,6 +41,11 @@ public sealed partial class ClaudeSession : ObservableObject
         { TotalDays: < 1 } => Updated.ToString("HH:mm"),
         _ => Updated.ToString("dd.MM."),
     };
+    /// <summary>Why a Rubus session waits ("Freigabe"); empty otherwise.</summary>
+    [ObservableProperty] private string _status = "";
+    /// <summary>Second line after the place: the reason it waits, else the age.</summary>
+    public string Detail => Status.Length > 0 ? Status : Age;
+    partial void OnStatusChanged(string value) => OnPropertyChanged(nameof(Detail));
     public bool IsWorking => State == ClaudeState.Working;
     public bool IsWaiting => State == ClaudeState.Waiting;
     partial void OnStateChanged(ClaudeState value) { OnPropertyChanged(nameof(IsWorking)); OnPropertyChanged(nameof(IsWaiting)); }
@@ -57,8 +65,12 @@ public sealed partial class ClaudeService : ObservableObject
     private readonly DispatcherTimer _scan = new() { Interval = TimeSpan.FromSeconds(5) };
     private readonly Dictionary<string, (ClaudeState State, DateTime At)> _hookState = new();
     private const int MaxHookStates = 200;
-    private const int MaxHookBody = 1024 * 1024; // PreToolUse carries the tool input (a whole file for Write)
     private HttpListener? _listener;
+    // Read by the listener thread.
+    private volatile bool _hooksOn, _rubusOn;
+
+    /// <summary>Channels, states and pending clicks of Rubus (POST /rubus/).</summary>
+    public RubusBridge Rubus { get; } = new();
 
     private readonly AppSettings _settings;
     public ObservableCollection<ClaudeSession> Sessions { get; } = new();
@@ -72,6 +84,9 @@ public sealed partial class ClaudeService : ObservableObject
 
     public event Action<ClaudeSession>? Finished;
     public event Action<ClaudeSession, string>? NeedsInput;
+    /// <summary>Rubus reports a new approval (channel, request); it stays until <see cref="RubusRequestGone"/>.</summary>
+    public event Action<string, RubusAnfrage>? RubusAsked;
+    public event Action<string, string>? RubusRequestGone;
 
     private bool _started;
 
@@ -84,10 +99,10 @@ public sealed partial class ClaudeService : ObservableObject
             _scan.Stop();
             _watcher?.Dispose();
             _watcher = null;
-            StopListener();
+            _started = false;
+            UpdateListener();
             Sessions.Clear();
             AnyWorking = AnyWaiting = false;
-            _started = false;
         }
     }
 
@@ -102,8 +117,7 @@ public sealed partial class ClaudeService : ObservableObject
         _scan.Start();
         WatchTranscripts();
         Scan();
-        // The loopback listener only runs while the hooks that post to it are installed.
-        if (HooksInstalled) StartListener();
+        UpdateListener();
     }
 
     // Transcripts are only searched when one changed (file watcher), while a session works or waits (its state
@@ -136,6 +150,7 @@ public sealed partial class ClaudeService : ObservableObject
 
     private void OnScanTick(object? sender, EventArgs e)
     {
+        if (Rubus.Expire(DateTime.UtcNow) is { Count: > 0 } gone) ApplyRubus(gone);
         if (ActivityState.Current.Away) return; // the list is only shown; hooks still report finished and waiting sessions
         bool busy = Sessions.Any(x => x.State != ClaudeState.Idle || x.ActiveAgents > 0);
         bool shared = !string.IsNullOrWhiteSpace(_settings.ClaudeShareFolder);
@@ -188,14 +203,19 @@ public sealed partial class ClaudeService : ObservableObject
             }
             foreach (var r in await SyncSharedAsync()) seen.Add(Key(r.Machine, r.Id));
             if (!_started) return; // switched off while the shared folder was read
-            foreach (var old in Sessions.Where(x => !seen.Contains(Key(x.Machine, x.Id))).ToList()) Sessions.Remove(old);
-            // Newest first
-            var ordered = Sessions.OrderByDescending(x => x.Updated).ToList();
-            for (int i = 0; i < ordered.Count; i++)
-                if (Sessions.IndexOf(ordered[i]) != i) Sessions.Move(Sessions.IndexOf(ordered[i]), i);
+            foreach (var old in Sessions.Where(x => !x.IsRubus && !seen.Contains(Key(x.Machine, x.Id))).ToList()) Sessions.Remove(old);
+            SortSessions();
             UpdateSummary();
         }
         finally { _scanning = false; }
+    }
+
+    /// <summary>Newest first.</summary>
+    private void SortSessions()
+    {
+        var ordered = Sessions.OrderByDescending(x => x.Updated).ToList();
+        for (int i = 0; i < ordered.Count; i++)
+            if (Sessions.IndexOf(ordered[i]) != i) Sessions.Move(Sessions.IndexOf(ordered[i]), i);
     }
 
     private sealed record ScanResult(string Id, DateTime Updated, int Agents, (string cwd, string title, string prompt, string bridge)? Meta);
@@ -254,7 +274,7 @@ public sealed partial class ClaudeService : ObservableObject
         if (!_started) return result; // switched off while the folder was read: nothing may come back into the list
         foreach (var r in shared)
         {
-            var s = Sessions.FirstOrDefault(x => x.Id == r.Id && x.Machine.Equals(r.Machine, StringComparison.OrdinalIgnoreCase));
+            var s = Sessions.FirstOrDefault(x => !x.IsRubus && x.Id == r.Id && x.Machine.Equals(r.Machine, StringComparison.OrdinalIgnoreCase));
             if (s is null)
             {
                 s = new ClaudeSession { Id = r.Id, Machine = r.Machine, Cwd = r.Cwd };
@@ -457,13 +477,31 @@ public sealed partial class ClaudeService : ObservableObject
 
     // ---------- live status from hooks ----------
 
+    private static int ListenPort => DevMode.On ? DevMode.HookPort ?? 0 : HookPort;
+
+    /// <summary>
+    /// The loopback listener runs while the hooks that post to /claude/ are installed or Rubus is switched on; a path
+    /// that is off answers 404. A test instance only listens with DYNAMICBAY_HOOK_PORT (43822 belongs to the installed app).
+    /// </summary>
+    public void UpdateListener()
+    {
+        _hooksOn = _started && HooksInstalled;
+        bool rubus = _started && _settings.RubusEnabled;
+        bool wasRubus = _rubusOn;
+        _rubusOn = rubus;
+        if (wasRubus && !rubus) ApplyRubus(Rubus.Clear());
+        if (_hooksOn || _rubusOn) StartListener();
+        else StopListener();
+    }
+
     private void StartListener()
     {
-        if (_listener is not null || DevMode.On) return; // the hook port belongs to the installed DynamicBay
+        if (_listener is not null || ListenPort == 0) return;
         try
         {
             var listener = new HttpListener();
-            listener.Prefixes.Add(HookUrl);
+            listener.Prefixes.Add($"http://127.0.0.1:{ListenPort}/claude/");
+            listener.Prefixes.Add($"http://127.0.0.1:{ListenPort}/rubus/");
             listener.Start();
             _listener = listener;
             _ = Task.Run(() => ListenLoop(listener));
@@ -484,8 +522,10 @@ public sealed partial class ClaudeService : ObservableObject
             try
             {
                 var ctx = await listener.GetContextAsync();
-                var json = await ReadHookAsync(ctx);
+                var route = ListenerGate.RouteOf(ctx.Request.Url?.AbsolutePath ?? "");
+                var json = await ReadPostAsync(ctx, route, _hooksOn, _rubusOn);
                 if (json is null) continue;
+                if (route == ListenerGate.Route.Rubus) { AnswerRubus(ctx, json); continue; }
                 _ = Application.Current.Dispatcher.BeginInvoke(() => OnHook(json));
             }
             catch { }
@@ -493,31 +533,125 @@ public sealed partial class ClaudeService : ObservableObject
     }
 
     /// <summary>
-    /// Only takes what curl in a hook sends: a POST without an Origin header (browsers always send one, so web pages
-    /// cannot post here) and a bounded body (max. 1 MB).
+    /// Only takes what curl in a hook or the Rubus client sends: a POST without an Origin header (browsers always send
+    /// one, so web pages cannot post here) and a bounded body (1 MB for hooks, 64 KB for Rubus). A refused or broken
+    /// request is answered and closed here; a hook gets its 204 here, Rubus its answer in <see cref="AnswerRubus(HttpListenerContext, JsonNode)"/>.
     /// </summary>
-    private static async Task<JsonNode?> ReadHookAsync(HttpListenerContext ctx)
+    private static async Task<JsonNode?> ReadPostAsync(HttpListenerContext ctx, ListenerGate.Route route, bool hooksOn, bool rubusOn)
     {
         var req = ctx.Request;
+        bool keepOpen = false;
         try
         {
-            if (req.Headers["Origin"] is not null || req.Headers["Sec-Fetch-Site"] is not null) { ctx.Response.StatusCode = 403; return null; }
-            if (req.HttpMethod != "POST") { ctx.Response.StatusCode = 405; return null; }
-            if (req.ContentLength64 > MaxHookBody) { ctx.Response.StatusCode = 413; return null; }
+            if (ListenerGate.Refuse(route, req.HttpMethod, req.Headers["Origin"] is not null, req.Headers["Sec-Fetch-Site"] is not null,
+                    req.ContentLength64, hooksOn, rubusOn) is { } refused) { ctx.Response.StatusCode = refused; return null; }
+            int max = ListenerGate.MaxBody(route);
             using var body = new MemoryStream();
             var chunk = new byte[16 * 1024];
             int n;
             while ((n = await req.InputStream.ReadAsync(chunk)) > 0)
             {
                 body.Write(chunk, 0, n);
-                if (body.Length > MaxHookBody) { ctx.Response.StatusCode = 413; return null; }
+                if (body.Length > max) { ctx.Response.StatusCode = 413; return null; }
             }
             var json = JsonNode.Parse(Encoding.UTF8.GetString(body.GetBuffer(), 0, (int)body.Length));
+            if (json is null) { ctx.Response.StatusCode = 400; return null; }
             ctx.Response.StatusCode = 204;
+            keepOpen = route == ListenerGate.Route.Rubus;
             return json;
         }
         catch { ctx.Response.StatusCode = 400; return null; }
+        finally { if (!keepOpen) try { ctx.Response.Close(); } catch { } }
+    }
+
+    // ---------- Rubus ----------
+
+    /// <summary>Listener thread: updates the channel, answers with the collected clicks, then shows the changes on the UI thread.</summary>
+    private void AnswerRubus(HttpListenerContext ctx, JsonNode json)
+    {
+        try
+        {
+            if (RubusProtocol.Parse(json) is not { } msg) { ctx.Response.StatusCode = 400; return; }
+            var (status, body, events) = Rubus.Handle(msg, DateTime.UtcNow);
+            ctx.Response.StatusCode = status;
+            if (body is not null)
+            {
+                var bytes = Encoding.UTF8.GetBytes(body);
+                ctx.Response.ContentType = "application/json; charset=utf-8";
+                ctx.Response.ContentLength64 = bytes.Length;
+                ctx.Response.OutputStream.Write(bytes);
+            }
+            if (msg.Art is RubusArt.Stand or RubusArt.Ende)
+                _ = Application.Current.Dispatcher.BeginInvoke(() => ApplyRubus(events));
+        }
+        catch (Exception ex) { Log.Error("Rubus", ex); }
         finally { try { ctx.Response.Close(); } catch { } }
+    }
+
+    /// <summary>UI thread: mirrors the Rubus channels into the session list and raises the peeks for what changed.</summary>
+    internal void ApplyRubus(List<RubusEreignis> events)
+    {
+        var seen = new HashSet<ClaudeSession>();
+        if (_rubusOn)
+        {
+            foreach (var (kanal, stand) in Rubus.Snapshot())
+            foreach (var r in stand.Sitzungen)
+            {
+                var s = Sessions.FirstOrDefault(x => x.RubusChannel == kanal && x.Id == r.Id);
+                if (s is null)
+                {
+                    s = new ClaudeSession
+                    {
+                        Id = r.Id, RubusChannel = kanal, Machine = r.Host.Length > 0 ? r.Host : "Rubus",
+                        Cwd = r.Projekt.Length > 0 ? r.Projekt : "Rubus", Updated = r.Seit ?? DateTime.Now,
+                    };
+                    Sessions.Add(s);
+                }
+                s.Title = r.Titel.Length > 0 ? r.Titel : "Claude Code";
+                s.LastPrompt = r.Text;
+                if (r.Seit is { } seit) s.Updated = seit;
+                s.State = r.Zustand switch { RubusZustand.Arbeitet => ClaudeState.Working, RubusZustand.Wartet => ClaudeState.Waiting, _ => ClaudeState.Idle };
+                s.Status = r.Zustand == RubusZustand.Wartet ? WaitText(r.Grund) : "";
+                seen.Add(s);
+            }
+        }
+        foreach (var old in Sessions.Where(x => x.IsRubus && !seen.Contains(x)).ToList()) Sessions.Remove(old);
+        SortSessions();
+        UpdateSummary();
+
+        foreach (var e in events)
+        {
+            ClaudeSession? Find(RubusSitzung r) => Sessions.FirstOrDefault(x => x.RubusChannel == e.Kanal && x.Id == r.Id);
+            switch (e)
+            {
+                case RubusNeueAnfrage a when _rubusOn: RubusAsked?.Invoke(a.Kanal, a.Anfrage); break;
+                case RubusAnfrageWeg w: RubusRequestGone?.Invoke(w.Kanal, w.Anfrage); break;
+                case RubusBrauchtDich b when Find(b.Sitzung) is { } s: NeedsInput?.Invoke(s, b.Sitzung.Text); break;
+                case RubusFertig f when Find(f.Sitzung) is { } s: Finished?.Invoke(s); break;
+            }
+        }
+    }
+
+    /// <summary>Snapshot mode: Rubus sessions as demo data, without a listener.</summary>
+    internal void LoadRubusDemo(RubusStand stand)
+    {
+        _rubusOn = true;
+        Rubus.Handle(new RubusNachricht(new string('0', 32), RubusArt.Stand, stand), DateTime.UtcNow);
+        ApplyRubus(new());
+    }
+
+    /// <summary>Second line of a waiting Rubus session: one word, the orange dot already says it waits.</summary>
+    public static string WaitText(string? grund) => grund switch
+    {
+        "freigabe" => Loc.German ? "Freigabe" : "approval",
+        "erlaubnis" => Loc.German ? "Erlaubnis" : "permission",
+        _ => Loc.German ? "Eingabe" : "input",
+    };
+
+    /// <summary>A button of a Rubus question: erlauben, ablehnen or oeffnen, once per request.</summary>
+    public void AnswerRubus(string kanal, string anfrage, string art)
+    {
+        if (!Rubus.Enqueue(kanal, new RubusAktion(art, Anfrage: anfrage))) Log.Info($"Rubus: {art} not queued (request gone or already answered)");
     }
 
     private void OnHook(JsonNode json)
@@ -591,7 +725,7 @@ public sealed partial class ClaudeService : ObservableObject
             root["hooks"] = hooks;
             File.WriteAllText(SettingsPath, root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
             HooksInstalled = true;
-            if (_started) StartListener();
+            UpdateListener();
         }
         catch (Exception ex) { Log.Error("ClaudeHooksInstall", ex); }
     }
@@ -613,7 +747,7 @@ public sealed partial class ClaudeService : ObservableObject
             if (hooks.Count == 0) root.Remove("hooks");
             File.WriteAllText(SettingsPath, root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
             HooksInstalled = false;
-            StopListener();
+            UpdateListener();
         }
         catch (Exception ex) { Log.Error("ClaudeHooksRemove", ex); }
     }
@@ -633,6 +767,8 @@ public sealed partial class ClaudeService : ObservableObject
     public void Resume(ClaudeSession? s)
     {
         if (s is null) return;
+        // Rubus brings its own window to the front with that session.
+        if (s.RubusChannel is { } kanal) { Rubus.Enqueue(kanal, new RubusAktion("sitzung_oeffnen", Sitzung: s.Id)); return; }
         if (!s.IsLocal) { OpenRemote(s); return; }
         if (!IsSessionId(s.Id)) return;
         string dir = Directory.Exists(s.Cwd) ? s.Cwd : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);

@@ -24,6 +24,7 @@ $env:DYNAMICBAY_SNAPSHOT="compact";  powershell -File tools/snapshot.ps1   # kle
 $env:DYNAMICBAY_SNAPSHOT_CURSORHOP="1"; powershell -File tools/snapshot.ps1   # CursorHop-Karte und -Einblendungen (Demo)
 $env:DYNAMICBAY_SNAPSHOT_LINK="1"; powershell -File tools/snapshot.ps1        # Karte „Gekoppelt“, Musik des Laptops, Koppel-Code (Demo)
 $env:DYNAMICBAY_SNAPSHOT_DEVICES="1"; powershell -File tools/snapshot.ps1     # Karten „Geräte“ und „AirPods“ mit den echten Bluetooth-Geräten (nur lesen)
+$env:DYNAMICBAY_SNAPSHOT_RUBUS="1"; powershell -File tools/snapshot.ps1       # Rubus-Sessions in der Claude-Karte, Freigabe-Frage, kompakte Anzeige (Demo)
 ```
 
 Der Snapshot-Modus (`DynamicBay.exe --snapshot <dir>`) lädt Demo-Daten, durchläuft Idle, Compact, Peek, Panel,
@@ -81,6 +82,9 @@ $env:DYNAMICBAY_DEV="a"; $env:DYNAMICBAY_LINK_PORT="43901"; $env:DYNAMICBAY_LINK
 $env:DYNAMICBAY_DEV_ALLOWPAIRING="1"; $env:DYNAMICBAY_DEV_AUTOCONFIRM="1"; .\DynamicBay.exe
 # zweite Konsole: DYNAMICBAY_DEV=b, Port 43902, DYNAMICBAY_DEV_PAIR=127.0.0.1:43901, DYNAMICBAY_DEV_AUTOCONFIRM=1
 ```
+
+`DYNAMICBAY_HOOK_PORT=43932` lässt eine Testinstanz auf diesem Port auf Claude-Hooks und Rubus hören (ohne die
+Variable hört sie gar nicht, 43822 gehört der installierten App).
 
 `DYNAMICBAY_DEV_SENDFILE=<Pfad>` schickt die Datei an das erste Gerät, das online kommt. Eine Testinstanz führt Befehle
 aus `%AppData%\DynamicBay-dev-<n>\dev-commands.txt` aus (eine Zeile pro Befehl, die Datei wird danach gelöscht):

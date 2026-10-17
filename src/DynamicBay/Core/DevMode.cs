@@ -17,6 +17,9 @@ public static class DevMode
 
     public static int? DiscoveryPort => Port("DYNAMICBAY_LINK_DISCOVERY_PORT");
 
+    /// <summary><c>DYNAMICBAY_HOOK_PORT=43932</c>: a test instance listens for hooks and Rubus there (43822 belongs to the installed app).</summary>
+    public static int? HookPort => Port("DYNAMICBAY_HOOK_PORT");
+
     public static bool AutoConfirmPairing => On && Environment.GetEnvironmentVariable("DYNAMICBAY_DEV_AUTOCONFIRM") == "1";
 
     /// <summary><c>DYNAMICBAY_DEV_ALLOWPAIRING=1</c>: open the pairing window right after the start (test instances).</summary>

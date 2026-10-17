@@ -213,8 +213,36 @@ Screenshot-Ordner aller OneDrive-Konten werden automatisch überwacht.
   „Claude arbeitet“, „Claude ist fertig“ und „Claude braucht dich“.
 - **Alle PCs:** Mit einem gewählten Cloud-Ordner legt jeder PC eine kleine Übersicht seiner Sitzungen ab
   (Titel, Projekt, Status, Remote-Link – keine Zugangsdaten); die Insel zeigt dann die Sitzungen aller PCs.
+- **Rubus:** siehe unten.
 - Chats aus Claude Desktop/claude.ai werden nicht gelesen: Dafür gibt es keine öffentliche Schnittstelle.
 - Das ganze Modul ist mit einem Schalter abschaltbar.
+
+### Rubus
+
+Rubus meldet seine Claude-Sessions (auch von anderen Hosts) und offene Freigaben an DynamicBay. Schalter:
+Einstellungen → Apps und Skripte → Claude → *Sessions aus Rubus* (Vorgabe aus). Das Protokoll legt Rubus fest
+(`rubus/tasks/KONZEPT_DYNAMICBAY.md`, Abschnitt „Protokoll“); umgesetzt in `Services/RubusBridge.cs`.
+
+- **Endpunkt:** `POST http://127.0.0.1:43822/rubus/` im selben Listener wie die Hooks, gleiche Regeln: nur POST, kein
+  `Origin`/`Sec-Fetch-Site`, höchstens 64 KB. Der Listener läuft, wenn die Hooks eingerichtet sind oder der Schalter
+  an ist; ein abgeschalteter Pfad antwortet 404.
+- **Nachrichten:** `{v: 1, kanal: <32 Hex>, art}` mit `stand` (ganzer Stand: `sitzungen`, `anfragen`; ersetzt den
+  vorigen dieses Kanals), `abholen` und `ende` (alles des Kanals weg). Antwort auf `stand` und `abholen`:
+  `200 {"aktionen": [...]}` mit den Klicks seit der letzten Antwort, sonst `204`. Andere Versionen oder Kanäle: `400`.
+  Unbekannte Felder und Einträge mit ungültiger Kennung werden übersprungen; höchstens 50 Sessions und 50 Anfragen,
+  8 Kanäle.
+- **Ablauf:** Kommt 90 s nichts von einem Kanal, verschwinden seine Sessions und Anfragen.
+- **Liste:** Rubus-Sessions stehen in der Claude-Karte neben den lokalen („Projekt · Host“), mit Punkt für arbeitet,
+  wartet (mit Grund: Freigabe, Erlaubnis, Eingabe) oder fertig, und zählen in der kompakten Anzeige mit. Ein Klick
+  legt `sitzung_oeffnen` in die Aktionen; Rubus holt dann sein Fenster nach vorn.
+- **Einblendungen** aus dem Vergleich zweier Stände: neue Anfrage → Frage mit *Erlauben* / *Ablehnen* (bei
+  `nur_im_fenster` nur *In Rubus öffnen*), hohe Priorität, auch bei „Nicht stören“, nur auf diesem Gerät; sie bleibt,
+  bis die Anfrage aus dem Stand verschwindet. `wartet` mit Grund `erlaubnis` oder `eingabe` → „Claude braucht dich“,
+  `arbeitet` → `bereit` → „Claude ist fertig“. Der Grund `freigabe` hat keine eigene Einblendung.
+- **Antworten** gehen nur an den Kanal, der die Anfrage gemeldet hat, jede Anfrage einmal. Rubus führt nur aus, was es
+  selbst als offen kennt, mit denselben Prüfungen wie im eigenen Fenster; DynamicBay bekommt keine Anmeldedaten.
+- Ausprobieren ohne Rubus: eine Testinstanz mit `DYNAMICBAY_DEV=a` und `DYNAMICBAY_HOOK_PORT=43932`, Schalter an,
+  dann `stand` und `abholen` von Hand an `http://127.0.0.1:43932/rubus/` schicken (43822 gehört der installierten App).
 
 ## Microsoft 365 (Outlook, Teams, To Do)
 

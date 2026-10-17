@@ -122,11 +122,17 @@
         <!-- Claude Code agent working / waiting: text only for "wartet" and "2 aktiv" -->
         <Grid Visibility="{Binding ShowClaude, Converter={StaticResource Vis}}">
             <StackPanel x:Name="ClaudeH" Orientation="Horizontal">
-                <c:Icon Data="{StaticResource Icon.Sparkles}" Width="13" Height="13" StrokeWidth="2.2" Foreground="#FFD97757" RenderTransformOrigin="0.5,0.5">
-                    <c:Icon.RenderTransform><RotateTransform /></c:Icon.RenderTransform>
+                <!-- Breathes like Claude's own mark (contracts and opens again), never turns -->
+                <c:Icon Data="{StaticResource Glyph.Claude}" Filled="True" Width="13" Height="13" Foreground="#FFD97757" RenderTransformOrigin="0.5,0.5">
+                    <c:Icon.RenderTransform><ScaleTransform /></c:Icon.RenderTransform>
                     <c:Loop.Storyboard>
-                        <Storyboard RepeatBehavior="Forever">
-                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.Angle" From="0" To="360" Duration="0:0:4" />
+                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" From="1" To="0.72" Duration="0:0:0.75">
+                                <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" From="1" To="0.72" Duration="0:0:0.75">
+                                <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
                         </Storyboard>
                     </c:Loop.Storyboard>
                 </c:Icon>
@@ -134,7 +140,7 @@
                            VerticalAlignment="Center" Visibility="{Binding Claude.WorkingText, Converter={StaticResource Vis}}" />
             </StackPanel>
             <StackPanel x:Name="ClaudeV" Visibility="Collapsed">
-                <c:Icon Data="{StaticResource Icon.Sparkles}" Width="13" Height="13" StrokeWidth="2.2" Foreground="#FFD97757" />
+                <c:Icon Data="{StaticResource Glyph.Claude}" Filled="True" Width="13" Height="13" Foreground="#FFD97757" />
             </StackPanel>
         </Grid>
 

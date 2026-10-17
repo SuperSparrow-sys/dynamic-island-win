@@ -35,6 +35,9 @@ public sealed class Icon : FrameworkElement
     public Geometry? Data { get => (Geometry?)GetValue(DataProperty); set => SetValue(DataProperty, value); }
     public Brush Foreground { get => (Brush)GetValue(ForegroundProperty); set => SetValue(ForegroundProperty, value); }
     public bool Filled { get => (bool)GetValue(FilledProperty); set => SetValue(FilledProperty, value); }
+
+    /// <summary>Resources named Glyph.* are filled shapes (own glyphs, brand logos), Icon.* are Lucide outlines.</summary>
+    public static bool IsGlyph(string key) => key.StartsWith("Glyph.", StringComparison.Ordinal);
     public double StrokeWidth { get => (double)GetValue(StrokeWidthProperty); set => SetValue(StrokeWidthProperty, value); }
 
     protected override void OnRender(DrawingContext dc)

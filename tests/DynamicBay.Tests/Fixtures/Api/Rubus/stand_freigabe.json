@@ -1,0 +1,1 @@
+{"v":1,"kanal":"0123456789abcdef0123456789abcdef","art":"stand","sitzungen":[{"id":"rubus-17","titel":"Umbau","host":"frank-raspi","projekt":"automation","zustand":"wartet","grund":"freigabe","text":"","seit":0}],"anfragen":[{"id":"0123456789abcdef","sitzung":"rubus-17","titel":"Claude möchte auf test deployen","projekt":"automation","host":"frank-raspi","nur_im_fenster":false}]}

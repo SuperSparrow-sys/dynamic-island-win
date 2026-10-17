@@ -1441,7 +1441,7 @@
                                 </Button>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <c:Icon Data="{StaticResource Icon.Sparkles}" Width="14" Height="14" Foreground="#FFD97757" VerticalAlignment="Center" />
+                                <c:Icon Data="{StaticResource Glyph.Claude}" Filled="True" Width="14" Height="14" Foreground="#FFD97757" VerticalAlignment="Center" />
                                 <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="Claude" />
                             </StackPanel>
                         </DockPanel>
@@ -1482,7 +1482,7 @@
                                             <StackPanel Grid.Column="1">
                                                 <TextBlock Style="{StaticResource T.Title}" FontSize="11.5" Text="{Binding Title}" />
                                                 <TextBlock Style="{StaticResource T.Section}" FontWeight="Medium">
-                                                    <Run Text="{Binding Where, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Age, Mode=OneWay}" />
+                                                    <Run Text="{Binding Where, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Detail, Mode=OneWay}" />
                                                 </TextBlock>
                                             </StackPanel>
                                         </Grid>

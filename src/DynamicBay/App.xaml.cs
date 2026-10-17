@@ -264,7 +264,11 @@ public partial class App : Application
         Safe("Presence", vm.Presence!.Start);
         Safe("Contacts", vm.Contacts!.Start);
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.TaildropEnabled)) taildrop.SetEnabled(_settings.TaildropEnabled); };
-        _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) vm.Claude.SetEnabled(_settings.ClaudeEnabled); };
+        _settings.PropertyChanged += (_, ev) =>
+        {
+            if (ev.PropertyName == nameof(AppSettings.ClaudeEnabled)) vm.Claude.SetEnabled(_settings.ClaudeEnabled);
+            if (ev.PropertyName == nameof(AppSettings.RubusEnabled)) vm.Claude.UpdateListener();
+        };
         Safe("Link", () => SetLinkEnabled(_settings.LinkEnabled));
         _settings.PropertyChanged += (_, ev) =>
         {
@@ -661,7 +665,7 @@ public partial class App : Application
         claudeTint.Freeze(); claudeColor.Freeze();
         _vm!.Claude.Finished += s => island.ShowPeek(new PeekItem
         {
-            Icon = Icon("Icon.Sparkles"), IconBrush = claudeColor, IconBackground = claudeTint,
+            Icon = Icon("Glyph.Claude"), IconFilled = true, IconBrush = claudeColor, IconBackground = claudeTint,
             Title = Loc.German ? "Claude ist fertig" : "Claude is done",
             Subtitle = $"{s.Project} · {s.Title}",
             Seconds = 4,
@@ -669,13 +673,23 @@ public partial class App : Application
         });
         _vm.Claude.NeedsInput += (s, message) => island.ShowPeek(new PeekItem
         {
-            Icon = Icon("Icon.Sparkles"), IconBrush = Res("B.Orange"), IconBackground = Tint("B.Orange", 0x2E),
+            Icon = Icon("Glyph.Claude"), IconFilled = true, IconBrush = Res("B.Orange"), IconBackground = Tint("B.Orange", 0x2E),
             Title = Loc.German ? "Claude braucht dich" : "Claude needs you",
             Subtitle = string.IsNullOrWhiteSpace(message) ? s.Project : message,
             Priority = PeekPriority.High,
             Seconds = 6,
             OnClick = () => _vm.Claude.Resume(s),
         });
+        // Approvals from Rubus: a question that stays until the request leaves Rubus' state; each is answered once.
+        var rubusAsks = new Dictionary<(string, string), PeekItem>();
+        _vm.Claude.RubusAsked += (kanal, a) =>
+        {
+            var peek = RubusQuestion(a, Icon("Glyph.Claude"), claudeColor, claudeTint,
+                answer: art => { rubusAsks.Remove((kanal, a.Id)); _vm.Claude.AnswerRubus(kanal, a.Id, art); });
+            rubusAsks[(kanal, a.Id)] = peek;
+            island.ShowPeek(peek);
+        };
+        _vm.Claude.RubusRequestGone += (kanal, id) => { if (rubusAsks.Remove((kanal, id), out var p)) island.WithdrawPeek(p); };
 
         // Files from other devices (Taildrop): into the shelf and announced with a preview.
         _taildrop!.Received += files =>
@@ -1000,6 +1014,24 @@ public partial class App : Application
         try { return new FileInfo(path).Length; }
         catch { return 0; }
     }
+
+    /// <summary>
+    /// The question peek for a Rubus approval: "Erlauben" / "Ablehnen", or only "In Rubus öffnen" when it can only be
+    /// granted in the Rubus window. Shown in "Nicht stören" too, on this device only (the answer goes to this channel).
+    /// </summary>
+    internal static PeekItem RubusQuestion(RubusAnfrage a, Geometry? icon, Brush color, Brush tint, Action<string> answer) => new()
+    {
+        Kind = PeekKind.Local,
+        Icon = icon, IconFilled = true, IconBrush = color, IconBackground = tint,
+        Title = a.Titel.Length > 0 ? a.Titel : (Loc.German ? "Claude braucht eine Freigabe" : "Claude needs approval"),
+        Subtitle = string.Join(" · ", new[] { a.Projekt, a.Host }.Where(x => x.Length > 0)),
+        ActionText = a.NurImFenster ? (Loc.German ? "In Rubus öffnen" : "Open in Rubus") : (Loc.German ? "Erlauben" : "Allow"),
+        DismissText = a.NurImFenster ? null : (Loc.German ? "Ablehnen" : "Deny"),
+        Action = () => answer(a.NurImFenster ? "oeffnen" : "erlauben"),
+        OnDismiss = a.NurImFenster ? null : () => answer("ablehnen"),
+        Priority = PeekPriority.High, ShowInDnd = true,
+        Seconds = 12 * 3600, // until Rubus no longer reports the request
+    };
 
     private static string FormatSize(long bytes) => bytes switch
     {

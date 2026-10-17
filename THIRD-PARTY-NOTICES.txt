@@ -710,6 +710,9 @@ https://simpleicons.org
 Simple Icons is released under CC0 1.0 Universal (public domain dedication),
 https://creativecommons.org/publicdomain/zero/1.0/
 
+The Claude mark (Simple Icons 13.21.0) only identifies the Claude integration.
+Claude and Anthropic are trademarks of Anthropic, PBC.
+
 The brand icons depict trademarks of their respective owners. Their use in
 DynamicBay does not imply endorsement by or affiliation with those owners.
 

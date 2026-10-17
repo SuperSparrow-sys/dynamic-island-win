@@ -35,7 +35,7 @@
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
                     Visibility="{Binding HasActions, Converter={StaticResource Vis}}">
             <Button Style="{StaticResource Btn.Chip}" Padding="12,0" Height="30" Margin="0,0,6,0" Background="{StaticResource B.Fill2}"
-                    Content="{Binding DismissText}" Click="Dismiss_Click" />
+                    Content="{Binding DismissText}" Click="Dismiss_Click" Visibility="{Binding HasDismiss, Converter={StaticResource Vis}}" />
             <Button Style="{StaticResource Btn.Chip}" Padding="12,0" Height="30" Background="{StaticResource B.Blue}"
                     Content="{Binding ActionText}" Click="Action_Click" />
         </StackPanel>

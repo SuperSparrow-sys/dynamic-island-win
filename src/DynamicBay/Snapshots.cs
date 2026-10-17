@@ -197,6 +197,14 @@ public static class Snapshots
             return;
         }
 
+        // Rubus: DYNAMICBAY_SNAPSHOT_RUBUS=1 - Rubus sessions in the Claude card, the approval question (two buttons and
+        // window only) and the compact island, with demo data (nothing listens, nothing goes to Rubus).
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_RUBUS") == "1")
+        {
+            await RubusShotsAsync(island, vm, settings, dir);
+            return;
+        }
+
         // CursorHop: DYNAMICBAY_SNAPSHOT_CURSORHOP=1 - the card on the System page (mouse there, here, not running)
         // and the peeks, with demo data (CursorHop is neither started nor read).
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_CURSORHOP") == "1")
@@ -480,6 +488,37 @@ public static class Snapshots
                 foreach (var w in saved) settings.HomeWidgets.Add(w);
             }
         }
+    }
+
+    private static async Task RubusShotsAsync(IslandWindow island, IslandViewModel vm, AppSettings settings, string dir)
+    {
+        var color = new SolidColorBrush(Color.FromRgb(0xD9, 0x77, 0x57));
+        var tint = new SolidColorBrush(Color.FromArgb(0x33, 0xD9, 0x77, 0x57));
+        var sparkles = (Geometry)Application.Current.FindResource("Glyph.Claude");
+        var now = DateTime.Now;
+        var deploy = new RubusAnfrage("0123456789abcdef", "rubus-17", Loc.German ? "Claude möchte auf test deployen" : "Claude wants to deploy to test", "automation", "frank-raspi", false);
+        vm.Claude.Start();
+        vm.Claude.LoadRubusDemo(new RubusStand(new[]
+        {
+            new RubusSitzung("rubus-17", "Umbau Modbus-Abfrage", "frank-raspi", "automation", RubusZustand.Wartet, "freigabe", "", now.AddMinutes(-1)),
+            new RubusSitzung("rubus-18", "Dashboard Ladeplan", "homeserver", "rubus", RubusZustand.Arbeitet, null, "", now.AddMinutes(-3)),
+            new RubusSitzung("rubus-19", "Doku Anlagen", "homeserver", "vault", RubusZustand.Bereit, null, "", now.AddMinutes(-25)),
+        }, new[] { deploy }));
+        // At the bottom: the installed island at the top must not cover these shots.
+        settings.Edge = IslandEdge.Bottom; settings.Align = IslandAlign.Center; settings.Inset = 8; settings.Along = 0.5;
+        settings.HomeWidgets.Clear();
+        foreach (var w in new[] { Widgets.Claude, Widgets.Media }) settings.HomeWidgets.Add(w);
+        vm.Tab = 0;
+        await Task.Delay(900);
+        await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, "rubus-1-list.png"), compact: false);
+        island.SetPeekForSnapshot(App.RubusQuestion(deploy, sparkles, color, tint, _ => { }));
+        await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, "rubus-2-question.png"), compact: false);
+        island.SetPeekForSnapshot(App.RubusQuestion(deploy with { Titel = Loc.German ? "Claude möchte auf prod deployen" : "Claude wants to deploy to prod", NurImFenster = true },
+            sparkles, color, tint, _ => { }));
+        await Shot(island, vm, IslandMode.Peek, Path.Combine(dir, "rubus-3-window-only.png"), compact: false);
+        settings.CompactItems.Clear();
+        settings.CompactItems.Add(Widgets.Claude);
+        await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, "rubus-4-compact.png"), compact: false);
     }
 
     private static async Task CursorHopShotsAsync(IslandWindow island, IslandViewModel vm, AppSettings settings, string dir,

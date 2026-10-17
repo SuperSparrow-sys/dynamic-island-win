@@ -306,6 +306,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _askMuteOnMicStart = true;
     [ObservableProperty] private string _micMuteHotkey = "Ctrl+Alt+M";
     [ObservableProperty] private string _claudeShareFolder = "";
+    /// <summary>Claude sessions and approvals from Rubus over POST /rubus/ (off until switched on).</summary>
+    [ObservableProperty] private bool _rubusEnabled;
     [ObservableProperty] private string _sparseAttemptedVersion = "";
 
     // Layer and visibility

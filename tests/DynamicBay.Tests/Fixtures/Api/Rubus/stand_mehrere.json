@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "kanal": "0123456789abcdef0123456789abcdef",
+  "art": "stand",
+  "sitzungen": [
+    { "id": "rubus-17", "titel": "Umbau", "host": "frank-raspi", "projekt": "automation", "zustand": "arbeitet", "grund": null, "text": "", "seit": 1792224000 },
+    { "id": "rubus-18", "titel": "Dashboard", "host": "homeserver", "projekt": "rubus", "zustand": "wartet", "grund": "erlaubnis", "text": "Claude möchte Bash ausführen", "seit": 1792224060 },
+    { "id": "rubus-19", "titel": "Doku", "host": "homeserver", "projekt": "vault", "zustand": "bereit", "grund": null, "text": "", "seit": null },
+    { "id": "rubus-20", "titel": "Neu", "host": "frank-raspi", "projekt": "automation", "zustand": "unbekannt", "grund": null, "text": "", "seit": null }
+  ],
+  "anfragen": [
+    { "id": "fedcba9876543210", "sitzung": "rubus-17", "titel": "Claude möchte auf prod deployen", "projekt": "automation", "host": "frank-raspi", "nur_im_fenster": true }
+  ]
+}

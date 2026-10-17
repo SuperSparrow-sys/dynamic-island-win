@@ -61,6 +61,8 @@ public sealed class PeekItem : INotifyPropertyChanged
     public Action? Action { get; init; }
     public string? DismissText { get; init; }
     public bool HasActions => ActionText is not null;
+    /// <summary>A question can have a single button (DismissText null).</summary>
+    public bool HasDismiss => DismissText is not null;
     /// <summary>Set while the message waits for a hidden island (fullscreen app).</summary>
     public DateTime? Queued { get; set; }
     public bool HasTrailingInfo => !HasActions;

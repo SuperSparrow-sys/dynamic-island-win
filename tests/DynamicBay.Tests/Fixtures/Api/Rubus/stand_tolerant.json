@@ -1,0 +1,15 @@
+{
+  "v": 1,
+  "kanal": "0123456789abcdef0123456789abcdef",
+  "art": "stand",
+  "neu_in_v1_1": { "egal": true },
+  "sitzungen": [
+    { "id": "rubus-17", "zustand": "schlaeft", "grund": "kaffee", "seit": "gestern", "zusatz": [1, 2] },
+    { "id": "../../etc/passwd", "titel": "falsche Kennung" },
+    { "titel": "ohne Kennung" },
+    "kein Objekt",
+    null,
+    { "id": "rubus-17", "titel": "doppelt" },
+    { "id": "rubus-21", "titel": "Zeile\nmit\u0007Steuerzeichen", "host": null, "projekt": 42, "zustand": "wartet", "grund": "eingabe", "text": null }
+  ]
+}

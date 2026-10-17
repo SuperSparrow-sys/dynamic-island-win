@@ -867,6 +867,10 @@
                                     </StackPanel>
                                 </Button>
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" IsEnabled="{Binding S.ClaudeEnabled}" Tag="{core:L De='Sessions aus Rubus', En='Sessions from Rubus'}"
+                                            ToolTip="{core:L De='Zeigt Rubus-Sessions und lässt Freigaben hier annehmen.', En='Shows Rubus sessions and lets you approve requests here.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.RubusEnabled}" />
+                            </ContentControl>
                         </StackPanel>
                     </Border>
                 </StackPanel>

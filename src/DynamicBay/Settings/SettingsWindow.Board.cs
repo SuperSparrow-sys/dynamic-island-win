@@ -118,7 +118,7 @@ public partial class SettingsWindow
         };
         DockPanel.SetDock(grip, Dock.Right);
         row.Children.Add(grip);
-        row.Children.Add(new Controls.Icon { Data = (Geometry)FindResource(icon), Width = 14, Height = 14, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(new Controls.Icon { Data = (Geometry)FindResource(icon), Filled = Controls.Icon.IsGlyph(icon), Width = 14, Height = 14, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center });
         row.Children.Add(new TextBlock { Style = (Style)FindResource("ST.Base"), FontSize = 12.5, Text = name, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap, VerticalAlignment = VerticalAlignment.Center });
         chip.Child = row;
         return (chip, grip);

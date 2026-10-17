@@ -83,7 +83,8 @@ steuert (Mikrofon-Nutzung für den Anrufmodus, Timer, Zeiterfassung), läuft wei
 | `BannerSuppressor` | setzt `ShowBanner=0` für alle Apps und schaltet den Mitteilungston aus, stellt beim Beenden wieder her |
 | `CalendarService` | ICS, iCloud (`CalDavClient`), Google (`GoogleCalendarClient`) |
 | `Scripting/ScriptWidgetsService` | Eigene Skript-Widgets: `ScriptEngine` (Jint-Sandbox, Scriptable-API aus `ScriptPrelude.js`), `ScriptRenderer` (Widget-Baum → WPF), `ScriptWidgetView`; siehe [SCRIPTS.md](SCRIPTS.md) |
-| `ClaudeService` | `~/.claude/projects` lesen, Hooks über `127.0.0.1:43822`, Remote-Control-Links, PC-Abgleich |
+| `ClaudeService` | `~/.claude/projects` lesen, Hooks über `127.0.0.1:43822`, Remote-Control-Links, PC-Abgleich, Rubus-Sessions in der Liste |
+| `RubusBridge` | Rubus-Protokoll auf `127.0.0.1:43822/rubus/` (`RubusProtocol`: lesen, Übergänge → Einblendungen; `ListenerGate`: Regeln des Listeners), Kanäle mit Ablauf nach 90 s, Klicks je Kanal; siehe [INTEGRATIONS.md](INTEGRATIONS.md#rubus) |
 | `CloudTargets` | erkannte Sync-Ordner (OneDrive, iCloud Drive, Google Drive, Dropbox), im Hintergrund gesucht |
 | `TaildropService` | Dateien per Tailscale-Taildrop: liest `tailscale debug watch-ipn`, ordnet die Dateien in den Downloads zu |
 | `CursorHopService` | CursorHop (eine Maus für mehrere PCs): liest nur sein Protokoll mit (`CursorHopLog`: Parser, Zustand, Entprellung), startet es bei Bedarf; siehe [INTEGRATIONS.md](INTEGRATIONS.md#cursorhop) |

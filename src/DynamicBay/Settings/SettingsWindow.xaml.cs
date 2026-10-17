@@ -191,7 +191,7 @@ public partial class SettingsWindow : Window
         (Widgets.Timer, "Icon.Timer", "Timer", "Timer", "Timer und Fokuszeiten", "Timers and focus sessions"),
         (Widgets.System, "Icon.Sliders", "System", "System", "CPU- und Speicherauslastung", "CPU and memory load"),
         (Widgets.Shortcuts, "Icon.AppWindow", "Schnellstart", "Launcher", "Angepinnte Apps und Ordner", "Pinned apps and folders"),
-        (Widgets.Claude, "Icon.Sparkles", "Claude", "Claude", "Deine Sitzungen und ob Claude gerade arbeitet", "Your sessions and whether Claude is working"),
+        (Widgets.Claude, "Glyph.Claude", "Claude", "Claude", "Deine Sitzungen und ob Claude gerade arbeitet", "Your sessions and whether Claude is working"),
         (Widgets.Notes, "Icon.Pencil", "Notizen", "Notes", "Kurze Mitschriften, schnell geschrieben und wieder gelöscht", "Short notes, quickly written and deleted again"),
         (Widgets.Audio, "Icon.Headphones", "Audio", "Audio", "Ausgabe und Mikrofon wechseln, AirPods und andere Bluetooth-Geräte verbinden", "Switch output and microphone, connect AirPods and other Bluetooth devices"),
         (Widgets.Devices, "Icon.Bluetooth", "Geräte", "Devices", "Akkustand von PC, Kopfhörern, Tastatur und Maus", "Battery of this PC, headphones, keyboard and mouse"),
@@ -212,7 +212,7 @@ public partial class SettingsWindow : Window
         (Widgets.Calendar, "Icon.Calendar", "Termin beginnt bald", "Event starting soon"),
         (Widgets.Battery, "Icon.BatteryLow", "Akku schwach", "Low battery"),
         (Widgets.Clock, "Icon.Clock", "Uhrzeit (immer)", "Time (always)"),
-        (Widgets.Claude, "Icon.Sparkles", "Claude arbeitet oder wartet", "Claude working or waiting"),
+        (Widgets.Claude, "Glyph.Claude", "Claude arbeitet oder wartet", "Claude working or waiting"),
         (Widgets.Mic, "Icon.Mic", "Mikrofon oder Kamera aktiv", "Microphone or camera in use"),
         (Widgets.Muted, "Icon.VolumeOff", "Ton aus", "Sound off"),
         (Widgets.TimeTrack, "Icon.Clock", "Zeiterfassung läuft", "Time tracking running"),
@@ -1110,7 +1110,7 @@ public partial class SettingsWindow : Window
         DockPanel.SetDock(control, Dock.Right);
         control.VerticalAlignment = VerticalAlignment.Center;
         dock.Children.Add(control);
-        var ic = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Width = 18, Height = 18, Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center };
+        var ic = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Filled = Controls.Icon.IsGlyph(icon), Width = 18, Height = 18, Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center };
         DockPanel.SetDock(ic, Dock.Left);
         dock.Children.Add(ic);
         var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
