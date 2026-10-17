@@ -30,7 +30,7 @@ Installation. Wenden Sie sich an den Softwarehersteller.“ Die App lief nicht, 
 - `tools/update-smoke.ps1` installiert ältere Releases, aktualisiert wie der In-App-Updater auf den neuen Installer
   und prüft nach jedem Schritt, dass die App startet und `identity: True` meldet. `release.yml` veröffentlicht nur,
   wenn das besteht. Von Hand: Workflow „Update smoke test“, mit `release` = `1.0.17` muss er fehlschlagen.
-- Ein festes Signaturzertifikat statt eines neuen pro Build (`tools/new-signing-cert.ps1`). Der Installer räumt die
+- Ein festes Signaturzertifikat statt eines neuen pro Build (`tools/new-signing-cert.ps1`, nach der Einrichtung entfernt, in der Git-Historie). Der Installer räumt die
   alten Kopien aus TrustedPeople auf.
 - `CLAUDE.md` verbietet die verzögerte Registrierung.
 

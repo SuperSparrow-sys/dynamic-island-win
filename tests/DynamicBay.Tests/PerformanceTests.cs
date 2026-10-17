@@ -3,7 +3,7 @@ using DynamicBay.Core;
 
 namespace DynamicBay.Tests;
 
-/// <summary>Work that runs only when something changed (performance review of 15.10.2026, docs/plans/leistung-2026-10.md).</summary>
+/// <summary>Work that runs only when something changed (performance review of 15.10.2026, docs/performance/README.md).</summary>
 public class PerformanceTests
 {
     [Fact]

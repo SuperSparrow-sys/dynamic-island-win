@@ -21,7 +21,7 @@ dotnet publish src\DynamicBay\DynamicBay.csproj -c Release -r win-x64 --self-con
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 
 # 2) Identity package for notification access. Signed with the fixed certificate from SIGNING_PFX_BASE64 and
-#    SIGNING_PFX_PASSWORD (GitHub secrets, see tools/new-signing-cert.ps1); without them with a new self-signed one.
+#    SIGNING_PFX_PASSWORD (GitHub secrets, set up once); without them with a new self-signed one.
 if ($env:SIGNING_PFX_BASE64) {
     $pfx = Join-Path ([IO.Path]::GetTempPath()) "dynamicbay-signing-$PID.pfx"
     [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_PFX_BASE64))

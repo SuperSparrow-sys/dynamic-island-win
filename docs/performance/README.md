@@ -45,3 +45,21 @@ anhalten, Lecks schließen, cachen.
 
 - [2026-10-11](2026-10-11-memory.json): kein Leck in den durchgespielten Wegen, vor und nach den Korrekturen.
   Verwaltet nach GC 5,2 MB, Working Set 185 MB (Median), Zuwachs über 6 Runden unter 5 MB ohne Trend.
+
+## CPU (Leistungsprüfung 15. und 16.10.2026)
+
+Gemessen in Prozent eines Kerns (i7-13700H, 60 Hz, Release-Build), an Testinstanzen (`DYNAMICBAY_DEV`) mit einer
+Kopie der echten Einstellungen ohne Konten und Link, 40 s Anlauf, 90 s Messung; je ein Dienst abgeschaltet.
+
+| Was | vorher (1.1.8) | nachher |
+|---|---|---|
+| Mitteilungsabfrage | 3,4–4,1 Punkte, alle 1,2 s | etwa 0,2 Punkte, nach Ereignis und einmal pro Minute |
+| Bildschirm aus, Musik und Claude laufen | 17,78 % | 1,72 % |
+| Insel ausgeblendet | 6,6–7,4 % | 2,95 % |
+| Claude-Transcript lesen | über 1 MB Strings pro Scan (LOH) | unter 64 KB |
+| Nichts läuft | 0,75 % | 0,75 % |
+
+- Eine Dauer-Animation mit 60 Bildern/s (Waveform, Claude-Zeichen) kostet in WPF mit Software-Rendering etwa
+  4–6 Punkte im Prozess und noch einmal so viel im DWM, unabhängig von ihrer Größe. Composition verlagert das nur in
+  den DWM (11,1 gegen 12,1 Punkte im System). Sparen lässt sich nur durch Anhalten, wenn niemand hinsieht.
+- Der Claude-Scan selbst kostet etwa 30 ms alle 5 s (0,6 Punkte).

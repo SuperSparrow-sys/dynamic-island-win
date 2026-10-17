@@ -2,9 +2,13 @@
 
 A Dynamic Island for Windows: C# 13 / .NET 9, WPF, one app project `src/DynamicBay`, xUnit tests in
 `tests/DynamicBay.Tests`. Read `docs/ARCHITECTURE.md` first, `docs/DEVELOPMENT.md` for builds and screenshots.
+Open tasks: `docs/offene_punkte.md`; decisions with the rejected alternative: `docs/ENTSCHEIDUNGEN.md`. Remove what is
+done instead of marking it; no separate concept or plan files once something is built.
 The owner speaks German; UI texts exist in German and English (`core:L De=… En=…`, `Core/Loc.cs`).
 
 Keep this file short and current. Update it in the same commit when the structure or a rule changes.
+
+Vault: no hub note yet. Knowledge worth keeping goes to `Claude/Referenz/Setup/DynamicBay Übersicht.md`.
 
 ## Build and test
 
@@ -54,5 +58,5 @@ Every fix comes with a test. UI changes are checked with a screenshot (snapshot 
 
 Version in `src/DynamicBay/DynamicBay.csproj`, tag `v<version>`. `release.yml` tests, builds, runs the update smoke
 test (older releases → new installer, app must start with identity) and only then publishes. The identity package
-is signed with the fixed certificate from the secrets `SIGNING_PFX_BASE64` / `SIGNING_PFX_PASSWORD`
-(`tools/new-signing-cert.ps1`).
+is signed with the fixed certificate from the secrets `SIGNING_PFX_BASE64` / `SIGNING_PFX_PASSWORD` (set up once;
+the script that created them is in the git history). New user-visible changes go to `CHANGELOG.md`.

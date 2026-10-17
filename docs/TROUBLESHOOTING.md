@@ -33,7 +33,8 @@ powershell -File tools\taskbar-watch.ps1 -Seconds 120 -Out taskbar.log   # proto
 ## Musik wird nicht angezeigt
 
 - DynamicBay nutzt die Windows-Medienschnittstelle. Erscheint der Titel im Lautstärke-Flyout von Windows, sieht ihn auch DynamicBay.
-- Log-Zeile `Media session: <AppId>` zeigt, welche App erkannt wurde.
+- Log-Zeile `Media session: <AppId>` zeigt, welche App erkannt wurde. `powershell -File tools\media-probe.ps1` listet
+  alle Sitzungen, die Windows meldet, und ob sie ein Cover schicken (nur lesen).
 - Spotify-Login-Probleme: Redirect URI muss exakt `http://127.0.0.1:43821/callback` sein, die App im Spotify-Dashboard
   braucht *Web API*. Seit 2026 verlangt Spotify ein Premium-Konto des App-Erstellers.
 
@@ -67,6 +68,8 @@ Hinweis wie „Bitte neu anmelden“). Die genaue Fehlermeldung steht im Log. iC
   `%UserProfile%\.claude\settings.json` ein Hook mit `127.0.0.1:43822/claude` stehen. Test:
   `curl -X POST http://127.0.0.1:43822/claude/ -d "{\"session_id\":\"x\",\"hook_event_name\":\"Notification\"}"`
 - Eine Sicherung der vorherigen Datei liegt als `settings.json.dynamicbay-backup` daneben.
+- Rubus-Sessions fehlen: Schalter *Sessions aus Rubus* an? Im Rubus-Client muss die Meldung an DynamicBay
+  eingeschaltet sein. Ein Kanal, von dem 90 s nichts kommt, verschwindet.
 
 ## Design prüfen / Fehler melden
 

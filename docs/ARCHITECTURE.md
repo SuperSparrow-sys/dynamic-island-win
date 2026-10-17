@@ -41,7 +41,9 @@ tools/                    Snapshot-, Live-Test-, Update-Test-, Speicher-, Diagno
 licenses/                 Lizenzhinweise der .NET-Laufzeit (mit THIRD-PARTY-NOTICES.txt ausgeliefert)
 docs/postmortems/         Ursache und Lehren schwerer Fehler
 docs/performance/         Messmethode und Messwerte
-docs/offene_punkte.md     offene Aufgaben (zuletzt: Leistungsprüfung 15.10.2026)
+docs/offene_punkte.md     offene Aufgaben; erledigte werden entfernt
+docs/ENTSCHEIDUNGEN.md    Entscheidungen mit verworfener Alternative
+CHANGELOG.md              Änderungen seit dem letzten Release
 CLAUDE.md                 Regeln für Coding-Agenten
 ```
 

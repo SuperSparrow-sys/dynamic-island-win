@@ -59,8 +59,8 @@ Update-Test aus und legt ihn erst dann als GitHub-Release ab. Version kommt aus 
   Wegwerf-Windows (CI, VM), nie auf dem eigenen PC. Von Hand: Workflow „Update smoke test“ (Eingabe `release`, um
   ein vorhandenes Release als neue Version zu prüfen).
 - **Signatur des Identitäts-Pakets:** festes Zertifikat aus den Secrets `SIGNING_PFX_BASE64` / `SIGNING_PFX_PASSWORD`,
-  einmalig angelegt mit `powershell -File tools/new-signing-cert.ps1`. Ohne die Secrets signiert jeder Build mit
-  einem neuen Zertifikat.
+  einmalig angelegt (das Skript dafür liegt in der Git-Historie, `tools/new-signing-cert.ps1` bis 1.1.10). Ohne die
+  Secrets signiert jeder Build mit einem neuen Zertifikat.
 - Postmortems schwerer Fehler: `docs/postmortems/`.
 - Regeln für Coding-Agenten (Claude Code): `CLAUDE.md` im Hauptordner, bei Umbauten mitpflegen.
 
