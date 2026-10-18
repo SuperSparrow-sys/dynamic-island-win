@@ -501,8 +501,11 @@ public static class Snapshots
         vm.Claude.LoadRubusDemo(new RubusStand(new[]
         {
             new RubusSitzung("rubus-17", "Umbau Modbus-Abfrage", "frank-raspi", "automation", RubusZustand.Wartet, "freigabe", "", now.AddMinutes(-1)),
+            new RubusSitzung("rubus-21", "Auswertung control_data", "frank-raspi", "automation", RubusZustand.Wartet, "eingabe",
+                Loc.German ? "Soll ich die Auffälligkeit nachverfolgen?" : "Should I follow up on the anomaly?", now.AddMinutes(-2)),
             new RubusSitzung("rubus-18", "Dashboard Ladeplan", "homeserver", "rubus", RubusZustand.Arbeitet, null, "", now.AddMinutes(-3)),
             new RubusSitzung("rubus-19", "Doku Anlagen", "homeserver", "vault", RubusZustand.Bereit, null, "", now.AddMinutes(-25)),
+            new RubusSitzung("rubus-20", "Tests Prognose", "homeserver", "ml-hw1", RubusZustand.Bereit, "fehler", "API Error: 529 overloaded", now.AddMinutes(-9), now.AddMinutes(-2)),
         }, new[] { deploy }));
         // At the bottom: the installed island at the top must not cover these shots.
         settings.Edge = IslandEdge.Bottom; settings.Align = IslandAlign.Center; settings.Inset = 8; settings.Along = 0.5;

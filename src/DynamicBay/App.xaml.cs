@@ -680,6 +680,15 @@ public partial class App : Application
             Seconds = 6,
             OnClick = () => _vm.Claude.Resume(s),
         });
+        _vm.Claude.Failed += (s, message) => island.ShowPeek(new PeekItem
+        {
+            Icon = Icon("Glyph.Claude"), IconFilled = true, IconBrush = Res("B.Red"), IconBackground = Tint("B.Red", 0x2E),
+            Title = Loc.German ? "Claude ist stehen geblieben" : "Claude stopped",
+            Subtitle = string.IsNullOrWhiteSpace(message) ? s.Project : message,
+            Priority = PeekPriority.High,
+            Seconds = 6,
+            OnClick = () => _vm.Claude.Resume(s),
+        });
         // Approvals from Rubus: a question that stays until the request leaves Rubus' state; each is answered once.
         var rubusAsks = new Dictionary<(string, string), PeekItem>();
         _vm.Claude.RubusAsked += (kanal, a) =>

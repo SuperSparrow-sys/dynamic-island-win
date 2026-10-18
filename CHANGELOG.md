@@ -2,6 +2,15 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## 1.1.11 (19.10.2026)
+
+- Claude/Rubus: Fragt Claude am Ende einer Antwort etwas oder wartet auf eine Auswahl, zeigt die Session „Wartet auf
+  dich“ wie in der Claude-App und meldet sich mit „Claude braucht dich“ und dem Satz der Frage (ab Rubus 0.2.1). Die
+  nächste Frage derselben Session meldet sich erneut.
+- Claude/Rubus: Sessions, die mit einem Fehler stehen bleiben, zeigen „Fehler“ und melden sich mit „Claude ist stehen
+  geblieben“. Mit Esc unterbrochene Sessions zeigen „Unterbrochen“ und lösen kein „Claude ist fertig“ mehr aus. Die
+  Zeitangabe und die Reihenfolge folgen dem letzten Ereignis der Session.
+
 ## 1.1.10 (17.10.2026)
 
 - Claude: Sessions aus Rubus. Einstellungen → Apps und Skripte → Claude → *Sessions aus Rubus* (Vorgabe aus). Rubus

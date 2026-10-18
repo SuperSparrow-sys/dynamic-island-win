@@ -1,0 +1,10 @@
+{
+  "v": 1,
+  "kanal": "0123456789abcdef0123456789abcdef",
+  "art": "stand",
+  "sitzungen": [
+    { "id": "rubus-36", "titel": "automation 23:54", "host": "frank-raspi", "projekt": "automation", "zustand": "wartet", "grund": "eingabe", "text": "Soll ich die Auffälligkeit in control_data nachverfolgen?", "seit": 1792360938, "aktualisiert": 1792360938, "quelle": "hook" },
+    { "id": "rubus-37", "titel": "automation 00:40", "host": "frank-raspi", "projekt": "automation", "zustand": "wartet", "grund": "eingabe", "text": "Welche Option?", "seit": 1792363200, "aktualisiert": 1792363200, "quelle": "claude" }
+  ],
+  "anfragen": []
+}

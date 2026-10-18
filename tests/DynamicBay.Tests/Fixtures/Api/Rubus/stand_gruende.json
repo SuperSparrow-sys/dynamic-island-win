@@ -1,0 +1,12 @@
+{
+  "v": 1,
+  "kanal": "0123456789abcdef0123456789abcdef",
+  "art": "stand",
+  "sitzungen": [
+    { "id": "rubus-17", "titel": "ml-hw1", "host": "homeserver", "projekt": "ml-hw1", "zustand": "arbeitet", "grund": null, "text": "Bash: pytest -q", "seit": 1760800000, "aktualisiert": 1760800042, "quelle": "hook" },
+    { "id": "rubus-18", "titel": "Dashboard", "host": "homeserver", "projekt": "rubus", "zustand": "bereit", "grund": "fehler", "text": "API Error: 529 overloaded", "seit": 1760800100, "aktualisiert": 1760800100, "quelle": "hook" },
+    { "id": "rubus-19", "titel": "Doku", "host": "homeserver", "projekt": "vault", "zustand": "bereit", "grund": "unterbrochen", "text": "", "seit": 1760800200, "aktualisiert": 1760800190, "quelle": "bildschirm" },
+    { "id": "rubus-20", "titel": "Alt", "host": "frank-raspi", "projekt": "automation", "zustand": "wartet", "grund": "eingabe", "text": "", "seit": 1760800300, "quelle": null }
+  ],
+  "anfragen": []
+}

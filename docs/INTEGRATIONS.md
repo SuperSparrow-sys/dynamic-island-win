@@ -232,13 +232,22 @@ Einstellungen → Apps und Skripte → Claude → *Sessions aus Rubus* (Vorgabe 
   Unbekannte Felder und Einträge mit ungültiger Kennung werden übersprungen; höchstens 50 Sessions und 50 Anfragen,
   8 Kanäle.
 - **Ablauf:** Kommt 90 s nichts von einem Kanal, verschwinden seine Sessions und Anfragen.
+- **Session:** `id`, `titel`, `host`, `projekt`, `zustand` (`arbeitet`, `wartet`, `bereit`, `unbekannt`), `grund`
+  (bei `wartet`: `freigabe`, `erlaubnis`, `eingabe`; bei `bereit`: `fehler`, `unterbrochen` oder `null`), `text`
+  (Werkzeug, Frage oder Fehlermeldung), `seit` (Beginn des Zustands), `aktualisiert` (letztes Ereignis von Claude
+  Code), beides Unix-Sekunden. `quelle` (`hook`, `claude` oder `bildschirm`) wird nicht ausgewertet. Ab Rubus
+  0.2.1 heißt `wartet`/`eingabe` auch: Claude hat die Antwort mit einer Frage beendet; `text` ist dann der Satz.
 - **Liste:** Rubus-Sessions stehen in der Claude-Karte neben den lokalen („Projekt · Host“), mit Punkt für arbeitet,
-  wartet (mit Grund: Freigabe, Erlaubnis, Eingabe) oder fertig, und zählen in der kompakten Anzeige mit. Ein Klick
-  legt `sitzung_oeffnen` in die Aktionen; Rubus holt dann sein Fenster nach vorn.
+  wartet (mit Grund: Freigabe, Erlaubnis, sonst „Wartet auf dich“) oder fertig (mit Grund: Fehler, Unterbrochen, sonst das Alter nach
+  `aktualisiert`, ersatzweise `seit`), und zählen in der kompakten Anzeige mit. Ein Klick legt `sitzung_oeffnen` in
+  die Aktionen; Rubus holt dann sein Fenster nach vorn.
 - **Einblendungen** aus dem Vergleich zweier Stände: neue Anfrage → Frage mit *Erlauben* / *Ablehnen* (bei
   `nur_im_fenster` nur *In Rubus öffnen*), hohe Priorität, auch bei „Nicht stören“, nur auf diesem Gerät; sie bleibt,
-  bis die Anfrage aus dem Stand verschwindet. `wartet` mit Grund `erlaubnis` oder `eingabe` → „Claude braucht dich“,
-  `arbeitet` → `bereit` → „Claude ist fertig“. Der Grund `freigabe` hat keine eigene Einblendung.
+  bis die Anfrage aus dem Stand verschwindet. `wartet` mit Grund `erlaubnis` oder `eingabe` → „Claude braucht dich“
+  (erneut bei neuem `seit`, also bei der nächsten Frage),
+  `arbeitet` → `bereit` → „Claude ist fertig“ (nicht bei `unterbrochen`); `bereit` mit `fehler` → „Claude ist stehen
+  geblieben“ mit der Fehlermeldung, nur für Sessions, die schon im vorigen Stand waren. Der Grund `freigabe` hat keine
+  eigene Einblendung.
 - **Antworten** gehen nur an den Kanal, der die Anfrage gemeldet hat, jede Anfrage einmal. Rubus führt nur aus, was es
   selbst als offen kennt, mit denselben Prüfungen wie im eigenen Fenster; DynamicBay bekommt keine Anmeldedaten.
 - Ausprobieren ohne Rubus: eine Testinstanz mit `DYNAMICBAY_DEV=a` und `DYNAMICBAY_HOOK_PORT=43932`, Schalter an,

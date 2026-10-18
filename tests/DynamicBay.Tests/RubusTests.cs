@@ -60,6 +60,19 @@ public class RubusTests
     }
 
     [Fact]
+    public void Stand_with_error_interrupt_and_last_event()
+    {
+        var st = Msg("stand_gruende.json").Stand!;
+        Assert.Equal(new string?[] { null, "fehler", "unterbrochen", "eingabe" }, st.Sitzungen.Select(s => s.Grund));
+        var working = st.Sitzungen[0];
+        Assert.Equal("Bash: pytest -q", working.Text);
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1760800000).LocalDateTime, working.Seit); // start of the state
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1760800042).LocalDateTime, working.Aktualisiert); // last event
+        Assert.Equal("API Error: 529 overloaded", st.Sitzungen[1].Text);
+        Assert.Null(st.Sitzungen[3].Aktualisiert); // missing
+    }
+
+    [Fact]
     public void Empty_stand()
     {
         var m = Msg("stand_leer.json");
@@ -256,6 +269,29 @@ public class RubusTests
     }
 
     [Fact]
+    public void The_next_question_of_the_same_kind_needs_you_again()
+    {
+        var first = S("s", RubusZustand.Wartet, "eingabe", "Soll ich deployen?") with { Seit = T0 };
+        var next = first with { Text = "Passt das so?", Seit = T0.AddMinutes(2) };
+        Assert.Equal(new RubusEreignis[] { new RubusBrauchtDich(K, next) },
+            RubusProtocol.Between(K, Stand(new[] { first }), Stand(new[] { next })));
+        Assert.Empty(RubusProtocol.Between(K, Stand(new[] { next }), Stand(new[] { next })));
+    }
+
+    [Fact]
+    public void A_question_in_the_text_from_rubus_0_2_1_needs_you()
+    {
+        // Claude ended its answer with a question; Rubus reports it as waiting for input, source "claude" or "hook".
+        Loc.Init("de");
+        var b = new RubusBridge();
+        b.Handle(StandMsg(K, Stand(new[] { S("rubus-36", RubusZustand.Arbeitet) })), T0);
+        var e = b.Handle(Msg("stand_frage_im_text.json"), T0.AddSeconds(2)).Ereignisse.Cast<RubusBrauchtDich>().ToList();
+        Assert.Equal(new[] { "rubus-36", "rubus-37" }, e.Select(x => x.Sitzung.Id));
+        Assert.Equal(("eingabe", "Soll ich die Auffälligkeit in control_data nachverfolgen?"), (e[0].Sitzung.Grund, e[0].Sitzung.Text));
+        Assert.Equal("Wartet auf dich", ClaudeService.StatusText(e[1].Sitzung));
+    }
+
+    [Fact]
     public void Waiting_for_an_approval_has_no_own_peek()
     {
         Assert.Empty(RubusProtocol.Between(K, Stand(new[] { S("s", RubusZustand.Arbeitet) }), Stand(new[] { S("s", RubusZustand.Wartet, "freigabe") })));
@@ -272,6 +308,23 @@ public class RubusTests
         Assert.Empty(RubusProtocol.Between(K, Stand(), Stand(new[] { ready }))); // never seen working
         Assert.Empty(RubusProtocol.Between(K, Stand(new[] { S("s", RubusZustand.Wartet, "eingabe") }), Stand(new[] { ready })));
         Assert.Empty(RubusProtocol.Between(K, Stand(new[] { S("s", RubusZustand.Arbeitet) }), Stand())); // gone is not done
+    }
+
+    [Fact]
+    public void Interrupted_is_not_done()
+    {
+        Assert.Empty(RubusProtocol.Between(K, Stand(new[] { S("s", RubusZustand.Arbeitet) }), Stand(new[] { S("s", RubusZustand.Bereit, "unterbrochen") })));
+    }
+
+    [Fact]
+    public void Stopping_with_an_error_has_its_own_peek()
+    {
+        var failed = S("s", RubusZustand.Bereit, "fehler", "API Error: 529 overloaded");
+        Assert.Equal(new RubusEreignis[] { new RubusFehler(K, failed) },
+            RubusProtocol.Between(K, Stand(new[] { S("s", RubusZustand.Arbeitet) }), Stand(new[] { failed }))); // and no "done"
+        Assert.Empty(RubusProtocol.Between(K, Stand(new[] { failed }), Stand(new[] { failed }))); // once
+        Assert.Empty(RubusProtocol.Between(K, Stand(), Stand(new[] { failed }))); // an old error of a new channel
+        Assert.Single(RubusProtocol.Between(K, Stand(new[] { S("s", RubusZustand.Bereit) }), Stand(new[] { failed })));
     }
 
     [Fact]
@@ -329,7 +382,20 @@ public class RubusTests
         Loc.Init("de");
         Assert.Equal("Freigabe", ClaudeService.WaitText("freigabe"));
         Assert.Equal("Erlaubnis", ClaudeService.WaitText("erlaubnis"));
-        Assert.Equal("Eingabe", ClaudeService.WaitText("eingabe"));
+        Assert.Equal("Wartet auf dich", ClaudeService.WaitText("eingabe"));
+        Assert.Equal("Fehler", ClaudeService.WaitText("fehler"));
+        Assert.Equal("Unterbrochen", ClaudeService.WaitText("unterbrochen"));
+    }
+
+    [Fact]
+    public void Second_line_shows_the_reason_while_waiting_or_after_an_error_or_interrupt()
+    {
+        Loc.Init("de");
+        Assert.Equal("Erlaubnis", ClaudeService.StatusText(S("s", RubusZustand.Wartet, "erlaubnis")));
+        Assert.Equal("Fehler", ClaudeService.StatusText(S("s", RubusZustand.Bereit, "fehler")));
+        Assert.Equal("Unterbrochen", ClaudeService.StatusText(S("s", RubusZustand.Bereit, "unterbrochen")));
+        Assert.Equal("", ClaudeService.StatusText(S("s", RubusZustand.Bereit))); // the age instead
+        Assert.Equal("", ClaudeService.StatusText(S("s", RubusZustand.Arbeitet, "fehler")));
     }
 
     // ---------- listener rules ----------

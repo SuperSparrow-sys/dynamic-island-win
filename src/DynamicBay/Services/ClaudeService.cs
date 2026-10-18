@@ -41,7 +41,7 @@ public sealed partial class ClaudeSession : ObservableObject
         { TotalDays: < 1 } => Updated.ToString("HH:mm"),
         _ => Updated.ToString("dd.MM."),
     };
-    /// <summary>Why a Rubus session waits ("Freigabe"); empty otherwise.</summary>
+    /// <summary>Why a Rubus session waits ("Freigabe") or stopped ("Fehler"); empty otherwise.</summary>
     [ObservableProperty] private string _status = "";
     /// <summary>Second line after the place: the reason it waits, else the age.</summary>
     public string Detail => Status.Length > 0 ? Status : Age;
@@ -84,6 +84,8 @@ public sealed partial class ClaudeService : ObservableObject
 
     public event Action<ClaudeSession>? Finished;
     public event Action<ClaudeSession, string>? NeedsInput;
+    /// <summary>A Rubus session stopped with an error (session, Claude's error text).</summary>
+    public event Action<ClaudeSession, string>? Failed;
     /// <summary>Rubus reports a new approval (channel, request); it stays until <see cref="RubusRequestGone"/>.</summary>
     public event Action<string, RubusAnfrage>? RubusAsked;
     public event Action<string, string>? RubusRequestGone;
@@ -603,15 +605,15 @@ public sealed partial class ClaudeService : ObservableObject
                     s = new ClaudeSession
                     {
                         Id = r.Id, RubusChannel = kanal, Machine = r.Host.Length > 0 ? r.Host : "Rubus",
-                        Cwd = r.Projekt.Length > 0 ? r.Projekt : "Rubus", Updated = r.Seit ?? DateTime.Now,
+                        Cwd = r.Projekt.Length > 0 ? r.Projekt : "Rubus", Updated = r.Aktualisiert ?? r.Seit ?? DateTime.Now,
                     };
                     Sessions.Add(s);
                 }
                 s.Title = r.Titel.Length > 0 ? r.Titel : "Claude Code";
                 s.LastPrompt = r.Text;
-                if (r.Seit is { } seit) s.Updated = seit;
+                if ((r.Aktualisiert ?? r.Seit) is { } zuletzt) s.Updated = zuletzt;
                 s.State = r.Zustand switch { RubusZustand.Arbeitet => ClaudeState.Working, RubusZustand.Wartet => ClaudeState.Waiting, _ => ClaudeState.Idle };
-                s.Status = r.Zustand == RubusZustand.Wartet ? WaitText(r.Grund) : "";
+                s.Status = StatusText(r);
                 seen.Add(s);
             }
         }
@@ -628,6 +630,7 @@ public sealed partial class ClaudeService : ObservableObject
                 case RubusAnfrageWeg w: RubusRequestGone?.Invoke(w.Kanal, w.Anfrage); break;
                 case RubusBrauchtDich b when Find(b.Sitzung) is { } s: NeedsInput?.Invoke(s, b.Sitzung.Text); break;
                 case RubusFertig f when Find(f.Sitzung) is { } s: Finished?.Invoke(s); break;
+                case RubusFehler f when Find(f.Sitzung) is { } s: Failed?.Invoke(s, f.Sitzung.Text); break;
             }
         }
     }
@@ -640,12 +643,23 @@ public sealed partial class ClaudeService : ObservableObject
         ApplyRubus(new());
     }
 
-    /// <summary>Second line of a waiting Rubus session: one word, the orange dot already says it waits.</summary>
+    /// <summary>Second line of a Rubus session that waits or stopped with a reason; empty shows the age.</summary>
+    internal static string StatusText(RubusSitzung r) => r.Zustand switch
+    {
+        RubusZustand.Wartet => WaitText(r.Grund),
+        RubusZustand.Bereit when r.Grund is "fehler" or "unterbrochen" => WaitText(r.Grund),
+        _ => "",
+    };
+
+    /// <summary>Short, the dot already says it waits or is ready. A question (in the text or with options) reads like
+    /// the Claude app.</summary>
     public static string WaitText(string? grund) => grund switch
     {
         "freigabe" => Loc.German ? "Freigabe" : "approval",
         "erlaubnis" => Loc.German ? "Erlaubnis" : "permission",
-        _ => Loc.German ? "Eingabe" : "input",
+        "fehler" => Loc.German ? "Fehler" : "error",
+        "unterbrochen" => Loc.German ? "Unterbrochen" : "interrupted",
+        _ => Loc.German ? "Wartet auf dich" : "Waiting for you",
     };
 
     /// <summary>A button of a Rubus question: erlauben, ablehnen or oeffnen, once per request.</summary>
