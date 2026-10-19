@@ -7,7 +7,9 @@ namespace DynamicBay.Services.Link.Audio;
 /// <summary>
 /// Frames on an "audio" stream. The first byte says what follows:
 /// <list type="bullet">
-/// <item>1 header, UTF-8 JSON: the sender's offer <c>{v, codec, rate, ch, frame}</c>, the receiver's answer <c>{ok, reason}</c>,</item>
+/// <item>1 header, UTF-8 JSON: the sender's offer <c>{v, codec, rate, ch, frame}</c>, the receiver's answer <c>{ok, reason}</c>,
+/// the volume of the forwarded sound <c>{vol}</c> (0..1) in both directions: set on either device, the other follows.
+/// A receiver that understands it says <c>volume: true</c> in its answer (1.1.13; older ones ignore <c>vol</c>),</item>
 /// <item>2 sound: sequence number (uint32 BE), the sender's millisecond tick (uint32 BE, for the delay on one PC), Opus packet,</item>
 /// <item>3 keep-alive (nothing else): both sides every second, so a dead stream is noticed within a few seconds.</item>
 /// </list>
@@ -48,6 +50,15 @@ public static class LinkAudioProtocol
         && (LinkProtocol.Long(offer, "rate") ?? OpusFrameEncoder.SampleRate) == OpusFrameEncoder.SampleRate
         && (LinkProtocol.Long(offer, "ch") ?? OpusFrameEncoder.Channels) == OpusFrameEncoder.Channels
         && (LinkProtocol.Long(offer, "frame") ?? OpusFrameEncoder.FrameSamples) == OpusFrameEncoder.FrameSamples;
+
+    /// <summary>The receiver's answer says it plays the volume (1.1.13 and newer).</summary>
+    public static bool AnswerHasVolume(JsonObject? answer) => LinkProtocol.Bool(answer, "volume");
+
+    public static byte[] VolumeFrame(double level) => HeaderFrame(new JsonObject { ["vol"] = Math.Round(Math.Clamp(level, 0, 1), 3) });
+
+    /// <summary>The volume in a header (clamped to 0..1), null when it carries none.</summary>
+    public static double? ReadVolume(JsonObject? header) =>
+        header?["vol"] is JsonValue v && v.TryGetValue(out double level) && double.IsFinite(level) ? Math.Clamp(level, 0, 1) : null;
 
     public static byte[] SoundFrame(uint seq, uint tick, ReadOnlySpan<byte> packet)
     {

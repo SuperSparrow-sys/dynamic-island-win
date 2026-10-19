@@ -70,6 +70,20 @@ public class EncodingTests
     }
 
     [Fact]
+    public void Installer_closes_a_copy_started_during_the_update_before_it_registers_the_identity_package()
+    {
+        // 1.1.12: a click on the taskbar during the update started the app before Add-AppxPackage, Windows refused
+        // with 0x80073D02 and left the package broken (docs/postmortems/2026-10-19-identity-package-in-use.md).
+        var iss = File.ReadAllText(Path.Combine(RepoRoot(), "installer", "DynamicBay.iss"));
+        var register = iss[iss.IndexOf("function RegisterIdentity", StringComparison.Ordinal)..];
+        register = register[..register.IndexOf("end;", StringComparison.Ordinal)];
+        Assert.True(register.IndexOf("CloseRunningApp", StringComparison.Ordinal) is >= 0 and var close
+            && close < register.IndexOf("Add-AppxPackage", StringComparison.Ordinal), "CloseRunningApp must run before Add-AppxPackage");
+        Assert.Contains("not RegisterIdentity(App) and not RegisterIdentity(App)", iss); // second try repairs it
+        Assert.Single(Regex.Matches(iss, "Add-AppxPackage")); // no other registration path skips the close
+    }
+
+    [Fact]
     public void German_strings_keep_their_umlauts()
     {
         Assert.Contains("ö", Core.Loc.TableForTests["Clip.Delete"].de);   // "Löschen"

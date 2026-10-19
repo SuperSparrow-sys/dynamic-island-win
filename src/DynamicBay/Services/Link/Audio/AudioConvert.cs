@@ -22,6 +22,22 @@ public sealed class AudioConvert
         _step = (double)inRate / OutRate;
     }
 
+    /// <summary>
+    /// Volume on interleaved stereo: a change glides from <paramref name="from"/> to <paramref name="to"/> across the
+    /// block, so moving the slider does not click.
+    /// </summary>
+    public static void Gain(Span<float> samples, float from, float to)
+    {
+        int frames = samples.Length / OutChannels;
+        if (frames == 0 || (from == 1f && to == 1f)) return;
+        for (int f = 0; f < frames; f++)
+        {
+            float g = from + (to - from) * (f + 1) / frames;
+            samples[2 * f] *= g;
+            samples[2 * f + 1] *= g;
+        }
+    }
+
     public bool Passthrough => _inRate == OutRate && _inChannels == OutChannels;
 
     /// <summary>Converts <paramref name="input"/> (interleaved) and appends the result to <paramref name="output"/>.</summary>

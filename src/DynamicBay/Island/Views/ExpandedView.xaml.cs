@@ -102,6 +102,7 @@ public partial class ExpandedView : UserControl
         Vm?.Spotify.SetPanelOpen(any);
         Vm?.Media.SetPanelOpen(any);
         Vm?.MusicVolume.SetPanelOpen(any);
+        Vm?.OutputVolume.SetPanelOpen(any);
     }
 
     private void OnSettingsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -332,6 +333,13 @@ public partial class ExpandedView : UserControl
     private void HomeScroll_Wheel(object sender, MouseWheelEventArgs e)
     {
         if (e.OriginalSource is DependencyObject over && IsInside(over, VolumeBar)) return; // the volume takes the wheel itself
+        if (e.OriginalSource is DependencyObject level && FindParent<Slider>(level) is { } slider)
+        {
+            // The volume rows in the audio card: 5 % per notch, like the music volume.
+            slider.Value = Math.Clamp(slider.Value + Math.Sign(e.Delta) * 5, slider.Minimum, slider.Maximum);
+            e.Handled = true;
+            return;
+        }
         // Several players: the media card is a stack, the wheel over it turns the page instead of scrolling the row.
         if (e.OriginalSource is DependencyObject o && IsInside(o, MediaCard) && Vm is { Media.HasPages: true } vm
             && vm.Link.MediaShowsLocal && DevicesOverlay.Visibility != Visibility.Visible)
@@ -535,6 +543,19 @@ public partial class ExpandedView : UserControl
         if (Vm is null) return;
         Vm.MusicVolume.Set(Vm.MusicVolume.Level + Math.Sign(e.Delta) * 5);
         Vm.MusicVolume.EndDrag();
+    }
+
+    /// <summary>
+    /// The volume rows in the audio card: a press anywhere on the bar jumps there and goes on as a drag (the thumb
+    /// takes the press, so it captures the mouse and lets go on its own).
+    /// </summary>
+    private void LevelSlider_Down(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Slider slider || slider.Template.FindName("PART_Track", slider) is not System.Windows.Controls.Primitives.Track track || track.Thumb is not { } thumb) return;
+        e.Handled = true; // never start moving the island from here
+        slider.Value = track.ValueFromPoint(e.GetPosition(track));
+        slider.UpdateLayout(); // the thumb under the pointer before it takes the press
+        thumb.RaiseEvent(new MouseButtonEventArgs(e.MouseDevice, e.Timestamp, MouseButton.Left) { RoutedEvent = MouseLeftButtonDownEvent, Source = thumb });
     }
 
     /// <summary>The speaker mutes the music; a second click brings the old volume back.</summary>

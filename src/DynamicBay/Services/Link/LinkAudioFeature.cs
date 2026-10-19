@@ -36,6 +36,8 @@ public sealed class LinkAudioOptions
     public TimeSpan AnswerTimeout { get; init; } = TimeSpan.FromSeconds(5);
     /// <summary>Statistics in the log this often (frames, buffer, delay).</summary>
     public TimeSpan StatsEvery { get; init; } = TimeSpan.FromSeconds(10);
+    /// <summary>Volume changes go out at most this often (the newest one), in both directions.</summary>
+    public TimeSpan VolumeEvery { get; init; } = TimeSpan.FromMilliseconds(100);
     /// <summary>Both devices are one PC (test instances): the sender's tick gives the real network delay.</summary>
     public bool SamePc { get; init; }
     public Action<string> Log { get; init; } = DynamicBay.Core.Log.Info;
@@ -56,6 +58,7 @@ public sealed class LinkAudioFeature : LinkFeature
     private readonly object _gate = new();
     private SendSession? _send;
     private ReceiveSession? _receive;
+    private double _sendVolume = 1;
 
     public LinkAudioFeature(LinkService link, AppSettings settings, LinkAudioOptions options) : base(link, settings)
     {
@@ -74,7 +77,20 @@ public sealed class LinkAudioFeature : LinkFeature
     /// <summary>The buffer of the sound being received (diagnostics, tests).</summary>
     public AudioJitterBuffer? ReceiveBuffer { get { lock (_gate) return _receive?.Buffer; } }
     /// <summary>Frames sent and received in the current sessions (diagnostics, tests).</summary>
+    /// <summary>Volume of the sound on the other device (0..1), set here or there; that device's own volume stays as it is.</summary>
+    public double SendVolume => Volatile.Read(ref _sendVolume);
+    /// <summary>The device the sound goes to plays the volume (1.1.13 and newer); false while nothing is sent.</summary>
+    public bool RemoteHasVolume { get { lock (_gate) return _send?.RemoteHasVolume ?? false; } }
+    /// <summary>Volume of the sound playing here from the other device (1 while nothing plays).</summary>
+    public double ReceiveVolume { get { lock (_gate) return _receive?.Gain ?? 1; } }
+
+    /// <summary>The volume of the sound sent from here was changed on the other device (new level).</summary>
+    public event Action<double>? SendVolumeChanged;
+    /// <summary>The volume of the sound playing here was changed on the sending device (new level).</summary>
+    public event Action<double>? ReceiveVolumeChanged;
     public long FramesSent { get { lock (_gate) return _send?.Frames ?? 0; } }
+    /// <summary>Volume frames sent in the current session (a drag sends a few, not one per mouse move).</summary>
+    public long VolumeFramesSent { get { lock (_gate) return _send?.VolumeFrames ?? 0; } }
     public long FramesReceived { get { lock (_gate) return _receive?.Frames ?? 0; } }
 
     /// <summary>Sound from here plays on that device now (peer id, name).</summary>
@@ -119,6 +135,7 @@ public sealed class LinkAudioFeature : LinkFeature
                 return LinkProtocol.Str(answer, "reason") == "output" ? AudioForwardEnd.Failed : AudioForwardEnd.Refused;
             }
             if (!Enabled) { stream.Dispose(); return AudioForwardEnd.Refused; } // switched off meanwhile
+            session.RemoteHasVolume = LinkAudioProtocol.AnswerHasVolume(answer);
             lock (_gate) _send = session;
             await session.StartAsync().ConfigureAwait(false);
         }
@@ -137,6 +154,23 @@ public sealed class LinkAudioFeature : LinkFeature
         _opts.Log($"Audio link: sound goes to {stream.PeerName}");
         Raise(() => SendingStarted?.Invoke(stream.PeerId, stream.PeerName));
         return null;
+    }
+
+    /// <summary>The volume there: for the sound playing now and the next one (sent once more when it starts).</summary>
+    public void SetSendVolume(double level)
+    {
+        Volatile.Write(ref _sendVolume, Math.Clamp(level, 0, 1));
+        SendSession? s;
+        lock (_gate) s = _send;
+        s?.SendVolume(SendVolume);
+    }
+
+    /// <summary>The volume of the sound playing here: applied at once and told to the sender, so its slider follows.</summary>
+    public void SetReceiveVolume(double level)
+    {
+        ReceiveSession? r;
+        lock (_gate) r = _receive;
+        r?.SetVolume(Math.Clamp(level, 0, 1));
     }
 
     /// <summary>The sound plays here again (a local output was chosen).</summary>
@@ -190,6 +224,7 @@ public sealed class LinkAudioFeature : LinkFeature
         public async Task StartAsync()
         {
             await RestartSourceAsync().ConfigureAwait(false);
+            SendVolume(_f._sendVolume);
             var ct = _cts.Token;
             _ = Task.Run(() => WriteLoop(ct));
             _ = Task.Run(() => ReadLoop(ct));
@@ -208,6 +243,23 @@ public sealed class LinkAudioFeature : LinkFeature
             if (Ended) { source.Dispose(); return; }
             _source = source;
             if (source.EndpointId is { } id) _f._opts.Mute.Engage(id);
+        }
+
+        private NewestOnly? _volume;
+        public long VolumeFrames;
+        public bool RemoteHasVolume;
+
+        /// <summary>
+        /// The newest value at most every <see cref="LinkAudioOptions.VolumeEvery"/>: a drag sends a value per mouse
+        /// move, and a pile of them in the queue would push out sound (it drops the oldest).
+        /// </summary>
+        public void SendVolume(double level)
+        {
+            _volume ??= new NewestOnly(_f._opts.VolumeEvery, v =>
+            {
+                if (!Ended && _queue.Writer.TryWrite(LinkAudioProtocol.VolumeFrame(v))) Interlocked.Increment(ref VolumeFrames);
+            });
+            if (!Ended) _volume.Post(level);
         }
 
         /// <summary>Capture thread: 20 ms blocks to Opus, into the queue.</summary>
@@ -258,6 +310,13 @@ public sealed class LinkAudioFeature : LinkFeature
                     var frame = await _stream.ReceiveAsync(ct).ConfigureAwait(false);
                     if (frame is null) break;
                     _lastHeard = DateTime.UtcNow;
+                    if (LinkAudioProtocol.ReadVolume(LinkAudioProtocol.ReadHeader(frame)) is { } vol)
+                    {
+                        // Changed on the other device: the slider here follows, the next start keeps it.
+                        Volatile.Write(ref _f._sendVolume, vol);
+                        _f.Raise(() => _f.SendVolumeChanged?.Invoke(vol));
+                        continue;
+                    }
                     if (LinkAudioProtocol.ReadHeader(frame) is { } h && LinkProtocol.Str(h, "end") is { } end)
                     {
                         why = end switch { "off" => AudioForwardEnd.Refused, "output" => AudioForwardEnd.Failed, _ => AudioForwardEnd.RemoteStopped };
@@ -346,7 +405,7 @@ public sealed class LinkAudioFeature : LinkFeature
             return;
         }
         lock (_gate) _receive = session;
-        try { await stream.SendAsync(LinkAudioProtocol.HeaderFrame(new JsonObject { ["ok"] = true })).ConfigureAwait(false); }
+        try { await stream.SendAsync(LinkAudioProtocol.HeaderFrame(new JsonObject { ["ok"] = true, ["volume"] = true })).ConfigureAwait(false); }
         catch (IOException) { session.End(); return; }
         _opts.Log($"Audio link: playing sound from {stream.PeerName} (buffer {session.Buffer.TargetMs} ms)");
         Raise(() => ReceivingStarted?.Invoke(stream.PeerId, stream.PeerName));
@@ -377,7 +436,24 @@ public sealed class LinkAudioFeature : LinkFeature
         private int _ended;
         private DateTime _lastHeard = DateTime.UtcNow;
         private long _delaySum, _delayCount;
+        private float _applied = 1;
         public long Frames;
+
+        /// <summary>The volume of this sound (0..1), set by the sender or here.</summary>
+        public volatile float Gain = 1;
+        private NewestOnly? _tell;
+
+        /// <summary>Set here: plays at once, the sender hears about it at most every <see cref="LinkAudioOptions.VolumeEvery"/>.</summary>
+        public void SetVolume(double level)
+        {
+            Gain = (float)level;
+            _tell ??= new NewestOnly(_f._opts.VolumeEvery, v =>
+            {
+                if (_ended != 0) return;
+                _ = _stream.SendAsync(LinkAudioProtocol.VolumeFrame(v)).ContinueWith(t => _ = t.Exception, TaskScheduler.Default); // gone: the keep-alive notices
+            });
+            _tell.Post(level);
+        }
 
         public ReceiveSession(LinkAudioFeature f, LinkStream stream, int targetMs)
         {
@@ -410,11 +486,20 @@ public sealed class LinkAudioFeature : LinkFeature
                     var frame = await _stream.ReceiveAsync(ct).ConfigureAwait(false);
                     if (frame is null) break;
                     _lastHeard = DateTime.UtcNow;
+                    if (LinkAudioProtocol.ReadVolume(LinkAudioProtocol.ReadHeader(frame)) is { } vol)
+                    {
+                        Gain = (float)vol;
+                        _f.Raise(() => _f.ReceiveVolumeChanged?.Invoke(vol));
+                        continue;
+                    }
                     if (!LinkAudioProtocol.TryReadSound(frame, out _, out uint tick, out var packet)) continue;
                     int n;
                     try { n = _decoder.Decode(packet.Span, _pcm); }
                     catch (Exception ex) when (ex is ArgumentException or IndexOutOfRangeException or InvalidOperationException) { continue; } // a broken packet: skip it
                     if (n <= 0) continue;
+                    float gain = Gain;
+                    AudioConvert.Gain(_pcm.AsSpan(0, n * OpusFrameEncoder.Channels), _applied, gain);
+                    _applied = gain;
                     Buffer.Push(_pcm.AsSpan(0, n * OpusFrameEncoder.Channels));
                     Interlocked.Increment(ref Frames);
                     if (_f._opts.SamePc)
@@ -516,5 +601,26 @@ public sealed class LinkAudioFeature : LinkFeature
         s?.End(AudioForwardEnd.Stopped);
         r?.End("stopped");
         base.Dispose();
+    }
+}
+
+/// <summary>
+/// Hands on the newest of many values at most once per interval (a slider drag): the first one after the interval,
+/// later ones replace it while it waits. Thread-safe.
+/// </summary>
+internal sealed class NewestOnly(TimeSpan every, Action<double> send)
+{
+    private double _value;
+    private int _scheduled;
+
+    public void Post(double value)
+    {
+        Volatile.Write(ref _value, value);
+        if (Interlocked.Exchange(ref _scheduled, 1) != 0) return;
+        _ = Task.Delay(every).ContinueWith(_ =>
+        {
+            Interlocked.Exchange(ref _scheduled, 0); // before reading: a value posted from now on schedules its own send
+            send(Volatile.Read(ref _value));
+        }, TaskScheduler.Default);
     }
 }

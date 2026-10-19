@@ -52,8 +52,11 @@ public sealed partial class LinkHub
         });
         audio.SendingStarted += (id, name) => { SyncAudio(); AudioMoved?.Invoke(NameOf(id, name), null); };
         audio.SendingEnded += (id, name, why) => { SyncAudio(); AudioMoved?.Invoke(NameOf(id, name), why); };
-        audio.ReceivingStarted += (id, name) => AudioFrom = NameOf(id, name);
-        audio.ReceivingEnded += (_, _) => AudioFrom = Audio?.ReceivingFrom is { } from ? NameOf(from, "") : "";
+        audio.ReceivingStarted += (id, name) => { AudioFrom = NameOf(id, name); OnPropertyChanged(nameof(ReceiveVolume)); };
+        audio.ReceivingEnded += (_, _) => { AudioFrom = Audio?.ReceivingFrom is { } from ? NameOf(from, "") : ""; OnPropertyChanged(nameof(ReceiveVolume)); };
+        // Volume changed on the other device: the sliders here follow, and the sending side keeps it for that device.
+        audio.SendVolumeChanged += level => { if (Audio?.SendingTo is { } to) RememberVolume(to, level); OnPropertyChanged(nameof(RemoteVolume)); };
+        audio.ReceiveVolumeChanged += _ => OnPropertyChanged(nameof(ReceiveVolume));
         return audio;
     }
 
@@ -68,6 +71,7 @@ public sealed partial class LinkHub
     {
         if (Audio is not { } audio || AudioBusy || audio.SendingTo == peerId) return;
         string name = NameOf(peerId, "");
+        audio.SetSendVolume(_settings.LinkAudioVolumes.TryGetValue(peerId, out var level) ? level : 1); // as last time on that device
         AudioBusy = true;
         try
         {
@@ -79,6 +83,31 @@ public sealed partial class LinkHub
             AudioBusy = false;
             SyncAudio();
         }
+    }
+
+    /// <summary>Volume of this PC's sound on the device it plays on (0..1).</summary>
+    public double RemoteVolume => Audio?.SendVolume ?? 1;
+    /// <summary>The device the sound plays on understands the volume (1.1.13 and newer).</summary>
+    public bool RemoteHasVolume => Audio?.RemoteHasVolume ?? false;
+    /// <summary>Volume of the other device's sound playing here (0..1).</summary>
+    public double ReceiveVolume => Audio?.ReceiveVolume ?? 1;
+
+    /// <summary>The slider of the device the sound plays on: sent there and kept for the next time.</summary>
+    public void SetRemoteVolume(double level)
+    {
+        if (Audio is not { SendingTo: { } to } audio) return;
+        audio.SetSendVolume(level);
+        RememberVolume(to, audio.SendVolume);
+    }
+
+    /// <summary>The slider of the sound from the other device: plays at once, the sending device's slider follows.</summary>
+    public void SetReceiveVolume(double level) => Audio?.SetReceiveVolume(level);
+
+    private void RememberVolume(string peerId, double level)
+    {
+        if (_settings.LinkAudioVolumes.TryGetValue(peerId, out var old) && Math.Abs(old - level) < 0.005) return;
+        _settings.LinkAudioVolumes[peerId] = Math.Round(level, 3);
+        _settings.SaveSoon();
     }
 
     /// <summary>A local output was chosen: the sound comes back here.</summary>
@@ -97,6 +126,8 @@ public sealed partial class LinkHub
         foreach (var d in Devices) d.AudioSelected = d.Id == to;
         IsForwardingAudio = to is not null;
         AudioDevice = to is null ? "" : NameOf(to, "");
+        OnPropertyChanged(nameof(RemoteVolume));
+        OnPropertyChanged(nameof(RemoteHasVolume));
         OnPropertyChanged(nameof(AudioTargets));
         OnPropertyChanged(nameof(HasAudioTargets));
     }

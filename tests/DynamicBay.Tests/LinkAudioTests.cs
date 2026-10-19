@@ -565,4 +565,51 @@ public class LinkAudioStreamTests : IDisposable
         Assert.False(r.Output.Muted["dev-tone"]);
         Assert.Null(r.Sender.SendingTo);
     }
+
+    [Fact]
+    public async Task The_volume_set_here_reaches_the_sound_there_also_when_set_before_it_starts()
+    {
+        var (p, r) = await AudioPair();
+        r.Sender.SetSendVolume(0.6); // chosen before: goes along with the start
+        Assert.Null(await r.Sender.StartSendingAsync(p.IdA.DeviceId));
+        await Until(() => Math.Abs(r.Receiver.ReceiveVolume - 0.6) < 0.001, "volume at the start");
+        r.Sender.SetSendVolume(0.25);
+        await Until(() => Math.Abs(r.Receiver.ReceiveVolume - 0.25) < 0.001, "volume while it plays");
+        Assert.Equal(0.25, r.Sender.SendVolume, 3);
+        await Until(() => r.Receiver.FramesReceived >= 25, "sound keeps flowing"); // the volume frame is no sound frame
+    }
+
+    [Fact]
+    public async Task The_volume_set_on_the_receiving_device_reaches_the_sender()
+    {
+        var (p, r) = await AudioPair();
+        Assert.Null(await r.Sender.StartSendingAsync(p.IdA.DeviceId));
+        Assert.True(r.Sender.RemoteHasVolume); // the receiver said "volume: true"
+        await Until(() => r.Receiver.ReceivingFrom is not null, "receiving");
+        var heard = new TaskCompletionSource<double>(TaskCreationOptions.RunContinuationsAsynchronously);
+        r.Sender.SendVolumeChanged += v => heard.TrySetResult(v);
+        r.Receiver.SetReceiveVolume(0.45);
+        Assert.Equal(0.45, r.Receiver.ReceiveVolume, 3); // plays at once there
+        Assert.Equal(0.45, await heard.Task.WaitAsync(Wait), 3);
+        Assert.Equal(0.45, r.Sender.SendVolume, 3);
+
+        var told = new TaskCompletionSource<double>(TaskCreationOptions.RunContinuationsAsynchronously);
+        r.Receiver.ReceiveVolumeChanged += v => told.TrySetResult(v);
+        r.Sender.SetSendVolume(0.7);
+        Assert.Equal(0.7, await told.Task.WaitAsync(Wait), 3);
+    }
+
+    [Fact]
+    public async Task A_drag_sends_a_few_volume_frames_and_the_last_value_arrives()
+    {
+        var (p, r) = await AudioPair();
+        Assert.Null(await r.Sender.StartSendingAsync(p.IdA.DeviceId));
+        await Until(() => r.Receiver.FramesReceived >= 10, "sound arrives");
+        long sentBefore = r.Sender.VolumeFramesSent;
+        for (int i = 100; i >= 30; i--) r.Sender.SetSendVolume(i / 100.0); // 71 steps at once, like a quick drag
+        await Until(() => Math.Abs(r.Receiver.ReceiveVolume - 0.30) < 0.001, "the last value");
+        await Task.Delay(300);
+        Assert.InRange(r.Sender.VolumeFramesSent - sentBefore, 1, 3);
+        Assert.Equal(0.30, r.Receiver.ReceiveVolume, 3);
+    }
 }

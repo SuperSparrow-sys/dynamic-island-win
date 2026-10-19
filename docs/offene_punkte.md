@@ -77,6 +77,9 @@ System-Proxy.
   anderen Gerät ausblenden.
 - Medienstapel mit Spotify und YouTube gleichzeitig (Wechsel per Mausrad und Touchpad, Vorrang beim Start), Klick auf
   eine Gmail- oder Claude-Mitteilung vom Handy öffnet Outlook bzw. Claude.
+- Lautstärke auf mehreren Geräten: „Alle“ und Einzelregler bei „Ton am Laptop“ (beide Seiten 1.1.13, Regler auf beiden
+  Seiten), bei zwei gleichzeitig spielenden Ausgaben, Ziehen ab beliebiger Stelle, Stumm aufheben; Abfrage jede
+  Sekunde nicht gemessen; Windows „Geteiltes Audio“ nur mit LE-Audio-Hardware (dieser PC hat keine).
 - Der Abschluss-Check mit den echten Konten: OneDrive, Spotify, Mitteilungen, Kalender, Bluetooth, Claude, Microsoft 365.
 
 **Zu tun:** Gemeinsam mit dem Besitzer durchgehen. Gefundene Fehler werden eigene Punkte.

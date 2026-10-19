@@ -26,6 +26,14 @@ Abschnitt; was nicht mehr gilt, wird entfernt. Offene Aufgaben stehen in [offene
   sonst gleicher Name im Startmenü, Programm vor Web-App (`PhoneLinkApps.WindowsApp`). Gilt immer, ohne Schalter.
   Die einzelne Nachricht lässt sich nicht öffnen, Smartphone-Link liefert keine ID. Klicks auf Windows-Banner von
   Smartphone-Link öffnen weiter Smartphone-Link; das Klickziel fremder Toasts lässt sich nicht ändern.
+- **Ton auf mehreren Geräten: ein Regler für alle, einer je Gerät** (19.10.2026, Besitzer). Zeilen bekommen die
+  Standard-Ausgabe und jede Ausgabe, die gerade spielt oder in den letzten 10 s gespielt hat, dazu das gekoppelte Gerät
+  bei „Ton an Gerät“. „Alle“ steht auf dem lautesten und bewegt alle im selben Verhältnis (`VolumeMix`). Beim
+  gekoppelten Gerät ändert der Regler nur den weitergeleiteten Ton, nicht dessen Systemlautstärke: Wer dort sitzt,
+  behält seine eigene Einstellung. Der Wert gilt in beide Richtungen (der Laptop zeigt den empfangenen Ton mit eigenem
+  Regler, beide Seiten folgen einander) und wird je Gerät gespeichert. Windows „Geteiltes Audio“ (zwei Bluetooth-LE-Kopfhörer) ist für Apps ein einziger
+  Endpunkt; er bekommt eine Zeile, die Aufteilung auf die Kopfhörer macht Windows. Verworfen: nur ein Regler mit
+  gleichem Wert für alle (zerstört den Ausgleich zwischen leisem Lautsprecher und lauten Kopfhörern).
 
 - **Anrufe bleiben wie in 1.1.4:** Teams- und Telefon-Fenster werden nie versteckt oder verschoben. Die Übernahme der
   Anrufe wurde in 1.1.7 zurückgenommen.

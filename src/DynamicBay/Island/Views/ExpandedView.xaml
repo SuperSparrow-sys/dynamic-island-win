@@ -107,6 +107,85 @@
         <ItemsPanelTemplate x:Key="RowPanel"><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
         <ItemsPanelTemplate x:Key="WrapPanel"><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate>
 
+        <!-- Volume rows in the audio card: the music volume's bar as a Slider (click anywhere, drag; the knob shows on hover) -->
+        <Style x:Key="Slider.Level" TargetType="Slider">
+            <Setter Property="Minimum" Value="0" />
+            <Setter Property="Maximum" Value="100" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="LevelSlider_Down" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="16" Background="Transparent">
+                            <Border x:Name="Rail" Height="4" CornerRadius="3" Background="{StaticResource B.Fill3}" VerticalAlignment="Center" />
+                            <Canvas ClipToBounds="False">
+                                <Grid Height="16">
+                                    <Grid.Width>
+                                        <MultiBinding Converter="{StaticResource PercentWidth}">
+                                            <Binding Path="Value" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource TemplatedParent}" />
+                                        </MultiBinding>
+                                    </Grid.Width>
+                                    <Border x:Name="Fill" Height="4" CornerRadius="3" Background="{StaticResource B.Text2}" VerticalAlignment="Center" />
+                                    <Border x:Name="Knob" Width="12" Height="12" CornerRadius="6" Margin="0,0,-6,0" Background="{StaticResource B.Text}"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center" Opacity="0">
+                                        <Border.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="0" Opacity="0.5" /></Border.Effect>
+                                    </Border>
+                                </Grid>
+                            </Canvas>
+                            <!-- The track only takes the clicks and the drag; what it draws is invisible -->
+                            <Track x:Name="PART_Track" Opacity="0">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton"><Border Background="Transparent" /></ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge" Focusable="False">
+                                        <RepeatButton.Template>
+                                            <ControlTemplate TargetType="RepeatButton"><Border Background="Transparent" /></ControlTemplate>
+                                        </RepeatButton.Template>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="12" Height="16">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb"><Border Background="Transparent" /></ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.15" />
+                                            <DoubleAnimation Storyboard.TargetName="Rail" Storyboard.TargetProperty="Height" To="6" Duration="0:0:0.15" />
+                                            <DoubleAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Height" To="6" Duration="0:0:0.15" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="Knob" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.25" />
+                                            <DoubleAnimation Storyboard.TargetName="Rail" Storyboard.TargetProperty="Height" To="4" Duration="0:0:0.25" />
+                                            <DoubleAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Height" To="4" Duration="0:0:0.25" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Hover-revealed overlay buttons on tiles -->
         <!-- Dark glass circles over pictures: hover gets lighter but stays opaque, so the button never fades into the image -->
         <!-- A row in a widget list (projects, sound devices): same height and radius everywhere.
@@ -1073,6 +1152,44 @@
                         </StackPanel>
                         <ScrollViewer Margin="0,6,0,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel>
+                                <!-- The sound plays on several devices (or a paired one): one slider for all, one each; on top, it matters most then -->
+                                <StackPanel Margin="0,0,0,6" Visibility="{Binding OutputVolume.IsVisible, Converter={StaticResource Vis}}">
+                                    <TextBlock Style="{StaticResource T.Section}" Margin="2,0,0,4" Text="{core:L De='Lautstärke', En='Volume'}" />
+                                    <DockPanel Height="24" Margin="2,0,0,2" Visibility="{Binding OutputVolume.HasMaster, Converter={StaticResource Vis}}"
+                                               ToolTip="{core:L De='Alle Geräte, das Verhältnis bleibt', En='All devices, keeping their balance'}">
+                                        <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Volume}" Width="12" Height="12" Margin="0,0,7,0" Foreground="{StaticResource B.Text}" />
+                                        <TextBlock DockPanel.Dock="Left" Width="76" Style="{StaticResource T.Base}" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                   Text="{core:L De='Alle', En='All'}" />
+                                        <Slider Style="{StaticResource Slider.Level}" VerticalAlignment="Center" Value="{Binding OutputVolume.Master}" />
+                                    </DockPanel>
+                                    <ItemsControl ItemsSource="{Binding OutputVolume.Channels}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type s:VolumeChannel}">
+                                                <DockPanel x:Name="Row" Height="24" Margin="2,0,0,2" ToolTip="{Binding Tip}">
+                                                    <Grid DockPanel.Dock="Left" Margin="0,0,7,0" VerticalAlignment="Center">
+                                                        <c:Icon Data="{Binding Headphones, Converter={StaticResource OutputGlyph}}" Width="12" Height="12" Foreground="{StaticResource B.Text2}"
+                                                                Visibility="{Binding IsRemote, Converter={StaticResource NotVis}}" />
+                                                        <c:Icon Data="{Binding IsLaptop, Converter={StaticResource LaptopGlyph}}" Width="12" Height="12" Foreground="{StaticResource B.Text2}"
+                                                                Visibility="{Binding IsRemote, Converter={StaticResource Vis}}" />
+                                                    </Grid>
+                                                    <TextBlock DockPanel.Dock="Left" Width="76" Style="{StaticResource T.Base}" FontSize="11" Foreground="{StaticResource B.Text2}" VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
+                                                    <!-- the device is too old for the volume: a short note instead of the slider -->
+                                                    <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" Foreground="{StaticResource B.Text3}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                                               Text="{Binding Note}" Visibility="{Binding CanSet, Converter={StaticResource NotVis}}" />
+                                                    <Slider Style="{StaticResource Slider.Level}" VerticalAlignment="Center" Value="{Binding Level}"
+                                                            Visibility="{Binding CanSet, Converter={StaticResource Vis}}" />
+                                                </DockPanel>
+                                                <DataTemplate.Triggers>
+                                                    <!-- muted in Windows: dimmed; moving the slider unmutes it -->
+                                                    <DataTrigger Binding="{Binding IsMuted}" Value="True">
+                                                        <Setter TargetName="Row" Property="Opacity" Value="0.45" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
                                 <TextBlock Style="{StaticResource T.Section}" Margin="2,0,0,4" Text="{core:L De='Ausgabe', En='Output'}" />
                                 <ItemsControl ItemsSource="{Binding AudioDevices.Outputs}">
                                     <ItemsControl.ItemTemplate>

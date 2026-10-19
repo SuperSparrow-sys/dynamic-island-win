@@ -2,6 +2,18 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## 1.1.13 (19.10.2026)
+
+- Installer: Wird DynamicBay während eines Updates gestartet, scheiterte die Registrierung des Identitäts-Pakets, und
+  jeder weitere Start meldete „Diese App kann nicht geöffnet werden“. Der Installer schließt eine solche Kopie jetzt
+  vor der Registrierung und versucht es bei einem Fehler ein zweites Mal. Er repariert auch eine schon betroffene
+  Installation.
+- Audio-Karte: Läuft der Ton auf mehreren Geräten, etwa am Laptop über die Kopplung, über Windows „Geteiltes Audio“
+  oder auf zwei Ausgaben gleichzeitig, steht oben „Lautstärke“: ein Regler für alle, der das Verhältnis beibehält, und
+  einer je Gerät. Am gekoppelten Gerät ändert er nur den weitergeleiteten Ton und wird je Gerät gemerkt; das Gerät
+  zeigt den empfangenen Ton ebenfalls mit Regler, beide Seiten folgen einander. Ein Gerät mit älterer Version zeigt
+  „ab 1.1.13“. Stummgeschaltete Ausgaben erscheinen gedimmt, ihr Regler hebt die Stummschaltung auf.
+
 ## 1.1.12 (19.10.2026)
 
 - Medien: Laufen mehrere Player gleichzeitig (Spotify und YouTube im Browser), wird die Medienkarte zum Stapel mit

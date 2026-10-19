@@ -78,6 +78,7 @@ steuert (Mikrofon-Nutzung für den Anrufmodus, Timer, Zeiterfassung), läuft wei
 | Dienst | Quelle |
 |---|---|
 | `MediaService` | Windows System Media Transport Controls (Spotify, Apple Music, Browser … ohne Login); mehrere Player als Seiten, Auswahl in `MediaPick` |
+| `OutputVolumeService` | „Lautstärke“ in der Audio-Karte: ein Regler für alle Geräte, auf denen der Ton läuft, und einer je Gerät (Windows-Ausgaben über ihre eigene Lautstärke, das gekoppelte Gerät über `vol` im Strom `audio`); Auswahl und Verhältnis in `VolumeMix` |
 | `SpotifyService` | Spotify Web API, OAuth PKCE mit eigener Client-ID, Token in DPAPI |
 | `ClipboardService` | `WM_CLIPBOARDUPDATE`, PNG aus der Zwischenablage, Screenshot-Ordner aller OneDrive-Konten |
 | `ShelfService` | Dateiliste mit Explorer-Vorschaubildern |
@@ -187,7 +188,9 @@ Empfänger: Opus → `AudioJitterBuffer` → `WasapiAudioSink` (geteilter Modus,
 Tailscale 150 ms), regelt die Uhrabweichung beider Soundkarten über die Lesegeschwindigkeit (höchstens ±0,5 %,
 lineare Interpolation), wirft nur bei mehr als dem Vierfachen ab und blendet beim Leerlaufen aus und beim Neustart
 ein (keine Klicks). Rahmen im Strom (`LinkAudioProtocol`): 1 Kopf (JSON: Angebot, Antwort `ok`/`reason`, Ende
-`end: off|output|stopped`), 2 Ton (Folgenummer, Millisekunden-Tick, Opus), 3 Lebenszeichen (jede Sekunde in beide
+`end: off|output|stopped`, Lautstärke `vol` 0..1 in beide Richtungen, auch gleich nach dem Start, höchstens alle 100 ms der neueste Wert; der Empfänger
+regelt damit nur den weitergeleiteten Ton, gleitet über einen 20-ms-Block und sagt in der Antwort `volume: true`, ab
+1.1.13; der Wert je Gerät steht in `LinkAudioVolumes`), 2 Ton (Folgenummer, Millisekunden-Tick, Opus), 3 Lebenszeichen (jede Sekunde in beide
 Richtungen, 5 s Stille = tot). Endet der Strom ohne `end`, ist die Verbindung weg.
 Messung (11.10.2026, Realtek-Lautsprecher, Windows 11): WASAPI-Loopback liefert den Ton auch bei stummgeschaltetem
 Endpunkt und bei Lautstärke 2 % unverändert (ein erzeugter 440-Hz-Ton in den stummen Endpunkt gespielt, im Loopback

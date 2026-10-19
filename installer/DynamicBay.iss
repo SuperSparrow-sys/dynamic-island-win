@@ -147,6 +147,31 @@ begin
     Log('Firewall rule (Tailscale) not added, no Tailscale adapter?: ' + IntToStr(Code));
 end;
 
+// A DynamicBay started between copying the files and registering the package (a click on the taskbar while the update
+// runs, 19.10.2026 with 1.1.12) makes Windows refuse the registration with 0x80073D02 and leaves the package broken:
+// every later start ends in "Diese App kann nicht geöffnet werden". Only copies from {app}, never dev builds.
+procedure CloseRunningApp;
+var
+  Code: Integer;
+begin
+  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    '-NoProfile -NonInteractive -Command "$p = Get-Process DynamicBay -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq ''' + ExpandConstant('{app}\DynamicBay.exe') + ''' }; ' +
+    'if ($p) { $p | Stop-Process -Force; $p | Wait-Process -Timeout 10 -ErrorAction SilentlyContinue; exit 1 }"',
+    '', SW_HIDE, ewWaitUntilTerminated, Code);
+  if Code = 1 then Log('Closed a DynamicBay started during setup');
+end;
+
+function RegisterIdentity(const App: String): Boolean;
+var
+  Code: Integer;
+begin
+  CloseRunningApp;
+  Result := ExecAsOriginalUser(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Add-AppxPackage -Path ''' + App + '\DynamicBay.msix'' -ExternalLocation ''' + App + ''' -ForceUpdateFromAnyVersion"',
+    '', SW_HIDE, ewWaitUntilTerminated, Code) and (Code = 0);
+  if not Result then Log('Identity package registration failed: ' + IntToStr(Code));
+end;
+
 // Auto-update (silent, /UPDATE): start the new version again as the logged-in user.
 // Setup runs elevated; launching through explorer.exe hands the start to the (non-elevated) desktop shell.
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -164,10 +189,9 @@ begin
     App := ExpandConstant('{app}');
     if not Exec(ExpandConstant('{sys}\certutil.exe'), '-f -addstore TrustedPeople "' + App + '\DynamicBay.cer"', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
       Log('certutil failed: ' + IntToStr(Code));
-    if not ExecAsOriginalUser(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
-      '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Add-AppxPackage -Path ''' + App + '\DynamicBay.msix'' -ExternalLocation ''' + App + ''' -ForceUpdateFromAnyVersion"',
-      '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
-      Log('Identity package registration failed: ' + IntToStr(Code))
+    // A second try repairs a registration that a copy started in between still broke (it is closed again first).
+    if not RegisterIdentity(App) and not RegisterIdentity(App) then
+      Log('Identity package registration failed twice')
     else
       // Registered with the shipped certificate: drop the older copies earlier builds left in TrustedPeople.
       Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),

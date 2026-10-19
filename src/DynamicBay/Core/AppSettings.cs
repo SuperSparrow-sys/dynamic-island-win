@@ -405,6 +405,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _linkShareMedia = true;
     /// <summary>"Ton": this PC's sound may play on a paired device, and theirs here (both sides must allow it).</summary>
     [ObservableProperty] private bool _linkShareAudio = true;
+    /// <summary>Volume of this PC's sound on each paired device (device id → 0..1), as last set here or there.</summary>
+    public Dictionary<string, double> LinkAudioVolumes { get; set; } = new();
     [ObservableProperty] private bool _linkShareStatus = true;
     // Working together (Services/Link/Link*Feature.cs): timer, quiet, questions and battery on; locking together off.
     [ObservableProperty] private bool _linkShareTimer = true;

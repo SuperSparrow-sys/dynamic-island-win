@@ -95,6 +95,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public MusicVolumeService MusicVolume { get; }
     /// <summary>Sound output, microphone and Bluetooth headsets (the "Audio" widget and its rules).</summary>
     public AudioDevicesService AudioDevices { get; }
+    /// <summary>"Lautstärke" in the audio card: one slider for every device the sound plays on, and one each.</summary>
+    public OutputVolumeService OutputVolume { get; }
     /// <summary>Battery of each earbud and the case (the "AirPods" widget).</summary>
     public AirPodsService AirPods { get; }
     /// <summary>Quick notes (the "Notizen" widget).</summary>
@@ -140,6 +142,7 @@ public sealed partial class IslandViewModel : ObservableObject
             if (_link is not null) _link.PropertyChanged -= OnLinkChanged;
             _link = value;
             if (_link is not null) _link.PropertyChanged += OnLinkChanged;
+            OutputVolume.Link = value;
             OnPropertyChanged();
             RecomputeCompact();
         }
@@ -180,6 +183,7 @@ public sealed partial class IslandViewModel : ObservableObject
         Timer = timer; Calendar = calendar; Battery = battery; Spotify = spotify;
         MusicVolume = new MusicVolumeService(media, spotify);
         AudioDevices = new AudioDevicesService(settings, media);
+        OutputVolume = new OutputVolumeService(id => AudioDevices.Outputs.FirstOrDefault(o => o.Id == id) is { } o ? (o.Name, o.Headphones) : null);
         AirPods = new AirPodsService(settings, AudioDevices);
         Clock = new ClockService(settings);
         System = new SystemService();

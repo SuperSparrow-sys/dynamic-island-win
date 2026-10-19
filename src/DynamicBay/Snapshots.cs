@@ -663,6 +663,13 @@ public static class Snapshots
             if (vm.AudioDevices.Outputs.FirstOrDefault(o => o.Name.StartsWith("DELL")) is { } monitor) vm.AudioDevices.Outputs.Remove(monitor);
             vm.Tab = 3;
             await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-11-audio-card.png"), compact: false);
+            // Sound on several devices: the slider for all of them and one per device.
+            vm.OutputVolume.LoadDemo();
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-11b-audio-volume.png"), compact: false);
+            vm.OutputVolume.LoadDemo("receiver");
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-11c-audio-volume-receiver.png"), compact: false);
+            vm.OutputVolume.LoadDemo("old");
+            await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-link-11d-audio-volume-old-device.png"), compact: false);
             vm.Tab = 0;
             await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-link-12-audio-compact.png"), compact: false);
             island.SetPeekForSnapshot(new PeekItem

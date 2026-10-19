@@ -130,6 +130,27 @@ public static class AudioEndpoints
         catch (Exception ex) { Core.Log.Info($"Set mute: {ex.Message}"); }
     }
 
+    /// <summary>Sets a device's own volume (0..1), what its slider in the Windows sound settings does.</summary>
+    public static void SetLevel(string id, float level) => LevelControl(id)?.Invoke(level);
+
+    /// <summary>A device's volume control, opened once for many steps (a drag); null if it cannot be opened.</summary>
+    public static Action<float>? LevelControl(string id)
+    {
+        IAudioEndpointVolume? vol;
+        try { vol = Volume(id); }
+        catch (Exception ex) { Core.Log.Info($"Set volume: {ex.Message}"); return null; }
+        if (vol is null) return null;
+        return level =>
+        {
+            try
+            {
+                var ctx = Guid.Empty;
+                vol.SetMasterVolumeLevelScalar(Math.Clamp(level, 0f, 1f), ref ctx);
+            }
+            catch (Exception ex) { Core.Log.Info($"Set volume: {ex.Message}"); }
+        };
+    }
+
     /// <summary>
     /// The Bluetooth audio driver's filter, opened directly from its device path: for a
     /// disconnected headset Windows has no topology connection to it, so it cannot be reached through the endpoint.
