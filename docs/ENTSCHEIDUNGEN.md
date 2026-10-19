@@ -18,6 +18,15 @@ Abschnitt; was nicht mehr gilt, wird entfernt. Offene Aufgaben stehen in [offene
 
 ## Funktionen
 
+- **Mehrere Player: Stapel statt Wettstreit** (19.10.2026, Besitzer). Eine Seite pro Player, Scrollen über der Karte
+  wechselt, eine Seite pro Geste. Die Wahl hält, bis der Player verschwindet oder ein anderer nach mindestens 3 s Pause
+  zu spielen beginnt (`MediaPick`, `MediaStarts`). Verworfen: zwei Karten nebeneinander (zu breit für die Insel) und
+  der alte Vorrang „spielendes Spotify zuerst“ allein, bei dem YouTube neben laufendem Spotify nie zu sehen war.
+- **Handy-Mitteilungen öffnen die Windows-App** (19.10.2026, Besitzer). Gmail, Mail und Kalender gehen nach Outlook,
+  sonst gleicher Name im Startmenü, Programm vor Web-App (`PhoneLinkApps.WindowsApp`). Gilt immer, ohne Schalter.
+  Die einzelne Nachricht lässt sich nicht öffnen, Smartphone-Link liefert keine ID. Klicks auf Windows-Banner von
+  Smartphone-Link öffnen weiter Smartphone-Link; das Klickziel fremder Toasts lässt sich nicht ändern.
+
 - **Anrufe bleiben wie in 1.1.4:** Teams- und Telefon-Fenster werden nie versteckt oder verschoben. Die Übernahme der
   Anrufe wurde in 1.1.7 zurückgenommen.
 - **AirPods: nur der Akku.** Geräuschsteuerung ist endgültig verworfen, ebenso Wege über Treiber oder Testmodus.

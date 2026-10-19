@@ -453,6 +453,10 @@ public static class Snapshots
                 island.ExpandedLayer.ShowMusicOverlayForSnapshot();
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8f-upnext.png"), compact: true);
                 island.ExpandedLayer.DevicesOverlay.Visibility = Visibility.Collapsed;
+                // Spotify and YouTube at once: the media card is a stack with one dot per player.
+                vm.Media.LoadDemoPages(new[] { "Spotify", "Chrome" }, 0);
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8k-media-stack.png"), compact: true);
+                vm.Media.LoadDemoPages(new[] { "Spotify" }, 0);
                 settings.AppIcons = AppIconStyle.Mono;
                 await Shot(island, vm, IslandMode.Compact, Path.Combine(dir, $"{name}-9-compact-clock.png"), compact: true);
 

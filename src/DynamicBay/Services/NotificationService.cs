@@ -337,7 +337,10 @@ public sealed partial class NotificationService : ObservableObject
     public void Open(NotificationItem? item)
     {
         if (item is null || item.Device is not null || item.AppId.Length == 0) return; // the app of another device is not here
-        try { Process.Start("explorer.exe", $"shell:AppsFolder\\{item.AppId}"); } catch { }
+        // From the phone: the app on Windows (Gmail opens Outlook), else Smartphone-Link.
+        string target = PhoneLinkApps.IsPhoneNotification(item.AppId) && InstalledApps.Cached is { } apps
+            && PhoneLinkApps.WindowsApp(item.App, apps) is { } app ? app : $"shell:AppsFolder\\{item.AppId}";
+        try { Process.Start("explorer.exe", target); } catch { }
     }
 
     [RelayCommand]

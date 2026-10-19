@@ -331,12 +331,76 @@ public partial class ExpandedView : UserControl
 
     private void HomeScroll_Wheel(object sender, MouseWheelEventArgs e)
     {
+        if (e.OriginalSource is DependencyObject over && IsInside(over, VolumeBar)) return; // the volume takes the wheel itself
+        // Several players: the media card is a stack, the wheel over it turns the page instead of scrolling the row.
+        if (e.OriginalSource is DependencyObject o && IsInside(o, MediaCard) && Vm is { Media.HasPages: true } vm
+            && vm.Link.MediaShowsLocal && DevicesOverlay.Visibility != Visibility.Visible)
+        {
+            TurnMediaPage(e.Delta);
+            e.Handled = true;
+            return;
+        }
         // Inner lists (Claude sessions, messages) scroll themselves; only take the wheel when they can not.
         if (e.OriginalSource is DependencyObject d && FindParent<ScrollViewer>(d) is { } inner && inner != HomeScroll
             && inner.ScrollableHeight > 0) return;
         if (_vertical) HomeScroll.ScrollToVerticalOffset(HomeScroll.VerticalOffset - e.Delta * 0.6);
         else HomeScroll.ScrollToHorizontalOffset(HomeScroll.HorizontalOffset - e.Delta * 0.6);
         e.Handled = true;
+    }
+
+    private static bool IsInside(DependencyObject d, DependencyObject ancestor)
+    {
+        for (var p = d; p is not null; p = p is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
+                 ? System.Windows.Media.VisualTreeHelper.GetParent(p) : LogicalTreeHelper.GetParent(p))
+            if (p == ancestor) return true;
+        return false;
+    }
+
+    // ---- media stack: one page per gesture ----
+    // A touchpad swipe and its momentum send many small steps, a mouse a few notches: everything until a short pause
+    // counts as one gesture and turns at most one page.
+    private DateTime _mediaWheelAt;
+    private double _mediaWheel;
+    private bool _mediaTurned;
+    private Motion.SpringGroup? _pageMotion;
+    private Motion.Spring _pageShift = null!, _pageFade = null!;
+
+    private void TurnMediaPage(int delta)
+    {
+        var now = DateTime.UtcNow;
+        if (now - _mediaWheelAt > TimeSpan.FromMilliseconds(220)) { _mediaWheel = 0; _mediaTurned = false; }
+        _mediaWheelAt = now;
+        if (_mediaTurned || Vm is null) return;
+        _mediaWheel += delta;
+        if (Math.Abs(_mediaWheel) < 60) return;
+        _mediaTurned = true;
+        int direction = _mediaWheel < 0 ? 1 : -1; // scrolling down shows the next player
+        SlideNowPlaying(direction, Vm.Media.Step(direction));
+    }
+
+    /// <summary>The new page comes in from the side scrolled towards; at either end the card only nudges.</summary>
+    private void SlideNowPlaying(int direction, bool turned)
+    {
+        if (_pageMotion is null)
+        {
+            _pageMotion = new Motion.SpringGroup();
+            _pageShift = _pageMotion.Add(new Motion.Spring(0, 0.38, 0.86));
+            _pageFade = _pageMotion.Add(new Motion.Spring(1, 0.3, 1));
+            _pageMotion.Updated += () =>
+            {
+                NowPlayingShift.Y = _pageShift.Value;
+                NowPlaying.Opacity = Math.Clamp(_pageFade.Value, 0, 1);
+            };
+        }
+        if (turned)
+        {
+            _pageShift.Snap(direction * 26);
+            _pageShift.Target = 0;
+            _pageFade.Snap(0.15);
+            _pageFade.Target = 1;
+        }
+        else _pageShift.Velocity = -direction * 140;
+        _pageMotion.Kick();
     }
 
     private static void Place(Border card, int row, int col, int span)

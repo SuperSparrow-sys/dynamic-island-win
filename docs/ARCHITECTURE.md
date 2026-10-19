@@ -77,7 +77,7 @@ steuert (Mikrofon-Nutzung für den Anrufmodus, Timer, Zeiterfassung), läuft wei
 
 | Dienst | Quelle |
 |---|---|
-| `MediaService` | Windows System Media Transport Controls (Spotify, Apple Music, Browser … ohne Login) |
+| `MediaService` | Windows System Media Transport Controls (Spotify, Apple Music, Browser … ohne Login); mehrere Player als Seiten, Auswahl in `MediaPick` |
 | `SpotifyService` | Spotify Web API, OAuth PKCE mit eigener Client-ID, Token in DPAPI |
 | `ClipboardService` | `WM_CLIPBOARDUPDATE`, PNG aus der Zwischenablage, Screenshot-Ordner aller OneDrive-Konten |
 | `ShelfService` | Dateiliste mit Explorer-Vorschaubildern |

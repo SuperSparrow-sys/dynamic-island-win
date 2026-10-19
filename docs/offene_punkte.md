@@ -75,6 +75,8 @@ System-Proxy.
 - „Über allem“ über Spielen im echten Vollbild auf dem PC mit NVIDIA (auf dem Laptop mit Intel geht es).
 - Mitteilungen vom Handy über Smartphone-Link, Handy-Akku im Geräte-Widget, Apple-Music-Cover, Mitteilungen auf dem
   anderen Gerät ausblenden.
+- Medienstapel mit Spotify und YouTube gleichzeitig (Wechsel per Mausrad und Touchpad, Vorrang beim Start), Klick auf
+  eine Gmail- oder Claude-Mitteilung vom Handy öffnet Outlook bzw. Claude.
 - Der Abschluss-Check mit den echten Konten: OneDrive, Spotify, Mitteilungen, Kalender, Bluetooth, Claude, Microsoft 365.
 
 **Zu tun:** Gemeinsam mit dem Besitzer durchgehen. Gefundene Fehler werden eigene Punkte.

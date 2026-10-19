@@ -344,8 +344,9 @@
                             </Grid>
                         </Grid>
 
-                        <!-- Now playing -->
-                        <Grid Visibility="{Binding Link.MediaShowsLocal, Converter={StaticResource Vis}, FallbackValue=Visible}">
+                        <!-- Now playing. Several players (Spotify and YouTube): a stack, scrolling over the card turns the page. -->
+                        <Grid x:Name="NowPlaying" Visibility="{Binding Link.MediaShowsLocal, Converter={StaticResource Vis}, FallbackValue=Visible}">
+                            <Grid.RenderTransform><TranslateTransform x:Name="NowPlayingShift" /></Grid.RenderTransform>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
@@ -447,6 +448,8 @@
                                         <TextBlock Style="{StaticResource T.Headline}" Text="{Binding Media.Title}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
                                                    LineHeight="19" LineStackingStrategy="BlockLineHeight" MaxHeight="38" ToolTip="{Binding Media.Title}" />
                                         <TextBlock Style="{StaticResource T.Body}" Margin="0,1,0,0" FontSize="12.5" Text="{Binding Media.Artist}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Style="{StaticResource T.Caption}" Margin="0,1,0,0" Text="{Binding Media.SourceApp}" TextTrimming="CharacterEllipsis"
+                                                   Visibility="{Binding Media.HasPages, Converter={StaticResource Vis}}" />
                                     </StackPanel>
                                 </DockPanel>
 
@@ -554,6 +557,24 @@
                                     </StackPanel>
                                 </Grid>
                             </Grid>
+                        </Grid>
+
+                        <!-- Pages of the stack, like the iPhone's widget stack: one dot per player, the shown one long -->
+                        <Grid IsHitTestVisible="False" Visibility="{Binding Link.MediaShowsLocal, Converter={StaticResource Vis}, FallbackValue=Visible}">
+                        <ItemsControl ItemsSource="{Binding Media.Pages}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,-9,0"
+                                      Visibility="{Binding Media.HasPages, Converter={StaticResource Vis}, FallbackValue=Collapsed}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="Dot" Width="4" Height="4" CornerRadius="2" Margin="0,2" Background="{StaticResource B.Text3}" />
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                            <Setter TargetName="Dot" Property="Height" Value="12" />
+                                            <Setter TargetName="Dot" Property="Background" Value="{StaticResource B.Text}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         </Grid>
 
                         <!-- Spotify: up next, playlists and devices (one button in the player, three tabs) -->

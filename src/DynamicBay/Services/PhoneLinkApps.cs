@@ -68,6 +68,37 @@ public static class PhoneLinkApps
         ["claude"] = new[] { "com.anthropic.claude" },
     };
 
+    // Phone apps whose counterpart on Windows has another name. Mail goes to Outlook (the owner reads Gmail there).
+    private static readonly Dictionary<string, string[]> WindowsNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["gmail"] = new[] { "outlook", "outlooknew", "outlookclassic" },
+        ["mail"] = new[] { "outlook", "outlooknew", "outlookclassic" },
+        ["outlook"] = new[] { "outlook", "outlooknew", "outlookclassic" },
+        ["teams"] = new[] { "microsoftteams", "microsoftteamsnew", "teams" },
+        ["microsoftteams"] = new[] { "microsoftteams", "microsoftteamsnew", "teams" },
+        ["kalender"] = new[] { "outlook", "outlooknew", "outlookclassic" },
+        ["calendar"] = new[] { "outlook", "outlooknew", "outlookclassic" },
+    };
+
+    /// <summary>
+    /// The Windows app that opens a phone app's notification ("Gmail" → Outlook, "Claude" → Claude): its launch path among
+    /// the Start menu's <paramref name="apps"/>, preferring an installed program over a browser web app. Null when there is
+    /// none, then Smartphone-Link opens it as before.
+    /// </summary>
+    public static string? WindowsApp(string phoneApp, IEnumerable<InstalledApp> apps)
+    {
+        string key = AppIcons.Normalize(phoneApp);
+        if (key.Length == 0) return null;
+        var names = WindowsNames.TryGetValue(key, out var mapped) ? mapped : new[] { key };
+        var candidates = apps.Where(a => !a.LaunchPath.Contains("YourPhone", StringComparison.OrdinalIgnoreCase))
+                             .Select(a => (App: a, Name: AppIcons.Normalize(a.Name.Replace(" (Web-App)", ""))))
+                             .ToList();
+        foreach (var name in names)
+            if (candidates.Where(c => c.Name == name).OrderBy(c => c.App.LaunchPath.Contains("_crx_", StringComparison.OrdinalIgnoreCase)).FirstOrDefault() is { App: not null } hit)
+                return hit.App.LaunchPath;
+        return null;
+    }
+
     /// <summary>Where Smartphone-Link keeps the phone's app icons ("app_icon_net.whatsapp.WhatsApp1.0.jpg").</summary>
     public static string IconFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "Packages", "Microsoft.YourPhone_8wekyb3d8bbwe", "TempState", "app_icons");

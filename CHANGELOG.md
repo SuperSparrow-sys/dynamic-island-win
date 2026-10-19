@@ -2,6 +2,17 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## 1.1.12 (19.10.2026)
+
+- Medien: Laufen mehrere Player gleichzeitig (Spotify und YouTube im Browser), wird die Medienkarte zum Stapel mit
+  einem Punkt pro Player. Scrollen über der Karte wechselt die Seite, darunter steht die App. Die gewählte Seite bleibt,
+  bis ihr Player verschwindet oder ein anderer zu spielen beginnt. Ein kurzer Halt beim Liedwechsel zählt nicht.
+- Mitteilungen vom Handy öffnen beim Klick die passende App unter Windows statt Smartphone-Link: Gmail und Mail in
+  Outlook, Claude in Claude, WhatsApp, Teams, Spotify und andere in ihrer Desktop-App. Ohne passende App bleibt es bei
+  Smartphone-Link.
+- Das Mausrad über dem Lautstärkebalken der Medienkarte ändert wieder die Lautstärke, statt die Widget-Reihe zu
+  scrollen.
+
 ## 1.1.11 (19.10.2026)
 
 - Claude/Rubus: Fragt Claude am Ende einer Antwort etwas oder wartet auf eine Auswahl, zeigt die Session „Wartet auf

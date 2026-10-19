@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -73,18 +74,43 @@ public sealed partial class MediaService : ObservableObject
         }
     }
 
-    /// <summary>Prefer a playing session, then Spotify, then whatever Windows considers current.</summary>
+    /// <summary>One page of the media card per player, in Windows' order; the shown one is current.</summary>
+    public ObservableCollection<MediaPage> Pages { get; } = new();
+    /// <summary>Several players: the card becomes a stack to scroll through.</summary>
+    [ObservableProperty] private bool _hasPages;
+
+    private readonly MediaStarts _starts = new();
+    private string? _pinned;
+    private List<GlobalSystemMediaTransportControlsSession> _watched = new();
+
+    /// <summary>Scrolling the card: the next (+1) or previous (-1) player. False at either end.</summary>
+    public bool Step(int direction)
+    {
+        int i = Pages.ToList().FindIndex(p => p.IsCurrent) + Math.Sign(direction);
+        if (i < 0 || i >= Pages.Count) return false;
+        _pinned = Pages[i].Key;
+        PickSession();
+        return true;
+    }
+
+    /// <summary>The chosen player while it exists, else one that just started, else a playing Spotify, any playing one, Spotify.</summary>
     private void PickSession()
     {
         if (_manager is null) return;
         GlobalSystemMediaTransportControlsSession? pick = null;
         try
         {
-            var sessions = _manager.GetSessions();
-            pick = sessions.FirstOrDefault(s => IsPlayingSession(s) && IsSpotifyId(s.SourceAppUserModelId))
-                   ?? sessions.FirstOrDefault(IsPlayingSession)
-                   ?? sessions.FirstOrDefault(s => IsSpotifyId(s.SourceAppUserModelId))
-                   ?? _manager.GetCurrentSession();
+            var sessions = _manager.GetSessions().ToList();
+            Watch(sessions);
+            var keys = MediaPick.Keys(sessions.Select(s => s.SourceAppUserModelId ?? "").ToList());
+            var candidates = sessions.Select((s, i) => new MediaCandidate(keys[i], IsPlayingSession(s), IsSpotifyId(s.SourceAppUserModelId))).ToList();
+            // A player that starts comes to the front (the last one, when several start at once).
+            foreach (var started in _starts.Update(candidates, DateTime.UtcNow)) _pinned = started;
+            var current = _manager.GetCurrentSession();
+            int index = MediaPick.Choose(candidates, _pinned, sessions.FindIndex(s => ReferenceEquals(s, current)));
+            if (_pinned is not null && !keys.Contains(_pinned)) _pinned = null;
+            pick = index >= 0 ? sessions[index] : null;
+            UpdatePages(sessions, keys, index);
         }
         catch { }
 
@@ -140,6 +166,31 @@ public sealed partial class MediaService : ObservableObject
     {
         try { return s.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing; }
         catch { return false; }
+    }
+
+    /// <summary>Every player's play/pause reaches the picker, not only the shown one's: a start elsewhere brings it to the front.</summary>
+    private void Watch(List<GlobalSystemMediaTransportControlsSession> sessions)
+    {
+        if (sessions.Count == _watched.Count && sessions.All(s => _watched.Any(w => ReferenceEquals(w, s)))) return;
+        foreach (var w in _watched) try { w.PlaybackInfoChanged -= OnAnyPlaybackChanged; } catch { }
+        foreach (var s in sessions) try { s.PlaybackInfoChanged += OnAnyPlaybackChanged; } catch { }
+        _watched = sessions;
+    }
+
+    private void OnAnyPlaybackChanged(GlobalSystemMediaTransportControlsSession s, PlaybackInfoChangedEventArgs e)
+    {
+        if (!ReferenceEquals(s, _session)) _ui.BeginInvoke(PickSession); // the shown one goes through OnPlaybackChanged
+    }
+
+    private void UpdatePages(List<GlobalSystemMediaTransportControlsSession> sessions, List<string> keys, int current)
+    {
+        if (!Pages.Select(p => p.Key).SequenceEqual(keys))
+        {
+            Pages.Clear();
+            for (int i = 0; i < sessions.Count; i++) Pages.Add(new MediaPage(keys[i], FriendlyName(sessions[i].SourceAppUserModelId ?? "")));
+        }
+        for (int i = 0; i < Pages.Count; i++) Pages[i].IsCurrent = i == current;
+        HasPages = Pages.Count > 1;
     }
 
     private static readonly Dictionary<string, string> AppNames = new(StringComparer.OrdinalIgnoreCase);
@@ -571,4 +622,21 @@ public sealed partial class MediaService : ObservableObject
         DurationSeconds = 214; _positionAtStamp = TimeSpan.FromSeconds(81); _positionStamp = DateTime.UtcNow;
         UpdateInterpolatedPosition();
     }
+
+    /// <summary>For design snapshots only: several players, <paramref name="current"/> shown.</summary>
+    public void LoadDemoPages(string[] apps, int current)
+    {
+        Pages.Clear();
+        for (int i = 0; i < apps.Length; i++) Pages.Add(new MediaPage($"{apps[i]}#0", apps[i]) { IsCurrent = i == current });
+        HasPages = Pages.Count > 1;
+        SourceApp = apps[current];
+    }
+}
+
+/// <summary>A page of the media card: one player.</summary>
+public sealed partial class MediaPage(string key, string app) : ObservableObject
+{
+    public string Key { get; } = key;
+    public string App { get; } = app;
+    [ObservableProperty] private bool _isCurrent;
 }

@@ -39,6 +39,35 @@ public class PhoneTests
     }
 
     [Fact]
+    public void A_phone_notification_opens_the_app_on_Windows_and_Gmail_opens_Outlook()
+    {
+        // As the Start menu lists them on the owner's PC.
+        var apps = new[]
+        {
+            new InstalledApp("Claude", @"shell:AppsFolder\Claude_pzs8sxrjxfjjc!Claude"),
+            new InstalledApp("Microsoft Teams", @"shell:AppsFolder\MSTeams_8wekyb3d8bbwe!MSTeams"),
+            new InstalledApp("Outlook (classic)", @"shell:AppsFolder\Microsoft.Office.OUTLOOK.EXE.15"),
+            new InstalledApp("Outlook", @"shell:AppsFolder\Microsoft.OutlookForWindows_8wekyb3d8bbwe!Microsoft.OutlookforWindows"),
+            new InstalledApp("Smartphone-Link", @"shell:AppsFolder\Microsoft.YourPhone_8wekyb3d8bbwe!App"),
+            new InstalledApp("Spotify (Web-App)", @"shell:AppsFolder\Chrome._crx_pjibgcllelbfgfagdaldikeohf"),
+            new InstalledApp("Spotify", @"shell:AppsFolder\SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify"),
+            new InstalledApp("WhatsApp", @"shell:AppsFolder\5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App"),
+        };
+        string outlook = @"shell:AppsFolder\Microsoft.OutlookForWindows_8wekyb3d8bbwe!Microsoft.OutlookforWindows";
+        Assert.Equal(outlook, PhoneLinkApps.WindowsApp("Gmail", apps));
+        Assert.Equal(outlook, PhoneLinkApps.WindowsApp("Mail", apps));
+        Assert.Equal(@"shell:AppsFolder\Claude_pzs8sxrjxfjjc!Claude", PhoneLinkApps.WindowsApp("Claude", apps));
+        Assert.Equal(@"shell:AppsFolder\MSTeams_8wekyb3d8bbwe!MSTeams", PhoneLinkApps.WindowsApp("Teams", apps));
+        Assert.Equal(@"shell:AppsFolder\5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App", PhoneLinkApps.WindowsApp("WhatsApp", apps));
+        Assert.Equal(@"shell:AppsFolder\SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", PhoneLinkApps.WindowsApp("Spotify", apps)); // program before web app
+        // No such app here: Smartphone-Link opens it, never itself through the mapping.
+        Assert.Null(PhoneLinkApps.WindowsApp("Snapchat", apps));
+        Assert.Null(PhoneLinkApps.WindowsApp("Smartphone-Link", apps));
+        Assert.Equal(outlook, PhoneLinkApps.WindowsApp("Gmail", apps.Where(a => a.Name != "Outlook (classic)")));
+        Assert.Equal(@"shell:AppsFolder\Microsoft.Office.OUTLOOK.EXE.15", PhoneLinkApps.WindowsApp("Gmail", apps.Where(a => a.Name != "Outlook")));
+    }
+
+    [Fact]
     public void The_phone_listed_once_takes_the_battery_of_its_second_connection()
     {
         var devices = new ObservableCollection<BluetoothDeviceInfo>();
