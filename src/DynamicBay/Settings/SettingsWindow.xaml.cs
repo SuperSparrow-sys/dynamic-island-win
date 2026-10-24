@@ -66,6 +66,7 @@ public partial class SettingsWindow : Window
         BuildBannerRows();
         BuildPhoneFocusRows();
         BuildFocusProfileRows();
+        BuildAnzeigetafelRows();
         UpdateClaudeShareText();
         UpdateTaildropFolderText();
         BuildScreenshotFolders();
@@ -116,6 +117,7 @@ public partial class SettingsWindow : Window
         BuildBannerRows();
         BuildPhoneFocusRows();
         BuildFocusProfileRows();
+        BuildAnzeigetafelRows();
         BuildProjectRows();
         BuildTodoListChoices();
         BuildScreenshotFolders();
@@ -201,6 +203,7 @@ public partial class SettingsWindow : Window
         (Widgets.Devices, "Icon.Bluetooth", "Geräte", "Devices", "Akkustand von PC, Kopfhörern, Tastatur und Maus", "Battery of this PC, headphones, keyboard and mouse"),
         (Widgets.AirPods, "Icon.Headphones", "AirPods", "AirPods", "Akku jedes Ohrhörers und des Case, verbinden", "Battery of each earbud and the case, connect"),
         (Widgets.CursorHop, "Icon.Mouse", "CursorHop", "CursorHop", "Verbundene Geräte und wo die Maus gerade ist", "Connected devices and where the mouse is"),
+        (Widgets.Anzeigetafel, "Icon.Monitor", "Anzeigetafel", "Display board", "Panel an, aus und Helligkeit, zurück zum Wochenplan", "Panel on, off and brightness, back to the weekly plan"),
         (Widgets.Paired, "Icon.Devices", "Gekoppelte Geräte", "Paired devices", "Verbunden, Akku, Dateien hinüberziehen", "Connected, battery, drag files across"),
         (Widgets.Messenger, "Icon.Mail", "Nachrichten", "Messages", "WhatsApp, Telegram, Signal, Discord und Co.", "WhatsApp, Telegram, Signal, Discord and more"),
         (Widgets.Todo, "Icon.Check", "Aufgaben", "Tasks", "Microsoft To Do: offene Aufgaben abhaken", "Microsoft To Do: tick off open tasks"),

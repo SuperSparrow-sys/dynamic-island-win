@@ -126,6 +126,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public AudioService Audio { get; }
     public WorkModeService Work { get; }
     public PhoneFocusService PhoneFocus { get; }
+    /// <summary>The WAGO panel of the Anzeigetafel (the "Anzeigetafel" widget, the focus profiles' panel switch).</summary>
+    public AnzeigetafelService Anzeigetafel { get; }
     public TimeTrackingService Time { get; }
     public Services.Scripting.ScriptWidgetsService Scripts { get; }
     /// <summary>Connected Bluetooth devices for the "Geräte" widget (set by the app right after construction).</summary>
@@ -195,6 +197,7 @@ public sealed partial class IslandViewModel : ObservableObject
         AudioDevices.DefaultChanged += Audio.DevicesChanged; // switched output: mute and volume follow at once
         Work = new WorkModeService(settings, Audio, timer);
         PhoneFocus = new PhoneFocusService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
+        Anzeigetafel = new AnzeigetafelService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         Time = new TimeTrackingService(settings);
         Scripts = new Services.Scripting.ScriptWidgetsService(settings);
         Scripts.CompactChanged += () => { RecomputeCompact(); CompactChanged?.Invoke(); };

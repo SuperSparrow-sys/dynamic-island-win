@@ -342,3 +342,25 @@ $k = "<Schlüssel>"; Invoke-RestMethod -Method Post -Uri http://127.0.0.1:43825/
 ```
 
 Testinstanzen hören nur mit `DYNAMICBAY_FOCUS_PORT` (etwa 43935), 43825 gehört der installierten App.
+
+## Anzeigetafel
+
+Das Widget „Anzeigetafel“ schaltet das WAGO-Panel der Anzeigetafel (`dashboard-zentrale` auf dem Homeserver) an und
+aus und stellt die Helligkeit ein. Eine Änderung gilt bis zum nächsten Zeitpunkt im Wochenplan der Tafel; „Zurück zum
+Wochenplan“ hebt sie sofort auf. Darunter steht, was gerade gilt: Wochenplan, von Hand (mit Gerät) oder ein Fokus,
+jeweils mit Ende.
+
+In jedem Fokus-Profil (Einstellungen → Ruhe und Fokus) legt „Anzeigetafel“ fest, was das Panel tut, solange der
+Fokus an ist: nichts, dimmen auf 10, 15, 25 oder 40 % oder aus. Endet der Fokus, gilt wieder der Wochenplan, außer
+jemand hat inzwischen von Hand geschaltet. Die Anweisung schickt nur das Gerät, dem das iPhone den Fokus gemeldet hat;
+kommt sie nicht an, versucht es das 10 Minuten lang alle 30 s erneut. Die Tafel führt nur aus: Ist ihr Zeitplan
+aus, schaltet auch ein Fokus das Panel nicht.
+
+**Einrichten:** Einstellungen → Geräte → Anzeigetafel. Adresse `https://homeserver.<tailnet>.ts.net:20004` (im
+Heimnetz geht auch `http://192.168.10.30:20004`), Schlüssel ist `DYNAMICBAY_SCHLUESSEL` aus der `.env` der Tafel.
+Der Schlüssel liegt verschlüsselt auf diesem PC und wird nicht wieder angezeigt; „Prüfen“ liest den Zustand.
+
+**Schnittstelle:** `GET` und `POST /api/geraet/panel` mit `Authorization: Bearer <Schlüssel>`, beschrieben im Repo
+`dashboard-zentrale` unter `docs/dynamicbay/`; die Beispiele dort sind die Fixtures in
+`tests/DynamicBay.Tests/Fixtures/Api/Anzeigetafel`. Umgesetzt in `Services/Anzeigetafel.cs` (`PanelProtocol`:
+lesen, Befehle, Fokus-Wechsel; `AnzeigetafelService`: Abfrage alle 3 s bei offener Insel, Widget, Fokus).

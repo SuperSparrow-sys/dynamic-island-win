@@ -1157,6 +1157,7 @@ public partial class App : Application
         _fullscreenGames?.Dispose();
         _vm?.CursorHop.Dispose();
         _vm?.PhoneFocus.Dispose();
+        _vm?.Anzeigetafel.Dispose();
         _hopOverlay.Dispose();
         _vm?.Claude.Stop(); // frees the hook port for the new run
         StopLink(); // frees the link port for the new run
@@ -1177,6 +1178,7 @@ public partial class App : Application
         _fullscreenGames?.Dispose(); // the game gets its own size back
         _vm?.CursorHop.Dispose();
         _vm?.PhoneFocus.Dispose();
+        _vm?.Anzeigetafel.Dispose();
         _hopOverlay.Dispose();
         StopLink();
         _tray?.Dispose();

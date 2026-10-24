@@ -113,9 +113,9 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
    Endpunkt, solange verbunden.
 2. Gemeinsame Einstellungen: welche Schlüssel gemeinsam sind, Überschreibung je Gerät in den Einstellungen sichtbar,
    Änderungen ohne Server beim nächsten `hallo` nachreichen.
-3. Anzeigetafel: Zentrale mit `/api/geraet/panel` (Auftrag `dashboard-zentrale`). DynamicBay: Widget „Anzeigetafel“
-   (an, aus, Helligkeit, zurück zum Plan) über den Server, ohne Server direkt; Panel-Wirkung im Fokus-Profil
-   (`anzeigetafel.fokus`). Erledigt, wenn ein Fokus das Panel im echten Betrieb dimmt und sein Ende es zurückgibt.
+3. Anzeigetafel: Zentrale (seit 24.10.2026 auf prod) und DynamicBay direkt sind gebaut. Offen: über den Server
+   (`anzeigetafel.fokus` aus den Fokus-Profilen), und die Prüfung im echten Betrieb mit dem Schlüssel: ein Fokus
+   dimmt das Panel, sein Ende gibt es zurück, das Widget schaltet.
 4. Rubus: einmal per Code mit dem Server koppeln, Sessions und Anfragen über ihn; prod und Feldgeräte nur
    „In Rubus öffnen“. Ohne Server bleibt `RubusBridge`.
 5. Fokus leise ans iPhone: iOS setzt keinen Fokus von außen. Leise und sofort geht nur über ein zweites Apple-Gerät

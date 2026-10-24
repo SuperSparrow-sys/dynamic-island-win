@@ -17,8 +17,8 @@ public enum IslandShape { Island, Notch }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads", CursorHop = "cursorhop", Paired = "paired", AirPods = "airpods";
-    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, AirPods, Todo, Teams, TimeTrack, Contacts, CursorHop, Paired };
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads", CursorHop = "cursorhop", Paired = "paired", AirPods = "airpods", Anzeigetafel = "anzeigetafel";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, AirPods, Todo, Teams, TimeTrack, Contacts, CursorHop, Paired, Anzeigetafel };
     public const string Battery = "battery";
     /// <summary>Settings page and group heading (start of its text) of each widget - for the gear in the island and the board in the settings.</summary>
     public static (SettingsPage page, string? group) SettingsOf(string id) => id switch
@@ -37,6 +37,7 @@ public static class Widgets
         Teams or Contacts => (SettingsPage.Accounts, "Microsoft 365"),
         TimeTrack => (SettingsPage.Calendar, Loc.German ? "Zeiterfassung" : "Time tracking"),
         Paired => (SettingsPage.Devices, Loc.German ? "Gekoppelte" : "Paired"),
+        Anzeigetafel => (SettingsPage.Devices, Loc.German ? "Anzeigetafel" : "Display board"),
         _ when id.StartsWith(ScriptPrefix, StringComparison.Ordinal) => (SettingsPage.Apps, Loc.German ? "Eigene Widgets" : "Own widgets"),
         _ => (SettingsPage.Content, null),
     };
@@ -140,6 +141,9 @@ public sealed class FocusProfile
     public bool HideText { get; set; }
     public bool HideIsland { get; set; }
     public string TeamsStatus { get; set; } = "";
+    /// <summary>What the Anzeigetafel's panel does while this focus is on: "" nothing, "dimmen" to <see cref="PanelPercent"/>, "aus".</summary>
+    public string Panel { get; set; } = "";
+    public int PanelPercent { get; set; } = 15;
     public List<string> MutedApps { get => _mutedApps; set => _mutedApps = value ?? new(); }
     public List<string> HiddenWidgets { get => _hiddenWidgets; set => _hiddenWidgets = value ?? new(); }
 
@@ -148,7 +152,7 @@ public sealed class FocusProfile
     {
         new FocusProfile { Name = "Arbeit", TeamsStatus = "Busy" },
         new FocusProfile { Name = "Schule", Quiet = true, HideText = true, HiddenWidgets = { Widgets.Media } },
-        new FocusProfile { Name = "Schlafen", Quiet = true, HideIsland = true },
+        new FocusProfile { Name = "Schlafen", Quiet = true, HideIsland = true, Panel = "aus" },
         new FocusProfile { Name = "Zuhause" },
     };
 }
@@ -477,6 +481,8 @@ public sealed partial class AppSettings : ObservableObject
     // Link: paired DynamicBay devices (see Services/Link). Off until the first pairing; LinkDeviceName "" = computer name.
     [ObservableProperty] private bool _linkEnabled;
     [ObservableProperty] private string _linkDeviceName = "";
+    /// <summary>The Anzeigetafel (dashboard-zentrale) for the panel widget, e.g. "https://homeserver.example.ts.net:20004"; "" = none. The key is in the DPAPI store.</summary>
+    [ObservableProperty] private string _anzeigetafelUrl = "";
     // What is shared with paired devices (checked when sending and when receiving). All on: nothing goes anywhere
     // before the link is switched on and a device is paired.
     [ObservableProperty] private bool _linkShareFiles = true;

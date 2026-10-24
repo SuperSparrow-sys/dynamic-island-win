@@ -263,6 +263,9 @@ public static class Snapshots
             settings.PhoneFocusEnabled = true;
             if (settings.FocusProfiles.Count == 0) foreach (var f in FocusProfile.Defaults()) settings.FocusProfiles.Add(f);
             settings.FocusProfiles[0].MutedApps.Add("WhatsApp");
+            // Anzeigetafel connected (demo state, nothing is sent).
+            settings.AnzeigetafelUrl = "https://homeserver.example.ts.net:20004";
+            vm.Anzeigetafel.LoadDemo();
             // Calendar accounts as after a settings import: Google and iCloud without their sign-in show "Anmelden"
             settings.CalendarAccounts.Add(new CalendarAccount { Id = "snapgoogle01", Kind = CalendarKind.Google, Name = "Google", User = "1234.apps.googleusercontent.com" });
             settings.CalendarAccounts.Add(new CalendarAccount { Id = "snapicloud01", Kind = CalendarKind.ICloud, Name = "iCloud", User = "name@icloud.com", Url = "https://caldav.icloud.com/" });
@@ -431,6 +434,11 @@ public static class Snapshots
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8i-airpods.png"), compact: true);
                 vm.AirPods.LoadDemo(connected: false);
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8j-airpods-off.png"), compact: true);
+                // Anzeigetafel widget: dimmed by hand on the laptop until the next plan point.
+                vm.Anzeigetafel.LoadDemo();
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.Anzeigetafel, Widgets.Audio, Widgets.Media }) settings.HomeWidgets.Add(w);
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8l-anzeigetafel.png"), compact: true);
                 // Second page "System": sound and devices live there
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.Media, Widgets.Calendar }) settings.HomeWidgets.Add(w);

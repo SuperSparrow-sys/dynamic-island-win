@@ -1,0 +1,25 @@
+{
+  "v": 1,
+  "panel": {
+    "erreichbar": true,
+    "an": false,
+    "prozent": 70
+  },
+  "soll": {
+    "zustand": "schwarz",
+    "prozent": 0,
+    "grund": "Vorrang",
+    "naechster": "So 08:00",
+    "naechster_ts": 1792911600
+  },
+  "vorrang": {
+    "zustand": "schwarz",
+    "prozent": 0,
+    "bis": 1792931400,
+    "bis_text": "So 13:30",
+    "dauer": "ende",
+    "grund": "Fokus Schlafen",
+    "quelle": "Desktop-PC"
+  },
+  "steuern": true
+}

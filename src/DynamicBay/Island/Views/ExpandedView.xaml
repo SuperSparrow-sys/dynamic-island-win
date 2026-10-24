@@ -1429,6 +1429,42 @@
                     </DockPanel>
                 </Border>
 
+                <!-- Anzeigetafel: the WAGO panel through dashboard-zentrale - on/off, brightness, back to the weekly plan -->
+                <Border x:Name="AnzeigetafelCard" Style="{StaticResource Card}" Padding="12,9,12,12">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Height="22">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Btn.Icon}" Width="22" Height="22" Command="{Binding Anzeigetafel.ToggleCommand}"
+                                    Visibility="{Binding Anzeigetafel.HasState, Converter={StaticResource Vis}}"
+                                    ToolTip="{core:L De='Panel an oder aus', En='Panel on or off'}">
+                                <c:Icon Data="{StaticResource Icon.Power}" Width="13" Height="13" Foreground="{Binding Anzeigetafel.IsOn, Converter={StaticResource OnBrush}}" />
+                            </Button>
+                            <StackPanel Orientation="Horizontal">
+                                <c:Icon Data="{StaticResource Icon.Monitor}" Width="14" Height="14" Foreground="{StaticResource B.Orange}" VerticalAlignment="Center" />
+                                <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" Text="{core:L De='Anzeigetafel', En='Display board'}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <StackPanel Margin="2,8,0,0">
+                            <!-- not set up yet -->
+                            <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Visibility="{Binding Anzeigetafel.IsConfigured, Converter={StaticResource NotVis}}"
+                                       Text="{core:L De='In den Einstellungen unter Geräte verbinden.', En='Connect it in the settings under Devices.'}" />
+                            <StackPanel Visibility="{Binding Anzeigetafel.HasState, Converter={StaticResource Vis}}">
+                                <DockPanel Height="24">
+                                    <c:Icon DockPanel.Dock="Left" Data="{StaticResource Icon.Sun}" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="{StaticResource B.Text2}" />
+                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Numeric}" FontSize="11" Width="34" TextAlignment="Right" VerticalAlignment="Center"
+                                               Foreground="{StaticResource B.Text2}" Text="{Binding Anzeigetafel.Level, StringFormat={}{0:0} %}" />
+                                    <Slider Style="{StaticResource Slider.Level}" VerticalAlignment="Center" Minimum="5" Maximum="100" Value="{Binding Anzeigetafel.Level}" />
+                                </DockPanel>
+                                <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{StaticResource B.Text3}"
+                                           Text="{Binding Anzeigetafel.StatusText}" />
+                                <Button Style="{StaticResource Btn.Chip}" HorizontalAlignment="Left" Margin="0,8,0,0" Command="{Binding Anzeigetafel.BackToPlanCommand}"
+                                        Visibility="{Binding Anzeigetafel.HasOverride, Converter={StaticResource Vis}}" Content="{core:L De='Zurück zum Wochenplan', En='Back to the weekly plan'}" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{StaticResource B.Orange}"
+                                       Text="{Binding Anzeigetafel.Error}" Visibility="{Binding Anzeigetafel.HasError, Converter={StaticResource Vis}}" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
                 <!-- CursorHop: one mouse for several PCs - the connected device and where the mouse is (read from its log) -->
                 <Border x:Name="CursorHopCard" Style="{StaticResource Card}" Padding="12,9,12,12">
                     <DockPanel>

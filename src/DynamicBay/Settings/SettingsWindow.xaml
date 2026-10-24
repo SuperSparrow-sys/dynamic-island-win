@@ -1331,6 +1331,11 @@
                         </Border>
                     </StackPanel>
 
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Anzeigetafel', En='Display board'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel x:Name="AnzeigetafelRows" />
+                    </Border>
+
                     <TextBlock Style="{StaticResource ST.Group}" Text="CursorHop" />
                     <Border Style="{StaticResource S.Card}" Padding="16,12" Visibility="{Binding I.CursorHop.IsInstalled, Converter={StaticResource NotVis}}">
                         <DockPanel>

@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "panel": {
+    "erreichbar": true,
+    "an": true,
+    "prozent": 70
+  },
+  "soll": {
+    "zustand": "hell",
+    "prozent": 70,
+    "grund": "Wochenplan",
+    "naechster": "Sa 19:00",
+    "naechster_ts": 1792861200
+  },
+  "vorrang": null,
+  "steuern": true
+}

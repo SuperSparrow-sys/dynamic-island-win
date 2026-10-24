@@ -1,0 +1,26 @@
+{
+  "v": 1,
+  "panel": {
+    "erreichbar": true,
+    "an": true,
+    "prozent": 40
+  },
+  "soll": {
+    "zustand": "hell",
+    "prozent": 40,
+    "grund": "Vorrang",
+    "naechster": "Sa 19:00",
+    "naechster_ts": 1792861200
+  },
+  "vorrang": {
+    "zustand": "hell",
+    "prozent": 40,
+    "bis": 1792861200,
+    "bis_text": "Sa 19:00",
+    "dauer": "naechster",
+    "grund": "Insel",
+    "quelle": "Laptop"
+  },
+  "steuern": true,
+  "geaendert": true
+}

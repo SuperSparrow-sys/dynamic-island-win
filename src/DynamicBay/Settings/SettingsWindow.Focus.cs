@@ -118,6 +118,10 @@ public sealed partial class SettingsWindow
             teams.Click += (_, _) => TeamsMenu(p, teams);
             stack.Children.Add(Row("Icon.User", Loc.German ? "Teams-Status" : "Teams status", null, teams, true));
 
+            var panel = FocusButton(PanelLabel(p));
+            panel.Click += (_, _) => PanelMenu(p, panel);
+            stack.Children.Add(Row("Icon.Monitor", Loc.German ? "Anzeigetafel" : "Display board", null, panel, true));
+
             var apps = FocusButton(Loc.German ? "Auswählen" : "Choose");
             stack.Children.Add(Row("Icon.BellOff", Loc.German ? "Stumme Apps" : "Muted apps", ListText(p.MutedApps), apps, true, out var appsText));
             apps.Click += (_, _) => AppsMenu(p, apps, appsText);
@@ -162,6 +166,37 @@ public sealed partial class SettingsWindow
             {
                 p.TeamsStatus = value;
                 button.Content = TeamsLabel(value);
+                _ctx.S.FocusProfilesChanged();
+            };
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
+    }
+
+    private static readonly int[] PanelPercents = { 10, 15, 25, 40 };
+
+    private static string PanelLabel(FocusProfile p) => p.Panel switch
+    {
+        "dimmen" => Loc.German ? $"Dimmen auf {p.PanelPercent} %" : $"Dim to {p.PanelPercent} %",
+        "aus" => Loc.German ? "Aus" : "Off",
+        _ => Loc.German ? "Nicht ändern" : "Leave as is",
+    };
+
+    private void PanelMenu(FocusProfile p, Button button)
+    {
+        var menu = new ContextMenu { PlacementTarget = button };
+        var choices = new List<(string Panel, int Percent)> { ("", p.PanelPercent) };
+        choices.AddRange(PanelPercents.Select(n => ("dimmen", n)));
+        choices.Add(("aus", p.PanelPercent));
+        foreach (var (panel, percent) in choices)
+        {
+            var label = PanelLabel(new FocusProfile { Panel = panel, PanelPercent = percent });
+            var item = new MenuItem { Header = label, IsCheckable = true, IsChecked = p.Panel == panel && (panel != "dimmen" || p.PanelPercent == percent) };
+            item.Click += (_, _) =>
+            {
+                p.Panel = panel;
+                p.PanelPercent = percent;
+                button.Content = PanelLabel(p);
                 _ctx.S.FocusProfilesChanged();
             };
             menu.Items.Add(item);
