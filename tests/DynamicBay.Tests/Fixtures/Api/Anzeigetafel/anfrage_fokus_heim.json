@@ -1,0 +1,7 @@
+{
+  "v": 1,
+  "aktion": "plan",
+  "grund": "Fokus Zuhause",
+  "quelle": "DynamicBay-Server",
+  "nur_wenn_grund": "Fokus Zuhause beendet"
+}

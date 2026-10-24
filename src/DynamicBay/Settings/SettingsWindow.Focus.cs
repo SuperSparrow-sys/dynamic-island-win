@@ -141,6 +141,10 @@ public sealed partial class SettingsWindow
                 var panel = FocusButton(PanelLabel(p));
                 panel.Click += (_, _) => PanelMenu(p, panel);
                 stack.Children.Add(Row("Icon.Monitor", Loc.German ? "Anzeigetafel" : "Display board", null, panel, true));
+                var end = FocusButton(PanelEndLabel(p.PanelEnd));
+                end.Click += (_, _) => PanelEndMenu(p, end);
+                stack.Children.Add(Row("Icon.Power", Loc.German ? "Anzeigetafel am Ende" : "Display board at the end",
+                    Loc.German ? "Wenn der Fokus endet und keiner folgt" : "When the focus ends and none follows", end, true));
             }
 
             var apps = FocusButton(Loc.German ? "Auswählen" : "Choose");
@@ -200,8 +204,30 @@ public sealed partial class SettingsWindow
     {
         "dimmen" => Loc.German ? $"Dimmen auf {p.PanelPercent} %" : $"Dim to {p.PanelPercent} %",
         "aus" => Loc.German ? "Aus" : "Off",
+        "plan" => Loc.German ? "Wochenplan" : "Weekly plan",
         _ => Loc.German ? "Nicht ändern" : "Leave as is",
     };
+
+    private static string PanelEndLabel(string end) => end == "aus"
+        ? (Loc.German ? "Aus bis auf Weiteres" : "Off until further notice")
+        : (Loc.German ? "Wochenplan" : "Weekly plan");
+
+    private void PanelEndMenu(FocusProfile p, Button button)
+    {
+        var menu = new ContextMenu { PlacementTarget = button };
+        foreach (var end in new[] { "", "aus" })
+        {
+            var item = new MenuItem { Header = PanelEndLabel(end), IsCheckable = true, IsChecked = p.PanelEnd == end };
+            item.Click += (_, _) =>
+            {
+                p.PanelEnd = end;
+                button.Content = PanelEndLabel(end);
+                _ctx.S.FocusProfilesChanged();
+            };
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
+    }
 
     private void PanelMenu(FocusProfile p, Button button)
     {
@@ -209,6 +235,7 @@ public sealed partial class SettingsWindow
         var choices = new List<(string Panel, int Percent)> { ("", p.PanelPercent) };
         choices.AddRange(PanelPercents.Select(n => ("dimmen", n)));
         choices.Add(("aus", p.PanelPercent));
+        choices.Add(("plan", p.PanelPercent));
         foreach (var (panel, percent) in choices)
         {
             var label = PanelLabel(new FocusProfile { Panel = panel, PanelPercent = percent });

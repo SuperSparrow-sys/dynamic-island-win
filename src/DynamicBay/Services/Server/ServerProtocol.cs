@@ -213,12 +213,16 @@ public static class SharedSettings
         catch (JsonException) { return false; }
     }
 
-    /// <summary><c>{"Arbeit": {"panel": "dimmen", "prozent": 15}, …}</c>: what the server sends the Anzeigetafel per focus.</summary>
+    /// <summary><c>{"Arbeit": {"panel": "dimmen", "prozent": 15, "am_ende": "plan"}, …}</c>: what the server sends the Anzeigetafel per focus.</summary>
     public static JsonObject PanelFocusOf(IEnumerable<FocusProfile> profiles)
     {
         var o = new JsonObject();
         foreach (var p in profiles)
-            o[p.Name] = new JsonObject { ["panel"] = p.Panel is "dimmen" or "aus" ? p.Panel : "nichts", ["prozent"] = Math.Clamp(p.PanelPercent, 5, 100) };
+            o[p.Name] = new JsonObject
+            {
+                ["panel"] = p.Panel is "dimmen" or "aus" or "plan" ? p.Panel : "nichts", ["prozent"] = Math.Clamp(p.PanelPercent, 5, 100),
+                ["am_ende"] = p.PanelEnd == "aus" ? "aus" : "plan",
+            };
         return o;
     }
 }

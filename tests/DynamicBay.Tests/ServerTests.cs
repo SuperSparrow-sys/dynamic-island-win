@@ -121,9 +121,9 @@ public class ServerTests
             new FocusProfile { Name = "Arbeit", Panel = "dimmen", PanelPercent = 15 },
             new FocusProfile { Name = "Schlafen", Panel = "aus", PanelPercent = 5 },
             new FocusProfile { Name = "Schule", PanelPercent = 5 },
-            new FocusProfile { Name = "Zuhause", PanelPercent = 5 },
+            new FocusProfile { Name = "Zuhause", Panel = "plan", PanelEnd = "aus", PanelPercent = 5 },
         };
-        var expected = Obj("ws_einstellung.json")["wert"]!;
+        var expected = Obj("ws_einstellung_am_ende.json")["wert"]!;
         Assert.True(JsonNode.DeepEquals(expected, SharedSettings.PanelFocusOf(profiles)));
     }
 

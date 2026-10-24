@@ -27,7 +27,8 @@ public class AnzeigetafelTests
     {
         "Arbeit" => new FocusProfile { Name = "Arbeit", Panel = "dimmen", PanelPercent = 15 },
         "Schlafen" => new FocusProfile { Name = "Schlafen", Panel = "aus" },
-        "Zuhause" => new FocusProfile { Name = "Zuhause" },
+        "Schule" => new FocusProfile { Name = "Schule" },
+        "Zuhause" => new FocusProfile { Name = "Zuhause", Panel = "plan", PanelEnd = "aus" },
         _ => null,
     };
 
@@ -119,14 +120,41 @@ public class AnzeigetafelTests
         // Schlafen -> Arbeit: Arbeit's command replaces the override; no "plan" in between.
         var change = PanelProtocol.ForFocus("Schlafen", "Arbeit", Profile, "PC");
         Assert.Equal("helligkeit", (string)Assert.Single(change)["aktion"]!);
-        // Schlafen -> Zuhause (nothing): back to the plan, but only if the override is still Schlafen's.
-        var home = Assert.Single(PanelProtocol.ForFocus("Schlafen", "Zuhause", Profile, "PC"));
-        Assert.Equal("plan", (string)home["aktion"]!);
-        Assert.Equal("Fokus Schlafen", (string)home["nur_wenn_grund"]!);
+        // Schlafen -> Schule (nothing): back to the plan, but only if the override is still Schlafen's.
+        var school = Assert.Single(PanelProtocol.ForFocus("Schlafen", "Schule", Profile, "PC"));
+        Assert.Equal("plan", (string)school["aktion"]!);
+        Assert.Equal("Fokus Schlafen", (string)school["nur_wenn_grund"]!);
         // Focus modes without a panel switch, unknown ones, and no change send nothing.
-        Assert.Empty(PanelProtocol.ForFocus("Zuhause", "", Profile, "PC"));
+        Assert.Empty(PanelProtocol.ForFocus("Schule", "", Profile, "PC"));
         Assert.Empty(PanelProtocol.ForFocus("", "Unbekannt", Profile, "PC"));
         Assert.Empty(PanelProtocol.ForFocus("Arbeit", "arbeit", Profile, "PC"));
+    }
+
+    [Fact]
+    public void Leaving_home_switches_the_panel_off_until_coming_back()
+    {
+        // Zuhause ends and no focus follows (Wi-Fi gone): off without a time limit.
+        SameJson("anfrage_fokus_weg.json", Assert.Single(PanelProtocol.ForFocus("Zuhause", "", Profile, "DynamicBay-Server")));
+        // Home again: that "off" goes, the weekly plan counts (a change by hand meanwhile stays).
+        SameJson("anfrage_fokus_heim.json", Assert.Single(PanelProtocol.ForFocus("", "Zuhause", Profile, "DynamicBay-Server")));
+        var off = PanelProtocol.Parse(Fixture("panel_weg.json"))!;
+        Assert.Equal("Fokus Zuhause beendet · bis auf Weiteres", PanelProtocol.Describe(off));
+    }
+
+    [Fact]
+    public void Another_focus_at_home_or_running_out_is_not_leaving()
+    {
+        // Zuhause -> Schlafen: Schlafen's off until it ends, no open "off".
+        var sleep = Assert.Single(PanelProtocol.ForFocus("Zuhause", "Schlafen", Profile, "PC"));
+        Assert.Equal(("aus", "ende"), ((string)sleep["aktion"]!, (string)sleep["dauer"]!));
+        // Zuhause -> Schule (nothing): the panel stays as it is.
+        Assert.Empty(PanelProtocol.ForFocus("Zuhause", "Schule", Profile, "PC"));
+        // Zuhause ran out after 16 h without an "off": still at home, no "off".
+        Assert.Empty(PanelProtocol.ForFocus("Zuhause", "", Profile, "PC", expired: true));
+        // Schlafen -> Zuhause: Schlafen's off goes, and Zuhause's own "off" of the last leaving too.
+        var morning = PanelProtocol.ForFocus("Schlafen", "Zuhause", Profile, "PC");
+        Assert.Equal(new[] { "Fokus Schlafen", "Fokus Zuhause beendet" }, morning.Select(c => (string)c["nur_wenn_grund"]!));
+        Assert.All(morning, c => Assert.Equal("plan", (string)c["aktion"]!));
     }
 
     [Theory]
@@ -146,6 +174,9 @@ public class AnzeigetafelTests
         Assert.Equal("", p.Panel);
         Assert.Equal(15, p.PanelPercent);
         Assert.Equal("aus", FocusProfile.Defaults().Single(d => d.Name == "Schlafen").Panel);
+        Assert.Equal("", p.PanelEnd);
+        var home = FocusProfile.Defaults().Single(d => d.Name == "Zuhause");
+        Assert.Equal(("plan", "aus"), (home.Panel, home.PanelEnd));
     }
 
     // ---------- service ----------

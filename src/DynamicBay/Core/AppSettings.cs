@@ -141,9 +141,11 @@ public sealed class FocusProfile
     public bool HideText { get; set; }
     public bool HideIsland { get; set; }
     public string TeamsStatus { get; set; } = "";
-    /// <summary>What the Anzeigetafel's panel does while this focus is on: "" nothing, "dimmen" to <see cref="PanelPercent"/>, "aus".</summary>
+    /// <summary>What the Anzeigetafel's panel does while this focus is on: "" nothing, "dimmen" to <see cref="PanelPercent"/>, "aus", "plan" (weekly plan).</summary>
     public string Panel { get; set; } = "";
     public int PanelPercent { get; set; } = 15;
+    /// <summary>When this focus ends and none follows: "" back to the weekly plan, "aus" off until further notice (leaving home).</summary>
+    public string PanelEnd { get; set; } = "";
     public List<string> MutedApps { get => _mutedApps; set => _mutedApps = value ?? new(); }
     public List<string> HiddenWidgets { get => _hiddenWidgets; set => _hiddenWidgets = value ?? new(); }
 
@@ -153,7 +155,7 @@ public sealed class FocusProfile
         new FocusProfile { Name = "Arbeit", TeamsStatus = "Busy" },
         new FocusProfile { Name = "Schule", Quiet = true, HideText = true, HiddenWidgets = { Widgets.Media } },
         new FocusProfile { Name = "Schlafen", Quiet = true, HideIsland = true, Panel = "aus" },
-        new FocusProfile { Name = "Zuhause" },
+        new FocusProfile { Name = "Zuhause", Panel = "plan", PanelEnd = "aus" },
     };
 }
 

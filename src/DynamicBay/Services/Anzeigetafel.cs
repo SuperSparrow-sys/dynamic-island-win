@@ -72,24 +72,33 @@ public static class PanelProtocol
 
     public static string FocusReason(string name) => "Fokus " + name;
 
+    /// <summary>The reason of the open "off" a focus leaves behind when it ends (<see cref="FocusProfile.PanelEnd"/>).</summary>
+    public static string EndReason(string name) => FocusReason(name) + " beendet";
+
     /// <summary>
     /// The commands when the focus reported here changes from <paramref name="before"/> to <paramref name="after"/>
-    /// ("" = none): the new focus's own one (it replaces any override), otherwise back to the plan - but only if the
-    /// override is still the old focus's, so a change by hand afterwards stays.
+    /// ("" = none). A new focus with dim or off replaces any override. Otherwise the old focus's override is given
+    /// back - only if it is still that one, so a change by hand afterwards stays - and a focus on "Wochenplan" also
+    /// gives back the "off" it left when it ended (home again). A focus that ends with nothing after it (not one that
+    /// is replaced, not one that ran out) leaves its <see cref="FocusProfile.PanelEnd"/>: off until further notice.
     /// </summary>
-    public static List<JsonObject> ForFocus(string before, string after, Func<string, FocusProfile?> profile, string source)
+    public static List<JsonObject> ForFocus(string before, string after, Func<string, FocusProfile?> profile, string source, bool expired = false)
     {
         var list = new List<JsonObject>();
         if (string.Equals(before, after, StringComparison.OrdinalIgnoreCase)) return list;
+        var prev = before.Length > 0 ? profile(before) : null;
         var next = after.Length > 0 ? profile(after) : null;
         if (next?.Panel is "dimmen")
             list.Add(Command("helligkeit", next.PanelPercent, "ende", FocusReason(next.Name), source));
         else if (next?.Panel is "aus")
             list.Add(Command("aus", null, "ende", FocusReason(next.Name), source));
-        else if (before.Length > 0 && profile(before)?.Panel is "dimmen" or "aus")
+        else if (after.Length == 0 && !expired && prev?.PanelEnd == "aus")
+            list.Add(Command("aus", null, "offen", EndReason(prev.Name), source));
+        else
         {
-            string reason = FocusReason(profile(before)!.Name);
-            list.Add(Command("plan", null, null, reason, source, reason));
+            string reason = FocusReason(next?.Name ?? (after.Length > 0 ? after : prev?.Name ?? before));
+            if (prev?.Panel is "dimmen" or "aus") list.Add(Command("plan", null, null, reason, source, FocusReason(prev.Name)));
+            if (next?.Panel == "plan") list.Add(Command("plan", null, null, reason, source, EndReason(next.Name)));
         }
         return list;
     }
@@ -103,7 +112,8 @@ public static class PanelProtocol
         if (s.Override is { } o)
         {
             string who = o.Reason == Island ? (de ? "Von Hand" : "By hand") + (o.Source.Length > 0 ? $" ({o.Source})" : "") : o.Reason;
-            text = o.UntilText.Length > 0 ? $"{who} · {(de ? "bis" : "until")} {o.UntilText}" : who;
+            text = o.UntilText.Length > 0 ? $"{who} · {(de ? "bis" : "until")} {o.UntilText}"
+                : o.Duration == "offen" ? $"{who} · {(de ? "bis auf Weiteres" : "until further notice")}" : who;
         }
         else if (s.Reason == "Plan aus") text = de ? "Wochenplan aus" : "Weekly plan off";
         else text = (de ? "Wochenplan" : "Weekly plan") + (s.NextText.Length > 0 ? $" · {(de ? "nächster Wechsel" : "next change")} {s.NextText}" : "");
@@ -160,6 +170,9 @@ public sealed partial class AnzeigetafelService : ObservableObject, IDisposable
     [ObservableProperty] private bool _hasOverride;
 
     public bool HasState => State is not null;
+
+    /// <summary>The focus reported here ran out (16 h without an "off"): not the same as leaving; set by the app.</summary>
+    public Func<bool> FocusExpired { get; set; } = () => false;
     public bool HasError => Error.Length > 0;
 
     public AnzeigetafelService(AppSettings settings, Dispatcher ui, HttpMessageHandler? handler = null,
@@ -269,7 +282,7 @@ public sealed partial class AnzeigetafelService : ObservableObject, IDisposable
         if (before == after) return;
         _focus = after;
         if (_demo || !IsConfigured || _relay is not null) return; // the server sends the focus commands itself
-        _focusPending = PanelProtocol.ForFocus(before, after, _settings.ProfileFor, Source);
+        _focusPending = PanelProtocol.ForFocus(before, after, _settings.ProfileFor, Source, FocusExpired());
         _focusSince = DateTime.UtcNow;
         await RetryFocusAsync();
     }

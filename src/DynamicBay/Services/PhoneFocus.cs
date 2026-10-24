@@ -450,8 +450,12 @@ public sealed partial class PhoneFocusService : ObservableObject, IDisposable
     {
         if (_settings.PhoneFocusHere.Length == 0 || now - _since < PhoneFocusProtocol.Expiry) return;
         Log.Info($"Phone focus: {_settings.PhoneFocusHere} ran out after {PhoneFocusProtocol.Expiry.TotalHours:0} h without an end");
-        End();
+        LastEndExpired = true;
+        try { End(); } finally { LastEndExpired = false; }
     }
+
+    /// <summary>True while the focus is being ended because it ran out (not reported off): leaving home is not assumed then.</summary>
+    public bool LastEndExpired { get; private set; }
 
     private void UpdateStatus()
     {

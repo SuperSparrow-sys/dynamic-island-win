@@ -351,8 +351,11 @@ Wochenplan“ hebt sie sofort auf. Darunter steht, was gerade gilt: Wochenplan, 
 jeweils mit Ende.
 
 In jedem Fokus-Profil (Einstellungen → Ruhe und Fokus) legt „Anzeigetafel“ fest, was das Panel tut, solange der
-Fokus an ist: nichts, dimmen auf 10, 15, 25 oder 40 % oder aus. Endet der Fokus, gilt wieder der Wochenplan, außer
-jemand hat inzwischen von Hand geschaltet. Die Anweisung schickt nur das Gerät, dem das iPhone den Fokus gemeldet hat;
+Fokus an ist: nichts, dimmen auf 10, 15, 25 oder 40 %, aus oder Wochenplan. „Anzeigetafel am Ende“ legt fest, was
+passiert, wenn der Fokus endet und keiner folgt: Wochenplan (Vorgabe) oder „Aus bis auf Weiteres“. So geht das Panel
+aus, wenn Zuhause beim Verlassen des WLANs endet, und mit dem nächsten Zuhause gilt wieder der Wochenplan. Ein Wechsel
+in einen anderen Fokus und ein Fokus, der nach 16 h ohne „aus“ abläuft, gelten nicht als Verlassen. Endet ein Fokus
+sonst, gilt wieder der Wochenplan, außer jemand hat inzwischen von Hand geschaltet. Die Anweisung schickt nur das Gerät, dem das iPhone den Fokus gemeldet hat;
 kommt sie nicht an, versucht es das 10 Minuten lang alle 30 s erneut. Die Tafel führt nur aus: Ist ihr Zeitplan
 aus, schaltet auch ein Fokus das Panel nicht.
 

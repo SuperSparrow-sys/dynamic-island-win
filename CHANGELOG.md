@@ -2,6 +2,12 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## Unveröffentlicht
+
+- Anzeigetafel: Ein Fokus kann das Panel auch auf den Wochenplan stellen und es an seinem Ende ausschalten, bis
+  der Fokus wiederkommt. Damit geht das Panel aus, wenn du das Haus verlässt, und an, wenn du heimkommst
+  (Fokus-Profil → „Anzeigetafel am Ende“).
+
 ## 1.1.14 (24.10.2026)
 
 - iPhone-Fokus: Eine Kurzbefehle-Automation meldet Arbeit, Schule, Schlafen, Zuhause oder jeden anderen Fokus an
