@@ -109,7 +109,8 @@ public partial class ExpandedView : UserControl
     {
         if (e.PropertyName == nameof(Core.AppSettings.SystemWidgets)) { UpdateSystemTab(); LayoutHome(); }
         if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled) or nameof(Core.AppSettings.ScriptWidgets)
-            or nameof(Core.AppSettings.MediaEnabled) or nameof(Core.AppSettings.TimerEnabled) or nameof(Core.AppSettings.CalendarEnabled)) LayoutHome();
+            or nameof(Core.AppSettings.MediaEnabled) or nameof(Core.AppSettings.TimerEnabled) or nameof(Core.AppSettings.CalendarEnabled)
+            or nameof(Core.AppSettings.ActiveFocus)) LayoutHome();
         if (e.PropertyName is nameof(Core.AppSettings.ShelfEnabled)) SetVertical(_vertical);
         if (e.PropertyName is nameof(Core.AppSettings.ShowTrayTab) or nameof(Core.AppSettings.ShowNotificationsTab)) EnsureVisibleTab();
     }
@@ -209,6 +210,7 @@ public partial class ExpandedView : UserControl
     {
         var s = Vm?.Settings;
         if (s is null) return true;
+        if (s.FocusHidesWidget(id)) return false; // the iPhone focus hides it for now
         return id switch
         {
             Core.Widgets.Media => s.MediaEnabled,

@@ -112,7 +112,8 @@ begin
 end;
 
 // Link between paired DynamicBays (docs/ARCHITECTURE.md, "Link"): TCP 43823 for the encrypted connection, UDP 43824 for
-// the announcements. Private and domain networks, and the Tailscale adapter (any profile) for Tailscale addresses.
+// the announcements; TCP 43825 for the iPhone focus (only open while its switch is on, key required).
+// Private and domain networks, and the Tailscale adapter (any profile) for Tailscale addresses.
 // Deleted first, so updates never pile up copies of the same rule.
 procedure AddFirewallRules;
 var
@@ -124,7 +125,7 @@ begin
   Exec(Netsh, 'advfirewall firewall delete rule name="DynamicBay Link"', '', SW_HIDE, ewWaitUntilTerminated, Code);
   Exec(Netsh, 'advfirewall firewall delete rule name="DynamicBay Link (Tailscale)"', '', SW_HIDE, ewWaitUntilTerminated, Code);
   Rule := 'advfirewall firewall add rule name="DynamicBay Link"' + Prog + ' profile=private,domain';
-  if not Exec(Netsh, Rule + ' protocol=TCP localport=43823', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+  if not Exec(Netsh, Rule + ' protocol=TCP localport=43823,43825', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
     Log('Firewall rule (TCP) failed: ' + IntToStr(Code));
   if not Exec(Netsh, Rule + ' protocol=UDP localport=43824', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
     Log('Firewall rule (UDP) failed: ' + IntToStr(Code));
@@ -132,14 +133,14 @@ begin
   // and the explicit pairing window protect the rest).
   Exec(Netsh, 'advfirewall firewall delete rule name="DynamicBay Link (Subnetz)"', '', SW_HIDE, ewWaitUntilTerminated, Code);
   Rule := 'advfirewall firewall add rule name="DynamicBay Link (Subnetz)"' + Prog + ' profile=public remoteip=localsubnet';
-  if not Exec(Netsh, Rule + ' protocol=TCP localport=43823', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
+  if not Exec(Netsh, Rule + ' protocol=TCP localport=43823,43825', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
     Log('Firewall rule (subnet TCP) failed: ' + IntToStr(Code));
   if not Exec(Netsh, Rule + ' protocol=UDP localport=43824', '', SW_HIDE, ewWaitUntilTerminated, Code) or (Code <> 0) then
     Log('Firewall rule (subnet UDP) failed: ' + IntToStr(Code));
   // Tailscale in any network profile, but only on the Tailscale adapter: 100.64.0.0/10 alone would also match
   // carrier-grade NAT (mobile hotspots, some providers). netsh cannot bind a rule to an adapter, PowerShell can.
   // Without a Tailscale adapter (not installed) the rule is skipped; the private/domain rule above still works.
-  Rule := '-NoProfile -NonInteractive -Command "foreach ($r in @(@(''TCP'',43823),@(''UDP'',43824))) { ' +
+  Rule := '-NoProfile -NonInteractive -Command "foreach ($r in @(@(''TCP'',43823),@(''UDP'',43824),@(''TCP'',43825))) { ' +
     'New-NetFirewallRule -DisplayName ''DynamicBay Link (Tailscale)'' -Direction Inbound -Action Allow -Enabled True ' +
     '-Program ''' + ExpandConstant('{app}\DynamicBay.exe') + ''' -Profile Any -InterfaceAlias ''Tailscale'' ' +
     '-RemoteAddress 100.64.0.0/10,fd7a:115c:a1e0::/48 -Protocol $r[0] -LocalPort $r[1] -ErrorAction Stop | Out-Null }"';

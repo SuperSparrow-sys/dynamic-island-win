@@ -95,6 +95,7 @@ steuert (Mikrofon-Nutzung für den Anrufmodus, Timer, Zeiterfassung), läuft wei
 | `Link/LinkHub` | Startet den Link mit „Geräte koppeln“, hält die Funktionen und die Listen für Einstellungen und Insel |
 | `ShortcutsService`, `AppIcons`, `InstalledApps` | Schnellstart, Simple-Icons-Palette (gzip, bei Bedarf geladen), Startmenü-Apps |
 | `Battery/Bluetooth/Timer/Clock/SystemService` | Akku, Geräte, Timer/Pomodoro, Uhr, CPU/RAM |
+| `PhoneFocusService` | iPhone-Fokus: HTTP auf TCP 43825 (eigener kleiner Server auf `TcpListener`, `PhoneFocusProtocol`: lesen, Regeln, Reihenfolge von An und Aus), Schlüssel in `secrets\`, Profile in `AppSettings.FocusProfiles`; siehe [INTEGRATIONS.md](INTEGRATIONS.md#iphone-fokus) |
 | `AirPodsService` | Akku beider Ohrhörer und des Case aus der Bluetooth-Werbung der AirPods (`AirPodsAdvert`), siehe [INTEGRATIONS.md](INTEGRATIONS.md#airpods) |
 
 ## Daten
@@ -171,7 +172,7 @@ prüft es vorher dessen Schalter (`LinkPeerSwitch`, Typ `<funktion>.share`, beim
 | `LinkAudioFeature` | Strom `audio` | Ton dieses PCs auf dem anderen Gerät (siehe unten) |
 | `LinkRoleFeature` | `role`, `peek` | Hauptgerät (Einstellung relativ: `this`/`other`/`auto`, auf der Leitung die Geräte-ID, die neuere Wahl gewinnt), Leerlaufzeit und CursorHop-Maus für „Automatisch“, weitergereichte Einblendungen |
 | `LinkTimerFeature` | `timer`, `timer.share` | Zustand des Timers (läuft, Pause, Modus, Restzeit, Besitzer); die neuere Änderung gewinnt über einen Zähler (keine Uhrzeiten), beim Verbinden der laufende Timer; das Ende kommt nicht über die Leitung (`ShowsEnd`) |
-| `LinkQuietFeature` | `quiet` | „Nicht stören“ mit Zeitstempel (das neuere gewinnt), Anruf und Fokus als `AppSettings.PeerQuiet` (nie gespeichert, nie zurückgeschickt) |
+| `LinkQuietFeature` | `quiet` | „Nicht stören“ mit Zeitstempel (das neuere gewinnt), Anruf und Fokus als `AppSettings.PeerQuiet`, der iPhone-Fokus (`phone`, nur der direkt gemeldete) als `AppSettings.PhoneFocusPeer` (beides nie gespeichert, nie zurückgeschickt) |
 | `LinkQuestionFeature` | `ask`, `ask.answer`, `ask.share` | Fragen mit Knöpfen vom stillen Gerät; Antwort `yes`/`no`/`timeout` zurück, nur vom gefragten Gerät; Frist = Zeit der Frage + 10 s; Gerät weg = „lost“, die Frage erscheint dann lokal |
 | `LinkBatteryFeature` | `battery`, `battery.share` | `low`/`plugged`/`unplugged`/`full` mit Prozent; das stille Gerät lässt die eigene Einblendung weg, wenn das Hauptgerät sie zeigt |
 | `LinkLockFeature` | `lock` | Gesperrt (SessionSwitch); das andere Gerät sperrt nur nach 1 min ohne Eingabe, ohne Echo; nie entsperren |

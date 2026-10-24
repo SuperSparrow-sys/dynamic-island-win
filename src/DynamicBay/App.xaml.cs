@@ -237,6 +237,7 @@ public partial class App : Application
         Safe("Battery", battery.Start);
         if (_settings.AudioEnabled) Safe("Audio", vm.Audio.Start);
         Safe("Work", vm.Work.Start);
+        Safe("PhoneFocus", vm.PhoneFocus.Start);
         Safe("Time", vm.Time.WatchSession);
         Safe("Downloads", () => vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads)));
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.CompactItems)) vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads)); };
@@ -528,7 +529,7 @@ public partial class App : Application
                 Image = n.Logo,
                 Icon = n.Logo is null ? Icon("Icon.Bell") : null,
                 Title = string.Equals(n.Title, n.App, StringComparison.OrdinalIgnoreCase) ? n.App : $"{n.Title}",
-                Subtitle = _settings.NotificationShowBody && !_settings.Sharing ? FirstLine(n.Body, n.App) : n.App,
+                Subtitle = _settings.ShowNotificationText ? FirstLine(n.Body, n.App) : n.App,
                 Seconds = Math.Clamp(_settings.NotificationSeconds, 2, 15),
                 OnClick = () => { _vm?.Claude.RemoteAnswered(n.Id); notifications.Open(n); },
             });
@@ -978,7 +979,7 @@ public partial class App : Application
                 Kind = PeekKind.Local,
                 Image = n.Logo, Icon = n.Logo is null ? Icon("Icon.Bell") : null,
                 Title = string.Equals(n.Title, n.App, StringComparison.OrdinalIgnoreCase) ? n.App : n.Title,
-                Subtitle = (_settings.NotificationShowBody && !_settings.Sharing ? FirstLine(n.Body, n.App) : n.App) + " · " + n.Device,
+                Subtitle = (_settings.ShowNotificationText ? FirstLine(n.Body, n.App) : n.App) + " · " + n.Device,
                 Seconds = Math.Clamp(_settings.NotificationSeconds, 2, 15),
                 OnClick = () => { if (_settings.ShowNotificationsTab) { _vm!.Tab = 2; island.Expand(); } },
             });
@@ -1155,6 +1156,7 @@ public partial class App : Application
         _taildrop?.Dispose();
         _fullscreenGames?.Dispose();
         _vm?.CursorHop.Dispose();
+        _vm?.PhoneFocus.Dispose();
         _hopOverlay.Dispose();
         _vm?.Claude.Stop(); // frees the hook port for the new run
         StopLink(); // frees the link port for the new run
@@ -1174,6 +1176,7 @@ public partial class App : Application
         _taildrop?.Dispose(); // ends the Tailscale event stream
         _fullscreenGames?.Dispose(); // the game gets its own size back
         _vm?.CursorHop.Dispose();
+        _vm?.PhoneFocus.Dispose();
         _hopOverlay.Dispose();
         StopLink();
         _tray?.Dispose();

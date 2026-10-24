@@ -64,6 +64,8 @@ public partial class SettingsWindow : Window
         BuildCompactRows();
         BuildCalendarRows();
         BuildBannerRows();
+        BuildPhoneFocusRows();
+        BuildFocusProfileRows();
         UpdateClaudeShareText();
         UpdateTaildropFolderText();
         BuildScreenshotFolders();
@@ -112,6 +114,8 @@ public partial class SettingsWindow : Window
         BuildCompactRows();
         BuildCalendarRows();
         BuildBannerRows();
+        BuildPhoneFocusRows();
+        BuildFocusProfileRows();
         BuildProjectRows();
         BuildTodoListChoices();
         BuildScreenshotFolders();

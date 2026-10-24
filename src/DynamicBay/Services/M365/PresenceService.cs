@@ -19,7 +19,7 @@ public sealed record PresenceChoice(string Availability, string Label, Brush Bru
 /// The ring shows what YOU chose: Teams takes a few seconds to pass a new status on, and "automatic" has no status of
 /// its own - reading it back right away made the ring jump to the old dot, so grey and yellow looked broken.
 /// Optional: during a focus session or while sharing the screen the status turns to "Do not disturb" by itself and
-/// goes back afterwards.
+/// goes back afterwards. An iPhone focus whose profile names a Teams status sets that one the same way.
 /// </summary>
 public sealed partial class PresenceService : ObservableObject
 {
@@ -40,7 +40,7 @@ public sealed partial class PresenceService : ObservableObject
     private readonly MicrosoftAccount _account;
     private readonly AppSettings _settings;
     private readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromMinutes(1) };
-    private string? _beforeAuto; // the status chosen before the automatic "Do not disturb" (null = none set by us)
+    private string? _beforeAuto; // the status chosen before the automatic one (null = none set by us)
     private int _manualChoices; // counts clicks on a dot: an automatic change that was under way when one came is dropped
     /// <summary>The status to go back to also lives on disk: after a crash the next start hands it back to Teams.</summary>
     private static readonly string AutoFile = Path.Combine(AppSettings.Folder, "teams-auto.json");
@@ -63,7 +63,8 @@ public sealed partial class PresenceService : ObservableObject
         if (_settings.TeamsChosenUntil > DateTime.Now) Selected = _settings.TeamsChosen;
         _settings.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(AppSettings.FocusActive) or nameof(AppSettings.Sharing)) _ = AutoAsync();
+            if (e.PropertyName is nameof(AppSettings.FocusActive) or nameof(AppSettings.Sharing) or nameof(AppSettings.TeamsAutoStatus)
+                or nameof(AppSettings.ActiveFocus)) _ = AutoAsync();
         };
     }
 
@@ -84,7 +85,7 @@ public sealed partial class PresenceService : ObservableObject
     {
         if (_beforeAuto is not null || !Available || LoadAuto() is not { } saved) return;
         if (DateTime.Now - saved.At > TimeSpan.FromHours(4)) { DeleteAuto(); return; }
-        if (Quiet) { _beforeAuto = saved.Before; Selected = "DoNotDisturb"; return; }
+        if (AutoTarget is { } now) { _beforeAuto = saved.Before; Selected = now; return; }
         string target = ChosenOrAuto(saved.Before);
         int manual = _manualChoices;
         if (await SendAsync(target, RemainingDuration(target)))
@@ -116,7 +117,7 @@ public sealed partial class PresenceService : ObservableObject
         catch (Exception ex) { Log.Error("Teams presence exit", ex); }
     }
 
-    /// <summary>The app keeps running after all (a cancelled sign-out): "Do not disturb" again if focus is still on.</summary>
+    /// <summary>The app keeps running after all (a cancelled sign-out): the automatic status again if focus is still on.</summary>
     public void Reapply() => _ = AutoAsync();
 
     public async Task RefreshAsync()
@@ -218,25 +219,35 @@ public sealed partial class PresenceService : ObservableObject
         }
     }
 
-    private bool Quiet => _settings.FocusActive || _settings.Sharing;
+    /// <summary>
+    /// The status Teams should show by itself right now, or null: "Do not disturb" during a focus session or screen
+    /// sharing (with "Teams-Status automatisch"), else the status of the iPhone focus profile.
+    /// </summary>
+    private string? AutoTarget => AutoTargetOf(_settings.TeamsAutoStatus && (_settings.FocusActive || _settings.Sharing), _settings.FocusTeamsStatus);
 
-    /// <summary>Focus session or screen sharing: "Do not disturb" by itself; afterwards back to what it was.</summary>
+    internal static string? AutoTargetOf(bool quiet, string focusStatus) =>
+        quiet ? "DoNotDisturb" : Choices.Any(c => !c.Reset && c.Availability == focusStatus) ? focusStatus : null;
+
+    /// <summary>
+    /// Focus session, screen sharing or an iPhone focus with a Teams status: that status by itself; afterwards back to
+    /// what it was before the first automatic one.
+    /// </summary>
     private async Task AutoAsync()
     {
-        if (!_settings.TeamsAutoStatus || !Available) return;
-        if (Quiet && _beforeAuto is null && Selected != "DoNotDisturb")
+        if (!Available) return;
+        if (AutoTarget is { } next && Selected != next)
         {
-            string before = Selected;
+            string before = _beforeAuto ?? Selected;
             int manual = _manualChoices;
-            if (!await SendAsync("DoNotDisturb", "PT4H")) return;
+            if (!await SendAsync(next, next == "DoNotDisturb" ? "PT4H" : "PT8H")) return;
             if (manual != _manualChoices) return; // a dot was clicked meanwhile: that choice wins
             _beforeAuto = before;
-            Selected = "DoNotDisturb";
+            Selected = next;
             SaveAuto(before);
-            // Focus or sharing ended while the request was under way: hand the status back right away.
-            if (!Quiet) await AutoAsync();
+            // The reason ended or changed while the request was under way: follow right away.
+            if (AutoTarget != next) await AutoAsync();
         }
-        else if (!Quiet && _beforeAuto is { } back)
+        else if (AutoTarget is null && _beforeAuto is { } back)
         {
             _beforeAuto = null;
             string target = ChosenOrAuto(back);
@@ -245,8 +256,8 @@ public sealed partial class PresenceService : ObservableObject
             {
                 DeleteAuto();
                 if (manual == _manualChoices) Selected = target;
-                // Focus started again meanwhile: back to "Do not disturb".
-                if (Quiet && manual == _manualChoices) await AutoAsync();
+                // A reason started again meanwhile: back to the automatic status.
+                if (AutoTarget is not null && manual == _manualChoices) await AutoAsync();
             }
             else if (manual == _manualChoices) _beforeAuto ??= back; // next change tries again, the file covers the next start
         }

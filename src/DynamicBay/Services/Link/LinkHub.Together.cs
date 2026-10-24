@@ -119,7 +119,7 @@ public sealed partial class LinkHub
             case nameof(AppSettings.DoNotDisturb):
                 if (Quiet is { } dnd) _ = dnd.DoNotDisturbChangedAsync();
                 break;
-            case nameof(AppSettings.FocusActive) or nameof(AppSettings.InMeeting):
+            case nameof(AppSettings.FocusActive) or nameof(AppSettings.InMeeting) or nameof(AppSettings.PhoneFocusHere):
                 if (Quiet is { } busy) _ = busy.AnnounceAsync();
                 break;
             case nameof(AppSettings.LinkShareQuestions):

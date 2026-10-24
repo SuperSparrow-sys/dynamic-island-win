@@ -417,6 +417,30 @@
                             </ContentControl>
                         </StackPanel>
                     </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='iPhone-Fokus', En='iPhone focus'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Fokus vom iPhone übernehmen', En='Follow the iPhone focus'}"
+                                            ToolTip="{core:L De='Eine Kurzbefehle-Automation meldet den Fokus an diesen PC.', En='A Shortcuts automation reports the focus to this PC.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.PhoneFocusEnabled}" />
+                            </ContentControl>
+                            <StackPanel x:Name="PhoneFocusRows" Visibility="{Binding S.PhoneFocusEnabled, Converter={StaticResource S.StrVis}}" />
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,12,0,8" TextWrapping="Wrap" Text="{core:L De='Was jeder Fokus schaltet, auch wenn er über die Kopplung kommt.', En='What each focus switches, also when it comes from a paired device.'}" />
+                    <StackPanel x:Name="FocusProfileRows" />
+                    <DockPanel Margin="0,0,0,4">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="AddFocusProfile_Click">
+                            <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Fokus hinzufügen', En='Add focus'}" /></StackPanel>
+                        </Button>
+                        <Grid>
+                            <TextBox x:Name="NewFocusName" Style="{StaticResource S.TextBox}" Height="32" MaxLength="40" KeyDown="NewFocusName_KeyDown" />
+                            <TextBlock Style="{StaticResource ST.Desc}" Margin="11,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                       Text="{core:L De='Name wie auf dem iPhone', En='Name as on the iPhone'}"
+                                       Visibility="{Binding Text, ElementName=NewFocusName, Converter={StaticResource NotVis}}" />
+                        </Grid>
+                    </DockPanel>
                 </StackPanel>
 
                 <!-- 5 Island content -->

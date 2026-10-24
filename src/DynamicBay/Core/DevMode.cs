@@ -20,6 +20,9 @@ public static class DevMode
     /// <summary><c>DYNAMICBAY_HOOK_PORT=43932</c>: a test instance listens for hooks and Rubus there (43822 belongs to the installed app).</summary>
     public static int? HookPort => Port("DYNAMICBAY_HOOK_PORT");
 
+    /// <summary><c>DYNAMICBAY_FOCUS_PORT=43935</c>: a test instance listens for the iPhone focus there (43825 belongs to the installed app).</summary>
+    public static int? FocusPort => Port("DYNAMICBAY_FOCUS_PORT");
+
     public static bool AutoConfirmPairing => On && Environment.GetEnvironmentVariable("DYNAMICBAY_DEV_AUTOCONFIRM") == "1";
 
     /// <summary><c>DYNAMICBAY_DEV_ALLOWPAIRING=1</c>: open the pairing window right after the start (test instances).</summary>
@@ -31,7 +34,7 @@ public static class DevMode
     /// <summary><c>DYNAMICBAY_DEV_ANYFULLSCREEN=1</c>: every fullscreen window counts as a game (FullscreenGames on a video or chat app).</summary>
     public static bool AnyFullscreen => On && Environment.GetEnvironmentVariable("DYNAMICBAY_DEV_ANYFULLSCREEN") == "1";
 
-    /// <summary><c>DYNAMICBAY_DEV_LOOPBACK=1</c>: the link listens on 127.0.0.1 only, without discovery (two instances on one PC, no firewall prompt).</summary>
+    /// <summary><c>DYNAMICBAY_DEV_LOOPBACK=1</c>: the link and the iPhone focus listen on 127.0.0.1 only, without discovery (two instances on one PC, no firewall prompt).</summary>
     public static bool LoopbackOnly => On && Environment.GetEnvironmentVariable("DYNAMICBAY_DEV_LOOPBACK") == "1";
 
     /// <summary><c>DYNAMICBAY_DEV_SETTINGS=Devices</c>: open the settings window on that page right after the start (test instances).</summary>

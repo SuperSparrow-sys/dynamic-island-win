@@ -258,6 +258,11 @@ public static class Snapshots
                 await Task.Delay(4000);
             }
             foreach (var app in InstalledApps.All().Take(3)) settings.Shortcuts.Add(app.LaunchPath); // launcher list with tiles
+            // iPhone focus switched on, with the four profiles (one of them mutes an app), without listening.
+            vm.PhoneFocus.LoadDemo();
+            settings.PhoneFocusEnabled = true;
+            if (settings.FocusProfiles.Count == 0) foreach (var f in FocusProfile.Defaults()) settings.FocusProfiles.Add(f);
+            settings.FocusProfiles[0].MutedApps.Add("WhatsApp");
             // Calendar accounts as after a settings import: Google and iCloud without their sign-in show "Anmelden"
             settings.CalendarAccounts.Add(new CalendarAccount { Id = "snapgoogle01", Kind = CalendarKind.Google, Name = "Google", User = "1234.apps.googleusercontent.com" });
             settings.CalendarAccounts.Add(new CalendarAccount { Id = "snapicloud01", Kind = CalendarKind.ICloud, Name = "iCloud", User = "name@icloud.com", Url = "https://caldav.icloud.com/" });

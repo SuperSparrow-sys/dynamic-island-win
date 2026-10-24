@@ -312,6 +312,39 @@ public class LinkTogetherTests : IDisposable
         Assert.Equal(0, await qa.AnnounceAsync());
     }
 
+    [Fact]
+    public async Task Iphone_focus_reaches_the_laptop_and_never_comes_back()
+    {
+        LinkQuietFeature? qa = null, qb = null;
+        var p = await Connected(x =>
+        {
+            foreach (var s in new[] { x.SA, x.SB }) foreach (var f in FocusProfile.Defaults()) s.FocusProfiles.Add(f);
+            qa = Keep(new LinkQuietFeature(x.A, x.SA));
+            qb = Keep(new LinkQuietFeature(x.B, x.SB));
+        });
+        // The iPhone reports "Schule" to the PC: the laptop applies its own profile of that name.
+        p.SA.PhoneFocusHere = "Schule";
+        await qa!.AnnounceAsync();
+        await Until(() => p.SB.PhoneFocusPeer == "Schule" && p.SB.Quiet, "laptop in Schule");
+        Assert.Equal("", p.SB.PhoneFocusHere);
+        Assert.False(p.SB.PeerQuiet); // the focus counts through its profile, not as a call
+        // The laptop announcing itself does not send the PC's focus back.
+        await qb!.AnnounceAsync();
+        await Task.Delay(Quiet);
+        Assert.Equal("", p.SA.PhoneFocusPeer);
+
+        p.SA.PhoneFocusHere = "";
+        await qa.AnnounceAsync();
+        await Until(() => p.SB.PhoneFocusPeer == "" && !p.SB.Quiet, "laptop free");
+
+        // The PC goes away: its focus leaves the laptop with it.
+        p.SA.PhoneFocusHere = "Schlafen";
+        await qa.AnnounceAsync();
+        await Until(() => p.SB.FocusHidesIsland, "laptop hides the island");
+        p.A.Stop();
+        await Until(() => p.SB.PhoneFocusPeer == "" && !p.SB.FocusHidesIsland, "laptop back after the PC left");
+    }
+
     // ---------- questions ----------
 
     private async Task<(LinkQuestionFeature A, LinkQuestionFeature B, Pair P)> Questions(Action<Pair>? settings = null)

@@ -109,7 +109,7 @@ public sealed partial class NotificationService : ObservableObject
     /// </summary>
     public bool AddRemote(string device, string app, string title, string body, ImageSource? logo)
     {
-        if (HiddenHere || !_settings.NotificationsEnabled || _settings.MutedApps.Contains(app)) return false;
+        if (HiddenHere || !_settings.NotificationsEnabled || _settings.IsMuted(app)) return false;
         // WhatsApp, Teams … on both devices: the copy from the other one is the same message, shown once.
         if (IsRepeat(app, title, body)) return false;
         var item = new NotificationItem { Id = _remoteId++, App = app, Title = title, Body = body, Time = DateTime.Now, Logo = logo, Device = device };
@@ -213,7 +213,7 @@ public sealed partial class NotificationService : ObservableObject
         {
             if (!_seen.Add(id)) continue;
             if (toast is null || ToItem(toast) is not { } item) continue;
-            if (_settings.MutedApps.Contains(item.App)) continue;
+            if (_settings.IsMuted(item.App)) continue;
             if (Items.Any(i => i.Device is not null && i.SameAs(item.App, item.Title, item.Body) && (DateTime.Now - i.Added).TotalSeconds < 10)) continue; // the paired device's copy came first
             if (_primed) Seen?.Invoke(item);
             if (!_settings.NotificationsEnabled || HiddenHere) continue; // off, or the main device shows them: not in the island at all

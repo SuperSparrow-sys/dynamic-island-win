@@ -1321,6 +1321,8 @@ public partial class IslandWindow : Window
         if (_settings.HideInFullscreen && fullscreen && _settings.Layer != LayerMode.AboveAll) suppress = true;
         // The paired main device shows everything: this island makes way while it is connected (never saved).
         if (LinkHidden && !_snapshotMode) suppress = true;
+        // An iPhone focus that hides the island (Schlafen): back when it ends, the user's own "hidden" stays as it is.
+        if (_settings.FocusHidesIsland && !_snapshotMode) suppress = true;
         if (!suppress && _settings.ExcludedApps.Count > 0)
         {
             if (!IsOwnWindow(fg) && ExcludedApps.Matches(_settings.ExcludedApps, Native.ProcessName(fg), () => TaskbarIdentity.Read(fg)))

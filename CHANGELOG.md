@@ -2,6 +2,14 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## Unveröffentlicht
+
+- iPhone-Fokus: Eine Kurzbefehle-Automation meldet Arbeit, Schule, Schlafen, Zuhause oder jeden anderen Fokus an
+  DynamicBay (Einstellungen → Ruhe und Fokus, Anleitung in docs/INTEGRATIONS.md). Jeder Fokus schaltet, was du
+  einstellst: Nicht stören, Mitteilungen ohne Text, Insel ausblenden, Teams-Status, stumme Apps und ausgeblendete
+  Widgets. Ein gekoppelter Laptop übernimmt den Fokus. Der Installer öffnet dafür Port 43825 in der Firewall, nur für
+  Heimnetz und Tailscale.
+
 ## 1.1.13 (19.10.2026)
 
 - Installer: Wird DynamicBay während eines Updates gestartet, scheiterte die Registrierung des Identitäts-Pakets, und

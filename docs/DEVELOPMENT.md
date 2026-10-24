@@ -84,7 +84,8 @@ $env:DYNAMICBAY_DEV_ALLOWPAIRING="1"; $env:DYNAMICBAY_DEV_AUTOCONFIRM="1"; .\Dyn
 ```
 
 `DYNAMICBAY_HOOK_PORT=43932` lässt eine Testinstanz auf diesem Port auf Claude-Hooks und Rubus hören (ohne die
-Variable hört sie gar nicht, 43822 gehört der installierten App).
+Variable hört sie gar nicht, 43822 gehört der installierten App). Ebenso `DYNAMICBAY_FOCUS_PORT=43935` für den
+iPhone-Fokus (43825 gehört der installierten App).
 
 `DYNAMICBAY_DEV_SENDFILE=<Pfad>` schickt die Datei an das erste Gerät, das online kommt. Eine Testinstanz führt Befehle
 aus `%AppData%\DynamicBay-dev-<n>\dev-commands.txt` aus (eine Zeile pro Befehl, die Datei wird danach gelöscht):

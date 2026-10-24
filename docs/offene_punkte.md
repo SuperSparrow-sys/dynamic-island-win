@@ -80,6 +80,9 @@ System-Proxy.
 - Lautstärke auf mehreren Geräten: „Alle“ und Einzelregler bei „Ton am Laptop“ (beide Seiten 1.1.13, Regler auf beiden
   Seiten), bei zwei gleichzeitig spielenden Ausgaben, Ziehen ab beliebiger Stelle, Stumm aufheben; Abfrage jede
   Sekunde nicht gemessen; Windows „Geteiltes Audio“ nur mit LE-Audio-Hardware (dieser PC hat keine).
+- iPhone-Fokus mit echten Kurzbefehlen (ab 1.1.14): läuft „Sofort ausführen“ ohne Rückfrage, was zeigt das iPhone
+  bei ausgeschaltetem PC, kommen die neuen Firewall-Regeln mit dem Update, Laptop über die Kopplung, Teams-Status
+  „Beschäftigt“ bei Arbeit.
 - Der Abschluss-Check mit den echten Konten: OneDrive, Spotify, Mitteilungen, Kalender, Bluetooth, Claude, Microsoft 365.
 
 **Zu tun:** Gemeinsam mit dem Besitzer durchgehen. Gefundene Fehler werden eigene Punkte.

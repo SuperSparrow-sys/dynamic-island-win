@@ -135,7 +135,7 @@ angenommen):
 | Mitteilungen | Die Windows-Mitteilungen, die die Insel hier zeigt, erscheinen auch auf dem anderen Gerät, markiert „von …“. Dort gelten „Nicht stören“ und stummgeschaltete Apps wie für eigene. Eine Mitteilung vom anderen Gerät wird nie weitergeleitet; dieselbe Nachricht von beiden Geräten erscheint einmal. |
 | Musik | Läuft hier nichts, zeigt die Medienkarte die Wiedergabe des anderen Geräts mit Cover; Zurück, Pause und Weiter steuern es. Läuft auf beiden etwas, wechselt der Laptop-Knopf neben dem Titel. Musik startet nie von selbst: Ohne Player auf dem anderen Gerät passiert nichts. |
 | Timer | Timer und Pomodoro laufen auf beiden Geräten: Starten, Pause, Verlängern und Stoppen auf einem gilt auf dem anderen. Der Laptop-Knopf am laufenden Timer übergibt ihn ans andere Gerät oder holt ihn her. Das Ende erscheint einmal: auf dem Hauptgerät, ohne Hauptgerät dort, wo der Timer hingehört (gestartet oder übergeben). Fokus-Sitzungen zählen nur dort. |
-| Ruhe und Fokus | „Nicht stören“ gilt auf beiden Geräten, egal wo es geschaltet wird (die letzte Änderung gewinnt, auch nach einer Trennung). Ein Anruf oder eine Fokus-Sitzung auf einem Gerät macht das andere still, solange sie dauert. |
+| Ruhe und Fokus | „Nicht stören“ gilt auf beiden Geräten, egal wo es geschaltet wird (die letzte Änderung gewinnt, auch nach einer Trennung). Ein Anruf oder eine Fokus-Sitzung auf einem Gerät macht das andere still, solange sie dauert. Der [iPhone-Fokus](#iphone-fokus) gilt auf dem anderen Gerät mit dessen eigenem Profil gleichen Namens. |
 | Fragen | Einblendungen mit Knöpfen (Mikrofon aktiv – stumm?, Beitreten, eingehender Anruf, Kopfhörer verbinden …) des stillen Geräts erscheinen auf dem Hauptgerät, mit dessen Namen. Der Knopf dort wirkt auf dem Gerät, von dem die Frage kommt. Läuft die Zeit ab, gilt sie als abgelehnt; ist das Hauptgerät vorher weg, erscheint die Frage auf dem eigenen Gerät. |
 | Akku | Akku schwach, Ladegerät ein oder aus und voll erscheinen auf dem Hauptgerät als „Laptop: Akku 15 %“. Das stille Gerät zeigt sie dann nicht noch einmal selbst. |
 | Gemeinsam sperren | Aus, bis man es einschaltet (auf beiden Geräten). Wird ein Gerät gesperrt (Win+L), sperrt sich das andere mit, aber nur, wenn dort seit einer Minute niemand Maus oder Tastatur benutzt hat. Entsperrt wird nie über die Kopplung. |
@@ -285,3 +285,60 @@ Microsoft dafür eine eigene Erlaubnis abfragt.
 `Contacts.Read`, `offline_access`, für den Teams-Status zusätzlich `Presence.ReadWrite`. DynamicBay liest Termine,
 Aufgaben und Kontakte nur, schreibt nur das Abhaken von Aufgaben und den eigenen Status. Die Anmeldung wird
 verschlüsselt auf diesem PC gespeichert; „Trennen“ löscht sie.
+
+## iPhone-Fokus
+
+Schaltet am iPhone ein Fokus wie Arbeit, Schule, Schlafen oder Zuhause, meldet eine Kurzbefehle-Automation das an
+DynamicBay. Unter Einstellungen → Ruhe und Fokus legt jeder Fokus fest, was er hier schaltet: Nicht stören,
+Mitteilungen ohne Text, Insel ausblenden, Teams-Status, stumme Apps und ausgeblendete Widgets. Endet der Fokus, gilt
+wieder alles wie vorher. Gespeichert wird nur, was ein Fokus schaltet, nicht welcher gerade an ist: Nach einem
+Neustart ist keiner an.
+
+Apple gibt den Fokus nicht nach außen. Smartphone-Link und Bluetooth übertragen ihn nicht, deshalb der Weg über
+Kurzbefehle.
+
+**Einrichten** (einmal je Fokus, zwei Automationen):
+
+1. In DynamicBay: Einstellungen → Ruhe und Fokus → „Fokus vom iPhone übernehmen“ einschalten. Darunter stehen
+   Adresse und Schlüssel, beide mit „Kopieren“.
+2. Auf dem iPhone: App Kurzbefehle → Automation → „+“ → **Fokus** → zum Beispiel „Arbeit“ → nur **Bei Aktivierung**
+   ankreuzen → **Sofort ausführen** → Weiter → **Neuer leerer Kurzbefehl**.
+3. Aktion **Inhalte von URL abrufen** hinzufügen, URL ist die Adresse aus DynamicBay. Auf den Pfeil tippen:
+   - Methode: **POST**
+   - Header: Schlüssel `Authorization`, Wert `Bearer ` und dahinter der Schlüssel aus DynamicBay (Groß- und
+     Kleinschreibung, Leerzeichen und Bindestriche egal)
+   - Anfragetext: **JSON**, Feld `focus` (Text) = `Arbeit`, Feld `on` (Boolesch) = **Wahr**
+4. Eine zweite Automation für denselben Fokus mit **Bei Deaktivierung** und `on` = **Falsch**.
+5. Dasselbe für die anderen Fokus-Modi. Der Name in `focus` muss zum Profil in DynamicBay passen. Ein unbekannter Name
+   legt beim ersten Einschalten ein leeres Profil an, das in den Einstellungen erscheint.
+
+Unter „Jetzt“ zeigt DynamicBay den aktiven Fokus und die letzte Anfrage, auch abgelehnte mit Grund (falscher
+Schlüssel, Adresse nicht erlaubt). „Beenden“ schaltet einen hängengebliebenen Fokus ab.
+
+**Adresse:** Mit Tailscale auf iPhone und PC steht die Tailscale-Adresse (100.x) oben. Sie funktioniert zu Hause und
+unterwegs. Die LAN-Adresse daneben geht nur im selben Netz und kann sich ändern, wenn der Router neu vergibt.
+
+**Laptop:** Ein gekoppeltes Gerät mit „Ruhe und Fokus“ übernimmt den Fokus, ohne eigene Automation. Es schaltet nach
+seinem eigenen Profil gleichen Namens. Der Teams-Status folgt nur auf dem Gerät, das den Fokus direkt vom iPhone
+bekommt, damit er nicht doppelt gesetzt wird.
+
+**Sicherheit:** Port 43825 ist nur offen, solange der Schalter an ist. Angenommen werden nur Anfragen aus dem
+Heimnetz und dem Tailnet, mit Schlüssel und ohne Browser-Kennung (Origin). Kurzbefehle vertraut keinem selbst
+signierten Zertifikat, deshalb läuft die Anfrage über HTTP: über Tailscale verschlüsselt, im WLAN nur durch dessen
+Verschlüsselung geschützt. In fremden Netzen deshalb nur die Tailscale-Adresse verwenden. „Neu“ erzeugt einen neuen
+Schlüssel, der alte gilt sofort nicht mehr. Der Schlüssel liegt verschlüsselt auf dem PC und kommt nicht in den
+Export der Einstellungen.
+
+**Grenzen:**
+- Ist der PC aus oder nicht erreichbar, geht die Meldung verloren. Kommt das „Aus“ nie an, endet der Fokus nach 16
+  Stunden von selbst.
+- Ob das iPhone bei einem nicht erreichbaren PC eine Fehlermeldung zeigt, ist noch nicht am Gerät geprüft.
+- Den Fokus am iPhone kann DynamicBay nicht schalten; Apple bietet dafür keinen Weg ohne Tippen am iPhone.
+
+**Ausprobieren ohne iPhone:**
+
+```powershell
+$k = "<Schlüssel>"; Invoke-RestMethod -Method Post -Uri http://127.0.0.1:43825/focus -Headers @{ Authorization = "Bearer $k" } -ContentType application/json -Body '{"focus":"Schule","on":true}'
+```
+
+Testinstanzen hören nur mit `DYNAMICBAY_FOCUS_PORT` (etwa 43935), 43825 gehört der installierten App.

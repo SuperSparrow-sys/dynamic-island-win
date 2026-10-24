@@ -128,6 +128,31 @@ public sealed class PairedDevice
     public bool Rejected { get; set; }
 }
 
+/// <summary>
+/// What one iPhone focus switches here while it is on (see Services/PhoneFocus.cs). Matched by name, ignoring case.
+/// Teams: "" leaves the status alone, else an availability of <c>PresenceService.Choices</c>.
+/// </summary>
+public sealed class FocusProfile
+{
+    private List<string> _mutedApps = new(), _hiddenWidgets = new();
+    public string Name { get; set; } = "";
+    public bool Quiet { get; set; }
+    public bool HideText { get; set; }
+    public bool HideIsland { get; set; }
+    public string TeamsStatus { get; set; } = "";
+    public List<string> MutedApps { get => _mutedApps; set => _mutedApps = value ?? new(); }
+    public List<string> HiddenWidgets { get => _hiddenWidgets; set => _hiddenWidgets = value ?? new(); }
+
+    /// <summary>The four profiles a new installation starts with (the owner's focus modes).</summary>
+    public static IEnumerable<FocusProfile> Defaults() => new[]
+    {
+        new FocusProfile { Name = "Arbeit", TeamsStatus = "Busy" },
+        new FocusProfile { Name = "Schule", Quiet = true, HideText = true, HiddenWidgets = { Widgets.Media } },
+        new FocusProfile { Name = "Schlafen", Quiet = true, HideIsland = true },
+        new FocusProfile { Name = "Zuhause" },
+    };
+}
+
 /// <summary>All user settings. Flat on purpose: binds directly into the settings window and serializes as one JSON file.</summary>
 public sealed partial class AppSettings : ObservableObject
 {
@@ -187,6 +212,7 @@ public sealed partial class AppSettings : ObservableObject
         _scriptWidgets.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ScriptWidgets));
         _bannerExceptions.CollectionChanged += (_, _) => OnPropertyChanged(nameof(BannerExceptions));
         _pairedDevices.CollectionChanged += (_, _) => OnPropertyChanged(nameof(PairedDevices));
+        _focusProfiles.CollectionChanged += (_, _) => FocusProfilesChanged(save: false);
     }
 
     /// <summary>Collections raise PropertyChanged for their own name on every change, so listeners and autosave see edits.</summary>
@@ -290,6 +316,12 @@ public sealed partial class AppSettings : ObservableObject
                 SystemWidgets.Add(Widgets.CursorHop);
             SettingsVersion = 11;
         }
+        // v12: iPhone focus - the four focus modes start with a proposal of what they switch.
+        if (SettingsVersion < 12)
+        {
+            if (FocusProfiles.Count == 0) foreach (var p in FocusProfile.Defaults()) FocusProfiles.Add(p);
+            SettingsVersion = 12;
+        }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });
         CalendarIcsUrl = "";
@@ -330,8 +362,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _sharing;
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _focusActive;
 
-    /// <summary>"Nicht stören" by hand, or a call, screen sharing or a focus session right now.</summary>
-    [System.Text.Json.Serialization.JsonIgnore] public bool Quiet => DoNotDisturb || InMeeting || Sharing || FocusActive || PeerQuiet;
+    /// <summary>"Nicht stören" by hand, or a call, screen sharing, a focus session or an iPhone focus with "Nicht stören" right now.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public bool Quiet => DoNotDisturb || InMeeting || Sharing || FocusActive || PeerQuiet || ActiveFocus?.Quiet == true;
     /// <summary>The paired device is in a call or a focus session ("Ruhe und Fokus", see LinkQuietFeature).</summary>
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _peerQuiet;
     partial void OnPeerQuietChanged(bool value) => OnPropertyChanged(nameof(Quiet));
@@ -339,6 +371,54 @@ public sealed partial class AppSettings : ObservableObject
     partial void OnInMeetingChanged(bool value) => OnPropertyChanged(nameof(Quiet));
     partial void OnSharingChanged(bool value) => OnPropertyChanged(nameof(Quiet));
     partial void OnFocusActiveChanged(bool value) => OnPropertyChanged(nameof(Quiet));
+
+    // iPhone focus (Services/PhoneFocus.cs): what each focus switches is saved, which one is on never is.
+    [ObservableProperty] private bool _phoneFocusEnabled;
+    private ObservableCollection<FocusProfile> _focusProfiles = new();
+    public ObservableCollection<FocusProfile> FocusProfiles
+    {
+        get => _focusProfiles;
+        set
+        {
+            _focusProfiles = value ?? new();
+            _focusProfiles.CollectionChanged += (_, _) => FocusProfilesChanged(save: false);
+            FocusProfilesChanged(save: false);
+        }
+    }
+    /// <summary>The focus the iPhone reported to this PC ("" = none).</summary>
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private string _phoneFocusHere = "";
+    /// <summary>The focus a paired device got from the iPhone ("Ruhe und Fokus", see LinkQuietFeature); the own one wins.</summary>
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private string _phoneFocusPeer = "";
+    partial void OnPhoneFocusHereChanged(string value) => FocusChanged();
+    partial void OnPhoneFocusPeerChanged(string value) => FocusChanged();
+
+    public FocusProfile? ProfileFor(string name) =>
+        name.Length == 0 ? null : FocusProfiles.FirstOrDefault(p => string.Equals(p.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>The profile of the iPhone focus that is on (reported here, else by the paired device), or null.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public FocusProfile? ActiveFocus => ProfileFor(PhoneFocusHere.Length > 0 ? PhoneFocusHere : PhoneFocusPeer);
+    /// <summary>Notification text in peeks: off by choice, while sharing the screen and in a focus that hides it.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public bool ShowNotificationText => NotificationShowBody && !Sharing && ActiveFocus?.HideText != true;
+    [System.Text.Json.Serialization.JsonIgnore] public bool FocusHidesIsland => ActiveFocus?.HideIsland == true;
+    /// <summary>Teams follows only a focus the iPhone reported here: the paired device would set the same status twice.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public string FocusTeamsStatus => ProfileFor(PhoneFocusHere)?.TeamsStatus ?? "";
+    public bool IsMuted(string app) => MutedApps.Contains(app) || ActiveFocus?.MutedApps.Contains(app, StringComparer.OrdinalIgnoreCase) == true;
+    public bool FocusHidesWidget(string id) => ActiveFocus?.HiddenWidgets.Contains(id) == true;
+
+    /// <summary>A profile changed in place (a switch, a list): the active focus may switch something else now.</summary>
+    public void FocusProfilesChanged(bool save = true)
+    {
+        OnPropertyChanged(nameof(FocusProfiles));
+        FocusChanged();
+        if (save) SaveSoon();
+    }
+
+    private void FocusChanged()
+    {
+        OnPropertyChanged(nameof(ActiveFocus));
+        OnPropertyChanged(nameof(Quiet));
+    }
+
     [ObservableProperty] private bool _hidden;
     public ObservableCollection<string> ExcludedApps { get; set; } = new();
 

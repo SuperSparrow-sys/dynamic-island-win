@@ -18,6 +18,14 @@ Abschnitt; was nicht mehr gilt, wird entfernt. Offene Aufgaben stehen in [offene
 
 ## Funktionen
 
+- **iPhone-Fokus über eine Kurzbefehle-Automation, Profile frei einstellbar** (24.10.2026, Besitzer). Arbeit,
+  Schlafen, Schule und Zuhause schalten je Verschiedenes; vier Profile als Vorschlag, jedes änderbar, unbekannte
+  Namen legen ein leeres an. Der Laptop übernimmt über die Kopplung, LAN und Tailscale mit Schlüssel. Verworfen:
+  Smartphone-Link und Bluetooth (übertragen keinen Fokus), fest verdrahtete Verhalten, `HttpListener` (braucht für
+  andere Adressen als localhost eine URL-Reservierung mit Adminrechten), HTTPS (Kurzbefehle vertraut keinem selbst
+  signierten Zertifikat). Der aktive Fokus wird nicht gespeichert, damit nach einem Neustart kein altes „Schlafen“
+  die Insel versteckt. Ohne „Aus“ endet er nach 16 h. Teams folgt nur auf dem Gerät, das den Fokus direkt bekommt.
+
 - **Mehrere Player: Stapel statt Wettstreit** (19.10.2026, Besitzer). Eine Seite pro Player, Scrollen über der Karte
   wechselt, eine Seite pro Geste. Die Wahl hält, bis der Player verschwindet oder ein anderer nach mindestens 3 s Pause
   zu spielen beginnt (`MediaPick`, `MediaStarts`). Verworfen: zwei Karten nebeneinander (zu breit für die Insel) und
