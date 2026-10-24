@@ -219,6 +219,26 @@ public class ServerTests
     }
 
     [Fact]
+    public void The_servers_old_focus_zuhause_is_where_the_iphone_is_not_a_new_profile()
+    {
+        var s = new AppSettings();
+        foreach (var f in FocusProfile.Defaults()) s.FocusProfiles.Add(f);
+        var server = Offline(s);
+        var z = Obj("ws_zustand_berichte.json");
+        z["fokus"] = new JsonObject { ["name"] = "Zuhause", ["seit"] = 1792866602, ["bis"] = 1792924202 };
+        server.Handle(z);
+        Assert.Equal("", s.PhoneFocusServer);
+        Assert.Null(s.ProfileFor("Zuhause"));
+        Assert.True(s.PresenceHome);
+
+        // The empty profile 1.1.17 made of it goes on the next start; one the user filled in stays.
+        var back = AppSettings.FromJson(s.ToJson());
+        back.FocusProfiles.Add(new FocusProfile { Name = "Zuhause" });
+        back.Migrate(cursorHopInstalled: false);
+        Assert.Null(back.ProfileFor("Zuhause"));
+    }
+
+    [Fact]
     public void Teams_follows_a_focus_from_the_server_on_one_device_only()
     {
         var s = new AppSettings();

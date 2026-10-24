@@ -327,6 +327,7 @@ public sealed partial class ServerService : ObservableObject, IDisposable
     private void ApplyState(ServerState s)
     {
         string focus = s.Focus is { } f && (f.Until == 0 || f.Until > _now().ToUnixTimeSeconds()) ? f.Name : "";
+        if (_settings.IsPresenceName(focus)) focus = ""; // "Zuhause" is where the iPhone is (berichte), never a focus
         _settings.ServerTeamsHere = TeamsHere();
         if (_settings.PhoneFocusServer != focus)
         {

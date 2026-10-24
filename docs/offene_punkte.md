@@ -3,7 +3,7 @@
 Aufgaben, die noch zu erledigen sind. Was erledigt ist, wird entfernt; Messwerte gehören nach
 [performance/](performance/README.md), Entscheidungen nach [ENTSCHEIDUNGEN.md](ENTSCHEIDUNGEN.md).
 
-Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **15**.
+Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **16**.
 
 ## Ein neuer Punkt
 
@@ -125,6 +125,25 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
 6. Automationen: gebaut (Zu Hause, Unterwegs, Kamera an, Fokus-Sitzung, Nicht stören am PC, iPhone-Fokus; Server
    mit Regeltabelle seit 24.10.2026 auf prod, Zentrale mit `uebergang_s`). Offen: Fokus-Menü in der Insel und der
    Auslöser „Termin“ (Kalender, Titel enthält); Prüfung im echten Betrieb (gehen, kommen, Kamera, Schlafen).
+
+## 15. Kamera und Mikrofon werden auf Windows 26H2 nicht mehr erkannt
+
+**Gemeldet:** 24.10.2026, Besitzer, 1.1.17 (Automation „Kamera an“ schaltete das Panel nicht aus).
+
+**Beobachtet:** Kamera-App, Browser und Teams mit Kamera: DynamicBay merkt nichts, die Kamera-Automation schickt
+keine `regel`. Ebenso fehlen der Teams-Anruf von heute und jede Mikrofon-Nutzung nach dem 20.10. Betroffen sind auch
+die Mikrofon-Anzeige und der Anrufmodus.
+
+**Ursache:** Windows schreibt `LastUsedTimeStart`/`LastUsedTimeStop` unter
+`HKCU\...\CapabilityAccessManager\ConsentStore\webcam` bzw. `microphone` auf diesem PC nicht mehr (letzte Einträge
+Kamera 14.10., Mikrofon 20.10.; Updates KB5127647, KB5121794, KB5127648 am 14.10.; Build 26300.9711, 26H2).
+`AudioService.ReadUsage` liest nur diesen Zweig. Die neueren Windows-Versionen führen die Nutzung zusätzlich in
+`C:\ProgramData\Microsoft\Windows\CapabilityAccessManager\CapabilityAccessManager.db` (SQLite); der Ordner ist ohne
+Adminrechte nicht lesbar.
+
+**Zu tun:** Klären, ob Windows (Einstellungen → Datenschutz → Kamera → Letzte Aktivität) die Nutzung noch zeigt. Dann
+einen Weg ohne Adminrechte finden, der auch den Anrufmodus wieder versorgt. Erledigt, wenn „Kamera an“ und die
+Mikrofon-Anzeige auf diesem PC wieder reagieren.
 
 # Zurückgestellt
 

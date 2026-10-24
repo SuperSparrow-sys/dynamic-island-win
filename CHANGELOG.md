@@ -2,6 +2,11 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## Unveröffentlicht
+
+- Automationen: Die Meldung „Zuhause“ des Servers legte nach dem Update ein zusätzliches, leeres iPhone-Fokus-Profil
+  „Zuhause“ an; das entfällt und wird beim Start entfernt.
+
 ## 1.1.17 (24.10.2026)
 
 1.1.16 wurde nicht veröffentlicht (der Release-Lauf fand den Fehler bei der Lautstärke unten).

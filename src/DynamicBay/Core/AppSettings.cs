@@ -372,6 +372,11 @@ public sealed partial class AppSettings : ObservableObject
         }
         // v13: automations. The iPhone only says "at home" or not: a focus profile of that name becomes "Zu Hause"
         // (its panel "off when it ends" becomes "Unterwegs"), and the camera switches the panel off quickly.
+        // 1.1.17 took the server's old focus "Zuhause" for a new iPhone focus: that profile goes again.
+        if (FocusProfiles.Any(p => p.Trigger == Triggers.Home))
+            foreach (var stray in FocusProfiles.Where(p => p.Trigger == Triggers.Focus && IsPresenceName(p.Name) && !p.Quiet && !p.HideText
+                         && !p.HideIsland && p.TeamsStatus.Length == 0 && p.Panel.Length == 0 && p.MutedApps.Count == 0 && p.HiddenWidgets.Count == 0).ToList())
+                FocusProfiles.Remove(stray);
         if (SettingsVersion < 13)
         {
             Automations.Migrate(this);
