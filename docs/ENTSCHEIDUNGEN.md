@@ -18,6 +18,10 @@ Abschnitt; was nicht mehr gilt, wird entfernt. Offene Aufgaben stehen in [offene
 
 ## Funktionen
 
+- **Fokus aus drei Quellen, die neuere Wahl gewinnt** (24.10.2026, Besitzer). Ein Fokus kommt vom iPhone, aus dem
+  Fokus-Menü der Insel oder aus einem Szenario (Auslöser: Termin, Teams-Besprechung oder Anruf, Fokus-Sitzung oder
+  Pomodoro) und wirkt jedes Mal gleich (Profil, Panel, iPhone holt ihn ab). Wer zuletzt schaltet, gewinnt. Verworfen:
+  „von Hand vor Szenario“, Uhrzeit-Szenarien und Bildschirm teilen oder Vollbild als Auslöser.
 - **DynamicBay-Server als optionale Verwaltung** (24.10.2026, Besitzer). Ein eigenes Rubus-Projekt
   `dynamicbay-server` (Python, FastAPI) auf dem Homeserver, nur im Tailnet über `tailscale serve`. Es hält gemeinsame
   Einstellungen (Werte undurchsichtig je Schlüssel, die neuere gewinnt, jedes Gerät darf überschreiben), Fokus,

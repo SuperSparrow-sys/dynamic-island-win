@@ -125,6 +125,10 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
    leise ginge nur mit einem zweiten Apple-Gerät (iPad mit Pushcut Automation Server, „Über Geräte teilen“).
    Vor dem Bau am Gerät prüfen.
 
+6. Fokus vom PC: Fokus-Menü in der Insel (Profile, Dauer, Beenden) und Szenarien (Termin mit Kalender und Titel,
+   Teams-Besprechung oder Anruf, Fokus-Sitzung oder Pomodoro; das obere gewinnt; nur das Hauptgerät oder der Server
+   löst aus). Die neuere Wahl gewinnt gegen das iPhone. Reihenfolge: nach Stufe 1 bis 3, vor Stufe 5.
+
 # Zurückgestellt
 
 ## 4. Übrige Abfragen statt Ereignisse
