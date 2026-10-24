@@ -25,6 +25,7 @@ public sealed partial class SettingsWindow
         PropertyChangedEventHandler serviceChanged = (_, _) => Dispatcher.BeginInvoke(UpdatePhoneFocusState);
         PropertyChangedEventHandler settingsChanged = (_, e) =>
         {
+            if (e.PropertyName is nameof(AppSettings.AnzeigetafelEnabled)) Dispatcher.BeginInvoke(BuildFocusProfileRows);
             if (e.PropertyName is nameof(AppSettings.FocusProfiles) or nameof(AppSettings.ActiveFocus))
                 Dispatcher.BeginInvoke(() => { if (FocusRowsKey() != _focusRowsKey) BuildFocusProfileRows(); });
             if (e.PropertyName is nameof(AppSettings.PhoneFocusEnabled)) Dispatcher.BeginInvoke(BuildPhoneFocusRows);
@@ -135,9 +136,12 @@ public sealed partial class SettingsWindow
             teams.Click += (_, _) => TeamsMenu(p, teams);
             stack.Children.Add(Row("Icon.User", Loc.German ? "Teams-Status" : "Teams status", null, teams, true));
 
-            var panel = FocusButton(PanelLabel(p));
-            panel.Click += (_, _) => PanelMenu(p, panel);
-            stack.Children.Add(Row("Icon.Monitor", Loc.German ? "Anzeigetafel" : "Display board", null, panel, true));
+            if (_ctx.S.AnzeigetafelEnabled)
+            {
+                var panel = FocusButton(PanelLabel(p));
+                panel.Click += (_, _) => PanelMenu(p, panel);
+                stack.Children.Add(Row("Icon.Monitor", Loc.German ? "Anzeigetafel" : "Display board", null, panel, true));
+            }
 
             var apps = FocusButton(Loc.German ? "Auswählen" : "Choose");
             stack.Children.Add(Row("Icon.BellOff", Loc.German ? "Stumme Apps" : "Muted apps", ListText(p.MutedApps), apps, true, out var appsText));

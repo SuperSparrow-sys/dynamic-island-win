@@ -356,7 +356,8 @@ jemand hat inzwischen von Hand geschaltet. Die Anweisung schickt nur das Gerät,
 kommt sie nicht an, versucht es das 10 Minuten lang alle 30 s erneut. Die Tafel führt nur aus: Ist ihr Zeitplan
 aus, schaltet auch ein Fokus das Panel nicht.
 
-**Einrichten:** Einstellungen → Geräte → Anzeigetafel. Adresse `https://homeserver.<tailnet>.ts.net:20004` (im
+**Einrichten:** Einstellungen → Geräte → Anzeigetafel → „Anzeigetafel einbinden“ (Vorgabe aus; erst dann erscheinen
+Widget und die Zeile im Fokus-Profil). Adresse `https://homeserver.<tailnet>.ts.net:20004` (im
 Heimnetz geht auch `http://192.168.10.30:20004`), Schlüssel ist `DYNAMICBAY_SCHLUESSEL` aus der `.env` der Tafel.
 Der Schlüssel liegt verschlüsselt auf diesem PC und wird nicht wieder angezeigt; „Prüfen“ liest den Zustand.
 

@@ -225,7 +225,7 @@ public class ServerTests
     [Fact]
     public void The_panel_goes_through_the_server_while_connected()
     {
-        var s = new AppSettings();
+        var s = new AppSettings { AnzeigetafelEnabled = true };
         var tafel = new AnzeigetafelService(s, Dispatcher.CurrentDispatcher, readKey: () => "", writeKey: _ => { });
         Assert.False(tafel.IsConfigured);
         var sent = new List<JsonObject>();

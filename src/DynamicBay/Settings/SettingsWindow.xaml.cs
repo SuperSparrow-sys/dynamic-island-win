@@ -233,6 +233,8 @@ public partial class SettingsWindow : Window
         HomeWidgetInfo
             // CursorHop only where it is installed (or already placed, so it can be removed again)
             .Where(w => w.id != Widgets.CursorHop || Services.CursorHopService.IsInstalledOnDisk || PlaceOf(w.id).Length > 0)
+            // The Anzeigetafel only once it is set up (or it is placed already)
+            .Where(w => w.id != Widgets.Anzeigetafel || _ctx.S.AnzeigetafelEnabled || PlaceOf(w.id).Length > 0)
             // Paired devices only once there is one (or it is placed already)
             .Where(w => w.id != Widgets.Paired || _ctx.S.PairedDevices.Count > 0 || _ctx.I.Link?.HasDevices == true || PlaceOf(w.id).Length > 0)
             .Concat(_ctx.S.ScriptWidgets.Select(sc => (sc.HomeId, "Icon.Code", sc.Name, sc.Name, "Eigenes Skript-Widget", "Own script widget"))).ToArray();

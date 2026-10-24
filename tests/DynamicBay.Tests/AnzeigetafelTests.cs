@@ -166,9 +166,9 @@ public class AnzeigetafelTests
         }
     }
 
-    private static (AnzeigetafelService Service, FakeTafel Fake, AppSettings Settings) Service(string key = "geheim")
+    private static (AnzeigetafelService Service, FakeTafel Fake, AppSettings Settings) Service(string key = "geheim", bool enabled = true)
     {
-        var s = new AppSettings { AnzeigetafelUrl = "https://tafel.test:20004", LinkDeviceName = "Desktop-PC" };
+        var s = new AppSettings { AnzeigetafelEnabled = enabled, AnzeigetafelUrl = "https://tafel.test:20004", LinkDeviceName = "Desktop-PC" };
         s.FocusProfiles.Add(new FocusProfile { Name = "Schlafen", Panel = "aus" });
         s.FocusProfiles.Add(new FocusProfile { Name = "Arbeit", Panel = "dimmen", PanelPercent = 15 });
         string stored = key;
@@ -245,6 +245,20 @@ public class AnzeigetafelTests
         await service.BackToPlanCommand.ExecuteAsync(null);
         Assert.Equal("plan", (string)fake.Calls.Last().Body!["aktion"]!);
         Assert.Null(fake.Calls.Last().Body!["nur_wenn_grund"]);
+    }
+
+    [Fact]
+    public async Task Not_set_up_it_sends_nothing_even_with_address_and_key()
+    {
+        var (service, fake, s) = Service(enabled: false);
+        Assert.False(service.IsConfigured);
+        Assert.False(new AppSettings().AnzeigetafelEnabled); // off for everyone until set up
+        s.PhoneFocusHere = "Schlafen";
+        await service.FocusChangedAsync();
+        await service.RefreshAsync();
+        Assert.Empty(fake.Calls);
+        s.AnzeigetafelEnabled = true;
+        Assert.True(service.IsConfigured);
     }
 
     [Fact]

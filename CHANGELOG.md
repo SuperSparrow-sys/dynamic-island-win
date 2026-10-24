@@ -2,7 +2,7 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## Unveröffentlicht
+## 1.1.14 (24.10.2026)
 
 - iPhone-Fokus: Eine Kurzbefehle-Automation meldet Arbeit, Schule, Schlafen, Zuhause oder jeden anderen Fokus an
   DynamicBay (Einstellungen → Ruhe und Fokus, Anleitung in docs/INTEGRATIONS.md). Jeder Fokus schaltet, was du
@@ -11,7 +11,7 @@ Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit d
   Heimnetz und Tailscale.
 - Anzeigetafel: Ein neues Widget schaltet das Panel der Anzeigetafel an und aus und stellt die Helligkeit ein, bis
   zum nächsten Zeitpunkt im Wochenplan. In jedem Fokus-Profil lässt sich festlegen, ob das Panel dimmt oder ausgeht,
-  solange der Fokus läuft (Einstellungen → Geräte → Anzeigetafel).
+  solange der Fokus läuft (Einstellungen → Geräte → Anzeigetafel, erst nach „Anzeigetafel einbinden“).
 - DynamicBay-Server: PC und Laptop lassen sich mit dem eigenen Server auf dem Homeserver koppeln (Einstellungen →
   Geräte). Er teilt Fokus-Profile und stumme Apps, nimmt den iPhone-Fokus auch an, wenn der PC aus ist, und schaltet
   die Anzeigetafel. Jedes Gerät kann seine eigene Liste behalten. Ohne Server bleibt alles wie bisher.

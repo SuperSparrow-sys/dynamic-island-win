@@ -264,6 +264,7 @@ public static class Snapshots
             if (settings.FocusProfiles.Count == 0) foreach (var f in FocusProfile.Defaults()) settings.FocusProfiles.Add(f);
             settings.FocusProfiles[0].MutedApps.Add("WhatsApp");
             // Anzeigetafel connected (demo state, nothing is sent).
+            settings.AnzeigetafelEnabled = true;
             settings.AnzeigetafelUrl = "https://homeserver.example.ts.net:20004";
             vm.Anzeigetafel.LoadDemo();
             // Calendar accounts as after a settings import: Google and iCloud without their sign-in show "Anmelden"

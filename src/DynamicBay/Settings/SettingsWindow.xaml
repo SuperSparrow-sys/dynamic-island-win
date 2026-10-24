@@ -1338,7 +1338,13 @@
 
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Anzeigetafel', En='Display board'}" />
                     <Border Style="{StaticResource S.Card}">
-                        <StackPanel x:Name="AnzeigetafelRows" />
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Anzeigetafel einbinden', En='Use a display board'}"
+                                            ToolTip="{core:L De='Ein WAGO-Panel mit dashboard-zentrale schalten und dimmen.', En='Switch and dim a WAGO panel with dashboard-zentrale.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.AnzeigetafelEnabled}" />
+                            </ContentControl>
+                            <StackPanel x:Name="AnzeigetafelRows" Visibility="{Binding S.AnzeigetafelEnabled, Converter={StaticResource Vis}}" />
+                        </StackPanel>
                     </Border>
 
                     <TextBlock Style="{StaticResource ST.Group}" Text="CursorHop" />

@@ -18,15 +18,18 @@ public sealed partial class SettingsWindow
         {
             _tafelWired = true;
             PropertyChangedEventHandler changed = (_, _) => Dispatcher.BeginInvoke(UpdateAnzeigetafelState);
+            // Switched on or off: the widget shows up in (or leaves) the board.
+            PropertyChangedEventHandler enabled = (_, e) => { if (e.PropertyName == nameof(AppSettings.AnzeigetafelEnabled)) Dispatcher.BeginInvoke(BuildWidgetBoard); };
             tafel.PropertyChanged += changed;
-            Closed += (_, _) => tafel.PropertyChanged -= changed;
+            _ctx.S.PropertyChanged += enabled;
+            Closed += (_, _) => { tafel.PropertyChanged -= changed; _ctx.S.PropertyChanged -= enabled; };
         }
         AnzeigetafelRows.Children.Clear();
 
         var address = new TextBox { Style = (Style)FindResource("S.TextBox"), Width = 260, Text = _ctx.S.AnzeigetafelUrl };
         address.LostFocus += (_, _) => { _ctx.S.AnzeigetafelUrl = address.Text.Trim(); _ctx.S.SaveSoon(); _ = tafel.RefreshAsync(); };
         AnzeigetafelRows.Children.Add(Row("Icon.Link", Loc.German ? "Adresse" : "Address",
-            Loc.German ? "Zum Beispiel https://homeserver.….ts.net:20004" : "For example https://homeserver.….ts.net:20004", address, false));
+            Loc.German ? "Zum Beispiel https://homeserver.….ts.net:20004" : "For example https://homeserver.….ts.net:20004", address, true));
 
         var key = new PasswordBox { Width = 260, Height = 32 };
         key.LostFocus += (_, _) => { if (key.Password.Length > 0) { tafel.SetKey(key.Password); key.Password = ""; UpdateAnzeigetafelState(); } };

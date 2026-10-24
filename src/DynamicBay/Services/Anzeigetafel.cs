@@ -178,7 +178,7 @@ public sealed partial class AnzeigetafelService : ObservableObject, IDisposable
         _retry.Tick += async (_, _) => await RetryFocusAsync();
         settings.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(AppSettings.AnzeigetafelUrl)) UpdateConfigured();
+            if (e.PropertyName is nameof(AppSettings.AnzeigetafelUrl) or nameof(AppSettings.AnzeigetafelEnabled)) UpdateConfigured();
             if (e.PropertyName == nameof(AppSettings.PhoneFocusHere)) _ = FocusChangedAsync();
         };
         UpdateConfigured();
@@ -195,7 +195,7 @@ public sealed partial class AnzeigetafelService : ObservableObject, IDisposable
     }
 
     private void UpdateConfigured() =>
-        IsConfigured = _relay is not null || PanelProtocol.Endpoint(_settings.AnzeigetafelUrl) is not null && Key.Length > 0;
+        IsConfigured = _settings.AnzeigetafelEnabled && (_relay is not null || PanelProtocol.Endpoint(_settings.AnzeigetafelUrl) is not null && Key.Length > 0);
 
     /// <summary>The server connected (relay) or went away (null): then this device talks to the Anzeigetafel itself again.</summary>
     public void UseServer(Func<JsonObject, Task<bool>>? relay)

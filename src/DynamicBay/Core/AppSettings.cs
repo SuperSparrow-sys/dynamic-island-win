@@ -490,6 +490,8 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private string _linkDeviceName = "";
     /// <summary>The Anzeigetafel (dashboard-zentrale) for the panel widget, e.g. "https://homeserver.example.ts.net:20004"; "" = none. The key is in the DPAPI store.</summary>
     [ObservableProperty] private string _anzeigetafelUrl = "";
+    /// <summary>Off until set up (Einstellungen → Geräte): a WAGO panel with dashboard-zentrale is not something everyone has.</summary>
+    [ObservableProperty] private bool _anzeigetafelEnabled;
 
     // DynamicBay server (Services/Server): this device's address and id there; the key is in the DPAPI store.
     [ObservableProperty] private string _serverAddress = "";
