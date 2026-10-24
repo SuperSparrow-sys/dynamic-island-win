@@ -8,7 +8,7 @@ The owner speaks German; UI texts exist in German and English (`core:L De=… En
 
 Keep this file short and current. Update it in the same commit when the structure or a rule changes.
 
-Vault: no hub note yet. Knowledge worth keeping goes to `Claude/Referenz/Setup/DynamicBay Übersicht.md`.
+Vault: `Claude/Referenz/Setup/DynamicBay Übersicht.md` (how DynamicBay connects to the server, the Anzeigetafel and Rubus).
 
 ## Build and test
 
