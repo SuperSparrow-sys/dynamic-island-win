@@ -78,8 +78,8 @@ public static class PanelProtocol
     /// <summary>
     /// The commands when the focus reported here changes from <paramref name="before"/> to <paramref name="after"/>
     /// ("" = none). A new focus with dim or off replaces any override. Otherwise the old focus's override is given
-    /// back - only if it is still that one, so a change by hand afterwards stays - and a focus on "Wochenplan" also
-    /// gives back the "off" it left when it ended (home again). A focus that ends with nothing after it (not one that
+    /// back - only if it is still that one, so a change by hand afterwards stays - and a focus that leaves the panel
+    /// off when it ends gives that "off" back when it begins again (home again). A focus that ends with nothing after it (not one that
     /// is replaced, not one that ran out) leaves its <see cref="FocusProfile.PanelEnd"/>: off until further notice.
     /// </summary>
     public static List<JsonObject> ForFocus(string before, string after, Func<string, FocusProfile?> profile, string source, bool expired = false)
@@ -98,7 +98,7 @@ public static class PanelProtocol
         {
             string reason = FocusReason(next?.Name ?? (after.Length > 0 ? after : prev?.Name ?? before));
             if (prev?.Panel is "dimmen" or "aus") list.Add(Command("plan", null, null, reason, source, FocusReason(prev.Name)));
-            if (next?.Panel == "plan") list.Add(Command("plan", null, null, reason, source, EndReason(next.Name)));
+            if (next?.GivesBackEnd == true) list.Add(Command("plan", null, null, reason, source, EndReason(next.Name)));
         }
         return list;
     }

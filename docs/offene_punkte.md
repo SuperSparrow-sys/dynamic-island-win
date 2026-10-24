@@ -130,20 +130,6 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
    Teams-Besprechung oder Anruf, Fokus-Sitzung oder Pomodoro; das obere gewinnt; nur das Hauptgerät oder der Server
    löst aus). Die neuere Wahl gewinnt gegen das iPhone. Reihenfolge: nach Stufe 1 bis 3, vor Stufe 5.
 
-## 14. Zeitabhängige Tests scheitern gelegentlich im vollen Lauf
-
-**Gemeldet:** 24.10.2026, Claude, beim Bau des Server-Clients.
-
-**Beobachtet:** In 3 von 10 vollen Läufen schlug je ein anderer Test fehl (`PhoneFocusTests.Listener_takes_the_report_and_refuses_the_rest`,
-`LinkAudioStreamTests.The_volume_set_on_the_receiving_device_reaches_the_sender`, einmal
-`ServerTests.Pair_connect_…`), jeweils allein grün; danach 10 Läufe grün. Ohne
-`ServerTests` waren 3 von 3 Läufen grün; das ist zu wenig, um sie als Ursache zu belegen.
-
-**Ursache:** noch offen. Vermutlich prüfen die Tests unmittelbar nach dem Senden, bevor der Empfänger-Thread fertig
-ist, und Last durch andere Tests (Dispatcher-Thread und Loopback-Server in `ServerTests`) macht das sichtbar.
-
-**Zu tun:** In beiden Tests auf das Ergebnis warten statt sofort zu prüfen. Erledigt, wenn 20 volle Läufe grün sind.
-
 # Zurückgestellt
 
 ## 4. Übrige Abfragen statt Ereignisse

@@ -121,7 +121,7 @@ public class ServerTests
             new FocusProfile { Name = "Arbeit", Panel = "dimmen", PanelPercent = 15 },
             new FocusProfile { Name = "Schlafen", Panel = "aus", PanelPercent = 5 },
             new FocusProfile { Name = "Schule", PanelPercent = 5 },
-            new FocusProfile { Name = "Zuhause", Panel = "plan", PanelEnd = "aus", PanelPercent = 5 },
+            new FocusProfile { Name = "Zuhause", PanelEnd = "aus", PanelPercent = 5 }, // the server gives the "off" back only for "plan"
         };
         var expected = Obj("ws_einstellung_am_ende.json")["wert"]!;
         Assert.True(JsonNode.DeepEquals(expected, SharedSettings.PanelFocusOf(profiles)));
@@ -363,9 +363,11 @@ public class ServerTests
             // A change here goes to the server; stumme_apps is this device's own list after the welcome.
             ui.Invoke(() => s.MutedApps.Add("Signal"));
             await ui.Invoke(server.FlushAsync);
-            await Until(() => fake.Got("einstellung"), "einstellung");
-            var sent = fake.Last("einstellung");
-            Assert.Equal("stumme_apps", (string)sent["schluessel"]!);
+            // The welcome's focus "Arbeit" is new here: its empty profile goes out too (fokus.profile, anzeigetafel.fokus),
+            // in any order. Look for the muted apps, not for the last message.
+            JsonObject? Apps() { lock (fake.Received) return fake.Received.LastOrDefault(o => ServerProtocol.Kind(o) == "einstellung" && (string?)o["schluessel"] == "stumme_apps"); }
+            await Until(() => Apps() is not null, "einstellung stumme_apps");
+            var sent = Apps()!;
             Assert.True((bool)sent["nur_hier"]!);
 
             // Removed on the server: the key goes, no new attempts.

@@ -428,9 +428,9 @@
                             <StackPanel x:Name="PhoneFocusRows" Visibility="{Binding S.PhoneFocusEnabled, Converter={StaticResource S.StrVis}}" />
                         </StackPanel>
                     </Border>
-                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,12,0,8" TextWrapping="Wrap" Text="{core:L De='Was jeder Fokus schaltet, auch wenn er über die Kopplung kommt.', En='What each focus switches, also when it comes from a paired device.'}" />
-                    <StackPanel x:Name="FocusProfileRows" />
-                    <DockPanel Margin="0,0,0,4">
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,12,0,8" TextWrapping="Wrap" Text="{core:L De='Fokus wählen, dann einstellen, was er schaltet.', En='Choose a focus, then set what it switches.'}" />
+                    <StackPanel x:Name="FocusChoice" Margin="0,0,0,8" />
+                    <DockPanel Margin="0,0,0,12">
                         <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="AddFocusProfile_Click">
                             <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Fokus hinzufügen', En='Add focus'}" /></StackPanel>
                         </Button>
@@ -441,6 +441,7 @@
                                        Visibility="{Binding Text, ElementName=NewFocusName, Converter={StaticResource NotVis}}" />
                         </Grid>
                     </DockPanel>
+                    <StackPanel x:Name="FocusProfileRows" />
                 </StackPanel>
 
                 <!-- 5 Island content -->

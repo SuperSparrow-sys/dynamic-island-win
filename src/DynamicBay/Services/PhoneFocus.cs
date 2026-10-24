@@ -250,8 +250,8 @@ public sealed class PhoneFocusListener : IDisposable
                 have += n;
             }
             if (PhoneFocusProtocol.Parse(head.Query, Encoding.UTF8.GetString(body)) is not { } report) { await RefuseAsync(stream, 400, remote, ct); return; }
+            _report(report, remote); // first, like a refusal: whoever got the answer can rely on the report
             await RespondAsync(stream, 204, ct);
-            _report(report, remote);
         }
         catch (OperationCanceledException) { }
         catch (IOException) { }

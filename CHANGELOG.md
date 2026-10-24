@@ -2,6 +2,14 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## Unveröffentlicht
+
+- Ruhe und Fokus: Oben wählst du einen Fokus oder legst einen an, darunter stehen nur seine Einstellungen, in
+  Abschnitten (Auf diesem PC, Teams, Anzeigetafel) und je mit einem Satz, was sie bewirken. Eine Zeile oben fasst
+  zusammen, was der Fokus schaltet.
+- Anzeigetafel: Ein Fokus, der das Panel an seinem Ende ausschaltet, schaltet es beim nächsten Beginn wieder nach
+  Wochenplan ein, auch wenn „Während des Fokus“ auf „Nicht ändern“ steht (vorher blieb das Panel dunkel).
+
 ## 1.1.15 (24.10.2026)
 
 - Anzeigetafel: Ein Fokus kann das Panel auch auf den Wochenplan stellen und es an seinem Ende ausschalten, bis

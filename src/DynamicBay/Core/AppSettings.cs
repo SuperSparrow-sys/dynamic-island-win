@@ -141,11 +141,14 @@ public sealed class FocusProfile
     public bool HideText { get; set; }
     public bool HideIsland { get; set; }
     public string TeamsStatus { get; set; } = "";
-    /// <summary>What the Anzeigetafel's panel does while this focus is on: "" nothing, "dimmen" to <see cref="PanelPercent"/>, "aus", "plan" (weekly plan).</summary>
+    /// <summary>What the Anzeigetafel's panel does while this focus is on: "" nothing, "dimmen" to <see cref="PanelPercent"/>, "aus".
+    /// "plan" (1.1.15) counts as nothing.</summary>
     public string Panel { get; set; } = "";
     public int PanelPercent { get; set; } = 15;
-    /// <summary>When this focus ends and none follows: "" back to the weekly plan, "aus" off until further notice (leaving home).</summary>
+    /// <summary>When this focus ends and none follows: "" back to the weekly plan, "aus" off until this focus begins again (leaving home).</summary>
     public string PanelEnd { get; set; } = "";
+    /// <summary>Begins: the "off" it left when it ended goes again (the weekly plan counts).</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public bool GivesBackEnd => PanelEnd == "aus" || Panel == "plan";
     public List<string> MutedApps { get => _mutedApps; set => _mutedApps = value ?? new(); }
     public List<string> HiddenWidgets { get => _hiddenWidgets; set => _hiddenWidgets = value ?? new(); }
 
@@ -155,7 +158,7 @@ public sealed class FocusProfile
         new FocusProfile { Name = "Arbeit", TeamsStatus = "Busy" },
         new FocusProfile { Name = "Schule", Quiet = true, HideText = true, HiddenWidgets = { Widgets.Media } },
         new FocusProfile { Name = "Schlafen", Quiet = true, HideIsland = true, Panel = "aus" },
-        new FocusProfile { Name = "Zuhause", Panel = "plan", PanelEnd = "aus" },
+        new FocusProfile { Name = "Zuhause", PanelEnd = "aus" },
     };
 }
 

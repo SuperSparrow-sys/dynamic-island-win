@@ -317,6 +317,7 @@ public static class Snapshots
                 pw.Close();
             }
             var win = new Settings.SettingsWindow(settings, vm);
+            win.ShowFocus("Zuhause");
             win.Show();
             // Every page from top to bottom: settings-PP-N.png, one picture per screen height.
             var scroll = (System.Windows.Controls.ScrollViewer)win.FindName("PageScroll");

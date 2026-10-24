@@ -220,7 +220,8 @@ public static class SharedSettings
         foreach (var p in profiles)
             o[p.Name] = new JsonObject
             {
-                ["panel"] = p.Panel is "dimmen" or "aus" or "plan" ? p.Panel : "nichts", ["prozent"] = Math.Clamp(p.PanelPercent, 5, 100),
+                // The server gives a focus's own "off" back when it begins only for "plan": that is what "off when it ends" needs.
+                ["panel"] = p.Panel is "dimmen" or "aus" ? p.Panel : p.GivesBackEnd ? "plan" : "nichts", ["prozent"] = Math.Clamp(p.PanelPercent, 5, 100),
                 ["am_ende"] = p.PanelEnd == "aus" ? "aus" : "plan",
             };
         return o;

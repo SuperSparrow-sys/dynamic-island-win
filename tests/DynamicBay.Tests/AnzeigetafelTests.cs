@@ -28,7 +28,8 @@ public class AnzeigetafelTests
         "Arbeit" => new FocusProfile { Name = "Arbeit", Panel = "dimmen", PanelPercent = 15 },
         "Schlafen" => new FocusProfile { Name = "Schlafen", Panel = "aus" },
         "Schule" => new FocusProfile { Name = "Schule" },
-        "Zuhause" => new FocusProfile { Name = "Zuhause", Panel = "plan", PanelEnd = "aus" },
+        "Zuhause" => new FocusProfile { Name = "Zuhause", PanelEnd = "aus" },
+        "Alt" => new FocusProfile { Name = "Alt", Panel = "plan", PanelEnd = "aus" }, // as saved by 1.1.15
         _ => null,
     };
 
@@ -142,6 +143,17 @@ public class AnzeigetafelTests
     }
 
     [Fact]
+    public void A_focus_that_leaves_the_panel_off_gives_it_back_when_it_begins_again()
+    {
+        // 24.10.2026: Zuhause on "Nicht ändern" with "aus, wenn er endet" left the panel black after coming home.
+        SameJson("anfrage_fokus_heim.json", Assert.Single(PanelProtocol.ForFocus("", "Zuhause", Profile, "DynamicBay-Server")));
+        // Saved by 1.1.15 with "Wochenplan" while on: the same.
+        Assert.Equal("Fokus Alt beendet", (string)Assert.Single(PanelProtocol.ForFocus("", "Alt", Profile, "PC"))["nur_wenn_grund"]!);
+        // A focus without "off when it ends" does not touch the panel when it begins.
+        Assert.Empty(PanelProtocol.ForFocus("", "Schule", Profile, "PC"));
+    }
+
+    [Fact]
     public void Another_focus_at_home_or_running_out_is_not_leaving()
     {
         // Zuhause -> Schlafen: Schlafen's off until it ends, no open "off".
@@ -176,7 +188,7 @@ public class AnzeigetafelTests
         Assert.Equal("aus", FocusProfile.Defaults().Single(d => d.Name == "Schlafen").Panel);
         Assert.Equal("", p.PanelEnd);
         var home = FocusProfile.Defaults().Single(d => d.Name == "Zuhause");
-        Assert.Equal(("plan", "aus"), (home.Panel, home.PanelEnd));
+        Assert.Equal(("", "aus"), (home.Panel, home.PanelEnd));
     }
 
     // ---------- service ----------
