@@ -18,6 +18,20 @@ Abschnitt; was nicht mehr gilt, wird entfernt. Offene Aufgaben stehen in [offene
 
 ## Funktionen
 
+- **DynamicBay-Server als optionale Verwaltung** (24.10.2026, Besitzer). Ein eigenes Rubus-Projekt
+  `dynamicbay-server` (Python, FastAPI) auf dem Homeserver, nur im Tailnet über `tailscale serve`. Es hält gemeinsame
+  Einstellungen (Werte undurchsichtig je Schlüssel, die neuere gewinnt, jedes Gerät darf überschreiben), Fokus,
+  Nicht stören und den Panel-Zustand, nimmt den iPhone-Fokus an und schickt Anweisungen an die Anzeigetafel. Ton,
+  Dateien, Zwischenablage und Maus bleiben auf der direkten Kopplung. Ohne Server läuft alles wie vorher. Verworfen:
+  ASP.NET Core (Rubus liefert nur Python aus), der Windows-PC als Server (kein gültiges HTTPS, nicht immer an),
+  Rubus-Anfragen für prod und Feldgeräte in der Insel bestätigen (bleibt „In Rubus öffnen“ mit Passwort).
+  Gemeinsam sind Fokus-Profile, Nicht stören, Mitteilungsregeln, stumme Apps, Anschluss der Zentrale; je Gerät
+  bleiben Position, Bildschirm, Darstellung, Bildrate, Audio, Bluetooth, Autostart. Auftrag und Protokoll:
+  `C:\Users\jonat\Documents\DynamicBay-Auftraege\dynamicbay-server`.
+- **Anzeigetafel: DynamicBay weist an, die Zentrale führt aus** (24.10.2026, Besitzer). Das Fokus-Profil sagt, was das
+  WAGO-Panel tut (nichts, dimmen, aus); die Zentrale (`dashboard-zentrale`) merkt es sich als Vorrang. Das Widget gilt
+  bis zum nächsten Planpunkt, ein Fokus bis zu seinem Ende. Verworfen: Fokus-Verhalten in der Zentrale einstellen,
+  Monitor-Helligkeit über DDC/CI (war ein Missverständnis, zurückgebaut).
 - **iPhone-Fokus über eine Kurzbefehle-Automation, Profile frei einstellbar** (24.10.2026, Besitzer). Arbeit,
   Schlafen, Schule und Zuhause schalten je Verschiedenes; vier Profile als Vorschlag, jedes änderbar, unbekannte
   Namen legen ein leeres an. Der Laptop übernimmt über die Kopplung, LAN und Tailscale mit Schlüssel. Verworfen:

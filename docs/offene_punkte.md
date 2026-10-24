@@ -3,7 +3,7 @@
 Aufgaben, die noch zu erledigen sind. Was erledigt ist, wird entfernt; Messwerte gehören nach
 [performance/](performance/README.md), Entscheidungen nach [ENTSCHEIDUNGEN.md](ENTSCHEIDUNGEN.md).
 
-Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **13**.
+Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **14**.
 
 ## Ein neuer Punkt
 
@@ -95,6 +95,33 @@ System-Proxy.
 die Apple-Music-API.
 
 **Zu tun:** Erst mit einem eigenen Apple-Entwicklerkonto möglich (siehe [INTEGRATIONS.md](INTEGRATIONS.md)).
+
+## 13. Server, Anzeigetafel und Rubus anbinden
+
+**Gemeldet:** 24.10.2026, Besitzer.
+
+**Beobachtet:** Gewünscht ist ein optionaler DynamicBay-Server, der die gekoppelten Geräte verwaltet, dazu ein
+Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege in
+[ENTSCHEIDUNGEN.md](ENTSCHEIDUNGEN.md#funktionen).
+
+**Zu tun,** je Stufe für sich nutzbar. Aufträge für die anderen Repos (mit Beispielen als Vertrag) liegen in
+`C:\Users\jonat\Documents\DynamicBay-Auftraege`; dieselben Beispiele werden hier zu Fixtures
+(`tests/DynamicBay.Tests/Fixtures/Api/Server`, `.../Anzeigetafel`).
+
+1. Server: Kopplung per Code, Verbindung (WebSocket), Fokus vom iPhone, Verteilung (Auftrag `dynamicbay-server`).
+   DynamicBay: Server verbinden (Einstellungen → Geräte), Zustand übernehmen, Fokus vom Server statt vom eigenen
+   Endpunkt, solange verbunden.
+2. Gemeinsame Einstellungen: welche Schlüssel gemeinsam sind, Überschreibung je Gerät in den Einstellungen sichtbar,
+   Änderungen ohne Server beim nächsten `hallo` nachreichen.
+3. Anzeigetafel: Zentrale mit `/api/geraet/panel` (Auftrag `dashboard-zentrale`). DynamicBay: Widget „Anzeigetafel“
+   (an, aus, Helligkeit, zurück zum Plan) über den Server, ohne Server direkt; Panel-Wirkung im Fokus-Profil
+   (`anzeigetafel.fokus`). Erledigt, wenn ein Fokus das Panel im echten Betrieb dimmt und sein Ende es zurückgibt.
+4. Rubus: einmal per Code mit dem Server koppeln, Sessions und Anfragen über ihn; prod und Feldgeräte nur
+   „In Rubus öffnen“. Ohne Server bleibt `RubusBridge`.
+5. Fokus leise ans iPhone: iOS setzt keinen Fokus von außen. Leise und sofort geht nur über ein zweites Apple-Gerät
+   mit derselben Apple-ID und „Über Geräte teilen“ (Mac per `shortcuts run`, iPad mit Pushcut Automation Server);
+   sonst verzögert über Automationen auf dem iPhone selbst (WLAN, Ladekabel, Uhrzeit), die den Server fragen. Vor dem
+   Bau am Gerät prüfen.
 
 # Zurückgestellt
 
