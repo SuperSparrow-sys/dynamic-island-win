@@ -600,6 +600,19 @@ public class LinkAudioStreamTests : IDisposable
     }
 
     [Fact]
+    public async Task A_volume_set_there_right_at_the_start_is_not_undone_by_the_start_value()
+    {
+        // Release run of 1.1.16: the start value (1.0) went out 100 ms after the start and came after the 0.45 set there.
+        var (p, r) = await AudioPair();
+        Assert.Null(await r.Sender.StartSendingAsync(p.IdA.DeviceId));
+        await Until(() => r.Receiver.ReceivingFrom is not null, "receiving");
+        r.Receiver.SetReceiveVolume(0.45); // within the first 100 ms
+        await Until(() => Math.Abs(r.Sender.SendVolume - 0.45) < 0.001, "the sender follows");
+        await Task.Delay(400); // the start value would have arrived by now
+        Assert.Equal(0.45, r.Receiver.ReceiveVolume, 3);
+    }
+
+    [Fact]
     public async Task A_drag_sends_a_few_volume_frames_and_the_last_value_arrives()
     {
         var (p, r) = await AudioPair();

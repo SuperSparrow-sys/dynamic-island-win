@@ -54,7 +54,16 @@ public static class LinkAudioProtocol
     /// <summary>The receiver's answer says it plays the volume (1.1.13 and newer).</summary>
     public static bool AnswerHasVolume(JsonObject? answer) => LinkProtocol.Bool(answer, "volume");
 
-    public static byte[] VolumeFrame(double level) => HeaderFrame(new JsonObject { ["vol"] = Math.Round(Math.Clamp(level, 0, 1), 3) });
+    /// <summary>A volume; <paramref name="start"/>: the sender's value at the start of a stream, which a change made on the
+    /// receiving device since then wins over (the two cross on the way). Older receivers ignore the mark.</summary>
+    public static byte[] VolumeFrame(double level, bool start = false)
+    {
+        var o = new JsonObject { ["vol"] = Math.Round(Math.Clamp(level, 0, 1), 3) };
+        if (start) o["start"] = true;
+        return HeaderFrame(o);
+    }
+
+    public static bool IsStartVolume(JsonObject? header) => LinkProtocol.Bool(header, "start");
 
     /// <summary>The volume in a header (clamped to 0..1), null when it carries none.</summary>
     public static double? ReadVolume(JsonObject? header) =>

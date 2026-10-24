@@ -2,8 +2,12 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## 1.1.16 (24.10.2026)
+## 1.1.17 (24.10.2026)
 
+1.1.16 wurde nicht veröffentlicht (der Release-Lauf fand den Fehler bei der Lautstärke unten).
+
+- Ton an das andere Gerät: Wurde dort gleich nach dem Start die Lautstärke verstellt, konnte der Startwert des
+  sendenden Geräts sie danach wieder auf voll setzen.
 - Automationen statt Fokus-Profile (Einstellungen → Ruhe und Fokus): Zu Hause, Unterwegs, Kamera an, Fokus-Sitzung
   oder Pomodoro, Nicht stören am PC und iPhone-Fokus. Jede schaltet, solange sie gilt, was du
   einstellst, mit einem Satz zu jeder Einstellung; die obere gewinnt. Die Anzeigetafel geht aus, wenn du weg bist

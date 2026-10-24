@@ -224,7 +224,7 @@ public sealed class LinkAudioFeature : LinkFeature
         public async Task StartAsync()
         {
             await RestartSourceAsync().ConfigureAwait(false);
-            SendVolume(_f._sendVolume);
+            if (_queue.Writer.TryWrite(LinkAudioProtocol.VolumeFrame(_f._sendVolume, start: true))) Interlocked.Increment(ref VolumeFrames);
             var ct = _cts.Token;
             _ = Task.Run(() => WriteLoop(ct));
             _ = Task.Run(() => ReadLoop(ct));
@@ -442,11 +442,14 @@ public sealed class LinkAudioFeature : LinkFeature
         /// <summary>The volume of this sound (0..1), set by the sender or here.</summary>
         public volatile float Gain = 1;
         private NewestOnly? _tell;
+        /// <summary>The volume was set here during this stream: the sender's start value no longer counts.</summary>
+        private bool _setHere;
 
         /// <summary>Set here: plays at once, the sender hears about it at most every <see cref="LinkAudioOptions.VolumeEvery"/>.</summary>
         public void SetVolume(double level)
         {
             Gain = (float)level;
+            Volatile.Write(ref _setHere, true);
             _tell ??= new NewestOnly(_f._opts.VolumeEvery, v =>
             {
                 if (_ended != 0) return;
@@ -486,8 +489,11 @@ public sealed class LinkAudioFeature : LinkFeature
                     var frame = await _stream.ReceiveAsync(ct).ConfigureAwait(false);
                     if (frame is null) break;
                     _lastHeard = DateTime.UtcNow;
-                    if (LinkAudioProtocol.ReadVolume(LinkAudioProtocol.ReadHeader(frame)) is { } vol)
+                    var header = LinkAudioProtocol.ReadHeader(frame);
+                    if (LinkAudioProtocol.ReadVolume(header) is { } vol)
                     {
+                        // The sender's value from the start, after a change here: the two crossed, ours wins (it follows).
+                        if (LinkAudioProtocol.IsStartVolume(header) && Volatile.Read(ref _setHere)) continue;
                         Gain = (float)vol;
                         _f.Raise(() => _f.ReceiveVolumeChanged?.Invoke(vol));
                         continue;
