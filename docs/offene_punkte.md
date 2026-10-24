@@ -118,10 +118,12 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
    dimmt das Panel, sein Ende gibt es zurück, das Widget schaltet.
 4. Rubus: einmal per Code mit dem Server koppeln, Sessions und Anfragen über ihn; prod und Feldgeräte nur
    „In Rubus öffnen“. Ohne Server bleibt `RubusBridge`.
-5. Fokus leise ans iPhone: iOS setzt keinen Fokus von außen. Leise und sofort geht nur über ein zweites Apple-Gerät
-   mit derselben Apple-ID und „Über Geräte teilen“ (Mac per `shortcuts run`, iPad mit Pushcut Automation Server);
-   sonst verzögert über Automationen auf dem iPhone selbst (WLAN, Ladekabel, Uhrzeit), die den Server fragen. Vor dem
-   Bau am Gerät prüfen.
+5. Fokus leise ans iPhone: iOS nimmt von außen keine Befehle an, Tailscale ändert daran nichts. Ohne Mac oder iPad
+   (Stand 24.10.2026) geht es nur verzögert: Automationen auf dem iPhone (App geöffnet, WLAN, Ladegerät, Uhrzeit,
+   jeweils „Sofort ausführen“) fragen einen Lese-Endpunkt des Servers und setzen den Fokus mit „Fokus festlegen“.
+   Der Server muss das Echo erkennen (die Fokus-Automation meldet den gesetzten Fokus gleich zurück). Sofort und
+   leise ginge nur mit einem zweiten Apple-Gerät (iPad mit Pushcut Automation Server, „Über Geräte teilen“).
+   Vor dem Bau am Gerät prüfen.
 
 # Zurückgestellt
 
