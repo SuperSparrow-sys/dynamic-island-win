@@ -127,3 +127,10 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
   würde sich die Bewegung ändern.
 - **`UpdateCheck` bleibt auf dem UI-Thread.** Die Wartezeit fällt nur beim Update an, während die
   Windows-Bestätigung den Bildschirm verdeckt, und der Weg lässt sich ohne Installation nicht testen.
+
+## Kamera und Mikrofon auf Windows 26H2
+
+- **Kamera über Media Foundation, Mikrofon über die Aufnahme-Sitzungen (WASAPI)** (24.10.2026). Die Einträge unter
+  `ConsentStore` in der Registry werden seit den Updates vom 14.10. nicht mehr geschrieben; sie bleiben als zweite
+  Quelle. Verworfen: die Nutzungsdaten unter `C:\ProgramData\Microsoft\Windows\CapabilityAccessManager\`, die nur mit
+  Adminrechten lesbar sind. Kamera an nach 3 s, aus nach 5 s; Mikrofon-Apps zählen 5 s über die letzte Sitzung hinaus.

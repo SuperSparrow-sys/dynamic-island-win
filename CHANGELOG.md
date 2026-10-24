@@ -2,8 +2,10 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## Unveröffentlicht
+## 1.1.18 (24.10.2026)
 
+- Mikrofon: Seit den Windows-Updates vom Oktober (26H2) bemerkte DynamicBay ein laufendes Mikrofon nicht mehr (Anzeige,
+  Anrufmodus, „Stumm?“). Es kommt jetzt aus den Aufnahme-Sitzungen von Windows; Sprechpausen bis 5 s zählen mit.
 - Kamera: Seit den Windows-Updates vom 14.10. (26H2) erkannte DynamicBay eine laufende Kamera nicht mehr; die Automation
   „Kamera an“ blieb wirkungslos. Die Kamera kommt jetzt von Media Foundation und zählt erst nach 3 s, damit Apps, die
   sie kurz öffnen (LogiTune), das Panel nicht flackern lassen.

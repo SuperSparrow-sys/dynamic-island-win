@@ -20,6 +20,9 @@ public sealed partial class AudioService : ObservableObject
     private readonly DispatcherTimer _usage = new() { Interval = TimeSpan.FromMilliseconds(1500) };
     private IMMDeviceEnumerator? _enumerator;
     private bool _started, _muteKnown;
+    private volatile List<string> _micSessions = new();
+    private int _micReading;
+    private readonly Dictionary<string, DateTime> _micSeen = new(StringComparer.OrdinalIgnoreCase);
 
     [ObservableProperty] private bool _speakerMuted;
     [ObservableProperty] private int _volume;            // 0..100
@@ -68,6 +71,8 @@ public sealed partial class AudioService : ObservableObject
         _fast.Stop();
         _usage.Stop();
         MicInUse = CameraInUse = false;
+        _micSessions = new();
+        _micSeen.Clear();
     }
 
     // ---------- mute (Core Audio) ----------
@@ -193,6 +198,11 @@ public sealed partial class AudioService : ObservableObject
         var running = new Lazy<HashSet<string>>(RunningImagePaths); // only looked at when Windows reports a use
         // No microphone at all: whatever the privacy list says, nothing can be recording
         var mic = HasMicrophone() ? ActiveApps("microphone", running) : new List<string>();
+        // The recording sessions, read in the background: the result of the last round counts (at most 1.5 s old).
+        var held = MicSessions.Held(_micSeen, _micSessions, DateTime.UtcNow, TimeSpan.FromSeconds(5));
+        mic.AddRange(held.Where(a => !mic.Contains(a, StringComparer.OrdinalIgnoreCase)));
+        if (Interlocked.Exchange(ref _micReading, 1) == 0)
+            _ = Task.Run(() => { try { _micSessions = MicSessions.Active(); } finally { Interlocked.Exchange(ref _micReading, 0); } });
         var cam = ActiveApps("webcam", running);
         bool wasMic = MicInUse;
         MicInUse = mic.Count > 0;
