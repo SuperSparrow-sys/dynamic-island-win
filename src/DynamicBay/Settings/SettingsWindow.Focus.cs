@@ -5,6 +5,7 @@ using System.Windows.Input;
 using DynamicBay.Core;
 using DynamicBay.Services;
 using DynamicBay.Services.M365;
+using DynamicBay.Services.Server;
 
 namespace DynamicBay.Settings;
 
@@ -28,10 +29,17 @@ public sealed partial class SettingsWindow
                 Dispatcher.BeginInvoke(() => { if (FocusRowsKey() != _focusRowsKey) BuildFocusProfileRows(); });
             if (e.PropertyName is nameof(AppSettings.PhoneFocusEnabled)) Dispatcher.BeginInvoke(BuildPhoneFocusRows);
         };
+        PropertyChangedEventHandler serverChanged = (_, e) =>
+        {
+            if (e.PropertyName is nameof(ServerService.IsConnected) or nameof(ServerService.IphoneAddress) or nameof(ServerService.IphoneKey))
+                Dispatcher.BeginInvoke(BuildPhoneFocusRows);
+        };
         pf.PropertyChanged += serviceChanged;
+        _ctx.I.Server.PropertyChanged += serverChanged;
         _ctx.S.PropertyChanged += settingsChanged;
         Closed += (_, _) =>
         {
+            _ctx.I.Server.PropertyChanged -= serverChanged;
             pf.PropertyChanged -= serviceChanged;
             _ctx.S.PropertyChanged -= settingsChanged;
         };
@@ -41,28 +49,36 @@ public sealed partial class SettingsWindow
     {
         WirePhoneFocus();
         var pf = _ctx.I.PhoneFocus;
+        var server = _ctx.I.Server;
         PhoneFocusRows.Children.Clear();
+        // Connected to the DynamicBay server: the iPhone reports there (HTTPS, also while this PC is off).
+        bool viaServer = server.IsConnected && server.IphoneAddress.Length > 0;
         var addresses = PhoneFocusService.Addresses();
-        string url = $"http://{(addresses.Count > 0 ? addresses[0] : Environment.MachineName)}:{pf.Port}/focus";
-        string? also = addresses.Count > 1 ? (Loc.German ? "Auch: " : "Also: ") + string.Join(", ", addresses.Skip(1)) : null;
+        string url = viaServer ? server.IphoneAddress : $"http://{(addresses.Count > 0 ? addresses[0] : Environment.MachineName)}:{pf.Port}/focus";
+        string? also = viaServer ? (Loc.German ? "Über den DynamicBay-Server" : "Through the DynamicBay server")
+            : addresses.Count > 1 ? (Loc.German ? "Auch: " : "Also: ") + string.Join(", ", addresses.Skip(1)) : null;
         var copyUrl = FocusButton(Loc.T("Clip.Copy"));
         copyUrl.Click += (_, _) => CopyText(url, copyUrl);
         PhoneFocusRows.Children.Add(Row("Icon.Link", Loc.German ? "Adresse" : "Address", url + (also is null ? "" : "\n" + also), copyUrl, true));
 
         var copyKey = FocusButton(Loc.T("Clip.Copy"));
-        copyKey.Click += (_, _) => CopyText(pf.Key, copyKey);
+        copyKey.Click += (_, _) => CopyText(viaServer ? server.IphoneKey : pf.Key, copyKey);
         var renew = FocusButton(Loc.German ? "Neu" : "New");
         renew.ToolTip = Loc.German ? "Der alte Schlüssel gilt dann nicht mehr." : "The old key stops working.";
-        renew.Click += (_, _) => pf.NewKey();
+        renew.Click += async (_, _) => { if (viaServer) await server.NewIphoneKeyAsync(); else pf.NewKey(); };
         var keyButtons = new StackPanel { Orientation = Orientation.Horizontal };
         keyButtons.Children.Add(copyKey);
         renew.Margin = new Thickness(8, 0, 0, 0);
         keyButtons.Children.Add(renew);
-        PhoneFocusRows.Children.Add(Row("Icon.Key", Loc.German ? "Schlüssel" : "Key", pf.Key, keyButtons, true, out var keyText));
+        PhoneFocusRows.Children.Add(Row("Icon.Key", Loc.German ? "Schlüssel" : "Key", viaServer ? server.IphoneKey : pf.Key, keyButtons, true, out var keyText));
         _focusKeyText = keyText;
 
         _focusEnd = FocusButton(Loc.German ? "Beenden" : "End");
-        _focusEnd.Click += (_, _) => pf.End();
+        _focusEnd.Click += async (_, _) =>
+        {
+            if (_ctx.S.PhoneFocusHere.Length > 0) pf.End();
+            else if (_ctx.S.PhoneFocusServer.Length > 0) await server.EndFocusAsync(_ctx.S.PhoneFocusServer);
+        };
         PhoneFocusRows.Children.Add(Row("Icon.Phone", Loc.German ? "Jetzt" : "Now", null, _focusEnd, true, out var stateText));
         _focusStateText = stateText;
         UpdatePhoneFocusState();
@@ -71,9 +87,10 @@ public sealed partial class SettingsWindow
     private void UpdatePhoneFocusState()
     {
         var pf = _ctx.I.PhoneFocus;
-        if (_focusKeyText is not null) SetDesc(_focusKeyText, pf.Key);
+        var server = _ctx.I.Server;
+        if (_focusKeyText is not null) SetDesc(_focusKeyText, server.IsConnected && server.IphoneKey.Length > 0 ? server.IphoneKey : pf.Key);
         if (_focusStateText is not null) SetDesc(_focusStateText, pf.Status + (pf.LastEvent.Length > 0 ? "\n" + (Loc.German ? "Zuletzt: " : "Last: ") + pf.LastEvent : ""));
-        if (_focusEnd is not null) _focusEnd.IsEnabled = _ctx.S.PhoneFocusHere.Length > 0;
+        if (_focusEnd is not null) _focusEnd.IsEnabled = _ctx.S.PhoneFocusHere.Length > 0 || _ctx.S.PhoneFocusServer.Length > 0;
     }
 
     private Button FocusButton(string text) => new() { Style = (Style)FindResource("S.Button"), Padding = new Thickness(12, 5, 12, 5), Content = text };

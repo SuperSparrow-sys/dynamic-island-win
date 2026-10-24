@@ -128,6 +128,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public PhoneFocusService PhoneFocus { get; }
     /// <summary>The WAGO panel of the Anzeigetafel (the "Anzeigetafel" widget, the focus profiles' panel switch).</summary>
     public AnzeigetafelService Anzeigetafel { get; }
+    /// <summary>The optional DynamicBay server: shared settings, iPhone focus, "Nicht stören", the panel.</summary>
+    public Services.Server.ServerService Server { get; }
     public TimeTrackingService Time { get; }
     public Services.Scripting.ScriptWidgetsService Scripts { get; }
     /// <summary>Connected Bluetooth devices for the "Geräte" widget (set by the app right after construction).</summary>
@@ -198,6 +200,10 @@ public sealed partial class IslandViewModel : ObservableObject
         Work = new WorkModeService(settings, Audio, timer);
         PhoneFocus = new PhoneFocusService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         Anzeigetafel = new AnzeigetafelService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
+        Server = new Services.Server.ServerService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
+        Server.PanelChanged = Anzeigetafel.ApplyServer;
+        Server.PanelError = Anzeigetafel.ServerError;
+        Server.ConnectedChanged += on => Anzeigetafel.UseServer(on ? Server.PanelAsync : null);
         Time = new TimeTrackingService(settings);
         Scripts = new Services.Scripting.ScriptWidgetsService(settings);
         Scripts.CompactChanged += () => { RecomputeCompact(); CompactChanged?.Invoke(); };

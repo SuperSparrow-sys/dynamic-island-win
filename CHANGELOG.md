@@ -12,6 +12,9 @@ Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit d
 - Anzeigetafel: Ein neues Widget schaltet das Panel der Anzeigetafel an und aus und stellt die Helligkeit ein, bis
   zum nächsten Zeitpunkt im Wochenplan. In jedem Fokus-Profil lässt sich festlegen, ob das Panel dimmt oder ausgeht,
   solange der Fokus läuft (Einstellungen → Geräte → Anzeigetafel).
+- DynamicBay-Server: PC und Laptop lassen sich mit dem eigenen Server auf dem Homeserver koppeln (Einstellungen →
+  Geräte). Er teilt Fokus-Profile und stumme Apps, nimmt den iPhone-Fokus auch an, wenn der PC aus ist, und schaltet
+  die Anzeigetafel. Jedes Gerät kann seine eigene Liste behalten. Ohne Server bleibt alles wie bisher.
 
 ## 1.1.13 (19.10.2026)
 

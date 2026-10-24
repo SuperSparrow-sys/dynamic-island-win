@@ -67,6 +67,7 @@ public partial class SettingsWindow : Window
         BuildPhoneFocusRows();
         BuildFocusProfileRows();
         BuildAnzeigetafelRows();
+        BuildServerRows();
         UpdateClaudeShareText();
         UpdateTaildropFolderText();
         BuildScreenshotFolders();
@@ -118,6 +119,7 @@ public partial class SettingsWindow : Window
         BuildPhoneFocusRows();
         BuildFocusProfileRows();
         BuildAnzeigetafelRows();
+        BuildServerRows();
         BuildProjectRows();
         BuildTodoListChoices();
         BuildScreenshotFolders();

@@ -3,7 +3,7 @@
 Aufgaben, die noch zu erledigen sind. Was erledigt ist, wird entfernt; Messwerte gehören nach
 [performance/](performance/README.md), Entscheidungen nach [ENTSCHEIDUNGEN.md](ENTSCHEIDUNGEN.md).
 
-Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **14**.
+Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **15**.
 
 ## Ein neuer Punkt
 
@@ -108,11 +108,10 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
 `C:\Users\jonat\Documents\DynamicBay-Auftraege`; dieselben Beispiele werden hier zu Fixtures
 (`tests/DynamicBay.Tests/Fixtures/Api/Server`, `.../Anzeigetafel`).
 
-1. Server: Kopplung per Code, Verbindung (WebSocket), Fokus vom iPhone, Verteilung (Auftrag `dynamicbay-server`).
-   DynamicBay: Server verbinden (Einstellungen → Geräte), Zustand übernehmen, Fokus vom Server statt vom eigenen
-   Endpunkt, solange verbunden.
-2. Gemeinsame Einstellungen: welche Schlüssel gemeinsam sind, Überschreibung je Gerät in den Einstellungen sichtbar,
-   Änderungen ohne Server beim nächsten `hallo` nachreichen.
+1. Server (seit 24.10.2026 auf prod) und DynamicBay-Client sind gebaut. Offen: im echten Betrieb koppeln, Fokus vom
+   iPhone über den Server, Laptop vom Netz und nach etwa 90 s „offline“ in der Rubus-Anzeige.
+2. Gemeinsame Einstellungen: geteilt sind Fokus-Profile, stumme Apps und die Panel-Wirkung je Fokus, mit eigener
+   Liste je Gerät. Offen: Mitteilungsregeln (welche Schalter genau) und der Anschluss der Zentrale.
 3. Anzeigetafel: Zentrale (seit 24.10.2026 auf prod) und DynamicBay direkt sind gebaut. Offen: über den Server
    (`anzeigetafel.fokus` aus den Fokus-Profilen), und die Prüfung im echten Betrieb mit dem Schlüssel: ein Fokus
    dimmt das Panel, sein Ende gibt es zurück, das Widget schaltet.
@@ -128,6 +127,20 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
 6. Fokus vom PC: Fokus-Menü in der Insel (Profile, Dauer, Beenden) und Szenarien (Termin mit Kalender und Titel,
    Teams-Besprechung oder Anruf, Fokus-Sitzung oder Pomodoro; das obere gewinnt; nur das Hauptgerät oder der Server
    löst aus). Die neuere Wahl gewinnt gegen das iPhone. Reihenfolge: nach Stufe 1 bis 3, vor Stufe 5.
+
+## 14. Zeitabhängige Tests scheitern gelegentlich im vollen Lauf
+
+**Gemeldet:** 24.10.2026, Claude, beim Bau des Server-Clients.
+
+**Beobachtet:** In 3 von 10 vollen Läufen schlug je ein anderer Test fehl (`PhoneFocusTests.Listener_takes_the_report_and_refuses_the_rest`,
+`LinkAudioStreamTests.The_volume_set_on_the_receiving_device_reaches_the_sender`, einmal
+`ServerTests.Pair_connect_…`), jeweils allein grün; danach 10 Läufe grün. Ohne
+`ServerTests` waren 3 von 3 Läufen grün; das ist zu wenig, um sie als Ursache zu belegen.
+
+**Ursache:** noch offen. Vermutlich prüfen die Tests unmittelbar nach dem Senden, bevor der Empfänger-Thread fertig
+ist, und Last durch andere Tests (Dispatcher-Thread und Loopback-Server in `ServerTests`) macht das sichtbar.
+
+**Zu tun:** In beiden Tests auf das Ergebnis warten statt sofort zu prüfen. Erledigt, wenn 20 volle Läufe grün sind.
 
 # Zurückgestellt
 

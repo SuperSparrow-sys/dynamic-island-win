@@ -146,6 +146,8 @@ public sealed partial class AnzeigetafelService : ObservableObject, IDisposable
     private List<JsonObject> _focusPending = new();
     private DateTime _focusSince, _movedAt = DateTime.MinValue;
     private bool _showing, _demo, _disposed;
+    /// <summary>Connected to the DynamicBay server: widget commands go through it, it sends the focus commands itself.</summary>
+    private Func<JsonObject, Task<bool>>? _relay;
 
     [ObservableProperty][NotifyPropertyChangedFor(nameof(HasState))] private PanelState? _state;
     [ObservableProperty] private string _statusText = "";
@@ -193,19 +195,40 @@ public sealed partial class AnzeigetafelService : ObservableObject, IDisposable
     }
 
     private void UpdateConfigured() =>
-        IsConfigured = PanelProtocol.Endpoint(_settings.AnzeigetafelUrl) is not null && Key.Length > 0;
+        IsConfigured = _relay is not null || PanelProtocol.Endpoint(_settings.AnzeigetafelUrl) is not null && Key.Length > 0;
+
+    /// <summary>The server connected (relay) or went away (null): then this device talks to the Anzeigetafel itself again.</summary>
+    public void UseServer(Func<JsonObject, Task<bool>>? relay)
+    {
+        _relay = relay;
+        if (relay is not null) _poll.Stop();
+        else State = null;
+        UpdateConfigured();
+    }
+
+    /// <summary>The panel from the server's <c>zustand</c>; null: no Anzeigetafel behind the server.</summary>
+    public void ApplyServer(PanelState? s)
+    {
+        if (_relay is null || _demo) return;
+        if (s is null) { State = null; HasOverride = false; StatusText = ""; return; }
+        Error = "";
+        Apply(s);
+    }
+
+    /// <summary><c>panel_fehler</c> from the server: its sentence as it is.</summary>
+    public void ServerError(string text) => Error = text;
 
     /// <summary>A panel with the widget opened or closed: read now and every 3 s while it stays open.</summary>
     public void SetPanelOpen(bool open)
     {
         if (_demo || _disposed) return;
-        if (open && IsConfigured) { _ = RefreshAsync(); _poll.Start(); }
+        if (open && IsConfigured && _relay is null) { _ = RefreshAsync(); _poll.Start(); }
         else _poll.Stop();
     }
 
     public async Task RefreshAsync()
     {
-        if (_demo || _disposed || !IsConfigured) return;
+        if (_demo || _disposed || !IsConfigured || _relay is not null) return;
         await CallAsync(HttpMethod.Get, null);
     }
 
@@ -245,7 +268,7 @@ public sealed partial class AnzeigetafelService : ObservableObject, IDisposable
         string before = _focus, after = _settings.PhoneFocusHere;
         if (before == after) return;
         _focus = after;
-        if (_demo || !IsConfigured) return;
+        if (_demo || !IsConfigured || _relay is not null) return; // the server sends the focus commands itself
         _focusPending = PanelProtocol.ForFocus(before, after, _settings.ProfileFor, Source);
         _focusSince = DateTime.UtcNow;
         await RetryFocusAsync();
@@ -268,6 +291,7 @@ public sealed partial class AnzeigetafelService : ObservableObject, IDisposable
     private async Task<bool> SendAsync(JsonObject command, bool focus = false)
     {
         if (_demo || _disposed || !IsConfigured) return false;
+        if (_relay is not null) return !focus && await _relay(command);
         bool ok = await CallAsync(HttpMethod.Post, command);
         if (!ok && !focus) _ = RefreshAsync(); // the widget shows the real state again
         return ok;

@@ -48,7 +48,8 @@ public static class SettingsTransfer
     /// stays here anyway) and its own device name. Every other pairing setting (the switch, what is shared, which
     /// device is the main one) is a normal preference and travels with the export.
     /// </summary>
-    internal static readonly string[] DeviceOnly = { nameof(AppSettings.PairedDevices), nameof(AppSettings.LinkDeviceName) };
+    internal static readonly string[] DeviceOnly = { nameof(AppSettings.PairedDevices), nameof(AppSettings.LinkDeviceName),
+        nameof(AppSettings.ServerAddress), nameof(AppSettings.ServerDeviceId), nameof(AppSettings.SharedChanged), nameof(AppSettings.OverriddenKeys) };
 
     public static bool IsTransferableSecret(string key) => key.StartsWith("cal:", StringComparison.Ordinal) && key.EndsWith(":secret", StringComparison.Ordinal);
 

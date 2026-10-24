@@ -96,6 +96,7 @@ steuert (Mikrofon-Nutzung für den Anrufmodus, Timer, Zeiterfassung), läuft wei
 | `ShortcutsService`, `AppIcons`, `InstalledApps` | Schnellstart, Simple-Icons-Palette (gzip, bei Bedarf geladen), Startmenü-Apps |
 | `Battery/Bluetooth/Timer/Clock/SystemService` | Akku, Geräte, Timer/Pomodoro, Uhr, CPU/RAM |
 | `PhoneFocusService` | iPhone-Fokus: HTTP auf TCP 43825 (eigener kleiner Server auf `TcpListener`, `PhoneFocusProtocol`: lesen, Regeln, Reihenfolge von An und Aus), Schlüssel in `secrets\`, Profile in `AppSettings.FocusProfiles`; siehe [INTEGRATIONS.md](INTEGRATIONS.md#iphone-fokus) |
+| `Server/ServerService` | Optionaler DynamicBay-Server: Kopplung per Code, WebSocket, gemeinsame Einstellungen (`SharedSettings`, die neuere gewinnt, Überschreibung je Gerät), Fokus vom Server (`AppSettings.PhoneFocusServer`), „Nicht stören“, Panel über den Server; siehe [INTEGRATIONS.md](INTEGRATIONS.md#dynamicbay-server) |
 | `AnzeigetafelService` | WAGO-Panel über die Anzeigetafel (`dashboard-zentrale`): `PanelProtocol` (Antwort lesen, Befehle, Fokus-Wechsel), Widget und Panel-Wirkung der Fokus-Profile, Schlüssel in `secrets\`; siehe [INTEGRATIONS.md](INTEGRATIONS.md#anzeigetafel) |
 | `AirPodsService` | Akku beider Ohrhörer und des Case aus der Bluetooth-Werbung der AirPods (`AirPodsAdvert`), siehe [INTEGRATIONS.md](INTEGRATIONS.md#airpods) |
 

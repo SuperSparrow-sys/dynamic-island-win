@@ -343,7 +343,7 @@ public sealed partial class PhoneFocusService : ObservableObject, IDisposable
         settings.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(AppSettings.PhoneFocusEnabled)) Apply();
-            if (e.PropertyName is nameof(AppSettings.PhoneFocusHere) or nameof(AppSettings.PhoneFocusPeer)) UpdateStatus();
+            if (e.PropertyName is nameof(AppSettings.PhoneFocusHere) or nameof(AppSettings.PhoneFocusPeer) or nameof(AppSettings.PhoneFocusServer)) UpdateStatus();
         };
     }
 
@@ -459,6 +459,8 @@ public sealed partial class PhoneFocusService : ObservableObject, IDisposable
             Status = Loc.German ? $"Port {Port} ist belegt." : $"Port {Port} is in use.";
         else if (_settings.PhoneFocusHere.Length > 0)
             Status = Loc.German ? $"{_settings.PhoneFocusHere} seit {_since:HH:mm}" : $"{_settings.PhoneFocusHere} since {_since:HH:mm}";
+        else if (_settings.PhoneFocusServer.Length > 0)
+            Status = Loc.German ? $"{_settings.PhoneFocusServer} (über den Server)" : $"{_settings.PhoneFocusServer} (from the server)";
         else if (_settings.PhoneFocusPeer.Length > 0)
             Status = Loc.German ? $"{_settings.PhoneFocusPeer} (über Kopplung)" : $"{_settings.PhoneFocusPeer} (from paired device)";
         else Status = Loc.German ? "Kein Fokus" : "No focus";

@@ -1,0 +1,25 @@
+{
+  "art": "einstellung",
+  "schluessel": "anzeigetafel.fokus",
+  "wert": {
+    "Arbeit": {
+      "panel": "dimmen",
+      "prozent": 15
+    },
+    "Schlafen": {
+      "panel": "aus",
+      "prozent": 5
+    },
+    "Schule": {
+      "panel": "nichts",
+      "prozent": 5
+    },
+    "Zuhause": {
+      "panel": "nichts",
+      "prozent": 5
+    }
+  },
+  "geaendert": 1792828800000,
+  "nur_hier": false,
+  "von": "7f3c9a2e5b1d4f60a8e2c4b6d8f0a1c3"
+}

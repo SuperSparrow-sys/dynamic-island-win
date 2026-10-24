@@ -1,0 +1,18 @@
+{
+  "art": "hallo",
+  "v": 1,
+  "geraet": "7f3c9a2e5b1d4f60a8e2c4b6d8f0a1c3",
+  "name": "Desktop-PC",
+  "art_geraet": "pc",
+  "version": "1.1.14",
+  "offen": [
+    {
+      "schluessel": "stumme_apps",
+      "wert": [
+        "WhatsApp"
+      ],
+      "geaendert": 1792835880000,
+      "nur_hier": false
+    }
+  ]
+}

@@ -395,17 +395,24 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private string _phoneFocusPeer = "";
     partial void OnPhoneFocusHereChanged(string value) => FocusChanged();
     partial void OnPhoneFocusPeerChanged(string value) => FocusChanged();
+    /// <summary>The iPhone focus the DynamicBay server knows (it got the report); "" without server.</summary>
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private string _phoneFocusServer = "";
+    partial void OnPhoneFocusServerChanged(string value) => FocusChanged();
+    /// <summary>This device sets Teams for a focus from the server (the main device, or no paired one).</summary>
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _serverTeamsHere = true;
 
     public FocusProfile? ProfileFor(string name) =>
         name.Length == 0 ? null : FocusProfiles.FirstOrDefault(p => string.Equals(p.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>The profile of the iPhone focus that is on (reported here, else by the paired device), or null.</summary>
-    [System.Text.Json.Serialization.JsonIgnore] public FocusProfile? ActiveFocus => ProfileFor(PhoneFocusHere.Length > 0 ? PhoneFocusHere : PhoneFocusPeer);
+    /// <summary>The profile of the iPhone focus that is on (reported here, else by the server, else by the paired device), or null.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public FocusProfile? ActiveFocus =>
+        ProfileFor(PhoneFocusHere.Length > 0 ? PhoneFocusHere : PhoneFocusServer.Length > 0 ? PhoneFocusServer : PhoneFocusPeer);
     /// <summary>Notification text in peeks: off by choice, while sharing the screen and in a focus that hides it.</summary>
     [System.Text.Json.Serialization.JsonIgnore] public bool ShowNotificationText => NotificationShowBody && !Sharing && ActiveFocus?.HideText != true;
     [System.Text.Json.Serialization.JsonIgnore] public bool FocusHidesIsland => ActiveFocus?.HideIsland == true;
-    /// <summary>Teams follows only a focus the iPhone reported here: the paired device would set the same status twice.</summary>
-    [System.Text.Json.Serialization.JsonIgnore] public string FocusTeamsStatus => ProfileFor(PhoneFocusHere)?.TeamsStatus ?? "";
+    /// <summary>Teams follows a focus the iPhone reported here, or one from the server on one device only: else the status is set twice.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public string FocusTeamsStatus =>
+        ProfileFor(PhoneFocusHere.Length > 0 ? PhoneFocusHere : ServerTeamsHere ? PhoneFocusServer : "")?.TeamsStatus ?? "";
     public bool IsMuted(string app) => MutedApps.Contains(app) || ActiveFocus?.MutedApps.Contains(app, StringComparer.OrdinalIgnoreCase) == true;
     public bool FocusHidesWidget(string id) => ActiveFocus?.HiddenWidgets.Contains(id) == true;
 
@@ -483,6 +490,14 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private string _linkDeviceName = "";
     /// <summary>The Anzeigetafel (dashboard-zentrale) for the panel widget, e.g. "https://homeserver.example.ts.net:20004"; "" = none. The key is in the DPAPI store.</summary>
     [ObservableProperty] private string _anzeigetafelUrl = "";
+
+    // DynamicBay server (Services/Server): this device's address and id there; the key is in the DPAPI store.
+    [ObservableProperty] private string _serverAddress = "";
+    [ObservableProperty] private string _serverDeviceId = "";
+    /// <summary>When each shared setting last changed (Unix ms, here or on the server): the newer change wins.</summary>
+    public Dictionary<string, long> SharedChanged { get; set; } = new();
+    /// <summary>Shared settings this device keeps for itself (the server sends them only here).</summary>
+    public HashSet<string> OverriddenKeys { get; set; } = new();
     // What is shared with paired devices (checked when sending and when receiving). All on: nothing goes anywhere
     // before the link is switched on and a device is paired.
     [ObservableProperty] private bool _linkShareFiles = true;

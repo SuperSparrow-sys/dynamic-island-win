@@ -1,0 +1,104 @@
+{
+  "art": "willkommen",
+  "v": 1,
+  "server_version": "0.1.0",
+  "jetzt": 1792836000,
+  "einstellungen": {
+    "anzeigetafel.fokus": {
+      "wert": {
+        "Arbeit": {
+          "panel": "dimmen",
+          "prozent": 15
+        },
+        "Schlafen": {
+          "panel": "aus",
+          "prozent": 5
+        },
+        "Schule": {
+          "panel": "nichts",
+          "prozent": 5
+        },
+        "Zuhause": {
+          "panel": "nichts",
+          "prozent": 5
+        }
+      },
+      "geaendert": 1792828800000,
+      "von": "7f3c9a2e5b1d4f60a8e2c4b6d8f0a1c3"
+    },
+    "stumme_apps": {
+      "wert": [
+        "WhatsApp",
+        "Discord"
+      ],
+      "geaendert": 1792835940000,
+      "von": "2b4d6f8a0c1e3a5b7d9f1b3d5f7a9c0e"
+    }
+  },
+  "ueberschreibungen": {
+    "stumme_apps": {
+      "wert": [
+        "Discord"
+      ],
+      "geaendert": 1792834200000,
+      "von": "7f3c9a2e5b1d4f60a8e2c4b6d8f0a1c3"
+    }
+  },
+  "zustand": {
+    "fokus": {
+      "name": "Arbeit",
+      "seit": 1792825920,
+      "bis": 1792883520
+    },
+    "nicht_stoeren": {
+      "an": false,
+      "geaendert": 1792821600000,
+      "von": "2b4d6f8a0c1e3a5b7d9f1b3d5f7a9c0e"
+    },
+    "panel": {
+      "v": 1,
+      "panel": {
+        "erreichbar": true,
+        "an": true,
+        "prozent": 15
+      },
+      "soll": {
+        "zustand": "hell",
+        "prozent": 15,
+        "grund": "Vorrang",
+        "naechster": "Sa 19:00",
+        "naechster_ts": 1792861200
+      },
+      "vorrang": {
+        "zustand": "hell",
+        "prozent": 15,
+        "bis": 1792883520,
+        "bis_text": "So 01:12",
+        "dauer": "ende",
+        "grund": "Fokus Arbeit",
+        "quelle": "DynamicBay-Server"
+      },
+      "steuern": true
+    }
+  },
+  "geraete": [
+    {
+      "geraet": "7f3c9a2e5b1d4f60a8e2c4b6d8f0a1c3",
+      "name": "Desktop-PC",
+      "art": "pc",
+      "online": true,
+      "zuletzt": 1792836000
+    },
+    {
+      "geraet": "2b4d6f8a0c1e3a5b7d9f1b3d5f7a9c0e",
+      "name": "Laptop",
+      "art": "laptop",
+      "online": false,
+      "zuletzt": 1792820700
+    }
+  ],
+  "iphone": {
+    "adresse": "https://homeserver.taila8377a.ts.net:20009/api/v1/iphone/fokus",
+    "schluessel": "abcd-efgh-ijkm-npqr-stuv-wxyz"
+  }
+}

@@ -238,6 +238,9 @@ public partial class App : Application
         if (_settings.AudioEnabled) Safe("Audio", vm.Audio.Start);
         Safe("Work", vm.Work.Start);
         Safe("PhoneFocus", vm.PhoneFocus.Start);
+        // Teams follows a focus from the server on one device only: the main one, or this one without a paired device.
+        vm.Server.TeamsHere = () => _link?.Role is not { } role || _link.HasDevices != true || role.IsMain;
+        Safe("Server", vm.Server.Start);
         Safe("Time", vm.Time.WatchSession);
         Safe("Downloads", () => vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads)));
         _settings.PropertyChanged += (_, ev) => { if (ev.PropertyName == nameof(AppSettings.CompactItems)) vm.Downloads.SetEnabled(_settings.HasCompact(Widgets.Downloads)); };
@@ -1158,6 +1161,7 @@ public partial class App : Application
         _vm?.CursorHop.Dispose();
         _vm?.PhoneFocus.Dispose();
         _vm?.Anzeigetafel.Dispose();
+        _vm?.Server.Dispose();
         _hopOverlay.Dispose();
         _vm?.Claude.Stop(); // frees the hook port for the new run
         StopLink(); // frees the link port for the new run
@@ -1179,6 +1183,7 @@ public partial class App : Application
         _vm?.CursorHop.Dispose();
         _vm?.PhoneFocus.Dispose();
         _vm?.Anzeigetafel.Dispose();
+        _vm?.Server.Dispose();
         _hopOverlay.Dispose();
         StopLink();
         _tray?.Dispose();

@@ -364,3 +364,31 @@ Der Schlüssel liegt verschlüsselt auf diesem PC und wird nicht wieder angezeig
 `dashboard-zentrale` unter `docs/dynamicbay/`; die Beispiele dort sind die Fixtures in
 `tests/DynamicBay.Tests/Fixtures/Api/Anzeigetafel`. Umgesetzt in `Services/Anzeigetafel.cs` (`PanelProtocol`:
 lesen, Befehle, Fokus-Wechsel; `AnzeigetafelService`: Abfrage alle 3 s bei offener Insel, Widget, Fokus).
+
+## DynamicBay-Server
+
+Der optionale DynamicBay-Server (Rubus-Projekt `dynamicbay-server` auf dem Homeserver, Port 20009, nur im Tailnet)
+verwaltet, was PC und Laptop gemeinsam haben: Fokus-Profile und stumme Apps, den Fokus vom iPhone, „Nicht stören“
+und das Panel der [Anzeigetafel](#anzeigetafel). Ton, Dateien, Zwischenablage und Maus laufen weiter über die
+direkte Kopplung. Ohne Server oder ohne Verbindung arbeitet jedes Gerät wie vorher.
+
+**Koppeln:** Einstellungen → Geräte → DynamicBay-Server: Adresse (`homeserver.<tailnet>.ts.net:20009` reicht) und
+einen 6-stelligen Code, erzeugt in Rubus unter Anzeigen → „DynamicBay-Geräte“ oder an einem schon gekoppelten Gerät
+mit „Code erzeugen“. Der Geräteschlüssel liegt verschlüsselt auf diesem PC. „Trennen“ vergisst den Server hier;
+„Entfernen“ an einem anderen Gerät oder in Rubus sperrt dieses Gerät, es zeigt dann „Der Server kennt dieses Gerät
+nicht mehr“.
+
+**Gemeinsame Einstellungen:** Die neuere Änderung gewinnt, je Einstellung. Änderungen ohne Verbindung gehen beim
+nächsten Verbinden mit. „Eigene stumme Apps“ und „Eigene Fokus-Profile“ lassen ein Gerät seine eigene Liste
+behalten; die anderen teilen ihre weiter.
+
+**iPhone:** Verbunden zeigt Ruhe und Fokus die Adresse und den Schlüssel des Servers. Die Kurzbefehle melden dann
+dorthin (HTTPS, auch wenn der PC aus ist), jedes Gerät schaltet nach seinem Profil. Den Teams-Status setzt nur das
+Hauptgerät (ohne gekoppeltes Gerät dieses). „Beenden“ beendet den Fokus auf dem Server.
+
+**Anzeigetafel:** Verbunden schickt der Server die Anweisungen eines Fokus selbst; das Widget schaltet über ihn.
+
+**Verbindung:** WebSocket `wss://…:20009/api/v1/verbindung` mit dem Geräteschlüssel. Neuer Versuch nach 1 s, bis
+60 s; meldet sich dasselbe Gerät woanders an (Abbruch 4409), wartet es 30 s. Vertrag: Repo `dynamicbay-server`,
+`docs/dynamicbay/`, als Fixtures in `tests/DynamicBay.Tests/Fixtures/Api/Server`. Umgesetzt in
+`Services/Server/` (`ServerProtocol`, `SharedSettings`, `ServerService`).
