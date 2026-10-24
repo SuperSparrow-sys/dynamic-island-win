@@ -29,6 +29,9 @@ public sealed partial class AudioService : ObservableObject
     [ObservableProperty] private bool _cameraInUse;
     [ObservableProperty] private string _cameraApp = "";
 
+    /// <summary>The camera as Media Foundation reports it (also where Windows no longer writes the registry records).</summary>
+    public CameraActivity? Sensor { get; set; }
+
     /// <summary>A recording started (app name) - used for the "Stumm?" question.</summary>
     public event Action<string>? MicStarted;
     public event Action<bool>? MicMuteChanged;
@@ -194,6 +197,7 @@ public sealed partial class AudioService : ObservableObject
         bool wasMic = MicInUse;
         MicInUse = mic.Count > 0;
         MicApp = mic.Count switch { 0 => "", 1 => mic[0], _ => $"{mic[0]} +{mic.Count - 1}" };
+        if (Sensor?.Apps is { Count: > 0 } streaming) cam.AddRange(streaming.Where(a => !cam.Contains(a, StringComparer.OrdinalIgnoreCase)));
         CameraInUse = cam.Count > 0;
         CameraApp = cam.Count == 0 ? "" : cam[0];
         if (MicInUse && !wasMic && !initial) MicStarted?.Invoke(MicApp);

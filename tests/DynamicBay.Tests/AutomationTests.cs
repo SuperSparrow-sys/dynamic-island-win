@@ -261,6 +261,34 @@ public class AutomationTests
         Assert.True(f.Panel.On);
     }
 
+    // ---------- the camera, settled ----------
+
+    [Fact]
+    public void A_camera_that_flickers_does_not_switch_and_one_that_stays_on_does()
+    {
+        var t0 = new DateTime(2026, 10, 24, 21, 36, 0, DateTimeKind.Utc);
+        var settle = new Settle(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(5));
+        // LogiTune at 21:36: on and off within a second, several times.
+        foreach (int s in new[] { 4, 11, 19 })
+        {
+            Assert.False(settle.Update(true, t0.AddSeconds(s)));
+            Assert.False(settle.Update(false, t0.AddSeconds(s + 1)));
+        }
+        // The camera app from 21:36:23: on after 3 s.
+        Assert.False(settle.Update(true, t0.AddSeconds(23)));
+        Assert.True(settle.Pending);
+        Assert.False(settle.Update(true, t0.AddSeconds(25)));
+        Assert.True(settle.Update(true, t0.AddSeconds(26)));
+        // A second without it (switching to the virtual camera) changes nothing.
+        Assert.True(settle.Update(false, t0.AddSeconds(30)));
+        Assert.True(settle.Update(true, t0.AddSeconds(31)));
+        // Closed at 21:36:41: off after 5 s.
+        Assert.True(settle.Update(false, t0.AddSeconds(41)));
+        Assert.True(settle.Update(false, t0.AddSeconds(45)));
+        Assert.False(settle.Update(false, t0.AddSeconds(46)));
+        Assert.False(settle.Pending);
+    }
+
     // ---------- Teams: grey only instead of green, while away ----------
 
     [Fact]

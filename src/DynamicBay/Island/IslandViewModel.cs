@@ -128,6 +128,9 @@ public sealed partial class IslandViewModel : ObservableObject
     public PhoneFocusService PhoneFocus { get; }
     /// <summary>The WAGO panel of the Anzeigetafel (the "Anzeigetafel" widget, the focus profiles' panel switch).</summary>
     public AnzeigetafelService Anzeigetafel { get; }
+    /// <summary>Which apps stream a camera (Media Foundation): "Kamera an" and the camera symbol.</summary>
+    public CameraActivity Camera { get; } = new();
+    private readonly Core.Settle _cameraSettle = new(TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(5));
     /// <summary>The optional DynamicBay server: shared settings, iPhone focus, "Nicht stören", the panel.</summary>
     public Services.Server.ServerService Server { get; }
     public TimeTrackingService Time { get; }
@@ -201,8 +204,19 @@ public sealed partial class IslandViewModel : ObservableObject
         PhoneFocus = new PhoneFocusService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         Anzeigetafel = new AnzeigetafelService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         PhoneFocus.Reported += r => _ = Anzeigetafel.ReportAsync(r.Name, r.On);
-        // "Kamera an" (automations) follows the camera light of Windows.
-        Audio.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AudioService.CameraInUse)) settings.CameraOn = Audio.CameraInUse; };
+        // "Kamera an" (automations): the camera as Media Foundation reports it, or the registry records where they are still
+        // written; on after 3 s, off after 5 s, so an app that opens the camera for a second (LogiTune) does not flicker.
+        Audio.Sensor = Camera;
+        var ui = global::System.Windows.Threading.Dispatcher.CurrentDispatcher;
+        var settleTick = new global::System.Windows.Threading.DispatcherTimer(global::System.Windows.Threading.DispatcherPriority.Background, ui) { Interval = TimeSpan.FromMilliseconds(500) };
+        void Follow()
+        {
+            settings.CameraOn = _cameraSettle.Update(Camera.InUse || Audio.CameraInUse, DateTime.UtcNow);
+            if (_cameraSettle.Pending) settleTick.Start(); else settleTick.Stop();
+        }
+        settleTick.Tick += (_, _) => Follow();
+        Camera.Changed += () => ui.BeginInvoke(Follow);
+        Audio.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AudioService.CameraInUse)) Follow(); };
         Server = new Services.Server.ServerService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         Server.PanelChanged = Anzeigetafel.ApplyServer;
         Server.PanelError = Anzeigetafel.ServerError;

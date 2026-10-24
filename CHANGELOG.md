@@ -4,6 +4,9 @@ Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit d
 
 ## Unveröffentlicht
 
+- Kamera: Seit den Windows-Updates vom 14.10. (26H2) erkannte DynamicBay eine laufende Kamera nicht mehr; die Automation
+  „Kamera an“ blieb wirkungslos. Die Kamera kommt jetzt von Media Foundation und zählt erst nach 3 s, damit Apps, die
+  sie kurz öffnen (LogiTune), das Panel nicht flackern lassen.
 - Automationen: Die Meldung „Zuhause“ des Servers legte nach dem Update ein zusätzliches, leeres iPhone-Fokus-Profil
   „Zuhause“ an; das entfällt und wird beim Start entfernt.
 

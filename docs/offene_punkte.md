@@ -126,24 +126,20 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
    mit Regeltabelle seit 24.10.2026 auf prod, Zentrale mit `uebergang_s`). Offen: Fokus-Menü in der Insel und der
    Auslöser „Termin“ (Kalender, Titel enthält); Prüfung im echten Betrieb (gehen, kommen, Kamera, Schlafen).
 
-## 15. Kamera und Mikrofon werden auf Windows 26H2 nicht mehr erkannt
+## 15. Mikrofon wird auf Windows 26H2 nicht mehr erkannt
 
-**Gemeldet:** 24.10.2026, Besitzer, 1.1.17 (Automation „Kamera an“ schaltete das Panel nicht aus).
+**Gemeldet:** 24.10.2026, Besitzer, 1.1.17 (zuerst an der Kamera bemerkt).
 
-**Beobachtet:** Kamera-App, Browser und Teams mit Kamera: DynamicBay merkt nichts, die Kamera-Automation schickt
-keine `regel`. Ebenso fehlen der Teams-Anruf von heute und jede Mikrofon-Nutzung nach dem 20.10. Betroffen sind auch
-die Mikrofon-Anzeige und der Anrufmodus.
+**Beobachtet:** Seit dem 20.10. fehlt jede Mikrofon-Nutzung, auch der Teams-Anruf vom 24.10.: Mikrofon-Anzeige und
+Anrufmodus bemerken nichts. Die Kamera geht seit 1.1.18 über Media Foundation (`Services/CameraActivity.cs`).
 
-**Ursache:** Windows schreibt `LastUsedTimeStart`/`LastUsedTimeStop` unter
-`HKCU\...\CapabilityAccessManager\ConsentStore\webcam` bzw. `microphone` auf diesem PC nicht mehr (letzte Einträge
-Kamera 14.10., Mikrofon 20.10.; Updates KB5127647, KB5121794, KB5127648 am 14.10.; Build 26300.9711, 26H2).
-`AudioService.ReadUsage` liest nur diesen Zweig. Die neueren Windows-Versionen führen die Nutzung zusätzlich in
-`C:\ProgramData\Microsoft\Windows\CapabilityAccessManager\CapabilityAccessManager.db` (SQLite); der Ordner ist ohne
-Adminrechte nicht lesbar.
+**Ursache:** Windows schreibt `LastUsedTimeStart`/`LastUsedTimeStop` unter `HKCU\...\CapabilityAccessManager\ConsentStore`
+auf diesem PC nicht mehr (letzte Einträge Kamera 14.10., Mikrofon 20.10.; Updates KB5127647, KB5121794, KB5127648 am
+14.10.; Build 26300.9711, 26H2). Einstellungen → Datenschutz → Kamera → „Aktuelle Aktivität“ zeigt die Nutzung weiter;
+sie liegt in `C:\ProgramData\Microsoft\Windows\CapabilityAccessManager\` (ohne Adminrechte nicht lesbar).
 
-**Zu tun:** Klären, ob Windows (Einstellungen → Datenschutz → Kamera → Letzte Aktivität) die Nutzung noch zeigt. Dann
-einen Weg ohne Adminrechte finden, der auch den Anrufmodus wieder versorgt. Erledigt, wenn „Kamera an“ und die
-Mikrofon-Anzeige auf diesem PC wieder reagieren.
+**Zu tun:** Mikrofon über die Audio-Sitzungen der Aufnahmegeräte (WASAPI, NAudio ist da) erkennen, außerhalb des
+UI-Threads (Punkt 6). Erledigt, wenn Mikrofon-Anzeige und Anrufmodus auf diesem PC wieder reagieren.
 
 # Zurückgestellt
 

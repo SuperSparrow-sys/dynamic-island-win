@@ -403,7 +403,7 @@ wo zwei dasselbe wollen (Pfeile im Kopf der Karte); jede lässt sich einzeln aus
 |---|---|---|
 | Zu Hause | das iPhone im WLAN zu Hause ist | Wochenplan (hebt das „aus“ von Unterwegs auf) |
 | Unterwegs | es nicht im WLAN ist, nach einer Wartezeit (Vorgabe 1 min gegen kurze WLAN-Abbrüche) | aus, bis du ankommst |
-| Kamera an | an diesem PC eine Kamera läuft (wie die Kamera-Anzeige von Windows, egal welche App; nicht Termine oder Anrufe ohne Kamera) | z. B. aus, schnell (10 s) |
+| Kamera an | an diesem PC eine Kamera läuft (Media Foundation, egal welche App; nicht Termine oder Anrufe ohne Kamera); an nach 3 s, aus nach 5 s ohne Kamera | z. B. aus, schnell (10 s) |
 | Fokus-Sitzung oder Pomodoro | an diesem PC eine Fokus-Sitzung läuft | nach Wahl |
 | Nicht stören an diesem PC | „Nicht stören“ an ist | nach Wahl |
 | iPhone-Fokus „Name“ | dieser Fokus am iPhone an ist (eigene Kurzbefehle-Automation) | nach Wahl, nur zu Hause |
