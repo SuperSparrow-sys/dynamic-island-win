@@ -271,6 +271,7 @@ public sealed partial class ServerService : ObservableObject, IDisposable
                 Error = "";
                 SetConnected(true);
                 ApplyState(w.State);
+                SendNewer();
                 Log.Info($"Server: connected (server {w.Version}, {w.Devices.Count} devices)");
                 break;
             case "zustand":
@@ -361,6 +362,26 @@ public sealed partial class ServerService : ObservableObject, IDisposable
     }
 
     // ---- this device's changes ----
+
+    /// <summary>
+    /// After <c>willkommen</c>: what is newer here than on the server goes out (a change while it was away, the
+    /// settings an update turned into automations), and the rule table when it differs from what the server runs.
+    /// </summary>
+    private void SendNewer()
+    {
+        foreach (var key in SharedSettings.Keys.Where(k => k != SharedSettings.Automatik))
+        {
+            _settings.SharedChanged.TryGetValue(key, out long mine);
+            var theirs = _settings.OverriddenKeys.Contains(key) ? _overrides.GetValueOrDefault(key) : _shared.GetValueOrDefault(key);
+            if (mine > (theirs?.Changed ?? 0)) _dirty.Add(key);
+        }
+        if (!JsonNode.DeepEquals(_shared.GetValueOrDefault(SharedSettings.Automatik)?.Value, SharedSettings.Read(_settings, SharedSettings.Automatik)))
+            Changed(SharedSettings.Automatik);
+        if (_dirty.Count > 0) { _send.Stop(); _send.Start(); }
+    }
+
+    /// <summary>Tests: what waits to be sent.</summary>
+    internal IReadOnlyCollection<string> Dirty => _dirty;
 
     private void Changed(string key)
     {

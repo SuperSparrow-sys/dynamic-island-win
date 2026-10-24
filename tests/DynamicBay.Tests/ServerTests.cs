@@ -195,6 +195,30 @@ public class ServerTests
     }
 
     [Fact]
+    public void After_an_update_the_automations_and_the_rule_table_go_to_the_server()
+    {
+        // Settings of 1.1.15: the update turns them into automations and counts that as a change.
+        var s = new AppSettings { SettingsVersion = 12 };
+        s.FocusProfiles.Add(new FocusProfile { Name = "Zuhause", PanelEnd = "aus" });
+        s.Migrate(cursorHopInstalled: false);
+        var server = Offline(s);
+        var old = Obj("ws_willkommen.json"); // the server still has the old list and no table
+        old["zustand"]!["fokus"] = null; // no unknown focus: only the update counts here
+        server.Handle(old);
+        Assert.Contains(SharedSettings.FocusProfiles, server.Dirty);
+        Assert.Contains(SharedSettings.Automatik, server.Dirty);
+
+        // Nothing newer here and the same table: nothing goes out.
+        var same = new AppSettings();
+        var quiet = Offline(same);
+        var welcome = Obj("ws_willkommen.json");
+        welcome["einstellungen"]!["automatik"] = new JsonObject { ["wert"] = SharedSettings.Read(same, SharedSettings.Automatik), ["geaendert"] = 1, ["von"] = "x" };
+        welcome["zustand"]!["fokus"] = null; // a focus unknown here would add a profile, and that goes out too
+        quiet.Handle(welcome);
+        Assert.Empty(quiet.Dirty);
+    }
+
+    [Fact]
     public void Teams_follows_a_focus_from_the_server_on_one_device_only()
     {
         var s = new AppSettings();

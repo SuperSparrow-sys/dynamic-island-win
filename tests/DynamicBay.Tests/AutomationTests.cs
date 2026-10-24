@@ -261,6 +261,42 @@ public class AutomationTests
         Assert.True(f.Panel.On);
     }
 
+    // ---------- Teams: grey only instead of green, while away ----------
+
+    [Fact]
+    public void Away_turns_teams_grey_only_when_it_is_green_and_never_during_a_call_or_the_camera()
+    {
+        var s = new AppSettings();
+        foreach (var p in FocusProfile.Defaults()) s.FocusProfiles.Add(p);
+        s.TeamsNatural = "Available";
+        s.PresenceHome = true;
+        Assert.Equal("", s.FocusTeamsStatus); // at home Teams shows what it shows by itself
+        s.PresenceHome = false;
+        Assert.Equal("Offline", s.FocusTeamsStatus);
+        // Set by us: Teams' own status is hidden now; it stays grey.
+        s.TeamsAuto = "Offline";
+        s.TeamsNatural = "Offline";
+        Assert.Equal("Offline", s.FocusTeamsStatus);
+        // A call or the camera on the laptop: Teams would be red, the grey goes.
+        s.InMeeting = true;
+        Assert.Equal("", s.FocusTeamsStatus);
+        s.InMeeting = false;
+        s.CameraOn = true;
+        Assert.Equal("", s.FocusTeamsStatus);
+        s.CameraOn = false;
+        // Yellow or red by itself: left as it is.
+        s.TeamsAuto = "";
+        foreach (var own in new[] { "Away", "BeRightBack", "Busy", "DoNotDisturb" })
+        {
+            s.TeamsNatural = own;
+            Assert.Equal("", s.FocusTeamsStatus);
+        }
+        // Without the condition the status counts always.
+        s.FocusProfiles.Single(p => p.Trigger == Triggers.Away).TeamsOnlyIfAvailable = false;
+        s.FocusProfilesChanged(save: false);
+        Assert.Equal("Offline", s.FocusTeamsStatus);
+    }
+
     // ---------- the settings of 1.1.12 to 1.1.16 become automations ----------
 
     [Fact]
@@ -275,7 +311,8 @@ public class AutomationTests
 
         var home = s.FocusProfiles.Single(p => p.Trigger == Triggers.Home);
         Assert.Equal(("Zu Hause", "plan", true), (home.Name, home.Panel, home.Quiet));
-        Assert.Equal("aus", s.FocusProfiles.Single(p => p.Trigger == Triggers.Away).Panel);
+        var away = s.FocusProfiles.Single(p => p.Trigger == Triggers.Away);
+        Assert.Equal(("aus", "Offline", true), (away.Panel, away.TeamsStatus, away.TeamsOnlyIfAvailable));
         var meeting = s.FocusProfiles.Single(p => p.Trigger == Triggers.Camera);
         Assert.Equal(("aus", 10), (meeting.Panel, meeting.PanelFade));
         Assert.Equal(new[] { "Arbeit", "Schule", "Schlafen" }, s.FocusProfiles.Where(p => p.Trigger == Triggers.Focus).Select(p => p.Name));

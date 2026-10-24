@@ -127,7 +127,9 @@ public sealed partial class PresenceService : ObservableObject
         {
             var p = await _account.GetAsync("me/presence");
             if (p is null) return;
-            Apply(ParseAvailability(p));
+            string availability = ParseAvailability(p);
+            Apply(availability);
+            if (_beforeAuto is null) _settings.TeamsNatural = availability; // Teams by itself (no status of ours set)
             if (_settings.TeamsChosenUntil <= DateTime.Now && _beforeAuto is null) Selected = "";
             Status = "";
         }
@@ -243,6 +245,7 @@ public sealed partial class PresenceService : ObservableObject
             if (manual != _manualChoices) return; // a dot was clicked meanwhile: that choice wins
             _beforeAuto = before;
             Selected = next;
+            _settings.TeamsAuto = next;
             SaveAuto(before);
             // The reason ended or changed while the request was under way: follow right away.
             if (AutoTarget != next) await AutoAsync();
@@ -250,6 +253,7 @@ public sealed partial class PresenceService : ObservableObject
         else if (AutoTarget is null && _beforeAuto is { } back)
         {
             _beforeAuto = null;
+            _settings.TeamsAuto = "";
             string target = ChosenOrAuto(back);
             int manual = _manualChoices;
             if (await SendAsync(target, RemainingDuration(target)))

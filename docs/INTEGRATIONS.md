@@ -409,7 +409,11 @@ wo zwei dasselbe wollen (Pfeile im Kopf der Karte); jede lässt sich einzeln aus
 | iPhone-Fokus „Name“ | dieser Fokus am iPhone an ist (eigene Kurzbefehle-Automation) | nach Wahl, nur zu Hause |
 
 Jede Automation kann außerdem Nicht stören, Mitteilungen ohne Text, Insel ausblenden, stumme Apps, ausgeblendete Widgets
-und den Teams-Status schalten.
+und den Teams-Status schalten. „Nur wenn Teams grün zeigt“ setzt den Status nur statt Grün: „Unterwegs“ stellt so ein
+grünes Teams auf „Als offline anzeigen“ (grau), Rot und Gelb bleiben, wie Teams sie zeigt. Während der graue Status
+gesetzt ist, sieht DynamicBay nicht, was Teams selbst zeigen würde; läuft an diesem PC eine Kamera, ein Anruf oder eine
+Besprechung, gibt es ihn deshalb zurück. Ein Termin, bei dem Teams ohne Kamera und Anruf rot würde, bleibt grau. Den
+Teams-Status setzt nur das Hauptgerät (ohne gekoppeltes Gerät dieses).
 
 **Weg gewinnt:** Bist du nicht zu Hause, schaltet keine Automation das Panel; nur von Hand im Widget. Ist die Kamera
 beim Gehen noch an, gibt sie an ihrem Ende nur ihren eigenen Vorrang zurück, „Weg“ bleibt.

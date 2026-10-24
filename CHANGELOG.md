@@ -2,13 +2,14 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## Unveröffentlicht
+## 1.1.16 (24.10.2026)
 
 - Automationen statt Fokus-Profile (Einstellungen → Ruhe und Fokus): Zu Hause, Unterwegs, Kamera an, Fokus-Sitzung
   oder Pomodoro, Nicht stören am PC und iPhone-Fokus. Jede schaltet, solange sie gilt, was du
   einstellst, mit einem Satz zu jeder Einstellung; die obere gewinnt. Die Anzeigetafel geht aus, wenn du weg bist
   (nach einer Minute, kurze WLAN-Abbrüche zählen nicht), in 10 s, sobald die Kamera an ist, und im Fokus Schlafen, und
-  danach wieder nach Wochenplan. Deine Fokus-Profile werden übernommen.
+  danach wieder nach Wochenplan. Unterwegs stellt ein grünes Teams auf grau (offline), Rot und Gelb bleiben. Deine
+  Fokus-Profile werden übernommen.
 
 ## 1.1.15 (24.10.2026)
 

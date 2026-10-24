@@ -26,6 +26,7 @@ public class FocusSummaryTests
         Assert.Equal("Panel nach Wochenplan", FocusSummary.Of(home, panelShown: true, Teams));
         Assert.Equal("Schaltet nichts", FocusSummary.Of(home, panelShown: false, Teams));
         Assert.Equal("Panel aus nach 1 min", FocusSummary.Of(new FocusProfile { Trigger = Triggers.Away, Panel = "aus" }, true, Teams));
+        Assert.Equal("Teams: Offline, nur statt grün", FocusSummary.Of(new FocusProfile { TeamsStatus = "Offline", TeamsOnlyIfAvailable = true }, false, Teams));
         Assert.Equal("Panel aus", FocusSummary.Of(new FocusProfile { Trigger = Triggers.Away, Panel = "aus", PanelDelay = 0 }, true, Teams));
         Assert.Equal("Insel aus · Panel aus", FocusSummary.Of(new FocusProfile { HideIsland = true, Panel = "aus" }, true, Teams));
     }

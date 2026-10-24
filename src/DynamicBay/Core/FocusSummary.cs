@@ -15,7 +15,7 @@ public static class FocusSummary
         if (p.HideIsland) parts.Add(de ? "Insel aus" : "Island hidden");
         if (p.MutedApps.Count > 0) parts.Add(de ? $"{p.MutedApps.Count} {(p.MutedApps.Count == 1 ? "App" : "Apps")} stumm" : $"{p.MutedApps.Count} muted {(p.MutedApps.Count == 1 ? "app" : "apps")}");
         if (p.HiddenWidgets.Count > 0) parts.Add(de ? $"{p.HiddenWidgets.Count} Widget{(p.HiddenWidgets.Count == 1 ? "" : "s")} aus" : $"{p.HiddenWidgets.Count} widget{(p.HiddenWidgets.Count == 1 ? "" : "s")} hidden");
-        if (p.TeamsStatus.Length > 0) parts.Add("Teams: " + teamsLabel(p.TeamsStatus));
+        if (p.TeamsStatus.Length > 0) parts.Add("Teams: " + teamsLabel(p.TeamsStatus) + (p.TeamsOnlyIfAvailable ? (de ? ", nur statt grün" : ", only instead of green") : ""));
         if (panelShown)
         {
             string? panel = (p.Trigger, p.Panel) switch

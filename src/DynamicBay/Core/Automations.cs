@@ -20,7 +20,10 @@ public static class Automations
             home.PanelEnd = "";
             int at = s.FocusProfiles.IndexOf(home);
             if (offWhenGone && !s.FocusProfiles.Any(p => p.Trigger == Triggers.Away))
-                s.FocusProfiles.Insert(at + 1, new FocusProfile { Name = Loc.German ? "Unterwegs" : "Away", Trigger = Triggers.Away, Panel = "aus" });
+                s.FocusProfiles.Insert(at + 1, new FocusProfile
+                {
+                    Name = Loc.German ? "Unterwegs" : "Away", Trigger = Triggers.Away, Panel = "aus", TeamsStatus = "Offline", TeamsOnlyIfAvailable = true,
+                });
         }
         if (!s.FocusProfiles.Any(p => p.Trigger == Triggers.Camera))
         {

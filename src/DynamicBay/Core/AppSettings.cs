@@ -163,6 +163,8 @@ public sealed class FocusProfile
     public bool HideText { get; set; }
     public bool HideIsland { get; set; }
     public string TeamsStatus { get; set; } = "";
+    /// <summary>Set <see cref="TeamsStatus"/> only while Teams by itself shows green (available): busy and away stay.</summary>
+    public bool TeamsOnlyIfAvailable { get; set; }
     /// <summary>What the Anzeigetafel's panel does while it holds: "" nothing, "dimmen" to <see cref="PanelPercent"/>, "aus",
     /// "an"; "plan" (weekly plan) for "Zu Hause". For an iPhone focus "plan" (1.1.15) counts as nothing.</summary>
     public string Panel { get; set; } = "";
@@ -180,7 +182,7 @@ public sealed class FocusProfile
     public static IEnumerable<FocusProfile> Defaults() => new[]
     {
         new FocusProfile { Name = "Zu Hause", Trigger = Triggers.Home, Panel = "plan" },
-        new FocusProfile { Name = "Unterwegs", Trigger = Triggers.Away, Panel = "aus" },
+        new FocusProfile { Name = "Unterwegs", Trigger = Triggers.Away, Panel = "aus", TeamsStatus = "Offline", TeamsOnlyIfAvailable = true },
         new FocusProfile { Name = "Kamera", Trigger = Triggers.Camera, Panel = "aus", PanelFade = 10 },
         new FocusProfile { Name = "Arbeit", TeamsStatus = "Busy" },
         new FocusProfile { Name = "Schule", Quiet = true, HideText = true, HiddenWidgets = { Widgets.Media } },
@@ -373,6 +375,8 @@ public sealed partial class AppSettings : ObservableObject
         if (SettingsVersion < 13)
         {
             Automations.Migrate(this);
+            // The automations count as changed now, so the DynamicBay server gets them (SharedSettings.FocusProfiles).
+            SharedChanged["fokus.profile"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             SettingsVersion = 13;
         }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
@@ -431,6 +435,12 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>A camera is on here (AudioService: the privacy records Windows shows its camera light from). Never saved.</summary>
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _cameraOn;
     partial void OnCameraOnChanged(bool value) => FocusChanged();
+    /// <summary>What Teams shows by itself (PresenceService; only read while no automatic status of ours is set). Never saved.</summary>
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private string _teamsNatural = "";
+    partial void OnTeamsNaturalChanged(string value) => FocusChanged();
+    /// <summary>The status DynamicBay set by itself right now ("" none; PresenceService).</summary>
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private string _teamsAuto = "";
+    partial void OnTeamsAutoChanged(string value) => FocusChanged();
     /// <summary>The iPhone report with this name is presence, not a focus (shared, "Zuhause").</summary>
     [ObservableProperty] private string _presenceName = "Zuhause";
 
@@ -489,7 +499,14 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>The upper automation with a Teams status. An iPhone focus counts only where it was reported, or from the
     /// server on one device (else the status is set twice); presence too only on that one device.</summary>
     [System.Text.Json.Serialization.JsonIgnore] public string FocusTeamsStatus =>
-        ActiveRules.FirstOrDefault(r => r.TeamsStatus.Length > 0 && TeamsCounts(r))?.TeamsStatus ?? "";
+        ActiveRules.FirstOrDefault(r => r.TeamsStatus.Length > 0 && TeamsCounts(r) && TeamsAllows(r))?.TeamsStatus ?? "";
+
+    /// <summary>
+    /// "Nur wenn Teams grün zeigt": while Teams by itself is available - or while our status of this automation is set
+    /// (then Teams' own one cannot be seen) - and no call, meeting or camera runs here (Teams would be red then).
+    /// </summary>
+    private bool TeamsAllows(FocusProfile r) => !r.TeamsOnlyIfAvailable
+        || (!InMeeting && !CameraOn && (TeamsNatural is "Available" or "AvailableIdle" || TeamsAuto == r.TeamsStatus));
 
     private bool TeamsCounts(FocusProfile r) => r.Trigger switch
     {

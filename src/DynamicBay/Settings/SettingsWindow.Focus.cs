@@ -191,6 +191,10 @@ public sealed partial class SettingsWindow
         teams.Click += (_, _) => TeamsMenu(p, teams, changed);
         stack.Children.Add(Row("Icon.User", de ? "Status" : "Status",
             de ? "Gilt, solange die Automation gilt; danach wie vorher." : "While the automation holds; afterwards as before.", teams, false));
+        if (p.TeamsStatus.Length > 0)
+            stack.Children.Add(Row("Icon.Check", de ? "Nur wenn Teams grün zeigt" : "Only while Teams shows green",
+                de ? "Rot und Gelb bleiben, auch bei Kamera oder Anruf." : "Red and yellow stay, also with camera or call.",
+                FocusSwitch(p.TeamsOnlyIfAvailable, v => p.TeamsOnlyIfAvailable = v, changed), true));
 
         if (_ctx.S.AnzeigetafelEnabled) AddPanelRows(stack, p, changed);
 
@@ -239,6 +243,7 @@ public sealed partial class SettingsWindow
                 button.Content = TeamsLabel(value);
                 _ctx.S.FocusProfilesChanged();
                 changed();
+                Dispatcher.BeginInvoke(BuildFocusProfileRows); // the row "Nur wenn Teams grün zeigt" comes or goes
             };
             menu.Items.Add(item);
         }
