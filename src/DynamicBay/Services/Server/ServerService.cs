@@ -70,7 +70,8 @@ public sealed partial class ServerService : ObservableObject, IDisposable
         settings.PropertyChanged += (_, e) =>
         {
             if (_applying) return;
-            if (e.PropertyName == nameof(AppSettings.FocusProfiles)) { Changed(SharedSettings.FocusProfiles); Changed(SharedSettings.PanelFocus); }
+            if (e.PropertyName == nameof(AppSettings.FocusProfiles)) { Changed(SharedSettings.FocusProfiles); Changed(SharedSettings.Automatik); }
+            if (e.PropertyName == nameof(AppSettings.PresenceName)) Changed(SharedSettings.Automatik);
             if (e.PropertyName == nameof(AppSettings.DoNotDisturb)) _ = QuietChangedAsync();
         };
         settings.MutedApps.CollectionChanged += (_, _) => { if (!_applying) Changed(SharedSettings.MutedApps); };
@@ -302,7 +303,7 @@ public sealed partial class ServerService : ObservableObject, IDisposable
     /// <summary>The value that counts here for a key (this device's override, else the shared one), if it is newer than ours.</summary>
     private void ApplyKey(string key)
     {
-        if (key == SharedSettings.PanelFocus) return; // derived from the profiles, never taken back
+        if (key == SharedSettings.Automatik) return; // derived from the automations, never taken back
         var v = _overrides.TryGetValue(key, out var own) ? own : _shared.TryGetValue(key, out var shared) ? shared : null;
         if (v is null) return;
         _settings.SharedChanged.TryGetValue(key, out long mine);
@@ -347,6 +348,8 @@ public sealed partial class ServerService : ObservableObject, IDisposable
                 finally { _applying = false; }
             }
         }
+        // Where the iPhone is: the last "Zuhause" report, kept by the server without a time limit.
+        if (s.Reports.TryGetValue(_settings.PresenceName, out bool home) && _settings.PresenceHome != home) _settings.PresenceHome = home;
         PanelChanged?.Invoke(s.Panel);
     }
 
@@ -372,7 +375,7 @@ public sealed partial class ServerService : ObservableObject, IDisposable
     {
         foreach (var key in _dirty.ToList())
         {
-            bool onlyHere = _settings.OverriddenKeys.Contains(key) && key != SharedSettings.PanelFocus;
+            bool onlyHere = _settings.OverriddenKeys.Contains(key) && key != SharedSettings.Automatik;
             if (!await SendAsync(ServerProtocol.Setting(key, SharedSettings.Read(_settings, key), _settings.SharedChanged[key], onlyHere))) return;
             _dirty.Remove(key);
         }
@@ -424,6 +427,7 @@ public sealed partial class ServerService : ObservableObject, IDisposable
     public Task<bool> RemoveDeviceAsync(string id) => SendAsync(ServerProtocol.RemoveDevice(id));
     public Task<bool> EndFocusAsync(string name) => SendAsync(ServerProtocol.EndFocus(name));
     public Task<bool> PanelAsync(JsonObject command) => SendAsync(ServerProtocol.Panel(command));
+    public Task<bool> RuleAsync(JsonObject command) => SendAsync(ServerProtocol.Rule(command));
 
     private void UpdateStatus()
     {

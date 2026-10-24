@@ -4,11 +4,11 @@ Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit d
 
 ## Unveröffentlicht
 
-- Ruhe und Fokus: Oben wählst du einen Fokus oder legst einen an, darunter stehen nur seine Einstellungen, in
-  Abschnitten (Auf diesem PC, Teams, Anzeigetafel) und je mit einem Satz, was sie bewirken. Eine Zeile oben fasst
-  zusammen, was der Fokus schaltet.
-- Anzeigetafel: Ein Fokus, der das Panel an seinem Ende ausschaltet, schaltet es beim nächsten Beginn wieder nach
-  Wochenplan ein, auch wenn „Während des Fokus“ auf „Nicht ändern“ steht (vorher blieb das Panel dunkel).
+- Automationen statt Fokus-Profile (Einstellungen → Ruhe und Fokus): Zu Hause, Unterwegs, Teams-Besprechung oder
+  Anruf, Fokus-Sitzung oder Pomodoro, Nicht stören am PC und iPhone-Fokus. Jede schaltet, solange sie gilt, was du
+  einstellst, mit einem Satz zu jeder Einstellung; die obere gewinnt. Die Anzeigetafel geht aus, wenn du weg bist
+  (nach einer Minute, kurze WLAN-Abbrüche zählen nicht), in 10 s bei einer Besprechung und im Fokus Schlafen, und
+  danach wieder nach Wochenplan. Deine Fokus-Profile werden übernommen.
 
 ## 1.1.15 (24.10.2026)
 

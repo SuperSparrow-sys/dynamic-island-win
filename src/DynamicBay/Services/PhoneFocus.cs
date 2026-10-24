@@ -402,9 +402,21 @@ public sealed partial class PhoneFocusService : ObservableObject, IDisposable
     }
 
     /// <summary>UI thread: a report from the iPhone.</summary>
+    /// <summary>Every report as it came (also presence): the Anzeigetafel runs its rule table on it without a server.</summary>
+    public event Action<FocusReport>? Reported;
+
     internal void Receive(FocusReport r, string from, DateTime now)
     {
-        if (r.On && _settings.ProfileFor(r.Name) is null && _settings.FocusProfiles.Count < PhoneFocusProtocol.MaxProfiles)
+        // "Zuhause" is where the iPhone is (Wi-Fi), not a focus: it never changes the focus.
+        if (_settings.IsPresenceName(r.Name))
+        {
+            _settings.PresenceHome = r.On;
+            Log.Info($"Phone focus: {(r.On ? "at home" : "away")} from {from}");
+            LastEvent = (r.On ? (Loc.German ? "Zu Hause" : "At home") : (Loc.German ? "Unterwegs" : "Away")) + $", {now:HH:mm}";
+            Reported?.Invoke(r);
+            return;
+        }
+        if (r.On && _settings.ProfileFor(r.Name) is null && _settings.FocusProfiles.Count(p => p.Trigger == Triggers.Focus) < PhoneFocusProtocol.MaxProfiles)
         {
             _settings.FocusProfiles.Add(new FocusProfile { Name = r.Name });
             _settings.SaveSoon();
@@ -419,6 +431,7 @@ public sealed partial class PhoneFocusService : ObservableObject, IDisposable
             _settings.PhoneFocusHere = next;
         }
         if (next.Length > 0) _expiry.Start(); else _expiry.Stop();
+        Reported?.Invoke(r);
     }
 
     /// <summary>UI thread: a refused request, for the settings (wrong key, wrong address) and the log (at most every 10 s).</summary>
@@ -450,12 +463,8 @@ public sealed partial class PhoneFocusService : ObservableObject, IDisposable
     {
         if (_settings.PhoneFocusHere.Length == 0 || now - _since < PhoneFocusProtocol.Expiry) return;
         Log.Info($"Phone focus: {_settings.PhoneFocusHere} ran out after {PhoneFocusProtocol.Expiry.TotalHours:0} h without an end");
-        LastEndExpired = true;
-        try { End(); } finally { LastEndExpired = false; }
+        End();
     }
-
-    /// <summary>True while the focus is being ended because it ran out (not reported off): leaving home is not assumed then.</summary>
-    public bool LastEndExpired { get; private set; }
 
     private void UpdateStatus()
     {

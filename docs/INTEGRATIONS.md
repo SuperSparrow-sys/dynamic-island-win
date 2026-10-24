@@ -350,14 +350,10 @@ aus und stellt die Helligkeit ein. Eine Änderung gilt bis zum nächsten Zeitpun
 Wochenplan“ hebt sie sofort auf. Darunter steht, was gerade gilt: Wochenplan, von Hand (mit Gerät) oder ein Fokus,
 jeweils mit Ende.
 
-In jedem Fokus-Profil (Einstellungen → Ruhe und Fokus) legt „Anzeigetafel“ fest, was das Panel tut, solange der
-Fokus an ist: nichts, dimmen auf 10, 15, 25 oder 40 %, aus oder Wochenplan. „Anzeigetafel am Ende“ legt fest, was
-passiert, wenn der Fokus endet und keiner folgt: Wochenplan (Vorgabe) oder „Aus bis auf Weiteres“. So geht das Panel
-aus, wenn Zuhause beim Verlassen des WLANs endet, und mit dem nächsten Zuhause gilt wieder der Wochenplan. Ein Wechsel
-in einen anderen Fokus und ein Fokus, der nach 16 h ohne „aus“ abläuft, gelten nicht als Verlassen. Endet ein Fokus
-sonst, gilt wieder der Wochenplan, außer jemand hat inzwischen von Hand geschaltet. Die Anweisung schickt nur das Gerät, dem das iPhone den Fokus gemeldet hat;
-kommt sie nicht an, versucht es das 10 Minuten lang alle 30 s erneut. Die Tafel führt nur aus: Ist ihr Zeitplan
-aus, schaltet auch ein Fokus das Panel nicht.
+Was das Panel sonst tut, legen die [Automationen](#automationen) fest: aus, wenn du weg bist, aus während einer
+Besprechung oder im Fokus Schlafen, danach wieder nach Wochenplan. Wann und wie hell es nach Wochenplan ist, bleibt
+Sache der Tafel (Seiten Wochenplan und Helligkeit). Die Tafel führt nur aus: Ist ihr Zeitplan aus, schaltet auch
+eine Automation das Panel nicht.
 
 **Einrichten:** Einstellungen → Geräte → Anzeigetafel → „Anzeigetafel einbinden“ (Vorgabe aus; erst dann erscheinen
 Widget und die Zeile im Fokus-Profil). Adresse `https://homeserver.<tailnet>.ts.net:20004` (im
@@ -396,3 +392,36 @@ Hauptgerät (ohne gekoppeltes Gerät dieses). „Beenden“ beendet den Fokus au
 60 s; meldet sich dasselbe Gerät woanders an (Abbruch 4409), wartet es 30 s. Vertrag: Repo `dynamicbay-server`,
 `docs/dynamicbay/`, als Fixtures in `tests/DynamicBay.Tests/Fixtures/Api/Server`. Umgesetzt in
 `Services/Server/` (`ServerProtocol`, `SharedSettings`, `ServerService`).
+
+## Automationen
+
+Einstellungen → Ruhe und Fokus. Jede Automation hat einen Auslöser und schaltet, solange er gilt, was sie einstellt;
+danach ist alles wie vorher. Oben stehen alle als Auswahl, darunter die Einstellungen der gewählten. Die obere gewinnt,
+wo zwei dasselbe wollen (Pfeile im Kopf der Karte); jede lässt sich einzeln ausschalten.
+
+| Auslöser | Gilt, solange … | Panel |
+|---|---|---|
+| Zu Hause | das iPhone im WLAN zu Hause ist | Wochenplan (hebt das „aus“ von Unterwegs auf) |
+| Unterwegs | es nicht im WLAN ist, nach einer Wartezeit (Vorgabe 1 min gegen kurze WLAN-Abbrüche) | aus, bis du ankommst |
+| Teams-Besprechung oder Anruf | an diesem PC eine Besprechung oder ein Anruf läuft | z. B. aus, schnell (10 s) |
+| Fokus-Sitzung oder Pomodoro | an diesem PC eine Fokus-Sitzung läuft | nach Wahl |
+| Nicht stören an diesem PC | „Nicht stören“ an ist | nach Wahl |
+| iPhone-Fokus „Name“ | dieser Fokus am iPhone an ist (eigene Kurzbefehle-Automation) | nach Wahl, nur zu Hause |
+
+Jede Automation kann außerdem Nicht stören, Mitteilungen ohne Text, Insel ausblenden, stumme Apps, ausgeblendete Widgets
+und den Teams-Status schalten.
+
+**Weg gewinnt:** Bist du nicht zu Hause, schaltet keine Automation das Panel; nur von Hand im Widget. Eine Besprechung,
+die beim Gehen läuft, gibt an ihrem Ende nur ihren eigenen Vorrang zurück, „Weg“ bleibt.
+
+**iPhone:** Es meldet `Zuhause|an` und `Zuhause|aus` aus zwei WLAN-Automationen (verbunden, getrennt) über den
+Kurzbefehl DynamicBay-Fokus (siehe [iPhone-Fokus](#iphone-fokus)). Der Name „Zuhause“ ist der Ort, kein Fokus: ein
+anderer iPhone-Fokus (Nicht stören) ändert daran nichts. Weitere Fokus-Modi wie Schlafen melden je zwei
+Fokus-Automationen (`Schlafen|an`, `Schlafen|aus`).
+
+**Wo es läuft:** Was vom iPhone kommt, rechnet DynamicBay in eine Regeltabelle um (`automatik`, gemeinsame Einstellung);
+der DynamicBay-Server führt sie aus, auch wenn PC und Laptop aus sind, ohne sie zu verstehen (warten, „außer wenn“,
+Befehle an die Tafel). Was an einem PC passiert (Besprechung, Fokus-Sitzung, Nicht stören), schickt dieser PC selbst
+(`regel`). Ohne Server führt der PC, der die Meldung bekommt, dieselbe Tabelle aus. Umgesetzt in
+`Services/Anzeigetafel.cs` (`PanelRules`) und `Core/Automations.cs` (Umstellung der Fokus-Profile von 1.1.12 bis 1.1.16:
+„Zuhause“ wird „Zu Hause“, „aus am Ende“ wird „Unterwegs“, „Besprechung“ kommt dazu).

@@ -133,32 +133,69 @@ public sealed class PairedDevice
 /// What one iPhone focus switches here while it is on (see Services/PhoneFocus.cs). Matched by name, ignoring case.
 /// Teams: "" leaves the status alone, else an availability of <c>PresenceService.Choices</c>.
 /// </summary>
+/// <summary>What starts an automation (<see cref="FocusProfile.Trigger"/>).</summary>
+public static class Triggers
+{
+    /// <summary>An iPhone focus of the automation's name (Shortcuts, see Services/PhoneFocus.cs).</summary>
+    public const string Focus = "";
+    /// <summary>While the iPhone is at home (Wi-Fi), and while it is not. The panel part runs on the server.</summary>
+    public const string Home = "zuhause", Away = "unterwegs";
+    /// <summary>While a Teams meeting or call runs here (WorkModeService), a focus session or Pomodoro, "Nicht stören" here.</summary>
+    public const string Meeting = "besprechung", Session = "sitzung", Quiet = "ruhe";
+    public static readonly string[] All = { Home, Away, Meeting, Session, Quiet, Focus };
+    /// <summary>Only one automation each: the trigger is the whole condition.</summary>
+    public static bool IsSingle(string t) => t != Focus;
+}
+
+/// <summary>
+/// One automation (Einstellungen → Ruhe und Fokus): while its trigger holds, it switches what is set here; afterwards
+/// everything is as before. The name is the iPhone focus for <see cref="Triggers.Focus"/>, else a label. The list
+/// order decides when two want different things (the upper one wins); "Unterwegs" wins at the panel always.
+/// </summary>
 public sealed class FocusProfile
 {
     private List<string> _mutedApps = new(), _hiddenWidgets = new();
     public string Name { get; set; } = "";
+    /// <summary><see cref="Triggers"/>; "" (older settings) is an iPhone focus.</summary>
+    public string Trigger { get; set; } = Triggers.Focus;
+    public bool Enabled { get; set; } = true;
     public bool Quiet { get; set; }
     public bool HideText { get; set; }
     public bool HideIsland { get; set; }
     public string TeamsStatus { get; set; } = "";
-    /// <summary>What the Anzeigetafel's panel does while this focus is on: "" nothing, "dimmen" to <see cref="PanelPercent"/>, "aus".
-    /// "plan" (1.1.15) counts as nothing.</summary>
+    /// <summary>What the Anzeigetafel's panel does while it holds: "" nothing, "dimmen" to <see cref="PanelPercent"/>, "aus",
+    /// "an"; "plan" (weekly plan) for "Zu Hause". For an iPhone focus "plan" (1.1.15) counts as nothing.</summary>
     public string Panel { get; set; } = "";
+    /// <summary>Fade of the panel in seconds for this automation (10 = quick, for a meeting); 0 = the board's own setting.</summary>
+    public int PanelFade { get; set; }
     public int PanelPercent { get; set; } = 15;
-    /// <summary>When this focus ends and none follows: "" back to the weekly plan, "aus" off until this focus begins again (leaving home).</summary>
+    /// <summary>1.1.15–1.1.16 only ("aus": off when the focus ended); read once by <see cref="Automations.Migrate"/>.</summary>
     public string PanelEnd { get; set; } = "";
-    /// <summary>Begins: the "off" it left when it ended goes again (the weekly plan counts).</summary>
-    [System.Text.Json.Serialization.JsonIgnore] public bool GivesBackEnd => PanelEnd == "aus" || Panel == "plan";
+    /// <summary>"Unterwegs": seconds of being away before the panel goes off (short Wi-Fi drops at home do not count).</summary>
+    public int PanelDelay { get; set; } = 60;
     public List<string> MutedApps { get => _mutedApps; set => _mutedApps = value ?? new(); }
     public List<string> HiddenWidgets { get => _hiddenWidgets; set => _hiddenWidgets = value ?? new(); }
 
-    /// <summary>The four profiles a new installation starts with (the owner's focus modes).</summary>
+    /// <summary>The automations a new installation starts with (the owner's: at home and away, a meeting, three focus modes).</summary>
     public static IEnumerable<FocusProfile> Defaults() => new[]
     {
+        new FocusProfile { Name = "Zu Hause", Trigger = Triggers.Home, Panel = "plan" },
+        new FocusProfile { Name = "Unterwegs", Trigger = Triggers.Away, Panel = "aus" },
+        new FocusProfile { Name = "Besprechung", Trigger = Triggers.Meeting, Panel = "aus", PanelFade = 10 },
         new FocusProfile { Name = "Arbeit", TeamsStatus = "Busy" },
         new FocusProfile { Name = "Schule", Quiet = true, HideText = true, HiddenWidgets = { Widgets.Media } },
         new FocusProfile { Name = "Schlafen", Quiet = true, HideIsland = true, Panel = "aus" },
-        new FocusProfile { Name = "Zuhause", PanelEnd = "aus" },
+    };
+
+    /// <summary>The label of a trigger, for the list and the card.</summary>
+    public static string TriggerLabel(string trigger) => trigger switch
+    {
+        Triggers.Home => Loc.German ? "Zu Hause" : "At home",
+        Triggers.Away => Loc.German ? "Unterwegs" : "Away",
+        Triggers.Meeting => Loc.German ? "Teams-Besprechung oder Anruf" : "Teams meeting or call",
+        Triggers.Session => Loc.German ? "Fokus-Sitzung oder Pomodoro" : "Focus session or Pomodoro",
+        Triggers.Quiet => Loc.German ? "Nicht stören an diesem PC" : "Do not disturb on this PC",
+        _ => Loc.German ? "iPhone-Fokus" : "iPhone focus",
     };
 }
 
@@ -329,7 +366,14 @@ public sealed partial class AppSettings : ObservableObject
         if (SettingsVersion < 12)
         {
             if (FocusProfiles.Count == 0) foreach (var p in FocusProfile.Defaults()) FocusProfiles.Add(p);
-            SettingsVersion = 12;
+            SettingsVersion = 13;
+        }
+        // v13: automations. The iPhone only says "at home" or not: a focus profile of that name becomes "Zu Hause"
+        // (its panel "off when it ends" becomes "Unterwegs"), and a meeting dims the panel quickly.
+        if (SettingsVersion < 13)
+        {
+            Automations.Migrate(this);
+            SettingsVersion = 13;
         }
         if (!string.IsNullOrWhiteSpace(CalendarIcsUrl) && !CalendarAccounts.Any(a => a.Url == CalendarIcsUrl))
             CalendarAccounts.Add(new CalendarAccount { Kind = CalendarKind.Ics, Name = "Kalender", Url = CalendarIcsUrl.Trim() });
@@ -372,14 +416,20 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _focusActive;
 
     /// <summary>"Nicht stören" by hand, or a call, screen sharing, a focus session or an iPhone focus with "Nicht stören" right now.</summary>
-    [System.Text.Json.Serialization.JsonIgnore] public bool Quiet => DoNotDisturb || InMeeting || Sharing || FocusActive || PeerQuiet || ActiveFocus?.Quiet == true;
+    [System.Text.Json.Serialization.JsonIgnore] public bool Quiet => DoNotDisturb || InMeeting || Sharing || FocusActive || PeerQuiet || ActiveRules.Any(r => r.Quiet);
     /// <summary>The paired device is in a call or a focus session ("Ruhe und Fokus", see LinkQuietFeature).</summary>
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _peerQuiet;
     partial void OnPeerQuietChanged(bool value) => OnPropertyChanged(nameof(Quiet));
-    partial void OnDoNotDisturbChanged(bool value) => OnPropertyChanged(nameof(Quiet));
-    partial void OnInMeetingChanged(bool value) => OnPropertyChanged(nameof(Quiet));
+    partial void OnDoNotDisturbChanged(bool value) => FocusChanged();
+    partial void OnInMeetingChanged(bool value) => FocusChanged();
     partial void OnSharingChanged(bool value) => OnPropertyChanged(nameof(Quiet));
-    partial void OnFocusActiveChanged(bool value) => OnPropertyChanged(nameof(Quiet));
+    partial void OnFocusActiveChanged(bool value) => FocusChanged();
+
+    /// <summary>The iPhone at home (Wi-Fi), away, or unknown (null: never reported, or no server and no report yet). Never saved.</summary>
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool? _presenceHome;
+    partial void OnPresenceHomeChanged(bool? value) => FocusChanged();
+    /// <summary>The iPhone report with this name is presence, not a focus (shared, "Zuhause").</summary>
+    [ObservableProperty] private string _presenceName = "Zuhause";
 
     // iPhone focus (Services/PhoneFocus.cs): what each focus switches is saved, which one is on never is.
     [ObservableProperty] private bool _phoneFocusEnabled;
@@ -406,20 +456,48 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>This device sets Teams for a focus from the server (the main device, or no paired one).</summary>
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _serverTeamsHere = true;
 
+    /// <summary>The iPhone-focus automation of this name (other triggers have labels, not focus names).</summary>
     public FocusProfile? ProfileFor(string name) =>
-        name.Length == 0 ? null : FocusProfiles.FirstOrDefault(p => string.Equals(p.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
+        name.Length == 0 ? null : FocusProfiles.FirstOrDefault(p => p.Trigger == Triggers.Focus && string.Equals(p.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    public bool IsPresenceName(string name) => string.Equals(name.Trim(), PresenceName.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Whether an automation's trigger holds right now on this device.</summary>
+    public bool Holds(FocusProfile p) => p.Enabled && p.Trigger switch
+    {
+        Triggers.Home => PresenceHome == true,
+        Triggers.Away => PresenceHome == false,
+        Triggers.Meeting => InMeeting,
+        Triggers.Session => FocusActive,
+        Triggers.Quiet => DoNotDisturb,
+        _ => ReferenceEquals(ActiveFocus, p),
+    };
+
+    /// <summary>The automations that hold now, in list order (the upper one wins where two set the same thing).</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public IEnumerable<FocusProfile> ActiveRules => FocusProfiles.Where(Holds);
 
     /// <summary>The profile of the iPhone focus that is on (reported here, else by the server, else by the paired device), or null.</summary>
     [System.Text.Json.Serialization.JsonIgnore] public FocusProfile? ActiveFocus =>
         ProfileFor(PhoneFocusHere.Length > 0 ? PhoneFocusHere : PhoneFocusServer.Length > 0 ? PhoneFocusServer : PhoneFocusPeer);
     /// <summary>Notification text in peeks: off by choice, while sharing the screen and in a focus that hides it.</summary>
-    [System.Text.Json.Serialization.JsonIgnore] public bool ShowNotificationText => NotificationShowBody && !Sharing && ActiveFocus?.HideText != true;
-    [System.Text.Json.Serialization.JsonIgnore] public bool FocusHidesIsland => ActiveFocus?.HideIsland == true;
+    [System.Text.Json.Serialization.JsonIgnore] public bool ShowNotificationText => NotificationShowBody && !Sharing && !ActiveRules.Any(r => r.HideText);
+    [System.Text.Json.Serialization.JsonIgnore] public bool FocusHidesIsland => ActiveRules.Any(r => r.HideIsland);
     /// <summary>Teams follows a focus the iPhone reported here, or one from the server on one device only: else the status is set twice.</summary>
+    /// <summary>The upper automation with a Teams status. An iPhone focus counts only where it was reported, or from the
+    /// server on one device (else the status is set twice); presence too only on that one device.</summary>
     [System.Text.Json.Serialization.JsonIgnore] public string FocusTeamsStatus =>
-        ProfileFor(PhoneFocusHere.Length > 0 ? PhoneFocusHere : ServerTeamsHere ? PhoneFocusServer : "")?.TeamsStatus ?? "";
-    public bool IsMuted(string app) => MutedApps.Contains(app) || ActiveFocus?.MutedApps.Contains(app, StringComparer.OrdinalIgnoreCase) == true;
-    public bool FocusHidesWidget(string id) => ActiveFocus?.HiddenWidgets.Contains(id) == true;
+        ActiveRules.FirstOrDefault(r => r.TeamsStatus.Length > 0 && TeamsCounts(r))?.TeamsStatus ?? "";
+
+    private bool TeamsCounts(FocusProfile r) => r.Trigger switch
+    {
+        Triggers.Focus => string.Equals(r.Name, PhoneFocusHere, StringComparison.OrdinalIgnoreCase)
+            || (PhoneFocusHere.Length == 0 && ServerTeamsHere && string.Equals(r.Name, PhoneFocusServer, StringComparison.OrdinalIgnoreCase)),
+        Triggers.Home or Triggers.Away => ServerTeamsHere,
+        _ => true,
+    };
+
+    public bool IsMuted(string app) => MutedApps.Contains(app) || ActiveRules.Any(r => r.MutedApps.Contains(app, StringComparer.OrdinalIgnoreCase));
+    public bool FocusHidesWidget(string id) => ActiveRules.Any(r => r.HiddenWidgets.Contains(id));
 
     /// <summary>A profile changed in place (a switch, a list): the active focus may switch something else now.</summary>
     public void FocusProfilesChanged(bool save = true)
@@ -432,6 +510,7 @@ public sealed partial class AppSettings : ObservableObject
     private void FocusChanged()
     {
         OnPropertyChanged(nameof(ActiveFocus));
+        OnPropertyChanged(nameof(ActiveRules));
         OnPropertyChanged(nameof(Quiet));
     }
 

@@ -114,17 +114,37 @@ public class ServerTests
     // ---------- shared settings ----------
 
     [Fact]
-    public void The_panel_per_focus_is_what_the_server_expects()
+    public void The_rule_table_goes_to_the_server_as_automatik_and_never_comes_back()
     {
-        var profiles = new[]
-        {
-            new FocusProfile { Name = "Arbeit", Panel = "dimmen", PanelPercent = 15 },
-            new FocusProfile { Name = "Schlafen", Panel = "aus", PanelPercent = 5 },
-            new FocusProfile { Name = "Schule", PanelPercent = 5 },
-            new FocusProfile { Name = "Zuhause", PanelEnd = "aus", PanelPercent = 5 }, // the server gives the "off" back only for "plan"
-        };
-        var expected = Obj("ws_einstellung_am_ende.json")["wert"]!;
-        Assert.True(JsonNode.DeepEquals(expected, SharedSettings.PanelFocusOf(profiles)));
+        var s = new AppSettings();
+        foreach (var f in FocusProfile.Defaults()) s.FocusProfiles.Add(f);
+        Assert.True(JsonNode.DeepEquals(Obj("ws_einstellung_automatik_warten.json")["wert"], SharedSettings.Read(s, SharedSettings.Automatik)));
+        Assert.Contains(SharedSettings.Automatik, SharedSettings.Keys);
+        Assert.False(SharedSettings.Write(s, SharedSettings.Automatik, new JsonObject()));
+    }
+
+    [Fact]
+    public void A_command_of_this_pc_goes_out_as_regel()
+    {
+        var meeting = FocusProfile.Defaults().Single(p => p.Trigger == Triggers.Meeting);
+        SameJson("ws_regel.json", ServerProtocol.Rule(PanelRules.While(meeting, "LAPTOPJONATHAN")!));
+    }
+
+    [Fact]
+    public void Where_the_iphone_is_comes_from_the_reports_without_a_time_limit()
+    {
+        var s = new AppSettings();
+        var server = Offline(s);
+        server.Handle(Obj("ws_zustand_berichte.json"));
+        Assert.True(s.PresenceHome);
+        var z = Obj("ws_zustand_berichte.json");
+        z["berichte"]!["Zuhause"]!["an"] = false;
+        server.Handle(z);
+        Assert.False(s.PresenceHome);
+        // A state without the report leaves it as it is.
+        server.Handle(Obj("ws_zustand.json"));
+        Assert.False(s.PresenceHome);
+        Assert.True(ServerProtocol.State(Obj("ws_zustand.json")).Reports["Arbeit"]);
     }
 
     [Fact]
@@ -134,7 +154,7 @@ public class ServerTests
         s.MutedApps.Add("WhatsApp");
         Assert.False(SharedSettings.Write(s, SharedSettings.MutedApps, JsonValue.Create("kein array")));
         Assert.False(SharedSettings.Write(s, "unbekannt", new JsonArray()));
-        Assert.False(SharedSettings.Write(s, SharedSettings.PanelFocus, new JsonObject()));
+        Assert.False(SharedSettings.Write(s, SharedSettings.Automatik, new JsonObject()));
         Assert.Equal(new[] { "WhatsApp" }, s.MutedApps);
         // Profiles: empty and doubled names are dropped.
         Assert.True(SharedSettings.Write(s, SharedSettings.FocusProfiles, JsonNode.Parse("""[{"Name":"Arbeit"},{"Name":"arbeit"},{"Name":""}]""")));

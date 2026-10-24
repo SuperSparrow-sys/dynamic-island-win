@@ -26,7 +26,7 @@ public sealed partial class SettingsWindow
         PropertyChangedEventHandler settingsChanged = (_, e) =>
         {
             if (e.PropertyName is nameof(AppSettings.AnzeigetafelEnabled)) Dispatcher.BeginInvoke(BuildFocusProfileRows);
-            if (e.PropertyName is nameof(AppSettings.FocusProfiles) or nameof(AppSettings.ActiveFocus))
+            if (e.PropertyName is nameof(AppSettings.FocusProfiles) or nameof(AppSettings.ActiveFocus) or nameof(AppSettings.ActiveRules))
                 Dispatcher.BeginInvoke(() => { if (FocusRowsKey() != _focusRowsKey) BuildFocusProfileRows(); });
             if (e.PropertyName is nameof(AppSettings.PhoneFocusEnabled)) Dispatcher.BeginInvoke(BuildPhoneFocusRows);
         };
@@ -108,7 +108,7 @@ public sealed partial class SettingsWindow
     // ---- profiles ----
 
     /// <summary>Names and the active one: only a change here rebuilds the cards (a switch flipped in a card does not).</summary>
-    private string FocusRowsKey() => string.Join(";", _ctx.S.FocusProfiles.Select(p => p.Name)) + "|" + _ctx.S.ActiveFocus?.Name;
+    private string FocusRowsKey() => string.Join(";", _ctx.S.FocusProfiles.Select(p => p.Name + (_ctx.S.Holds(p) ? "*" : "")));
 
     /// <summary>The focus shown below the choice (by name); the active one, else the first, when none is chosen yet.</summary>
     private string _shownFocus = "";
@@ -129,7 +129,7 @@ public sealed partial class SettingsWindow
         bool de = Loc.German;
         var all = _ctx.S.FocusProfiles.ToList();
         var p = all.FirstOrDefault(f => string.Equals(f.Name, _shownFocus, StringComparison.OrdinalIgnoreCase))
-                ?? _ctx.S.ActiveFocus ?? all.FirstOrDefault();
+                ?? _ctx.S.ActiveRules.FirstOrDefault() ?? all.FirstOrDefault();
         _shownFocus = p?.Name ?? "";
 
         // The choice: one segment per focus, the one that is on marked.
@@ -140,7 +140,7 @@ public sealed partial class SettingsWindow
             var seg = new RadioButton
             {
                 Style = (Style)FindResource("S.Segment"), GroupName = "FocusChoice", IsChecked = ReferenceEquals(f, p),
-                Content = f.Name + (ReferenceEquals(_ctx.S.ActiveFocus, f) ? (de ? " · an" : " · on") : ""),
+                Content = f.Name + (_ctx.S.Holds(f) ? (de ? " · aktiv" : " · active") : ""),
             };
             seg.Checked += (_, _) => { if (_shownFocus != name) { _shownFocus = name; Dispatcher.BeginInvoke(BuildFocusProfileRows); } };
             segments.Children.Add(seg);
@@ -149,17 +149,25 @@ public sealed partial class SettingsWindow
         if (p is null) return;
 
         var stack = new StackPanel();
-        bool active = ReferenceEquals(_ctx.S.ActiveFocus, p);
-        var remove = new Button
-        {
-            Style = (Style)FindResource("S.Button"), Padding = new Thickness(8, 4, 8, 4),
-            ToolTip = de ? "Fokus entfernen" : "Remove focus",
-            Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource("Icon.Trash"), Width = 12, Height = 12 },
-        };
-        remove.Click += (_, _) => { _shownFocus = ""; _ctx.S.FocusProfiles.Remove(p); };
-        string summary = FocusSummary.Of(p, _ctx.S.AnzeigetafelEnabled, TeamsLabel);
-        stack.Children.Add(Row("Icon.Focus", p.Name + (active ? (de ? " · gerade an" : " · on now") : ""), summary, remove, false, out var summaryText));
-        Action changed = () => SetDesc(summaryText, FocusSummary.Of(p, _ctx.S.AnzeigetafelEnabled, TeamsLabel));
+        bool active = _ctx.S.Holds(p);
+        var head = new StackPanel { Orientation = Orientation.Horizontal };
+        int at = all.IndexOf(p);
+        head.Children.Add(IconButton("Icon.ChevronUp", de ? "Nach oben: gewinnt gegen die darunter" : "Up: wins over the ones below", at > 0,
+            () => { _ctx.S.FocusProfiles.Move(at, at - 1); _ctx.S.FocusProfilesChanged(); BuildFocusProfileRows(); }));
+        head.Children.Add(IconButton("Icon.ChevronDown", de ? "Nach unten" : "Down", at < all.Count - 1,
+            () => { _ctx.S.FocusProfiles.Move(at, at + 1); _ctx.S.FocusProfilesChanged(); BuildFocusProfileRows(); }));
+        var on = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = p.Enabled, Margin = new Thickness(10, 0, 4, 0),
+            ToolTip = de ? "Automation an oder aus" : "Automation on or off" };
+        on.Click += (_, _) => { p.Enabled = on.IsChecked == true; _ctx.S.FocusProfilesChanged(); BuildFocusProfileRows(); };
+        head.Children.Add(on);
+        head.Children.Add(IconButton("Icon.Trash", de ? "Automation entfernen" : "Remove automation", true,
+            () => { _shownFocus = ""; _ctx.S.FocusProfiles.Remove(p); }));
+        // The trigger in front, unless the name already says it ("Unterwegs").
+        string trigger = p.Trigger == Core.Triggers.Focus ? $"{FocusProfile.TriggerLabel(p.Trigger)} „{p.Name}“"
+            : FocusProfile.TriggerLabel(p.Trigger) == p.Name ? "" : FocusProfile.TriggerLabel(p.Trigger);
+        string Head() => (trigger.Length > 0 ? trigger + " · " : "") + FocusSummary.Of(p, _ctx.S.AnzeigetafelEnabled, TeamsLabel);
+        stack.Children.Add(Row(TriggerIcon(p.Trigger), p.Name + (active ? (de ? " · gerade aktiv" : " · active now") : ""), Head(), head, false, out var summaryText));
+        Action changed = () => SetDesc(summaryText, Head());
 
         AddFocusSection(stack, de ? "Auf diesem PC" : "On this PC");
         stack.Children.Add(Row("Icon.Moon", de ? "Nicht stören" : "Do not disturb",
@@ -169,7 +177,7 @@ public sealed partial class SettingsWindow
             de ? "Einblendungen zeigen nur die App, nicht den Inhalt." : "Peeks show the app only, not the content.",
             FocusSwitch(p.HideText, v => p.HideText = v, changed), true));
         stack.Children.Add(Row("Icon.EyeOff", de ? "Insel ausblenden" : "Hide the island",
-            de ? "Die Insel verschwindet, bis der Fokus endet." : "The island disappears until the focus ends.",
+            de ? "Die Insel verschwindet, solange die Automation gilt." : "The island disappears while the automation holds.",
             FocusSwitch(p.HideIsland, v => p.HideIsland = v, changed), true));
         var apps = FocusButton(de ? "Auswählen" : "Choose");
         stack.Children.Add(Row("Icon.BellOff", de ? "Stumme Apps" : "Muted apps", AppsText(p), apps, true, out var appsText));
@@ -182,20 +190,9 @@ public sealed partial class SettingsWindow
         var teams = FocusButton(TeamsLabel(p.TeamsStatus));
         teams.Click += (_, _) => TeamsMenu(p, teams, changed);
         stack.Children.Add(Row("Icon.User", de ? "Status" : "Status",
-            de ? "Gilt, solange der Fokus läuft; danach wie vorher." : "While the focus is on; afterwards as before.", teams, false));
+            de ? "Gilt, solange die Automation gilt; danach wie vorher." : "While the automation holds; afterwards as before.", teams, false));
 
-        if (_ctx.S.AnzeigetafelEnabled)
-        {
-            AddFocusSection(stack, de ? "Anzeigetafel" : "Display board");
-            var panel = FocusButton(PanelLabel(p));
-            panel.Click += (_, _) => PanelMenu(p, panel, changed);
-            stack.Children.Add(Row("Icon.Monitor", de ? "Während des Fokus" : "While the focus is on",
-                de ? "Beim Beginn, bis der Fokus endet." : "From the start until the focus ends.", panel, false));
-            var end = FocusButton(PanelEndLabel(p.PanelEnd));
-            end.Click += (_, _) => PanelEndMenu(p, end, changed);
-            stack.Children.Add(Row("Icon.Power", de ? "Wenn der Fokus endet" : "When the focus ends",
-                de ? "Gilt nicht, wenn gleich ein anderer Fokus beginnt." : "Not when another focus begins right away.", end, true));
-        }
+        if (_ctx.S.AnzeigetafelEnabled) AddPanelRows(stack, p, changed);
 
         // "S.Card" is both a style and a brush here (the theme brush wins in code): set the card look directly.
         FocusProfileRows.Children.Add(new Border
@@ -250,53 +247,113 @@ public sealed partial class SettingsWindow
 
     private static readonly int[] PanelPercents = { 10, 15, 25, 40 };
 
-    private static string PanelLabel(FocusProfile p) => p.Panel switch
+    /// <summary>The Anzeigetafel part of an automation: what fits its trigger.</summary>
+    private void AddPanelRows(StackPanel stack, FocusProfile p, Action changed)
     {
-        "dimmen" => Loc.German ? $"Dimmen auf {p.PanelPercent} %" : $"Dim to {p.PanelPercent} %",
-        "aus" => Loc.German ? "Aus" : "Off",
-        _ => Loc.German ? "Nicht ändern" : "Leave as is",
-    };
-
-    private static string PanelEndLabel(string end) => end == "aus"
-        ? (Loc.German ? "Aus, bis er wieder beginnt" : "Off until it begins again")
-        : (Loc.German ? "Wochenplan" : "Weekly plan");
-
-    private void PanelEndMenu(FocusProfile p, Button button, Action changed)
-    {
-        var menu = new ContextMenu { PlacementTarget = button };
-        foreach (var end in new[] { "", "aus" })
+        bool de = Loc.German;
+        AddFocusSection(stack, de ? "Anzeigetafel" : "Display board");
+        switch (p.Trigger)
         {
-            var item = new MenuItem { Header = PanelEndLabel(end), IsCheckable = true, IsChecked = p.PanelEnd == end };
-            item.Click += (_, _) =>
-            {
-                p.PanelEnd = end;
-                button.Content = PanelEndLabel(end);
-                _ctx.S.FocusProfilesChanged();
-                changed();
-            };
-            menu.Items.Add(item);
+            case Core.Triggers.Home:
+                stack.Children.Add(Row("Icon.Monitor", de ? "Beim Ankommen" : "When coming home",
+                    de ? "Hebt das „aus“ von Unterwegs auf." : "Gives back the \u201coff\u201d of being away.",
+                    Choice(p.Panel == "plan" ? "plan" : "", new[] { ("plan", de ? "Wochenplan" : "Weekly plan"), ("", de ? "Nicht ändern" : "Leave as is") },
+                        v => p.Panel = v, changed), false));
+                break;
+            case Core.Triggers.Away:
+                stack.Children.Add(Row("Icon.Monitor", de ? "Beim Gehen" : "When leaving",
+                    de ? "Bleibt aus, bis du ankommst." : "Stays off until you come home.",
+                    Choice(p.Panel == "aus" ? "aus" : "", new[] { ("aus", de ? "Aus" : "Off"), ("", de ? "Nicht ändern" : "Leave as is") },
+                        v => p.Panel = v, changed), false));
+                stack.Children.Add(Row("Icon.Timer", de ? "Erst nach" : "Only after",
+                    de ? "Kurze WLAN-Abbrüche zu Hause zählen nicht." : "Short Wi-Fi drops at home do not count.",
+                    Choice(p.PanelDelay.ToString(), new[] { ("0", de ? "Sofort" : "At once"), ("60", "1 min"), ("120", "2 min"), ("300", "5 min") },
+                        v => p.PanelDelay = int.Parse(v), changed), true));
+                break;
+            default:
+                string current = p.Panel switch { "dimmen" => "dimmen:" + p.PanelPercent, "aus" or "an" => p.Panel, _ => "" };
+                var options = new List<(string, string)> { ("", de ? "Nicht ändern" : "Leave as is"), ("an", de ? "An" : "On") };
+                options.AddRange(PanelPercents.Select(n => ("dimmen:" + n, de ? $"Dimmen auf {n} %" : $"Dim to {n} %")));
+                options.Add(("aus", de ? "Aus" : "Off"));
+                stack.Children.Add(Row("Icon.Monitor", de ? "Solange aktiv" : "While active",
+                    de ? "Danach wieder wie vorher." : "Afterwards back as before.",
+                    Choice(current, options.ToArray(), v =>
+                    {
+                        var parts = v.Split(':');
+                        p.Panel = parts[0];
+                        if (parts.Length > 1) p.PanelPercent = int.Parse(parts[1]);
+                    }, changed), false));
+                stack.Children.Add(Row("Icon.Sun", de ? "Überblenden" : "Fade",
+                    de ? "Wie schnell das Panel wechselt." : "How fast the panel changes.",
+                    Choice(p.PanelFade > 0 ? "10" : "0", new[] { ("0", de ? "Wie auf der Tafel" : "As on the board"), ("10", de ? "Schnell (10 s)" : "Quick (10 s)") },
+                        v => p.PanelFade = int.Parse(v), changed), true));
+                break;
         }
-        menu.IsOpen = true;
     }
 
-    private void PanelMenu(FocusProfile p, Button button, Action changed)
+    /// <summary>A button with the chosen label that opens the choices; a choice saves and refreshes the summary.</summary>
+    private Button Choice(string current, (string Value, string Label)[] options, Action<string> set, Action changed)
     {
-        var menu = new ContextMenu { PlacementTarget = button };
-        var choices = new List<(string Panel, int Percent)> { ("", p.PanelPercent) };
-        choices.AddRange(PanelPercents.Select(n => ("dimmen", n)));
-        choices.Add(("aus", p.PanelPercent));
-        foreach (var (panel, percent) in choices)
+        var button = FocusButton(options.FirstOrDefault(o => o.Value == current).Label ?? options[0].Label);
+        button.Click += (_, _) =>
         {
-            var label = PanelLabel(new FocusProfile { Panel = panel, PanelPercent = percent });
-            bool current = (p.Panel is "dimmen" or "aus" ? p.Panel : "") == panel && (panel != "dimmen" || p.PanelPercent == percent);
-            var item = new MenuItem { Header = label, IsCheckable = true, IsChecked = current };
+            var menu = new ContextMenu { PlacementTarget = button };
+            foreach (var (value, label) in options)
+            {
+                var item = new MenuItem { Header = label, IsCheckable = true, IsChecked = value == current };
+                item.Click += (_, _) =>
+                {
+                    current = value;
+                    set(value);
+                    button.Content = label;
+                    _ctx.S.FocusProfilesChanged();
+                    changed();
+                };
+                menu.Items.Add(item);
+            }
+            menu.IsOpen = true;
+        };
+        return button;
+    }
+
+    private Button IconButton(string icon, string tip, bool enabled, Action click)
+    {
+        var b = new Button
+        {
+            Style = (Style)FindResource("S.Button"), Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(4, 0, 0, 0), ToolTip = tip, IsEnabled = enabled,
+            Content = new Controls.Icon { Data = (System.Windows.Media.Geometry)FindResource(icon), Width = 12, Height = 12 },
+        };
+        b.Click += (_, _) => click();
+        return b;
+    }
+
+    private static string TriggerIcon(string trigger) => trigger switch
+    {
+        Core.Triggers.Home => "Icon.MapPin",
+        Core.Triggers.Away => "Icon.LogOut",
+        Core.Triggers.Meeting => "Icon.Video",
+        Core.Triggers.Session => "Icon.Timer",
+        Core.Triggers.Quiet => "Icon.Moon",
+        _ => "Icon.Phone",
+    };
+
+    /// <summary>„Automation hinzufügen“: one of each trigger that is not there yet, an iPhone focus by its name in the field.</summary>
+    private void AddAutomation_Click(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu { PlacementTarget = (Button)sender };
+        foreach (var t in Core.Triggers.All.Where(t => t != Core.Triggers.Focus))
+        {
+            var trigger = t;
+            var item = new MenuItem { Header = FocusProfile.TriggerLabel(t), IsEnabled = !_ctx.S.FocusProfiles.Any(p => p.Trigger == t) };
             item.Click += (_, _) =>
             {
-                p.Panel = panel;
-                p.PanelPercent = percent;
-                button.Content = PanelLabel(p);
-                _ctx.S.FocusProfilesChanged();
-                changed();
+                var p = new FocusProfile { Name = FocusProfile.TriggerLabel(trigger), Trigger = trigger };
+                if (trigger == Core.Triggers.Meeting) { p.Panel = "aus"; p.PanelFade = 10; }
+                if (trigger == Core.Triggers.Home) p.Panel = "plan";
+                if (trigger == Core.Triggers.Away) p.Panel = "aus";
+                _shownFocus = p.Name;
+                _ctx.S.FocusProfiles.Add(p);
+                _ctx.S.SaveSoon();
             };
             menu.Items.Add(item);
         }
@@ -362,7 +419,8 @@ public sealed partial class SettingsWindow
     private void AddFocusProfile()
     {
         string name = PhoneFocusProtocol.Clean(NewFocusName.Text);
-        if (name.Length == 0 || _ctx.S.ProfileFor(name) is not null || _ctx.S.FocusProfiles.Count >= PhoneFocusProtocol.MaxProfiles) return;
+        if (name.Length == 0 || _ctx.S.ProfileFor(name) is not null || _ctx.S.IsPresenceName(name)
+            || _ctx.S.FocusProfiles.Count(p => p.Trigger == Core.Triggers.Focus) >= PhoneFocusProtocol.MaxProfiles) return;
         _shownFocus = name; // the new one is shown right away
         _ctx.S.FocusProfiles.Add(new FocusProfile { Name = name });
         _ctx.S.SaveSoon();

@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "aktion": "plan",
+  "uebergang_s": 10,
+  "grund": "Automation Besprechung",
+  "quelle": "LAPTOPJONATHAN",
+  "nur_wenn_grund": "Automation Besprechung"
+}

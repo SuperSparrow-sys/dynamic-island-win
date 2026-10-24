@@ -1,0 +1,44 @@
+{
+  "art": "zustand",
+  "fokus": {
+    "name": "Arbeit",
+    "seit": 1792825920,
+    "bis": 1792883520
+  },
+  "nicht_stoeren": {
+    "an": false,
+    "geaendert": 1792821600000,
+    "von": "2b4d6f8a0c1e3a5b7d9f1b3d5f7a9c0e"
+  },
+  "panel": {
+    "v": 1,
+    "panel": {
+      "erreichbar": true,
+      "an": true,
+      "prozent": 15
+    },
+    "soll": {
+      "zustand": "hell",
+      "prozent": 15,
+      "grund": "Vorrang",
+      "naechster": "Sa 19:00",
+      "naechster_ts": 1792861200
+    },
+    "vorrang": {
+      "zustand": "hell",
+      "prozent": 15,
+      "bis": 1792883520,
+      "bis_text": "So 01:12",
+      "dauer": "ende",
+      "grund": "Fokus Arbeit",
+      "quelle": "DynamicBay-Server"
+    },
+    "steuern": true
+  },
+  "berichte": {
+    "Zuhause": {
+      "an": true,
+      "seit": 1792862698
+    }
+  }
+}

@@ -1,8 +1,8 @@
 namespace DynamicBay.Core;
 
 /// <summary>
-/// One line for a collapsed focus card in the settings: what this focus switches, in the order of the card
-/// ("Nicht stören · Insel aus · Teams: Beschäftigt · Panel aus, beim Ende aus"). Pure, so it is tested without a window.
+/// One line under an automation's name in the settings: what it switches, in the order of the card
+/// ("Nicht stören · Insel aus · Teams: Beschäftigt · Panel aus, schnell"). Pure, so it is tested without a window.
 /// </summary>
 public static class FocusSummary
 {
@@ -18,16 +18,17 @@ public static class FocusSummary
         if (p.TeamsStatus.Length > 0) parts.Add("Teams: " + teamsLabel(p.TeamsStatus));
         if (panelShown)
         {
-            string? during = p.Panel switch
+            string? panel = (p.Trigger, p.Panel) switch
             {
-                "dimmen" => de ? $"Panel {p.PanelPercent} %" : $"Panel {p.PanelPercent} %",
-                "aus" => de ? "Panel aus" : "Panel off",
+                (Triggers.Home, "plan") => de ? "Panel nach Wochenplan" : "panel follows the plan",
+                (Triggers.Away, "aus") => (de ? "Panel aus" : "panel off") + (p.PanelDelay > 0 ? (de ? $" nach {p.PanelDelay / 60.0:0.#} min" : $" after {p.PanelDelay / 60.0:0.#} min") : ""),
+                (Triggers.Home or Triggers.Away, _) => null,
+                (_, "dimmen") => $"Panel {p.PanelPercent} %",
+                (_, "aus") => de ? "Panel aus" : "panel off",
+                (_, "an") => de ? "Panel an" : "panel on",
                 _ => null,
             };
-            string? end = p.PanelEnd == "aus" ? (de ? "Panel aus, wenn er endet" : "panel off when it ends") : null;
-            if (during is not null && end is not null) parts.Add(during + (de ? ", aus, wenn er endet" : ", off when it ends"));
-            else if (during is not null) parts.Add(during);
-            else if (end is not null) parts.Add(end);
+            if (panel is not null) parts.Add(panel + (p.PanelFade > 0 && p.Trigger is not (Triggers.Home or Triggers.Away) ? (de ? ", schnell" : ", quick") : ""));
         }
         return parts.Count == 0 ? (de ? "Schaltet nichts" : "Switches nothing") : string.Join(" · ", parts);
     }

@@ -1,0 +1,8 @@
+{
+  "art": "regel",
+  "v": 1,
+  "aktion": "aus",
+  "dauer": "ende",
+  "uebergang_s": 10,
+  "grund": "Automation Besprechung"
+}

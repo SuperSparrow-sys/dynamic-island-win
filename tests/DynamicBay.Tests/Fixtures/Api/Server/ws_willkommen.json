@@ -79,6 +79,12 @@
         "quelle": "DynamicBay-Server"
       },
       "steuern": true
+    },
+    "berichte": {
+      "Arbeit": {
+        "an": true,
+        "seit": 1792825920
+      }
     }
   },
   "geraete": [

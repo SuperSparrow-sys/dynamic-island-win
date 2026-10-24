@@ -12,8 +12,9 @@ public sealed record ServerFocus(string Name, long Since, long Until);
 
 public sealed record ServerDevice(string Id, string Name, string Kind, bool Online, long LastSeen);
 
-/// <summary><c>zustand</c>: focus, "Nicht stören" (the newer change wins) and the Anzeigetafel's panel.</summary>
-public sealed record ServerState(ServerFocus? Focus, bool QuietOn, long QuietChanged, PanelState? Panel);
+/// <summary><c>zustand</c>: focus, "Nicht stören" (the newer change wins), the Anzeigetafel's panel, and the last state of
+/// every iPhone report (<c>berichte</c>: "Zuhause" is where the iPhone is).</summary>
+public sealed record ServerState(ServerFocus? Focus, bool QuietOn, long QuietChanged, PanelState? Panel, IReadOnlyDictionary<string, bool> Reports);
 
 /// <summary><c>willkommen</c>: the whole picture after <c>hallo</c>.</summary>
 public sealed record ServerWelcome(string Version, Dictionary<string, SharedValue> Shared, Dictionary<string, SharedValue> Overrides,
@@ -87,6 +88,15 @@ public static class ServerProtocol
     public static JsonObject RequestCode() => new() { ["art"] = "code_anfordern" };
     public static JsonObject RemoveDevice(string id) => new() { ["art"] = "geraet_entfernen", ["geraet"] = id };
 
+    /// <summary>A command of an automation of this PC (meeting …): passed on as it is, the server only adds <c>quelle</c>.</summary>
+    public static JsonObject Rule(JsonObject command)
+    {
+        var o = new JsonObject { ["art"] = "regel" };
+        foreach (var (k, v) in command)
+            if (k != "quelle") o[k] = v?.DeepClone();
+        return o;
+    }
+
     /// <summary>A widget command for the Anzeigetafel: the server adds who sent it and why (<c>grund</c> "Insel").</summary>
     public static JsonObject Panel(JsonObject command)
     {
@@ -126,7 +136,11 @@ public static class ServerProtocol
         ServerFocus? focus = Text(f, "name") is { Length: > 0 } name ? new ServerFocus(PhoneFocusProtocol.Clean(name), Long(f!, "seit") ?? 0, Long(f!, "bis") ?? 0) : null;
         var q = o?["nicht_stoeren"] as JsonObject;
         var panel = o?["panel"] is JsonObject p ? PanelProtocol.Parse(p.ToJsonString()) : null;
-        return new ServerState(focus, q is not null && (Bool(q, "an") ?? false), q is null ? 0 : Long(q, "geaendert") ?? 0, panel);
+        var reports = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        if (o?["berichte"] is JsonObject b)
+            foreach (var (reportName, v) in b)
+                if (v is JsonObject r && Bool(r, "an") is { } on) reports[reportName] = on;
+        return new ServerState(focus, q is not null && (Bool(q, "an") ?? false), q is null ? 0 : Long(q, "geaendert") ?? 0, panel, reports);
     }
 
     /// <summary>One <c>einstellung</c>: key, value, time, only for this device, removed.</summary>
@@ -164,26 +178,27 @@ public static class ServerProtocol
 }
 
 /// <summary>
-/// Which settings are shared through the server, and how a value travels (owner's list of 24.10.2026: focus
-/// profiles, muted apps, and what each focus does to the panel; per device stay placement, look, audio …).
+/// Which settings are shared through the server, and how a value travels (owner's list of 24.10.2026: automations,
+/// muted apps; per device stay placement, look, audio …). <see cref="Automatik"/> is the rule table the server runs
+/// for the panel, derived from the automations.
 /// </summary>
 public static class SharedSettings
 {
-    public const string FocusProfiles = "fokus.profile", MutedApps = "stumme_apps", PanelFocus = "anzeigetafel.fokus";
-    public static readonly string[] Keys = { FocusProfiles, MutedApps, PanelFocus };
+    public const string FocusProfiles = "fokus.profile", MutedApps = "stumme_apps", Automatik = "automatik";
+    public static readonly string[] Keys = { FocusProfiles, MutedApps, Automatik };
 
     /// <summary>The value of a key as it is here now.</summary>
     public static JsonNode? Read(AppSettings s, string key) => key switch
     {
         FocusProfiles => JsonSerializer.SerializeToNode(s.FocusProfiles.ToList()),
         MutedApps => JsonSerializer.SerializeToNode(s.MutedApps.ToList()),
-        PanelFocus => PanelFocusOf(s.FocusProfiles),
+        Automatik => PanelRules.ToJson(PanelRules.Table(s.FocusProfiles, s.PresenceName)),
         _ => null,
     };
 
     /// <summary>
     /// Takes a value from the server; false when it does not fit (an older server or a wrong shape: nothing changes).
-    /// <see cref="PanelFocus"/> is derived from the profiles and never taken back.
+    /// <see cref="Automatik"/> is derived from the automations and never taken back.
     /// </summary>
     public static bool Write(AppSettings s, string key, JsonNode? value)
     {
@@ -194,8 +209,8 @@ public static class SharedSettings
                 case FocusProfiles when value is JsonArray:
                     var profiles = value.Deserialize<List<FocusProfile>>() ?? new();
                     var clean = profiles.Where(p => PhoneFocusProtocol.Clean(p.Name).Length > 0)
-                        .GroupBy(p => p.Name.Trim(), StringComparer.OrdinalIgnoreCase).Select(g => g.First())
-                        .Take(PhoneFocusProtocol.MaxProfiles).ToList();
+                        .GroupBy(p => (p.Trigger, p.Name.Trim().ToLowerInvariant())).Select(g => g.First())
+                        .Take(PhoneFocusProtocol.MaxProfiles + Triggers.All.Length).ToList();
                     s.FocusProfiles.Clear();
                     foreach (var p in clean) s.FocusProfiles.Add(p);
                     s.FocusProfilesChanged();
@@ -211,19 +226,5 @@ public static class SharedSettings
             }
         }
         catch (JsonException) { return false; }
-    }
-
-    /// <summary><c>{"Arbeit": {"panel": "dimmen", "prozent": 15, "am_ende": "plan"}, …}</c>: what the server sends the Anzeigetafel per focus.</summary>
-    public static JsonObject PanelFocusOf(IEnumerable<FocusProfile> profiles)
-    {
-        var o = new JsonObject();
-        foreach (var p in profiles)
-            o[p.Name] = new JsonObject
-            {
-                // The server gives a focus's own "off" back when it begins only for "plan": that is what "off when it ends" needs.
-                ["panel"] = p.Panel is "dimmen" or "aus" ? p.Panel : p.GivesBackEnd ? "plan" : "nichts", ["prozent"] = Math.Clamp(p.PanelPercent, 5, 100),
-                ["am_ende"] = p.PanelEnd == "aus" ? "aus" : "plan",
-            };
-        return o;
     }
 }

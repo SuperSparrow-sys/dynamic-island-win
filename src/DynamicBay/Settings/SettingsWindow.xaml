@@ -428,16 +428,19 @@
                             <StackPanel x:Name="PhoneFocusRows" Visibility="{Binding S.PhoneFocusEnabled, Converter={StaticResource S.StrVis}}" />
                         </StackPanel>
                     </Border>
-                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,12,0,8" TextWrapping="Wrap" Text="{core:L De='Fokus wählen, dann einstellen, was er schaltet.', En='Choose a focus, then set what it switches.'}" />
+                    <TextBlock Style="{StaticResource ST.Desc}" Margin="4,12,0,8" TextWrapping="Wrap" Text="{core:L De='Automationen: wählen, dann einstellen, was sie schalten. Die obere gewinnt.', En='Automations: choose one, then set what it switches. The upper one wins.'}" />
                     <StackPanel x:Name="FocusChoice" Margin="0,0,0,8" />
                     <DockPanel Margin="0,0,0,12">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="AddAutomation_Click">
+                            <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Automation', En='Automation'}" /></StackPanel>
+                        </Button>
                         <Button DockPanel.Dock="Right" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="AddFocusProfile_Click">
-                            <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='Fokus hinzufügen', En='Add focus'}" /></StackPanel>
+                            <StackPanel Orientation="Horizontal"><c:Icon Data="{StaticResource Icon.Plus}" Width="13" Height="13" /><TextBlock Margin="6,0,0,0" Text="{core:L De='iPhone-Fokus', En='iPhone focus'}" /></StackPanel>
                         </Button>
                         <Grid>
                             <TextBox x:Name="NewFocusName" Style="{StaticResource S.TextBox}" Height="32" MaxLength="40" KeyDown="NewFocusName_KeyDown" />
                             <TextBlock Style="{StaticResource ST.Desc}" Margin="11,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                                       Text="{core:L De='Name wie auf dem iPhone', En='Name as on the iPhone'}"
+                                       Text="{core:L De='Name eines iPhone-Fokus', En='Name of an iPhone focus'}"
                                        Visibility="{Binding Text, ElementName=NewFocusName, Converter={StaticResource NotVis}}" />
                         </Grid>
                     </DockPanel>

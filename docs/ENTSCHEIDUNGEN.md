@@ -18,6 +18,14 @@ Abschnitt; was nicht mehr gilt, wird entfernt. Offene Aufgaben stehen in [offene
 
 ## Funktionen
 
+- **Automationen, das iPhone meldet nur den Ort** (24.10.2026, Besitzer). „Zu Hause“ kommt aus zwei WLAN-Automationen
+  (`Zuhause|an`/`aus`), nicht aus dem iPhone-Fokus: Ein Wechsel zu „Nicht stören“ am iPhone beendete Zuhause, das Panel
+  ging aus, obwohl er da war, und nach 16 h ohne Wechsel blieb es beim Gehen an. Alles Weitere sind Automationen in
+  DynamicBay (Auslöser, was sie schalten, die obere gewinnt). Weg gewinnt am Panel immer, nur das Widget von Hand
+  nicht. Bei einer Besprechung 10 s Ausblenden. Der Server ist allgemein: Er führt die Regeltabelle aus, die DynamicBay
+  schickt, und reicht `regel`-Befehle durch, damit für neue Automationen nur DynamicBay geändert wird. Verworfen:
+  Anwesenheit und Vorrang im Server fest eingebaut (jede neue Automation hätte einen Server-Umbau gebraucht),
+  „die neuere gewinnt“ und „Liste entscheidet“ für das Panel, Fokus-Profile getrennt von Automationen.
 - **Fokus aus drei Quellen, die neuere Wahl gewinnt** (24.10.2026, Besitzer). Ein Fokus kommt vom iPhone, aus dem
   Fokus-Menü der Insel oder aus einem Szenario (Auslöser: Termin, Teams-Besprechung oder Anruf, Fokus-Sitzung oder
   Pomodoro) und wirkt jedes Mal gleich (Profil, Panel, iPhone holt ihn ab). Wer zuletzt schaltet, gewinnt. Verworfen:

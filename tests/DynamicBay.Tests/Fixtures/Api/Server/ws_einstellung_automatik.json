@@ -1,0 +1,59 @@
+{
+  "art": "einstellung",
+  "schluessel": "automatik",
+  "wert": {
+    "v": 1,
+    "regeln": [
+      {
+        "bei": "Zuhause|an",
+        "anweisungen": [
+          {
+            "v": 1,
+            "aktion": "plan",
+            "grund": "Zu Hause",
+            "nur_wenn_grund": "Weg"
+          }
+        ]
+      },
+      {
+        "bei": "Zuhause|aus",
+        "anweisungen": [
+          {
+            "v": 1,
+            "aktion": "aus",
+            "dauer": "offen",
+            "grund": "Weg"
+          }
+        ]
+      },
+      {
+        "bei": "Schlafen|an",
+        "ausser": {
+          "Zuhause": false
+        },
+        "anweisungen": [
+          {
+            "v": 1,
+            "aktion": "aus",
+            "dauer": "ende",
+            "grund": "Fokus Schlafen"
+          }
+        ]
+      },
+      {
+        "bei": "Schlafen|aus",
+        "anweisungen": [
+          {
+            "v": 1,
+            "aktion": "plan",
+            "grund": "Fokus Schlafen",
+            "nur_wenn_grund": "Fokus Schlafen"
+          }
+        ]
+      }
+    ]
+  },
+  "geaendert": 1792862000000,
+  "nur_hier": false,
+  "von": "7f3c9a2e5b1d4f60a8e2c4b6d8f0a1c3"
+}

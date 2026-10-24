@@ -120,15 +120,11 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
 4. Rubus: einmal per Code mit dem Server koppeln, Sessions und Anfragen über ihn; prod und Feldgeräte nur
    „In Rubus öffnen“. Ohne Server bleibt `RubusBridge`.
 5. Fokus leise ans iPhone: iOS nimmt von außen keine Befehle an, Tailscale ändert daran nichts. Ohne Mac oder iPad
-   (Stand 24.10.2026) geht es nur verzögert: Automationen auf dem iPhone (App geöffnet, WLAN, Ladegerät, Uhrzeit,
-   jeweils „Sofort ausführen“) fragen einen Lese-Endpunkt des Servers und setzen den Fokus mit „Fokus festlegen“.
-   Der Server muss das Echo erkennen (die Fokus-Automation meldet den gesetzten Fokus gleich zurück). Sofort und
-   leise ginge nur mit einem zweiten Apple-Gerät (iPad mit Pushcut Automation Server, „Über Geräte teilen“).
-   Vor dem Bau am Gerät prüfen.
-
-6. Fokus vom PC: Fokus-Menü in der Insel (Profile, Dauer, Beenden) und Szenarien (Termin mit Kalender und Titel,
-   Teams-Besprechung oder Anruf, Fokus-Sitzung oder Pomodoro; das obere gewinnt; nur das Hauptgerät oder der Server
-   löst aus). Die neuere Wahl gewinnt gegen das iPhone. Reihenfolge: nach Stufe 1 bis 3, vor Stufe 5.
+   (Stand 24.10.2026) ginge es nur verzögert (Automationen auf dem iPhone fragen den Server). Zurückgestellt: Das
+   iPhone meldet seit den Automationen nur „zu Hause“ und einzelne Fokus-Modi.
+6. Automationen: gebaut (Zu Hause, Unterwegs, Besprechung, Fokus-Sitzung, Nicht stören am PC, iPhone-Fokus; Server
+   mit Regeltabelle seit 24.10.2026 auf prod, Zentrale mit `uebergang_s`). Offen: Fokus-Menü in der Insel und der
+   Auslöser „Termin“ (Kalender, Titel enthält); Prüfung im echten Betrieb (gehen, kommen, Besprechung, Schlafen).
 
 # Zurückgestellt
 

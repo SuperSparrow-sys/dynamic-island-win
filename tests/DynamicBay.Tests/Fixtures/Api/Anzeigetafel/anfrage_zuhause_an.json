@@ -1,0 +1,7 @@
+{
+  "v": 1,
+  "aktion": "plan",
+  "grund": "Zu Hause",
+  "quelle": "DynamicBay-Server",
+  "nur_wenn_grund": "Weg"
+}

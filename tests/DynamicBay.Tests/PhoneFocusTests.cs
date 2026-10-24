@@ -180,13 +180,13 @@ public class PhoneFocusTests
     }
 
     [Fact]
-    public void Migration_brings_the_four_profiles_once()
+    public void Migration_brings_the_automations_once()
     {
         var s = WithDefaults();
-        Assert.Equal(new[] { "Arbeit", "Schule", "Schlafen", "Zuhause" }, s.FocusProfiles.Select(p => p.Name));
-        s.FocusProfiles.RemoveAt(3);
+        Assert.Equal(new[] { "Zu Hause", "Unterwegs", "Besprechung", "Arbeit", "Schule", "Schlafen" }, s.FocusProfiles.Select(p => p.Name));
+        s.FocusProfiles.RemoveAt(5);
         s.Migrate(cursorHopInstalled: false);
-        Assert.Equal(3, s.FocusProfiles.Count);
+        Assert.Equal(5, s.FocusProfiles.Count);
         // Someone who already has profiles (an import) keeps them.
         var own = new AppSettings { SettingsVersion = 11 };
         own.FocusProfiles.Add(new FocusProfile { Name = "Fitness" });
@@ -241,7 +241,7 @@ public class PhoneFocusTests
     public void Edited_profile_raises_quiet()
     {
         var s = WithDefaults();
-        s.PhoneFocusHere = "Zuhause";
+        s.PhoneFocusHere = "Arbeit";
         Assert.False(s.Quiet);
         var changed = new List<string?>();
         s.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
@@ -257,12 +257,13 @@ public class PhoneFocusTests
         var s = WithDefaults();
         s.PhoneFocusEnabled = true;
         s.PhoneFocusHere = "Arbeit";
-        s.FocusProfiles[1].MutedApps.Add("Outlook");
+        s.ProfileFor("Schule")!.MutedApps.Add("Outlook");
         var back = AppSettings.FromJson(s.ToJson());
         Assert.True(back.PhoneFocusEnabled);
         Assert.Equal("", back.PhoneFocusHere);
-        Assert.Equal(new[] { "Outlook" }, back.FocusProfiles[1].MutedApps);
-        Assert.Equal(new[] { Widgets.Media }, back.FocusProfiles[1].HiddenWidgets);
+        Assert.Equal(new[] { "Outlook" }, back.ProfileFor("Schule")!.MutedApps);
+        Assert.Equal(new[] { Widgets.Media }, back.ProfileFor("Schule")!.HiddenWidgets);
+        Assert.Equal(Triggers.Away, back.FocusProfiles[1].Trigger);
         // Older or hand-edited files: missing lists are empty, not null.
         var odd = AppSettings.FromJson("{\"FocusProfiles\":[{\"Name\":\"Lesen\",\"MutedApps\":null}]}");
         Assert.Empty(odd.FocusProfiles[0].MutedApps);
@@ -312,7 +313,7 @@ public class PhoneFocusTests
         var s = WithDefaults();
         var service = new PhoneFocusService(s, Dispatcher.CurrentDispatcher);
         for (int i = 0; i < 20; i++) service.Receive(new($"Fokus {i}", true), "10.0.0.2", DateTime.Now);
-        Assert.Equal(PhoneFocusProtocol.MaxProfiles, s.FocusProfiles.Count);
+        Assert.Equal(PhoneFocusProtocol.MaxProfiles, s.FocusProfiles.Count(p => p.Trigger == Triggers.Focus));
     }
 
     [Fact]

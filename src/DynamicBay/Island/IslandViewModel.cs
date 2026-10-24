@@ -200,11 +200,11 @@ public sealed partial class IslandViewModel : ObservableObject
         Work = new WorkModeService(settings, Audio, timer);
         PhoneFocus = new PhoneFocusService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         Anzeigetafel = new AnzeigetafelService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
-        Anzeigetafel.FocusExpired = () => PhoneFocus.LastEndExpired;
+        PhoneFocus.Reported += r => _ = Anzeigetafel.ReportAsync(r.Name, r.On);
         Server = new Services.Server.ServerService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         Server.PanelChanged = Anzeigetafel.ApplyServer;
         Server.PanelError = Anzeigetafel.ServerError;
-        Server.ConnectedChanged += on => Anzeigetafel.UseServer(on ? Server.PanelAsync : null);
+        Server.ConnectedChanged += on => Anzeigetafel.UseServer(on ? Server.PanelAsync : null, Server.RuleAsync);
         Time = new TimeTrackingService(settings);
         Scripts = new Services.Scripting.ScriptWidgetsService(settings);
         Scripts.CompactChanged += () => { RecomputeCompact(); CompactChanged?.Invoke(); };

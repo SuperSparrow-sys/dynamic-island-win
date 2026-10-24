@@ -23,16 +23,6 @@ public class AnzeigetafelTests
     private static void SameJson(string file, JsonObject actual) =>
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(Fixture(file)), actual), $"{file}: {actual.ToJsonString()}");
 
-    private static FocusProfile? Profile(string name) => name switch
-    {
-        "Arbeit" => new FocusProfile { Name = "Arbeit", Panel = "dimmen", PanelPercent = 15 },
-        "Schlafen" => new FocusProfile { Name = "Schlafen", Panel = "aus" },
-        "Schule" => new FocusProfile { Name = "Schule" },
-        "Zuhause" => new FocusProfile { Name = "Zuhause", PanelEnd = "aus" },
-        "Alt" => new FocusProfile { Name = "Alt", Panel = "plan", PanelEnd = "aus" }, // as saved by 1.1.15
-        _ => null,
-    };
-
     // ---------- answers ----------
 
     [Theory]
@@ -95,14 +85,6 @@ public class AnzeigetafelTests
     }
 
     [Fact]
-    public void Focus_requests_are_the_contract()
-    {
-        SameJson("anfrage_fokus_aus.json", Assert.Single(PanelProtocol.ForFocus("", "Schlafen", Profile, "Desktop-PC")));
-        SameJson("anfrage_fokus_dimmen.json", Assert.Single(PanelProtocol.ForFocus("", "Arbeit", Profile, "Desktop-PC")));
-        SameJson("anfrage_fokus_ende.json", Assert.Single(PanelProtocol.ForFocus("Schlafen", "", Profile, "Desktop-PC")));
-    }
-
-    [Fact]
     public void The_anzeigetafel_refuses_extra_fields_so_none_are_sent()
     {
         // prozent only with an/helligkeit, dauer never with plan, nur_wenn_grund only with plan (400 otherwise)
@@ -115,60 +97,6 @@ public class AnzeigetafelTests
         Assert.Equal(60, ((string)PanelProtocol.Command("an", null, null, new string('a', 90), "y")["grund"]!).Length);
     }
 
-    [Fact]
-    public void A_focus_change_sends_the_new_one_or_gives_back_only_its_own()
-    {
-        // Schlafen -> Arbeit: Arbeit's command replaces the override; no "plan" in between.
-        var change = PanelProtocol.ForFocus("Schlafen", "Arbeit", Profile, "PC");
-        Assert.Equal("helligkeit", (string)Assert.Single(change)["aktion"]!);
-        // Schlafen -> Schule (nothing): back to the plan, but only if the override is still Schlafen's.
-        var school = Assert.Single(PanelProtocol.ForFocus("Schlafen", "Schule", Profile, "PC"));
-        Assert.Equal("plan", (string)school["aktion"]!);
-        Assert.Equal("Fokus Schlafen", (string)school["nur_wenn_grund"]!);
-        // Focus modes without a panel switch, unknown ones, and no change send nothing.
-        Assert.Empty(PanelProtocol.ForFocus("Schule", "", Profile, "PC"));
-        Assert.Empty(PanelProtocol.ForFocus("", "Unbekannt", Profile, "PC"));
-        Assert.Empty(PanelProtocol.ForFocus("Arbeit", "arbeit", Profile, "PC"));
-    }
-
-    [Fact]
-    public void Leaving_home_switches_the_panel_off_until_coming_back()
-    {
-        // Zuhause ends and no focus follows (Wi-Fi gone): off without a time limit.
-        SameJson("anfrage_fokus_weg.json", Assert.Single(PanelProtocol.ForFocus("Zuhause", "", Profile, "DynamicBay-Server")));
-        // Home again: that "off" goes, the weekly plan counts (a change by hand meanwhile stays).
-        SameJson("anfrage_fokus_heim.json", Assert.Single(PanelProtocol.ForFocus("", "Zuhause", Profile, "DynamicBay-Server")));
-        var off = PanelProtocol.Parse(Fixture("panel_weg.json"))!;
-        Assert.Equal("Fokus Zuhause beendet · bis auf Weiteres", PanelProtocol.Describe(off));
-    }
-
-    [Fact]
-    public void A_focus_that_leaves_the_panel_off_gives_it_back_when_it_begins_again()
-    {
-        // 24.10.2026: Zuhause on "Nicht ändern" with "aus, wenn er endet" left the panel black after coming home.
-        SameJson("anfrage_fokus_heim.json", Assert.Single(PanelProtocol.ForFocus("", "Zuhause", Profile, "DynamicBay-Server")));
-        // Saved by 1.1.15 with "Wochenplan" while on: the same.
-        Assert.Equal("Fokus Alt beendet", (string)Assert.Single(PanelProtocol.ForFocus("", "Alt", Profile, "PC"))["nur_wenn_grund"]!);
-        // A focus without "off when it ends" does not touch the panel when it begins.
-        Assert.Empty(PanelProtocol.ForFocus("", "Schule", Profile, "PC"));
-    }
-
-    [Fact]
-    public void Another_focus_at_home_or_running_out_is_not_leaving()
-    {
-        // Zuhause -> Schlafen: Schlafen's off until it ends, no open "off".
-        var sleep = Assert.Single(PanelProtocol.ForFocus("Zuhause", "Schlafen", Profile, "PC"));
-        Assert.Equal(("aus", "ende"), ((string)sleep["aktion"]!, (string)sleep["dauer"]!));
-        // Zuhause -> Schule (nothing): the panel stays as it is.
-        Assert.Empty(PanelProtocol.ForFocus("Zuhause", "Schule", Profile, "PC"));
-        // Zuhause ran out after 16 h without an "off": still at home, no "off".
-        Assert.Empty(PanelProtocol.ForFocus("Zuhause", "", Profile, "PC", expired: true));
-        // Schlafen -> Zuhause: Schlafen's off goes, and Zuhause's own "off" of the last leaving too.
-        var morning = PanelProtocol.ForFocus("Schlafen", "Zuhause", Profile, "PC");
-        Assert.Equal(new[] { "Fokus Schlafen", "Fokus Zuhause beendet" }, morning.Select(c => (string)c["nur_wenn_grund"]!));
-        Assert.All(morning, c => Assert.Equal("plan", (string)c["aktion"]!));
-    }
-
     [Theory]
     [InlineData("https://homeserver.x.ts.net:20004", "https://homeserver.x.ts.net:20004/api/geraet/panel")]
     [InlineData("https://homeserver.x.ts.net:20004/", "https://homeserver.x.ts.net:20004/api/geraet/panel")]
@@ -178,18 +106,6 @@ public class AnzeigetafelTests
     [InlineData("ftp://x", null)]
     public void The_address_may_be_typed_short(string typed, string? endpoint) =>
         Assert.Equal(endpoint, PanelProtocol.Endpoint(typed)?.ToString());
-
-    [Fact]
-    public void Old_settings_without_the_panel_switch_load_with_nothing_switched()
-    {
-        var p = System.Text.Json.JsonSerializer.Deserialize<FocusProfile>("""{"Name":"Arbeit","Quiet":true}""")!;
-        Assert.Equal("", p.Panel);
-        Assert.Equal(15, p.PanelPercent);
-        Assert.Equal("aus", FocusProfile.Defaults().Single(d => d.Name == "Schlafen").Panel);
-        Assert.Equal("", p.PanelEnd);
-        var home = FocusProfile.Defaults().Single(d => d.Name == "Zuhause");
-        Assert.Equal(("", "aus"), (home.Panel, home.PanelEnd));
-    }
 
     // ---------- service ----------
 
@@ -218,43 +134,6 @@ public class AnzeigetafelTests
         var fake = new FakeTafel();
         var service = new AnzeigetafelService(s, Dispatcher.CurrentDispatcher, fake, () => stored, v => stored = v ?? "");
         return (service, fake, s);
-    }
-
-    [Fact]
-    public async Task A_focus_reported_here_switches_the_panel_with_the_key_and_its_end_gives_it_back()
-    {
-        var (service, fake, s) = Service();
-        fake.Answer = Fixture("panel_fokus_schlafen.json");
-        s.PhoneFocusHere = "Schlafen";
-        await service.FocusChangedAsync(); // the settings event started it too; awaiting it again sends nothing new
-        var post = fake.Calls.First(c => c.Method == HttpMethod.Post);
-        Assert.Equal("Bearer geheim", post.Auth);
-        SameJson("anfrage_fokus_aus.json", post.Body!);
-        Assert.Equal("Fokus Schlafen · bis So 13:30", service.StatusText);
-        Assert.False(service.IsOn);
-
-        fake.Calls.Clear();
-        s.PhoneFocusHere = "";
-        await service.FocusChangedAsync();
-        SameJson("anfrage_fokus_ende.json", fake.Calls.Single(c => c.Method == HttpMethod.Post).Body!);
-    }
-
-    [Fact]
-    public async Task A_focus_command_that_did_not_arrive_is_sent_again()
-    {
-        var (service, fake, s) = Service();
-        fake.Offline = true;
-        s.PhoneFocusHere = "Arbeit";
-        await service.FocusChangedAsync();
-        Assert.True(service.HasError);
-        fake.Offline = false;
-        fake.Calls.Clear();
-        await service.RetryFocusAsync();
-        SameJson("anfrage_fokus_dimmen.json", fake.Calls.Single().Body!);
-        Assert.False(service.HasError);
-        fake.Calls.Clear();
-        await service.RetryFocusAsync(); // nothing left
-        Assert.Empty(fake.Calls);
     }
 
     [Fact]
@@ -296,8 +175,7 @@ public class AnzeigetafelTests
         var (service, fake, s) = Service(enabled: false);
         Assert.False(service.IsConfigured);
         Assert.False(new AppSettings().AnzeigetafelEnabled); // off for everyone until set up
-        s.PhoneFocusHere = "Schlafen";
-        await service.FocusChangedAsync();
+        await service.ReportAsync("Zuhause", false);
         await service.RefreshAsync();
         Assert.Empty(fake.Calls);
         s.AnzeigetafelEnabled = true;
@@ -309,8 +187,8 @@ public class AnzeigetafelTests
     {
         var (service, fake, s) = Service(key: "");
         Assert.False(service.IsConfigured);
-        s.PhoneFocusHere = "Schlafen";
-        await service.FocusChangedAsync();
+        s.InMeeting = true;
+        await service.LocalChangedAsync();
         await service.RefreshAsync();
         Assert.Empty(fake.Calls);
 
