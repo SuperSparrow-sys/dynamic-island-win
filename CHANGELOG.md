@@ -2,7 +2,7 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## Unveröffentlicht
+## 1.1.15 (24.10.2026)
 
 - Anzeigetafel: Ein Fokus kann das Panel auch auf den Wochenplan stellen und es an seinem Ende ausschalten, bis
   der Fokus wiederkommt. Damit geht das Panel aus, wenn du das Haus verlässt, und an, wenn du heimkommst

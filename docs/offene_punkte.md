@@ -113,8 +113,8 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
 2. Gemeinsame Einstellungen: geteilt sind Fokus-Profile, stumme Apps und die Panel-Wirkung je Fokus, mit eigener
    Liste je Gerät. Offen: Mitteilungsregeln (welche Schalter genau) und der Anschluss der Zentrale.
 3. Anzeigetafel: Zentrale (seit 24.10.2026 auf prod) und DynamicBay direkt sind gebaut. Heim und weg
-   (`panel: plan`, `am_ende: aus`, `dauer: offen`) ist in DynamicBay gebaut; Zentrale und Server brauchen dafür ihren
-   Nachtrag 1 (`DynamicBay-Auftraege/*/NACHTRAG-1.md`), erst danach veröffentlichen. Offen: über den Server
+   (`panel: plan`, `am_ende: aus`, `dauer: offen`) ist überall gebaut, Zentrale und Server mit Nachtrag 1 auf prod,
+   DynamicBay ab 1.1.15. Offen: über den Server
    (`anzeigetafel.fokus` aus den Fokus-Profilen), und die Prüfung im echten Betrieb mit dem Schlüssel: ein Fokus
    dimmt das Panel, sein Ende gibt es zurück, das Widget schaltet.
 4. Rubus: einmal per Code mit dem Server koppeln, Sessions und Anfragen über ihn; prod und Feldgeräte nur

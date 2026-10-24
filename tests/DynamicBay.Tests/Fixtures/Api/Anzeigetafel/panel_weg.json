@@ -2,15 +2,15 @@
   "v": 1,
   "panel": {
     "erreichbar": true,
-    "an": false,
+    "an": true,
     "prozent": 70
   },
   "soll": {
     "zustand": "schwarz",
     "prozent": 0,
     "grund": "Vorrang",
-    "naechster": "Sa 19:00",
-    "naechster_ts": 1792861200
+    "naechster": "Fr 19:00",
+    "naechster_ts": 1793383200
   },
   "vorrang": {
     "zustand": "schwarz",
@@ -21,5 +21,6 @@
     "grund": "Fokus Zuhause beendet",
     "quelle": "DynamicBay-Server"
   },
-  "steuern": true
+  "steuern": true,
+  "geaendert": true
 }
