@@ -126,7 +126,8 @@ public class ServerTests
     [Fact]
     public void A_command_of_this_pc_goes_out_as_regel()
     {
-        var meeting = FocusProfile.Defaults().Single(p => p.Trigger == Triggers.Meeting);
+        var meeting = FocusProfile.Defaults().Single(p => p.Trigger == Triggers.Camera);
+        meeting.Name = "Besprechung"; // as in the contract example
         SameJson("ws_regel.json", ServerProtocol.Rule(PanelRules.While(meeting, "LAPTOPJONATHAN")!));
     }
 

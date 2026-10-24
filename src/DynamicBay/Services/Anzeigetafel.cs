@@ -114,7 +114,7 @@ public sealed record PanelRule(string When, IReadOnlyDictionary<string, bool> Un
 /// <summary>
 /// What the automations do at the panel, as a table the DynamicBay server runs without understanding it
 /// (<c>automatik</c>, see Fixtures/Api/Server) - and the same table run here without a server. Reports from the
-/// iPhone (at home, focus) are in the table; triggers that happen on this PC (meeting, focus session, "Nicht stören")
+/// iPhone (at home, focus) are in the table; triggers that happen on this PC (camera, focus session, "Nicht stören")
 /// send their command from here (<see cref="Local"/>). "Weg" wins: the panel stays off while away, only the widget
 /// switches it then. No WPF, no network.
 /// </summary>
@@ -198,9 +198,9 @@ public static class PanelRules
     public static bool Blocked(PanelRule r, IReadOnlyDictionary<string, bool> reports) =>
         r.Unless.Any(u => reports.TryGetValue(u.Key, out bool v) && v == u.Value);
 
-    /// <summary>The upper automation of this PC (meeting, focus session, "Nicht stören") that wants the panel now, or null.</summary>
+    /// <summary>The upper automation of this PC (camera, focus session, "Nicht stören") that wants the panel now, or null.</summary>
     public static FocusProfile? Local(AppSettings s) =>
-        s.ActiveRules.FirstOrDefault(p => p.Trigger is Triggers.Meeting or Triggers.Session or Triggers.Quiet && p.Panel is "dimmen" or "aus" or "an");
+        s.ActiveRules.FirstOrDefault(p => p.Trigger is Triggers.Camera or Triggers.Session or Triggers.Quiet && p.Panel is "dimmen" or "aus" or "an");
 }
 
 /// <summary>
@@ -391,7 +391,7 @@ public sealed partial class AnzeigetafelService : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// The automations of this PC changed (a meeting began, ended …): the upper one that wants the panel sends its
+    /// The automations of this PC changed (the camera went on, off …): the upper one that wants the panel sends its
     /// command, the one before gives the panel back. While away ("Weg") nothing switches the panel on or off from here.
     /// </summary>
     internal async Task LocalChangedAsync()

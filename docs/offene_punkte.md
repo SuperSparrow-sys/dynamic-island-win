@@ -122,9 +122,9 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
 5. Fokus leise ans iPhone: iOS nimmt von außen keine Befehle an, Tailscale ändert daran nichts. Ohne Mac oder iPad
    (Stand 24.10.2026) ginge es nur verzögert (Automationen auf dem iPhone fragen den Server). Zurückgestellt: Das
    iPhone meldet seit den Automationen nur „zu Hause“ und einzelne Fokus-Modi.
-6. Automationen: gebaut (Zu Hause, Unterwegs, Besprechung, Fokus-Sitzung, Nicht stören am PC, iPhone-Fokus; Server
+6. Automationen: gebaut (Zu Hause, Unterwegs, Kamera an, Fokus-Sitzung, Nicht stören am PC, iPhone-Fokus; Server
    mit Regeltabelle seit 24.10.2026 auf prod, Zentrale mit `uebergang_s`). Offen: Fokus-Menü in der Insel und der
-   Auslöser „Termin“ (Kalender, Titel enthält); Prüfung im echten Betrieb (gehen, kommen, Besprechung, Schlafen).
+   Auslöser „Termin“ (Kalender, Titel enthält); Prüfung im echten Betrieb (gehen, kommen, Kamera, Schlafen).
 
 # Zurückgestellt
 

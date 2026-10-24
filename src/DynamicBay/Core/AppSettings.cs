@@ -140,9 +140,9 @@ public static class Triggers
     public const string Focus = "";
     /// <summary>While the iPhone is at home (Wi-Fi), and while it is not. The panel part runs on the server.</summary>
     public const string Home = "zuhause", Away = "unterwegs";
-    /// <summary>While a Teams meeting or call runs here (WorkModeService), a focus session or Pomodoro, "Nicht stören" here.</summary>
-    public const string Meeting = "besprechung", Session = "sitzung", Quiet = "ruhe";
-    public static readonly string[] All = { Home, Away, Meeting, Session, Quiet, Focus };
+    /// <summary>While a camera is on here (any app, as Windows shows it), a focus session or Pomodoro, "Nicht stören" here.</summary>
+    public const string Camera = "kamera", Session = "sitzung", Quiet = "ruhe";
+    public static readonly string[] All = { Home, Away, Camera, Session, Quiet, Focus };
     /// <summary>Only one automation each: the trigger is the whole condition.</summary>
     public static bool IsSingle(string t) => t != Focus;
 }
@@ -176,12 +176,12 @@ public sealed class FocusProfile
     public List<string> MutedApps { get => _mutedApps; set => _mutedApps = value ?? new(); }
     public List<string> HiddenWidgets { get => _hiddenWidgets; set => _hiddenWidgets = value ?? new(); }
 
-    /// <summary>The automations a new installation starts with (the owner's: at home and away, a meeting, three focus modes).</summary>
+    /// <summary>The automations a new installation starts with (the owner's: at home and away, the camera, three focus modes).</summary>
     public static IEnumerable<FocusProfile> Defaults() => new[]
     {
         new FocusProfile { Name = "Zu Hause", Trigger = Triggers.Home, Panel = "plan" },
         new FocusProfile { Name = "Unterwegs", Trigger = Triggers.Away, Panel = "aus" },
-        new FocusProfile { Name = "Besprechung", Trigger = Triggers.Meeting, Panel = "aus", PanelFade = 10 },
+        new FocusProfile { Name = "Kamera", Trigger = Triggers.Camera, Panel = "aus", PanelFade = 10 },
         new FocusProfile { Name = "Arbeit", TeamsStatus = "Busy" },
         new FocusProfile { Name = "Schule", Quiet = true, HideText = true, HiddenWidgets = { Widgets.Media } },
         new FocusProfile { Name = "Schlafen", Quiet = true, HideIsland = true, Panel = "aus" },
@@ -192,7 +192,7 @@ public sealed class FocusProfile
     {
         Triggers.Home => Loc.German ? "Zu Hause" : "At home",
         Triggers.Away => Loc.German ? "Unterwegs" : "Away",
-        Triggers.Meeting => Loc.German ? "Teams-Besprechung oder Anruf" : "Teams meeting or call",
+        Triggers.Camera => Loc.German ? "Kamera an" : "Camera on",
         Triggers.Session => Loc.German ? "Fokus-Sitzung oder Pomodoro" : "Focus session or Pomodoro",
         Triggers.Quiet => Loc.German ? "Nicht stören an diesem PC" : "Do not disturb on this PC",
         _ => Loc.German ? "iPhone-Fokus" : "iPhone focus",
@@ -369,7 +369,7 @@ public sealed partial class AppSettings : ObservableObject
             SettingsVersion = 13;
         }
         // v13: automations. The iPhone only says "at home" or not: a focus profile of that name becomes "Zu Hause"
-        // (its panel "off when it ends" becomes "Unterwegs"), and a meeting dims the panel quickly.
+        // (its panel "off when it ends" becomes "Unterwegs"), and the camera switches the panel off quickly.
         if (SettingsVersion < 13)
         {
             Automations.Migrate(this);
@@ -428,6 +428,9 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>The iPhone at home (Wi-Fi), away, or unknown (null: never reported, or no server and no report yet). Never saved.</summary>
     [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool? _presenceHome;
     partial void OnPresenceHomeChanged(bool? value) => FocusChanged();
+    /// <summary>A camera is on here (AudioService: the privacy records Windows shows its camera light from). Never saved.</summary>
+    [ObservableProperty][property: System.Text.Json.Serialization.JsonIgnore] private bool _cameraOn;
+    partial void OnCameraOnChanged(bool value) => FocusChanged();
     /// <summary>The iPhone report with this name is presence, not a focus (shared, "Zuhause").</summary>
     [ObservableProperty] private string _presenceName = "Zuhause";
 
@@ -467,7 +470,7 @@ public sealed partial class AppSettings : ObservableObject
     {
         Triggers.Home => PresenceHome == true,
         Triggers.Away => PresenceHome == false,
-        Triggers.Meeting => InMeeting,
+        Triggers.Camera => CameraOn,
         Triggers.Session => FocusActive,
         Triggers.Quiet => DoNotDisturb,
         _ => ReferenceEquals(ActiveFocus, p),

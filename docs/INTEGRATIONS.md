@@ -351,7 +351,7 @@ Wochenplan“ hebt sie sofort auf. Darunter steht, was gerade gilt: Wochenplan, 
 jeweils mit Ende.
 
 Was das Panel sonst tut, legen die [Automationen](#automationen) fest: aus, wenn du weg bist, aus während einer
-Besprechung oder im Fokus Schlafen, danach wieder nach Wochenplan. Wann und wie hell es nach Wochenplan ist, bleibt
+Videokonferenz (Kamera an) oder im Fokus Schlafen, danach wieder nach Wochenplan. Wann und wie hell es nach Wochenplan ist, bleibt
 Sache der Tafel (Seiten Wochenplan und Helligkeit). Die Tafel führt nur aus: Ist ihr Zeitplan aus, schaltet auch
 eine Automation das Panel nicht.
 
@@ -403,7 +403,7 @@ wo zwei dasselbe wollen (Pfeile im Kopf der Karte); jede lässt sich einzeln aus
 |---|---|---|
 | Zu Hause | das iPhone im WLAN zu Hause ist | Wochenplan (hebt das „aus“ von Unterwegs auf) |
 | Unterwegs | es nicht im WLAN ist, nach einer Wartezeit (Vorgabe 1 min gegen kurze WLAN-Abbrüche) | aus, bis du ankommst |
-| Teams-Besprechung oder Anruf | an diesem PC eine Besprechung oder ein Anruf läuft | z. B. aus, schnell (10 s) |
+| Kamera an | an diesem PC eine Kamera läuft (wie die Kamera-Anzeige von Windows, egal welche App; nicht Termine oder Anrufe ohne Kamera) | z. B. aus, schnell (10 s) |
 | Fokus-Sitzung oder Pomodoro | an diesem PC eine Fokus-Sitzung läuft | nach Wahl |
 | Nicht stören an diesem PC | „Nicht stören“ an ist | nach Wahl |
 | iPhone-Fokus „Name“ | dieser Fokus am iPhone an ist (eigene Kurzbefehle-Automation) | nach Wahl, nur zu Hause |
@@ -411,8 +411,8 @@ wo zwei dasselbe wollen (Pfeile im Kopf der Karte); jede lässt sich einzeln aus
 Jede Automation kann außerdem Nicht stören, Mitteilungen ohne Text, Insel ausblenden, stumme Apps, ausgeblendete Widgets
 und den Teams-Status schalten.
 
-**Weg gewinnt:** Bist du nicht zu Hause, schaltet keine Automation das Panel; nur von Hand im Widget. Eine Besprechung,
-die beim Gehen läuft, gibt an ihrem Ende nur ihren eigenen Vorrang zurück, „Weg“ bleibt.
+**Weg gewinnt:** Bist du nicht zu Hause, schaltet keine Automation das Panel; nur von Hand im Widget. Ist die Kamera
+beim Gehen noch an, gibt sie an ihrem Ende nur ihren eigenen Vorrang zurück, „Weg“ bleibt.
 
 **iPhone:** Es meldet `Zuhause|an` und `Zuhause|aus` aus zwei WLAN-Automationen (verbunden, getrennt) über den
 Kurzbefehl DynamicBay-Fokus (siehe [iPhone-Fokus](#iphone-fokus)). Der Name „Zuhause“ ist der Ort, kein Fokus: ein
@@ -421,7 +421,7 @@ Fokus-Automationen (`Schlafen|an`, `Schlafen|aus`).
 
 **Wo es läuft:** Was vom iPhone kommt, rechnet DynamicBay in eine Regeltabelle um (`automatik`, gemeinsame Einstellung);
 der DynamicBay-Server führt sie aus, auch wenn PC und Laptop aus sind, ohne sie zu verstehen (warten, „außer wenn“,
-Befehle an die Tafel). Was an einem PC passiert (Besprechung, Fokus-Sitzung, Nicht stören), schickt dieser PC selbst
+Befehle an die Tafel). Was an einem PC passiert (Kamera, Fokus-Sitzung, Nicht stören), schickt dieser PC selbst
 (`regel`). Ohne Server führt der PC, der die Meldung bekommt, dieselbe Tabelle aus. Umgesetzt in
 `Services/Anzeigetafel.cs` (`PanelRules`) und `Core/Automations.cs` (Umstellung der Fokus-Profile von 1.1.12 bis 1.1.16:
-„Zuhause“ wird „Zu Hause“, „aus am Ende“ wird „Unterwegs“, „Besprechung“ kommt dazu).
+„Zuhause“ wird „Zu Hause“, „aus am Ende“ wird „Unterwegs“, „Kamera“ kommt dazu).

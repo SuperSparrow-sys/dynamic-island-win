@@ -183,7 +183,7 @@ public class PhoneFocusTests
     public void Migration_brings_the_automations_once()
     {
         var s = WithDefaults();
-        Assert.Equal(new[] { "Zu Hause", "Unterwegs", "Besprechung", "Arbeit", "Schule", "Schlafen" }, s.FocusProfiles.Select(p => p.Name));
+        Assert.Equal(new[] { "Zu Hause", "Unterwegs", "Kamera", "Arbeit", "Schule", "Schlafen" }, s.FocusProfiles.Select(p => p.Name));
         s.FocusProfiles.RemoveAt(5);
         s.Migrate(cursorHopInstalled: false);
         Assert.Equal(5, s.FocusProfiles.Count);

@@ -85,9 +85,9 @@ public class AutomationTests
             await Settle();
         }
 
-        public async Task Meeting(bool on)
+        public async Task Camera(bool on)
         {
-            S.InMeeting = on;
+            S.CameraOn = on;
             await Tafel.LocalChangedAsync();
             await Settle();
         }
@@ -114,14 +114,16 @@ public class AutomationTests
         var table = PanelRules.ToJson(PanelRules.Table(defaults, "Zuhause"));
         var expected = Obj("Server", "ws_einstellung_automatik_warten.json")["wert"]!;
         Assert.True(JsonNode.DeepEquals(expected, table), table.ToJsonString());
-        // The meeting is not in the table: it happens on a PC, which sends its own command.
-        Assert.DoesNotContain("Besprechung", table.ToJsonString());
+        // The camera is not in the table: it is on at a PC, which sends its own command.
+        Assert.DoesNotContain("Kamera", table.ToJsonString());
     }
 
     [Fact]
-    public void A_meeting_sends_the_contract_and_gives_the_panel_back_quickly()
+    public void The_camera_sends_the_contract_and_gives_the_panel_back_quickly()
     {
-        var meeting = FocusProfile.Defaults().Single(p => p.Trigger == Triggers.Meeting);
+        // The contract example is named "Besprechung"; the trigger is the camera.
+        var meeting = FocusProfile.Defaults().Single(p => p.Trigger == Triggers.Camera);
+        meeting.Name = "Besprechung";
         SameCommand("anfrage_besprechung_aus.json", PanelRules.While(meeting, "LAPTOPJONATHAN")!);
         SameCommand("anfrage_besprechung_ende.json", PanelRules.Back(meeting, "LAPTOPJONATHAN"));
     }
@@ -164,27 +166,27 @@ public class AutomationTests
     }
 
     [Fact]
-    public async Task A_meeting_at_home_switches_off_quickly_and_back_afterwards()
+    public async Task The_camera_at_home_switches_off_quickly_and_back_afterwards()
     {
         var f = new Flow();
         await f.Report("Zuhause", true);
-        await f.Meeting(true);
+        await f.Camera(true);
         Assert.False(f.Panel.On);
         Assert.Equal(10, (int)f.Last["uebergang_s"]!);
-        await f.Meeting(false);
+        await f.Camera(false);
         Assert.True(f.Panel.On);
-        Assert.Equal("Automation Besprechung", (string)f.Last["nur_wenn_grund"]!);
+        Assert.Equal("Automation Kamera", (string)f.Last["nur_wenn_grund"]!);
     }
 
     [Fact]
-    public async Task Away_wins_a_meeting_on_the_laptop_does_not_touch_the_panel()
+    public async Task Away_wins_the_camera_on_the_laptop_does_not_touch_the_panel()
     {
         var f = new Flow();
         await f.Report("Zuhause", false);
         await f.Waited("Zuhause|aus");
         int before = f.Count;
-        await f.Meeting(true);
-        await f.Meeting(false);
+        await f.Camera(true);
+        await f.Camera(false);
         Assert.Equal(before, f.Count);
         Assert.False(f.Panel.On);
         await f.Report("Zuhause", true);
@@ -192,16 +194,16 @@ public class AutomationTests
     }
 
     [Fact]
-    public async Task Leaving_during_a_meeting_keeps_the_panel_off_until_coming_home()
+    public async Task Leaving_with_the_camera_on_keeps_the_panel_off_until_coming_home()
     {
         var f = new Flow();
         await f.Report("Zuhause", true);
-        await f.Meeting(true);
+        await f.Camera(true);
         await f.Report("Zuhause", false);
         await f.Waited("Zuhause|aus");
         Assert.Equal("Weg", f.Panel.Reason);
-        // The meeting ends on the way: its "plan" only gives back its own override, "Weg" stays.
-        await f.Meeting(false);
+        // The camera goes off on the way: its "plan" only gives back its own override, "Weg" stays.
+        await f.Camera(false);
         Assert.False(f.Panel.On);
         await f.Report("Zuhause", true);
         Assert.True(f.Panel.On);
@@ -274,7 +276,7 @@ public class AutomationTests
         var home = s.FocusProfiles.Single(p => p.Trigger == Triggers.Home);
         Assert.Equal(("Zu Hause", "plan", true), (home.Name, home.Panel, home.Quiet));
         Assert.Equal("aus", s.FocusProfiles.Single(p => p.Trigger == Triggers.Away).Panel);
-        var meeting = s.FocusProfiles.Single(p => p.Trigger == Triggers.Meeting);
+        var meeting = s.FocusProfiles.Single(p => p.Trigger == Triggers.Camera);
         Assert.Equal(("aus", 10), (meeting.Panel, meeting.PanelFade));
         Assert.Equal(new[] { "Arbeit", "Schule", "Schlafen" }, s.FocusProfiles.Where(p => p.Trigger == Triggers.Focus).Select(p => p.Name));
         Assert.Null(s.ProfileFor("Zuhause")); // the report "Zuhause" is where the iPhone is, not a focus
@@ -282,12 +284,12 @@ public class AutomationTests
     }
 
     [Fact]
-    public void A_new_installation_starts_with_home_away_meeting_and_three_focus_modes()
+    public void A_new_installation_starts_with_home_away_camera_and_three_focus_modes()
     {
         var s = new AppSettings { SettingsVersion = 11 };
         s.Migrate(cursorHopInstalled: false);
-        Assert.Equal(new[] { Triggers.Home, Triggers.Away, Triggers.Meeting, Triggers.Focus, Triggers.Focus, Triggers.Focus }, s.FocusProfiles.Select(p => p.Trigger));
-        Assert.Single(s.FocusProfiles, p => p.Trigger == Triggers.Meeting);
+        Assert.Equal(new[] { Triggers.Home, Triggers.Away, Triggers.Camera, Triggers.Focus, Triggers.Focus, Triggers.Focus }, s.FocusProfiles.Select(p => p.Trigger));
+        Assert.Single(s.FocusProfiles, p => p.Trigger == Triggers.Camera);
     }
 
     // ---------- what holds and what it switches ----------
@@ -297,13 +299,13 @@ public class AutomationTests
     {
         var s = new AppSettings();
         foreach (var p in FocusProfile.Defaults()) s.FocusProfiles.Add(p);
-        s.FocusProfiles.Single(p => p.Trigger == Triggers.Meeting).TeamsStatus = "DoNotDisturb";
+        s.FocusProfiles.Single(p => p.Trigger == Triggers.Camera).TeamsStatus = "DoNotDisturb";
         s.FocusProfiles.Single(p => p.Trigger == Triggers.Home).TeamsStatus = "Available";
         s.PresenceHome = true;
         Assert.Equal("Available", s.FocusTeamsStatus);
-        s.InMeeting = true;
-        Assert.Equal(new[] { "Zu Hause", "Besprechung" }, s.ActiveRules.Select(p => p.Name));
-        Assert.Equal("Available", s.FocusTeamsStatus); // "Zu Hause" is above "Besprechung"
+        s.CameraOn = true;
+        Assert.Equal(new[] { "Zu Hause", "Kamera" }, s.ActiveRules.Select(p => p.Name));
+        Assert.Equal("Available", s.FocusTeamsStatus); // "Zu Hause" is above "Kamera"
         s.FocusProfiles.Move(2, 0);
         s.FocusProfilesChanged(save: false);
         Assert.Equal("DoNotDisturb", s.FocusTeamsStatus);
@@ -312,7 +314,7 @@ public class AutomationTests
         Assert.True(s.FocusHidesIsland);
         Assert.True(s.Quiet);
         s.PhoneFocusHere = "";
-        s.InMeeting = false;
+        s.CameraOn = false;
         Assert.False(s.FocusHidesIsland);
     }
 }

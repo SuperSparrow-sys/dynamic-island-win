@@ -22,7 +22,8 @@ Abschnitt; was nicht mehr gilt, wird entfernt. Offene Aufgaben stehen in [offene
   (`Zuhause|an`/`aus`), nicht aus dem iPhone-Fokus: Ein Wechsel zu „Nicht stören“ am iPhone beendete Zuhause, das Panel
   ging aus, obwohl er da war, und nach 16 h ohne Wechsel blieb es beim Gehen an. Alles Weitere sind Automationen in
   DynamicBay (Auslöser, was sie schalten, die obere gewinnt). Weg gewinnt am Panel immer, nur das Widget von Hand
-  nicht. Bei einer Besprechung 10 s Ausblenden. Der Server ist allgemein: Er führt die Regeltabelle aus, die DynamicBay
+  nicht. Bei laufender Kamera 10 s Ausblenden; ausgelöst nur von der Kamera, nicht von Terminen, Besprechungen
+  oder Anrufen (Besitzer: „nur mit der Kamera“). Der Server ist allgemein: Er führt die Regeltabelle aus, die DynamicBay
   schickt, und reicht `regel`-Befehle durch, damit für neue Automationen nur DynamicBay geändert wird. Verworfen:
   Anwesenheit und Vorrang im Server fest eingebaut (jede neue Automation hätte einen Server-Umbau gebraucht),
   „die neuere gewinnt“ und „Liste entscheidet“ für das Panel, Fokus-Profile getrennt von Automationen.

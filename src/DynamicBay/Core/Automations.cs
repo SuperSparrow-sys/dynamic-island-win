@@ -5,7 +5,7 @@ public static class Automations
 {
     /// <summary>
     /// The profile named like the presence report ("Zuhause") becomes "Zu Hause": its own switches stay, the panel
-    /// follows the weekly plan; an "off when it ends" becomes the automation "Unterwegs" (panel off). A meeting
+    /// follows the weekly plan; an "off when it ends" becomes the automation "Unterwegs" (panel off). A camera
     /// automation is added when there is none. Everything else stays an iPhone focus, in its order.
     /// </summary>
     public static void Migrate(AppSettings s)
@@ -22,30 +22,14 @@ public static class Automations
             if (offWhenGone && !s.FocusProfiles.Any(p => p.Trigger == Triggers.Away))
                 s.FocusProfiles.Insert(at + 1, new FocusProfile { Name = Loc.German ? "Unterwegs" : "Away", Trigger = Triggers.Away, Panel = "aus" });
         }
-        if (!s.FocusProfiles.Any(p => p.Trigger == Triggers.Meeting))
+        if (!s.FocusProfiles.Any(p => p.Trigger == Triggers.Camera))
         {
             int at = s.FocusProfiles.TakeWhile(p => p.Trigger is Triggers.Home or Triggers.Away).Count();
             s.FocusProfiles.Insert(at, new FocusProfile
             {
-                Name = Loc.German ? "Besprechung" : "Meeting", Trigger = Triggers.Meeting,
+                Name = Loc.German ? "Kamera" : "Camera", Trigger = Triggers.Camera,
                 Panel = s.AnzeigetafelEnabled ? "aus" : "", PanelFade = 10,
             });
         }
-    }
-
-    /// <summary>
-    /// <c>anwesenheit.aktionen</c> for the server, from "Zu Hause" and "Unterwegs": coming home gives back the "off"
-    /// of leaving (weekly plan), leaving switches the panel off until coming home.
-    /// </summary>
-    public static System.Text.Json.Nodes.JsonObject PresenceActions(IEnumerable<FocusProfile> all)
-    {
-        var list = all.ToList();
-        bool plan = list.Any(p => p.Enabled && p.Trigger == Triggers.Home && p.Panel == "plan");
-        bool off = list.Any(p => p.Enabled && p.Trigger == Triggers.Away && p.Panel == "aus");
-        return new System.Text.Json.Nodes.JsonObject
-        {
-            ["kommen"] = new System.Text.Json.Nodes.JsonObject { ["panel"] = plan ? "plan" : "nichts" },
-            ["gehen"] = new System.Text.Json.Nodes.JsonObject { ["panel"] = off ? "aus" : "nichts" },
-        };
     }
 }

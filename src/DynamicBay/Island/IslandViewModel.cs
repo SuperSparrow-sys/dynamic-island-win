@@ -201,6 +201,8 @@ public sealed partial class IslandViewModel : ObservableObject
         PhoneFocus = new PhoneFocusService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         Anzeigetafel = new AnzeigetafelService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         PhoneFocus.Reported += r => _ = Anzeigetafel.ReportAsync(r.Name, r.On);
+        // "Kamera an" (automations) follows the camera light of Windows.
+        Audio.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(AudioService.CameraInUse)) settings.CameraOn = Audio.CameraInUse; };
         Server = new Services.Server.ServerService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         Server.PanelChanged = Anzeigetafel.ApplyServer;
         Server.PanelError = Anzeigetafel.ServerError;

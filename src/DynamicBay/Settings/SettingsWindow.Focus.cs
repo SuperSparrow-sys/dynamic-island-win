@@ -331,7 +331,7 @@ public sealed partial class SettingsWindow
     {
         Core.Triggers.Home => "Icon.MapPin",
         Core.Triggers.Away => "Icon.LogOut",
-        Core.Triggers.Meeting => "Icon.Video",
+        Core.Triggers.Camera => "Icon.Camera",
         Core.Triggers.Session => "Icon.Timer",
         Core.Triggers.Quiet => "Icon.Moon",
         _ => "Icon.Phone",
@@ -348,7 +348,7 @@ public sealed partial class SettingsWindow
             item.Click += (_, _) =>
             {
                 var p = new FocusProfile { Name = FocusProfile.TriggerLabel(trigger), Trigger = trigger };
-                if (trigger == Core.Triggers.Meeting) { p.Panel = "aus"; p.PanelFade = 10; }
+                if (trigger == Core.Triggers.Camera) { p.Panel = "aus"; p.PanelFade = 10; }
                 if (trigger == Core.Triggers.Home) p.Panel = "plan";
                 if (trigger == Core.Triggers.Away) p.Panel = "aus";
                 _shownFocus = p.Name;

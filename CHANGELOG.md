@@ -4,10 +4,10 @@ Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit d
 
 ## Unveröffentlicht
 
-- Automationen statt Fokus-Profile (Einstellungen → Ruhe und Fokus): Zu Hause, Unterwegs, Teams-Besprechung oder
-  Anruf, Fokus-Sitzung oder Pomodoro, Nicht stören am PC und iPhone-Fokus. Jede schaltet, solange sie gilt, was du
+- Automationen statt Fokus-Profile (Einstellungen → Ruhe und Fokus): Zu Hause, Unterwegs, Kamera an, Fokus-Sitzung
+  oder Pomodoro, Nicht stören am PC und iPhone-Fokus. Jede schaltet, solange sie gilt, was du
   einstellst, mit einem Satz zu jeder Einstellung; die obere gewinnt. Die Anzeigetafel geht aus, wenn du weg bist
-  (nach einer Minute, kurze WLAN-Abbrüche zählen nicht), in 10 s bei einer Besprechung und im Fokus Schlafen, und
+  (nach einer Minute, kurze WLAN-Abbrüche zählen nicht), in 10 s, sobald die Kamera an ist, und im Fokus Schlafen, und
   danach wieder nach Wochenplan. Deine Fokus-Profile werden übernommen.
 
 ## 1.1.15 (24.10.2026)
