@@ -413,6 +413,25 @@ public class LinkAudioStreamTests : IDisposable
     }
 
     [Fact]
+    public async Task The_last_frame_arrives_although_the_other_side_had_unread_data()
+    {
+        // The receiver of the sound says why it ends and closes, while sound frames it never reads are on the way.
+        // Closed at once, Windows resets the connection and the sender loses the reason (CI, 24./25.10.2026).
+        var p = await Connected();
+        var opened = new TaskCompletionSource<LinkStream>(TaskCreationOptions.RunContinuationsAsynchronously);
+        p.A.StreamOpened += s => opened.TrySetResult(s);
+        var fromB = await p.B.OpenStreamAsync(p.IdA.DeviceId, "audio");
+        var atA = await opened.Task.WaitAsync(Wait);
+        for (int i = 0; i < 4; i++) await fromB.SendAsync(new byte[4 * 1024]).WaitAsync(Wait);
+        await Task.Delay(200); // the frames are at A, unread
+        await atA.SendAsync(new byte[] { 42 }).WaitAsync(Wait);
+        atA.CloseSoon();
+        Assert.Equal(new byte[] { 42 }, await fromB.ReceiveAsync().WaitAsync(Wait));
+        fromB.Dispose();
+        await Until(() => atA.IsClosed, "closed");
+    }
+
+    [Fact]
     public async Task Streams_close_when_the_device_goes_offline()
     {
         var p = await Connected();

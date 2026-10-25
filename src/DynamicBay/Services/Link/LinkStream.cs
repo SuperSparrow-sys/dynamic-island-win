@@ -59,6 +59,12 @@ public sealed class LinkStream : IDisposable
 
     public void Dispose() => _conn.Close();
 
+    /// <summary>
+    /// Closes after the last frame had time to arrive (or as soon as the other side closes). Closing at once with unread
+    /// frames from the other side resets the connection, and the other side may lose the frame just sent.
+    /// </summary>
+    public void CloseSoon() => _conn.CloseSoon();
+
     private void RaiseEnded()
     {
         if (Interlocked.Exchange(ref _ended, 1) != 0) return;

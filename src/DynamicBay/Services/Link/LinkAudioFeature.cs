@@ -559,8 +559,11 @@ public sealed class LinkAudioFeature : LinkFeature
             if (tell is not null)
             {
                 try { _stream.SendAsync(LinkAudioProtocol.HeaderFrame(new JsonObject { ["end"] = tell })).Wait(500); } catch { }
+                // Sound frames still arrive unread: closing now would reset the connection and the sender would lose the
+                // reason. The sender closes once it has read it; at the latest this side closes after 2 s.
+                _stream.CloseSoon();
             }
-            _stream.Dispose();
+            else _stream.Dispose();
             bool current;
             lock (_f._gate)
             {

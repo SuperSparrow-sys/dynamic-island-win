@@ -2,8 +2,12 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## 1.1.19 (25.10.2026)
+## 1.1.20 (25.10.2026)
 
+1.1.19 wurde nicht veröffentlicht (der Release-Lauf fand den Fehler beim Ton unten).
+
+- Ton an das andere Gerät: Schaltete das empfangende Gerät den Ton ab, meldete das sendende manchmal „Verbindung
+  verloren“ statt des Grunds.
 - Neues Widget „Wetter“ (Open-Meteo): jetzt und die nächsten Stunden, breit dazu die Kurve der nächsten 24 Stunden und
   drei Tage. Ort, °C oder °F und Größe unter Einstellungen → Kalender und Zeit → Wetter.
 

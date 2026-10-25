@@ -126,14 +126,6 @@ Widget für das WAGO-Panel der Anzeigetafel. Entscheidungen und verworfene Wege 
    mit Regeltabelle seit 24.10.2026 auf prod, Zentrale mit `uebergang_s`). Offen: Fokus-Menü in der Insel und der
    Auslöser „Termin“ (Kalender, Titel enthält); Prüfung im echten Betrieb (gehen, kommen, Kamera, Schlafen).
 
-## 16. Test „Receiver_quitting_is_not_a_lost_connection“ schlägt gelegentlich fehl
-
-**Gesehen:** 24.10.2026, CI-Lauf 40129531441 auf `main` (Commit 919e202); derselbe Stand war im Release-Lauf grün.
-Erwartet `RemoteStopped`, bekommen `LinkLost` (`tests/DynamicBay.Tests/LinkAudioTests.cs`, Zeile 554).
-
-**Vermutung:** Beim Beenden des Empfängers schließt der Strom, bevor die Lese-Schleife des Senders den letzten Kopf
-`end` liest (`LinkAudioFeature.ReadLoop`); dann gilt das Ende als verlorene Verbindung. Ursache noch nicht belegt.
-
 ## 17. Apple Music: falsches Titelbild, Vorspulen springt zurück
 
 **Gemeldet:** 25.10.2026, Besitzer, auf einem anderen Rechner mit Apple Music. Titelbilder fehlen oder es bleibt das
