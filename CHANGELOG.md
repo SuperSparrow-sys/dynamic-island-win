@@ -2,7 +2,7 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## Unveröffentlicht
+## 1.1.19 (25.10.2026)
 
 - Neues Widget „Wetter“ (Open-Meteo): jetzt und die nächsten Stunden, breit dazu die Kurve der nächsten 24 Stunden und
   drei Tage. Ort, °C oder °F und Größe unter Einstellungen → Kalender und Zeit → Wetter.
