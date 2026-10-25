@@ -134,6 +134,17 @@ Erwartet `RemoteStopped`, bekommen `LinkLost` (`tests/DynamicBay.Tests/LinkAudio
 **Vermutung:** Beim Beenden des Empfängers schließt der Strom, bevor die Lese-Schleife des Senders den letzten Kopf
 `end` liest (`LinkAudioFeature.ReadLoop`); dann gilt das Ende als verlorene Verbindung. Ursache noch nicht belegt.
 
+## 17. Apple Music: falsches Titelbild, Vorspulen springt zurück
+
+**Gemeldet:** 25.10.2026, Besitzer, auf einem anderen Rechner mit Apple Music. Titelbilder fehlen oder es bleibt das
+des ersten Lieds; die Zeitleiste lässt sich ziehen, danach springt sie zurück.
+
+**Geprüft:** Am Laptop mit Spotify funktioniert beides (Test-Instanz, 25.10.). Apple Music wirft dort beim Auslesen
+der Sitzung eine COMException. Das Vorspulen schreibt jetzt `Media: seek to … accepted=…` ins Log.
+
+**Zu tun:** Erst wenn es am betroffenen Rechner zu sehen ist: Log lesen. Nimmt Apple Music das Vorspulen nicht an,
+die Zeitleiste dort nur anzeigen (`Controls.IsPlaybackPositionEnabled` bzw. Ergebnis des Vorspulens).
+
 # Zurückgestellt
 
 ## 4. Übrige Abfragen statt Ereignisse

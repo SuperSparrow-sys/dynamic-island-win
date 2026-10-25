@@ -608,9 +608,10 @@ public sealed partial class MediaService : ObservableObject
             _positionAtStamp = TimeSpan.FromSeconds(seconds);
             _positionStamp = DateTime.UtcNow;
             UpdateInterpolatedPosition();
-            await _session.TryChangePlaybackPositionAsync(TimeSpan.FromSeconds(seconds).Ticks);
+            bool ok = await _session.TryChangePlaybackPositionAsync(TimeSpan.FromSeconds(seconds).Ticks);
+            Log.Info($"Media: seek to {seconds:0} s in {SourceApp}, accepted={ok}");
         }
-        catch { }
+        catch (Exception ex) { Log.Info($"Media: seek failed in {SourceApp} ({ex.GetType().Name})"); }
     }
 
     /// <summary>For design snapshots only.</summary>
