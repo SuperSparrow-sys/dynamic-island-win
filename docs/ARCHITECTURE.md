@@ -98,6 +98,7 @@ steuert (Mikrofon-Nutzung für den Anrufmodus, Timer, Zeiterfassung), läuft wei
 | `PhoneFocusService` | iPhone-Fokus: HTTP auf TCP 43825 (eigener kleiner Server auf `TcpListener`, `PhoneFocusProtocol`: lesen, Regeln, Reihenfolge von An und Aus), Schlüssel in `secrets\`, Profile in `AppSettings.FocusProfiles`; siehe [INTEGRATIONS.md](INTEGRATIONS.md#iphone-fokus) |
 | `Server/ServerService` | Optionaler DynamicBay-Server: Kopplung per Code, WebSocket, gemeinsame Einstellungen (`SharedSettings`, die neuere gewinnt, Überschreibung je Gerät), Fokus vom Server (`AppSettings.PhoneFocusServer`), „Nicht stören“, Panel über den Server; siehe [INTEGRATIONS.md](INTEGRATIONS.md#dynamicbay-server) |
 | `AnzeigetafelService` | WAGO-Panel über die Anzeigetafel (`dashboard-zentrale`): `PanelProtocol` (Antwort lesen, Befehle, Fokus-Wechsel), Widget und Panel-Wirkung der Fokus-Profile, Schlüssel in `secrets\`; siehe [INTEGRATIONS.md](INTEGRATIONS.md#anzeigetafel) |
+| `WeatherService` | Widget „Wetter“: Vorhersage und Ortssuche von Open-Meteo (`OpenMeteo`), Umrechnung °C/°F, abgerufen nur bei offener Insel; siehe [INTEGRATIONS.md](INTEGRATIONS.md#wetter) |
 | `AirPodsService` | Akku beider Ohrhörer und des Case aus der Bluetooth-Werbung der AirPods (`AirPodsAdvert`), siehe [INTEGRATIONS.md](INTEGRATIONS.md#airpods) |
 
 ## Daten

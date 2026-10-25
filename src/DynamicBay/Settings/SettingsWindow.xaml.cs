@@ -203,6 +203,7 @@ public partial class SettingsWindow : Window
         (Widgets.Notes, "Icon.Pencil", "Notizen", "Notes", "Kurze Mitschriften, schnell geschrieben und wieder gelöscht", "Short notes, quickly written and deleted again"),
         (Widgets.Audio, "Icon.Headphones", "Audio", "Audio", "Ausgabe und Mikrofon wechseln, AirPods und andere Bluetooth-Geräte verbinden", "Switch output and microphone, connect AirPods and other Bluetooth devices"),
         (Widgets.Devices, "Icon.Bluetooth", "Geräte", "Devices", "Akkustand von PC, Kopfhörern, Tastatur und Maus", "Battery of this PC, headphones, keyboard and mouse"),
+        (Widgets.Weather, "Icon.CloudSun", "Wetter", "Weather", "Jetzt, die nächsten Stunden und Tage", "Now, the next hours and days"),
         (Widgets.AirPods, "Icon.Headphones", "AirPods", "AirPods", "Akku jedes Ohrhörers und des Case, verbinden", "Battery of each earbud and the case, connect"),
         (Widgets.CursorHop, "Icon.Mouse", "CursorHop", "CursorHop", "Verbundene Geräte und wo die Maus gerade ist", "Connected devices and where the mouse is"),
         (Widgets.Anzeigetafel, "Icon.Monitor", "Anzeigetafel", "Display board", "Panel an, aus und Helligkeit, zurück zum Wochenplan", "Panel on, off and brightness, back to the weekly plan"),

@@ -17,8 +17,8 @@ public enum IslandShape { Island, Notch }
 /// <summary>Widget and live-activity identifiers used in the customizable layout.</summary>
 public static class Widgets
 {
-    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads", CursorHop = "cursorhop", Paired = "paired", AirPods = "airpods", Anzeigetafel = "anzeigetafel";
-    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, AirPods, Todo, Teams, TimeTrack, Contacts, CursorHop, Paired, Anzeigetafel };
+    public const string Media = "media", Clock = "clock", Calendar = "calendar", Timer = "timer", System = "system", Shortcuts = "shortcuts", Messenger = "messenger", Claude = "claude", Muted = "muted", Mic = "mic", Devices = "devices", Todo = "todo", Teams = "teams", TimeTrack = "timetrack", Contacts = "contacts", Audio = "audio", Notes = "notes", Downloads = "downloads", CursorHop = "cursorhop", Paired = "paired", AirPods = "airpods", Anzeigetafel = "anzeigetafel", Weather = "weather";
+    public static readonly string[] AllHome = { Media, Clock, Calendar, Timer, System, Shortcuts, Messenger, Claude, Devices, AirPods, Todo, Teams, TimeTrack, Contacts, CursorHop, Paired, Anzeigetafel, Weather };
     public const string Battery = "battery";
     /// <summary>Settings page and group heading (start of its text) of each widget - for the gear in the island and the board in the settings.</summary>
     public static (SettingsPage page, string? group) SettingsOf(string id) => id switch
@@ -36,6 +36,7 @@ public static class Widgets
         Todo => (SettingsPage.Calendar, Loc.German ? "Aufgaben" : "Tasks"),
         Teams or Contacts => (SettingsPage.Accounts, "Microsoft 365"),
         TimeTrack => (SettingsPage.Calendar, Loc.German ? "Zeiterfassung" : "Time tracking"),
+        Weather => (SettingsPage.Calendar, Loc.German ? "Wetter" : "Weather"),
         Paired => (SettingsPage.Devices, Loc.German ? "Gekoppelte" : "Paired"),
         Anzeigetafel => (SettingsPage.Devices, Loc.German ? "Anzeigetafel" : "Display board"),
         _ when id.StartsWith(ScriptPrefix, StringComparison.Ordinal) => (SettingsPage.Apps, Loc.German ? "Eigene Widgets" : "Own widgets"),
@@ -601,6 +602,22 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private string _anzeigetafelUrl = "";
     /// <summary>Off until set up (Einstellungen → Geräte): a WAGO panel with dashboard-zentrale is not something everyone has.</summary>
     [ObservableProperty] private bool _anzeigetafelEnabled;
+
+    // Weather widget (Open-Meteo): the place chosen in the settings, "" = none yet.
+    [ObservableProperty] private string _weatherPlace = "";
+    [ObservableProperty] private double _weatherLatitude;
+    [ObservableProperty] private double _weatherLongitude;
+    /// <summary>°F instead of °C; the first start follows the region (United States and a few others: °F).</summary>
+    [ObservableProperty] private bool _weatherFahrenheit = !RegionMetric();
+    /// <summary>Wide: also the curve of the next 24 hours and the next three days.</summary>
+    [ObservableProperty] private bool _weatherWide;
+    [JsonIgnore] public bool HasWeatherPlace => WeatherPlace.Length > 0;
+
+    private static bool RegionMetric()
+    {
+        try { return System.Globalization.RegionInfo.CurrentRegion.IsMetric; }
+        catch (ArgumentException) { return true; }
+    }
 
     // DynamicBay server (Services/Server): this device's address and id there; the key is in the DPAPI store.
     [ObservableProperty] private string _serverAddress = "";

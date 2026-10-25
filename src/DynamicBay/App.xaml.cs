@@ -1163,6 +1163,7 @@ public partial class App : Application
         _vm?.PhoneFocus.Dispose();
         _vm?.Anzeigetafel.Dispose();
         _vm?.Server.Dispose();
+        _vm?.Weather.Dispose();
         _vm?.Camera.Dispose();
         _hopOverlay.Dispose();
         _vm?.Claude.Stop(); // frees the hook port for the new run
@@ -1186,6 +1187,7 @@ public partial class App : Application
         _vm?.PhoneFocus.Dispose();
         _vm?.Anzeigetafel.Dispose();
         _vm?.Server.Dispose();
+        _vm?.Weather.Dispose();
         _vm?.Camera.Dispose();
         _hopOverlay.Dispose();
         StopLink();

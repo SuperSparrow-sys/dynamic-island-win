@@ -441,6 +441,21 @@ public static class Snapshots
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.Anzeigetafel, Widgets.Audio, Widgets.Media }) settings.HomeWidgets.Add(w);
                 await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8l-anzeigetafel.png"), compact: true);
+                // Weather widget: small next to the clock and the calendar, then wide (curve and three days).
+                settings.WeatherFahrenheit = false;
+                settings.WeatherWide = false;
+                settings.WeatherPlace = "Pirna, Sachsen";
+                vm.Weather.LoadDemo(DemoWeather());
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.Weather, Widgets.Clock, Widgets.Calendar }) settings.HomeWidgets.Add(w);
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8m-weather.png"), compact: true);
+                settings.WeatherWide = true;
+                settings.WeatherFahrenheit = true;
+                settings.HomeWidgets.Clear();
+                foreach (var w in new[] { Widgets.Weather, Widgets.Clock }) settings.HomeWidgets.Add(w);
+                await Shot(island, vm, IslandMode.Expanded, Path.Combine(dir, $"{name}-8n-weather-wide.png"), compact: true);
+                settings.WeatherWide = false;
+                settings.WeatherFahrenheit = false;
                 // Second page "System": sound and devices live there
                 settings.HomeWidgets.Clear();
                 foreach (var w in new[] { Widgets.Media, Widgets.Calendar }) settings.HomeWidgets.Add(w);
@@ -963,5 +978,21 @@ public static class Snapshots
         rtb.Freeze();
         return rtb;
     }
-}
 
+    /// <summary>A rainy autumn day that clears up: the weather widget in the snapshots.</summary>
+    private static WeatherForecast DemoWeather()
+    {
+        var hour = DateTime.Today.AddHours(DateTime.Now.Hour);
+        double[] temps = { 10, 10.4, 11, 11.6, 12, 11.8, 11, 9.6, 8.4, 7.6, 7, 6.5, 6.1, 5.8, 5.5, 5.2, 5, 4.9, 5.1, 5.6, 6.4, 7.5, 8.6, 9.5 };
+        int[] codes = { 61, 61, 80, 3, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3 };
+        var hours = temps.Select((t, i) => new WeatherHourData(hour.AddHours(i), t, codes[i], hour.AddHours(i).Hour is >= 7 and < 18, i < 3 ? 70 - i * 20 : null)).ToList();
+        var days = new List<WeatherDayData>
+        {
+            new(DateTime.Today, 61, 12.1, 4.8, 80),
+            new(DateTime.Today.AddDays(1), 2, 13.4, 3.9, 10),
+            new(DateTime.Today.AddDays(2), 0, 15.2, 2.7, 0),
+            new(DateTime.Today.AddDays(3), 63, 9.8, 6.1, 90),
+        };
+        return new WeatherForecast(new WeatherNow(10, 61, true), hours, days);
+    }
+}

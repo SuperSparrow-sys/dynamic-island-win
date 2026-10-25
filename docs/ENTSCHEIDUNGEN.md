@@ -134,3 +134,10 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
   `ConsentStore` in der Registry werden seit den Updates vom 14.10. nicht mehr geschrieben; sie bleiben als zweite
   Quelle. Verworfen: die Nutzungsdaten unter `C:\ProgramData\Microsoft\Windows\CapabilityAccessManager\`, die nur mit
   Adminrechten lesbar sind. Kamera an nach 3 s, aus nach 5 s; Mikrofon-Apps zählen 5 s über die letzte Sitzung hinaus.
+
+## Wetter
+
+- **Ort eintippen statt Windows-Standort** (25.10.2026, Besitzer). Der Ort wird über die Ortssuche von Open-Meteo
+  gewählt und mit Koordinaten gespeichert. Verworfen: der Ortungsdienst von Windows (Freigabe nötig, am PC ungenau).
+- **Abruf nur bei offener Insel**, alle 15 Minuten, und °C/°F wird lokal umgerechnet. Verworfen: Abruf im Hintergrund
+  (kostet Netz und Akku für ein Widget, das niemand ansieht).

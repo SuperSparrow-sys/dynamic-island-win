@@ -807,6 +807,35 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Wetter', En='Weather'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl x:Name="WeatherPlaceRow" Style="{StaticResource S.Row}" Tag="{core:L De='Ort', En='Place'}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBox x:Name="WeatherSearch" Style="{StaticResource S.TextBox}" Width="200" KeyDown="WeatherSearch_KeyDown" Loaded="WeatherSearch_Loaded" />
+                                    <Button x:Name="WeatherSearchButton" Style="{StaticResource S.Button}" Margin="8,0,0,0" Click="WeatherSearch_Click" Content="{core:L De='Suchen', En='Search'}" />
+                                </StackPanel>
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Einheit', En='Unit'}">
+                                <Border Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="°C" IsChecked="{Binding S.WeatherFahrenheit, Converter={StaticResource EqBool}, ConverterParameter=False}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="°F" IsChecked="{Binding S.WeatherFahrenheit, Converter={StaticResource EqBool}, ConverterParameter=True}" />
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Größe', En='Size'}"
+                                            ToolTip="{core:L De='Breit zeigt dazu den Verlauf über 24 Stunden und drei Tage.', En='Wide also shows the next 24 hours as a curve and three days.'}">
+                                <Border Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Klein', En='Small'}" IsChecked="{Binding S.WeatherWide, Converter={StaticResource EqBool}, ConverterParameter=False}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Breit', En='Wide'}" IsChecked="{Binding S.WeatherWide, Converter={StaticResource EqBool}, ConverterParameter=True}" />
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Aufgaben', En='Tasks'}" />
                     <Border Style="{StaticResource S.Card}" Padding="16,12">
                         <StackPanel>

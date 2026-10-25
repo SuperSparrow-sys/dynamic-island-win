@@ -48,6 +48,9 @@
             </Setter>
         </Style>
         <c:TextOr x:Key="TodoTitle" Fallback="{core:L De='Aufgaben', En='Tasks'}" />
+        <c:TextOr x:Key="WeatherTitle" Fallback="{core:L De='Wetter', En='Weather'}" />
+        <c:ResourceIcon x:Key="ResIcon" />
+        <c:StarWidth x:Key="Star" />
         <c:BoolPick x:Key="OutputGlyph" True="{StaticResource Icon.Headphones}" False="{StaticResource Icon.Speaker}" />
         <c:BoolPick x:Key="DefaultBg" True="{StaticResource B.Fill2}" False="{x:Static Brushes.Transparent}" />
         <c:BoolPick x:Key="ConnectText" True="{core:L De='Trennen', En='Disconnect'}" False="{core:L De='Verbinden', En='Connect'}" />
@@ -1462,6 +1465,81 @@
                             <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{StaticResource B.Orange}"
                                        Text="{Binding Anzeigetafel.Error}" Visibility="{Binding Anzeigetafel.HasError, Converter={StaticResource Vis}}" />
                         </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- Weather (Open-Meteo): small = now and the next hours; wide = also the curve of 24 hours and the next three days -->
+                <Border x:Name="WeatherCard" Style="{StaticResource Card}" Padding="12,9,12,12">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Height="22">
+                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Caption}" FontSize="10.5" VerticalAlignment="Center" Margin="8,0,0,0"
+                                       Visibility="{Binding Weather.HasData, Converter={StaticResource Vis}}" Text="{Binding Weather.HighLow}" />
+                            <c:Icon Data="{StaticResource Icon.MapPin}" Width="14" Height="14" Foreground="{StaticResource B.Blue}" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource T.Title}" Margin="6,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       Text="{Binding Weather.Place, Converter={StaticResource WeatherTitle}}" />
+                        </DockPanel>
+                        <Grid Margin="0,6,0,0">
+                            <TextBlock Style="{StaticResource T.Caption}" FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding Weather.HasData, Converter={StaticResource NotVis}}" Text="{Binding Weather.Status}" />
+                            <Grid Visibility="{Binding Weather.HasData, Converter={StaticResource Vis}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition x:Name="WeatherWideColumn" Width="0" />
+                                </Grid.ColumnDefinitions>
+                                <!-- Now and the next hours -->
+                                <DockPanel>
+                                    <DockPanel DockPanel.Dock="Top">
+                                        <c:Icon DockPanel.Dock="Left" Data="{Binding Weather.Icon, Converter={StaticResource ResIcon}}" Width="26" Height="26" Foreground="{StaticResource B.Yellow}" VerticalAlignment="Center" />
+                                        <TextBlock DockPanel.Dock="Left" Style="{StaticResource T.Numeric}" FontSize="30" FontWeight="Bold" Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding Weather.Temp}" />
+                                        <!-- Narrow cards: the condition wraps to a second line and ends with "..." rather than being cut -->
+                                        <TextBlock Style="{StaticResource T.Caption}" Margin="8,0,0,0" VerticalAlignment="Center" MaxHeight="30" TextWrapping="Wrap" Text="{Binding Weather.Condition}" />
+                                    </DockPanel>
+                                    <ItemsControl ItemsSource="{Binding Weather.Hours}" VerticalAlignment="Bottom" Margin="0,6,0,0">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Style="{StaticResource T.Caption}" FontSize="10" HorizontalAlignment="Center" Text="{Binding Time}" />
+                                                    <c:Icon Data="{Binding Icon, Converter={StaticResource ResIcon}}" Width="15" Height="15" Margin="0,3,0,3" Foreground="{StaticResource B.Text}" HorizontalAlignment="Center" />
+                                                    <TextBlock Style="{StaticResource T.Numeric}" FontSize="11.5" HorizontalAlignment="Center" Text="{Binding Temp}" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </DockPanel>
+                                <!-- Wide: the next 24 hours as a curve, the next three days with their range -->
+                                <DockPanel x:Name="WeatherWidePanel" Grid.Column="1" Margin="14,0,0,0" Visibility="Collapsed">
+                                    <Grid DockPanel.Dock="Top" Height="30">
+                                        <c:TempCurve Values="{Binding Weather.Curve}" Stroke="{StaticResource B.Orange}" Margin="0,0,30,0" />
+                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="9.5" HorizontalAlignment="Right" VerticalAlignment="Top" Text="{Binding Weather.CurveHigh}" />
+                                        <TextBlock Style="{StaticResource T.Caption}" FontSize="9.5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Text="{Binding Weather.CurveLow}" />
+                                    </Grid>
+                                    <ItemsControl ItemsSource="{Binding Weather.Days}" VerticalAlignment="Bottom" Margin="0,6,0,0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Height="19">
+                                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource T.Base}" FontSize="11" Width="64" VerticalAlignment="Center" Text="{Binding Name}" />
+                                                    <c:Icon DockPanel.Dock="Left" Data="{Binding Icon, Converter={StaticResource ResIcon}}" Width="13" Height="13" Margin="0,0,8,0" Foreground="{StaticResource B.Text}" VerticalAlignment="Center" />
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource T.Numeric}" FontSize="11" Width="28" TextAlignment="Right" VerticalAlignment="Center" Text="{Binding High}" />
+                                                    <TextBlock DockPanel.Dock="Left" Style="{StaticResource T.Numeric}" FontSize="11" Width="28" Foreground="{StaticResource B.Text2}" VerticalAlignment="Center" Text="{Binding Low}" />
+                                                    <Grid Height="4" VerticalAlignment="Center" Margin="4,0,4,0">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="{Binding From, Converter={StaticResource Star}}" />
+                                                            <ColumnDefinition Width="{Binding Span, Converter={StaticResource Star}}" />
+                                                            <ColumnDefinition Width="{Binding After, Converter={StaticResource Star}}" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Grid.ColumnSpan="3" CornerRadius="2" Background="{StaticResource B.Fill2}" />
+                                                        <Border Grid.Column="1" CornerRadius="2" Background="{StaticResource B.Orange}" />
+                                                    </Grid>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </DockPanel>
+                            </Grid>
+                        </Grid>
                     </DockPanel>
                 </Border>
 

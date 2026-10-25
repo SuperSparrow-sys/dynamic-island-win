@@ -113,6 +113,20 @@ public sealed class TextOr : IValueConverter
     public object ConvertBack(object v, Type t, object p, CultureInfo c) => Binding.DoNothing;
 }
 
+/// <summary>A resource key ("Icon.Sun") -> the resource, for icons chosen by a service.</summary>
+public sealed class ResourceIcon : IValueConverter
+{
+    public object? Convert(object value, Type t, object p, CultureInfo c) => value is string { Length: > 0 } key ? Application.Current.TryFindResource(key) : null;
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => Binding.DoNothing;
+}
+
+/// <summary>A number -> a star width (bars made of grid columns).</summary>
+public sealed class StarWidth : IValueConverter
+{
+    public object Convert(object value, Type t, object p, CultureInfo c) => new GridLength(value is double d && d > 0 ? d : 0.0001, GridUnitType.Star);
+    public object ConvertBack(object v, Type t, object p, CultureInfo c) => Binding.DoNothing;
+}
+
 /// <summary>Picks a value for Spotify's repeat state ("off", "context", "track").</summary>
 public sealed class RepeatPick : IValueConverter
 {

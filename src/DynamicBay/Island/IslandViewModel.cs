@@ -97,6 +97,8 @@ public sealed partial class IslandViewModel : ObservableObject
     public AudioDevicesService AudioDevices { get; }
     /// <summary>"Lautstärke" in the audio card: one slider for every device the sound plays on, and one each.</summary>
     public OutputVolumeService OutputVolume { get; }
+    /// <summary>Now, the next hours and days at the chosen place (the "Wetter" widget, Open-Meteo).</summary>
+    public WeatherService Weather { get; }
     /// <summary>Battery of each earbud and the case (the "AirPods" widget).</summary>
     public AirPodsService AirPods { get; }
     /// <summary>Quick notes (the "Notizen" widget).</summary>
@@ -193,6 +195,7 @@ public sealed partial class IslandViewModel : ObservableObject
         AudioDevices = new AudioDevicesService(settings, media);
         OutputVolume = new OutputVolumeService(id => AudioDevices.Outputs.FirstOrDefault(o => o.Id == id) is { } o ? (o.Name, o.Headphones) : null);
         AirPods = new AirPodsService(settings, AudioDevices);
+        Weather = new WeatherService(settings, global::System.Windows.Threading.Dispatcher.CurrentDispatcher);
         Clock = new ClockService(settings);
         System = new SystemService();
         Shortcuts = new ShortcutsService(settings);

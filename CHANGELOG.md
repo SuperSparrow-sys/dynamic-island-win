@@ -2,6 +2,11 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## Unveröffentlicht
+
+- Neues Widget „Wetter“ (Open-Meteo): jetzt und die nächsten Stunden, breit dazu die Kurve der nächsten 24 Stunden und
+  drei Tage. Ort, °C oder °F und Größe unter Einstellungen → Kalender und Zeit → Wetter.
+
 ## 1.1.18 (24.10.2026)
 
 - Mikrofon: Seit den Windows-Updates vom Oktober (26H2) bemerkte DynamicBay ein laufendes Mikrofon nicht mehr (Anzeige,

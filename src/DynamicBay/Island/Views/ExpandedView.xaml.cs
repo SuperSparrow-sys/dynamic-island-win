@@ -20,7 +20,7 @@ public partial class ExpandedView : UserControl
     {
         InitializeComponent();
         // The optional cards live in the home grid too; they're shown/positioned by LayoutHome.
-        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, AirPodsCard, TodoCard, TeamsCard, TimeCard, ContactsCard, AudioCard, NotesCard, CursorHopCard, PairedCard, AnzeigetafelCard })
+        foreach (var card in new[] { ClockCard, SystemCard, ShortcutsCard, MessengerCard, ClaudeCard, DevicesCard, AirPodsCard, TodoCard, TeamsCard, TimeCard, ContactsCard, AudioCard, NotesCard, CursorHopCard, PairedCard, AnzeigetafelCard, WeatherCard })
         {
             ExtraCards.Children.Remove(card);
             HomeGrid.Children.Add(card);
@@ -46,6 +46,7 @@ public partial class ExpandedView : UserControl
             [Core.Widgets.CursorHop] = CursorHopCard,
             [Core.Widgets.Paired] = PairedCard,
             [Core.Widgets.Anzeigetafel] = AnzeigetafelCard,
+            [Core.Widgets.Weather] = WeatherCard,
         };
         DataContextChanged += (_, _) =>
         {
@@ -105,6 +106,7 @@ public partial class ExpandedView : UserControl
         Vm?.MusicVolume.SetPanelOpen(any);
         Vm?.OutputVolume.SetPanelOpen(any);
         Vm?.Anzeigetafel.SetPanelOpen(any && Vm.Settings.HomeWidgets.Concat(Vm.Settings.SystemWidgets).Contains(Core.Widgets.Anzeigetafel));
+        Vm?.Weather.SetPanelOpen(any && Vm.Settings.HomeWidgets.Concat(Vm.Settings.SystemWidgets).Contains(Core.Widgets.Weather));
     }
 
     private void OnSettingsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -112,7 +114,7 @@ public partial class ExpandedView : UserControl
         if (e.PropertyName == nameof(Core.AppSettings.SystemWidgets)) { UpdateSystemTab(); LayoutHome(); }
         if (e.PropertyName is nameof(Core.AppSettings.HomeWidgets) or nameof(Core.AppSettings.ClaudeEnabled) or nameof(Core.AppSettings.ScriptWidgets)
             or nameof(Core.AppSettings.MediaEnabled) or nameof(Core.AppSettings.TimerEnabled) or nameof(Core.AppSettings.CalendarEnabled)
-            or nameof(Core.AppSettings.ActiveFocus)) LayoutHome();
+            or nameof(Core.AppSettings.ActiveFocus) or nameof(Core.AppSettings.WeatherWide)) LayoutHome();
         if (e.PropertyName is nameof(Core.AppSettings.ShelfEnabled)) SetVertical(_vertical);
         if (e.PropertyName is nameof(Core.AppSettings.ShowTrayTab) or nameof(Core.AppSettings.ShowNotificationsTab)) EnsureVisibleTab();
     }
@@ -150,11 +152,15 @@ public partial class ExpandedView : UserControl
         var enabled = (source ?? new System.Collections.ObjectModel.ObservableCollection<string> { "media", "calendar", "timer" })
             .Where(_widgets.ContainsKey).Where(ModuleOn).Distinct().ToList();
         foreach (var (id, card) in _widgets) card.Visibility = enabled.Contains(id) ? Visibility.Visible : Visibility.Collapsed;
+        // Weather: the wide size adds the curve and the days next to now and the hours.
+        WeatherWideColumn.Width = WeatherWide ? new GridLength(1.1, GridUnitType.Star) : new GridLength(0);
+        WeatherWidePanel.Visibility = WeatherWide ? Visibility.Visible : Visibility.Collapsed;
         HomeGrid.ColumnDefinitions.Clear();
         HomeGrid.RowDefinitions.Clear();
         if (enabled.Count == 0) return;
 
         double Weight(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 2.15 : 1)
+            : id == Core.Widgets.Weather && WeatherWide ? 2.15
             : id switch { "media" => 2.15, "messenger" => 1.6, "claude" => 1.6, "shortcuts" => 1.3, "teams" => 0.3, _ => 1 };
 
         _columns.Clear();
@@ -223,9 +229,12 @@ public partial class ExpandedView : UserControl
         };
     }
 
-    private bool IsWide(string id) => id is "media" or "messenger" or "claude" or "todo" or "contacts" || ScriptOf(id)?.Size == Core.ScriptSize.Large;
+    private bool IsWide(string id) => id is "media" or "messenger" or "claude" or "todo" or "contacts" || ScriptOf(id)?.Size == Core.ScriptSize.Large
+        || (id == Core.Widgets.Weather && WeatherWide);
 
-    private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id switch
+    private bool WeatherWide => Vm?.Settings.WeatherWide == true;
+
+    private double MinWidthOf(string id) => ScriptOf(id) is { } sc ? (sc.Size == Core.ScriptSize.Large ? 330 : 170) : id == Core.Widgets.Weather ? (WeatherWide ? 360 : 180) : id switch
     {
         "media" => 360, "messenger" or "claude" or "todo" => 230, "teams" => 52, "timetrack" => 170, "contacts" => 230, "devices" => 220, "airpods" => 200, "audio" => 190, "notes" => 190, "cursorhop" => 190, "paired" => 230, "anzeigetafel" => 200, "shortcuts" => 170, "calendar" => 134, "timer" => 120, _ => 150,
     };

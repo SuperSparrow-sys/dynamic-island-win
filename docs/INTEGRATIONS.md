@@ -202,6 +202,19 @@ Case meldet sich nur bei offenem Deckel, bis dahin bleibt der letzte Wert stehen
 
 Screenshot-Ordner aller OneDrive-Konten werden automatisch überwacht.
 
+## Wetter
+
+Das Widget „Wetter“ zeigt das Wetter an einem Ort, den man unter Einstellungen → Kalender und Zeit → Wetter sucht
+(Ortssuche von Open-Meteo, gespeichert werden Name und Koordinaten, kein Ortungsdienst). Daten von
+[Open-Meteo](https://open-meteo.com) (`OpenMeteo`, `WeatherService`), ohne Schlüssel, Lizenz CC BY 4.0.
+
+- Klein: jetzt (Symbol, Temperatur, Zustand, Höchst- und Tiefstwert des Tages) und die nächsten vier Stunden.
+- Breit: dazu die Temperatur der nächsten 24 Stunden als Kurve und die nächsten drei Tage mit ihrer Spanne.
+- °C oder °F schaltet ohne neuen Abruf um; beim ersten Start gilt die Einheit der Region.
+- Abgerufen wird, wenn die Insel mit dem Widget auf einer Seite aufgeht und die letzte Antwort älter als 15 Minuten
+  ist, und danach alle 15 Minuten, solange sie offen bleibt. Ohne Netz bleibt die letzte Antwort bis zu 3 Stunden
+  stehen.
+
 ## Claude
 
 - **Sitzungen:** Die letzten Claude-Code-Sitzungen aus `%UserProfile%\.claude\projects` mit Titel, Projekt und Zeit.

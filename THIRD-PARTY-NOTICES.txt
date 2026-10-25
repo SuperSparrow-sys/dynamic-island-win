@@ -19,6 +19,7 @@ and license terms are reproduced below as required by those licenses.
   Lucide icons (incl. Feather icons)       -         ISC / MIT
   Simple Icons                             -         CC0-1.0
   Inter font                               -         SIL Open Font License 1.1
+  Open-Meteo weather data (web service)    -         CC BY 4.0
 
 DynamicBay was developed with the help of Claude (Anthropic). DynamicBay is not
 affiliated with or endorsed by Apple, Spotify, Google, Microsoft or Anthropic.
@@ -726,3 +727,14 @@ Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
 
 Licensed under the SIL Open Font License, Version 1.1. The full license text
 is in Assets\Fonts\Inter-LICENSE.txt and at https://openfontlicense.org
+
+================================================================================
+Open-Meteo weather data
+https://open-meteo.com
+================================================================================
+
+The weather widget shows forecasts and place names fetched at run time from
+Open-Meteo (https://open-meteo.com). Weather data by Open-Meteo.com, licensed
+under Creative Commons Attribution 4.0 International (CC BY 4.0,
+https://creativecommons.org/licenses/by/4.0/). Place search based on GeoNames
+(https://www.geonames.org, CC BY 4.0). No data is bundled with DynamicBay.

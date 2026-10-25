@@ -35,6 +35,8 @@ const ICONS = {
   "images": "Photos", "paintbrush": "Paint", "gamepad-2": "Game", "map": "Map", "store": "Store", "shield-check": "Shield", "cog": "Cog",
   "mic": "Mic", "mic-off": "MicOff", "volume-x": "VolumeOff",
   "magnet": "Magnet", "maximize": "Fullscreen", "app-window-mac": "Window", "lock": "Lock", "flask-conical": "Lab", "scan-text": "ScanText", "message-circle": "Chat", "phone": "Call", "mouse": "Mouse", "code": "Code", "pencil": "Pencil",
+  "cloud-sun": "CloudSun", "cloud-moon": "CloudMoon", "cloud-rain": "CloudRain", "cloud-drizzle": "CloudDrizzle",
+  "cloud-snow": "CloudSnow", "cloud-lightning": "CloudLightning", "cloud-fog": "CloudFog", "droplet": "Droplet",
 };
 
 const num = (n) => +(+n).toFixed(3);
