@@ -64,6 +64,7 @@ public sealed class Waveform : FrameworkElement
     {
         if (_hooked) return;
         _hooked = true;
+        Running++;
         _last = TimeSpan.Zero;
         CompositionTarget.Rendering += OnFrame;
     }
@@ -72,8 +73,12 @@ public sealed class Waveform : FrameworkElement
     {
         if (!_hooked) return;
         _hooked = false;
+        Running--;
         CompositionTarget.Rendering -= OnFrame;
     }
+
+    /// <summary>Waveforms drawing right now (diagnostics for the CPU line in the log).</summary>
+    public static int Running { get; private set; }
 
     private void OnFrame(object? sender, EventArgs e)
     {

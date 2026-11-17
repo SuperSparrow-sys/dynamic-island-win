@@ -19,6 +19,9 @@ public static class Loop
     private static readonly DependencyProperty RunningProperty = DependencyProperty.RegisterAttached(
         "Running", typeof(bool), typeof(Loop), new PropertyMetadata(false));
 
+    /// <summary>Loops running right now (diagnostics for the CPU line in the log).</summary>
+    public static int Running { get; private set; }
+
     public static Storyboard? GetStoryboard(DependencyObject d) => (Storyboard?)d.GetValue(StoryboardProperty);
     public static void SetStoryboard(DependencyObject d, Storyboard? value) => d.SetValue(StoryboardProperty, value);
 
@@ -44,6 +47,7 @@ public static class Loop
         bool running = (bool)el.GetValue(RunningProperty);
         if (run == running) return;
         el.SetValue(RunningProperty, run);
+        Running += run ? 1 : -1;
         if (run)
         {
             if (!sb.IsFrozen) Timeline.SetDesiredFrameRate(sb, Motion.FrameRate.Limit > 0 ? Motion.FrameRate.Limit : null);

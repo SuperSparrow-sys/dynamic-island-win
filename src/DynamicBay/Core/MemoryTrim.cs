@@ -27,7 +27,8 @@ public static class MemoryTrim
         if (_lastCpuAt != default)
         {
             double pct = (p.TotalProcessorTime - _lastCpu).TotalSeconds / (now - _lastCpuAt).TotalSeconds * 100;
-            Log.Info($"CPU {pct:0.0} % of one core, working set {p.WorkingSet64 / 1048576} MB, managed {GC.GetTotalMemory(false) / 1048576} MB");
+            Log.Info($"CPU {pct:0.0} % of one core, working set {p.WorkingSet64 / 1048576} MB, managed {GC.GetTotalMemory(false) / 1048576} MB, "
+                + $"animating: springs {Motion.SpringGroup.Running}, loops {Controls.Loop.Running}, waveforms {Controls.Waveform.Running}");
         }
         _lastCpu = p.TotalProcessorTime;
         _lastCpuAt = now;

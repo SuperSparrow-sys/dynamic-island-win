@@ -45,6 +45,7 @@ public sealed class Spring
 public sealed class SpringGroup
 {
     private const double FixedStep = 1.0 / 480.0;
+    internal const double StuckAfter = 30;
     private readonly List<Spring> _springs = new();
     private readonly Stopwatch _clock = new();
     private double _last;
@@ -63,10 +64,17 @@ public sealed class SpringGroup
         return s;
     }
 
+    /// <summary>Groups drawing right now (diagnostics for the CPU line in the log).</summary>
+    public static int Running { get; private set; }
+
+    private bool _warned;
+
     public void Kick()
     {
         if (_running) return;
         _running = true;
+        Running++;
+        _warned = false;
         _clock.Restart();
         _last = 0;
         _accumulator = 0;
@@ -91,6 +99,22 @@ public sealed class SpringGroup
         {
             CompositionTarget.Rendering -= OnRendering;
             _running = false;
+            Running--;
         }
+        else if (!_warned && now > StuckAfter)
+        {
+            // A group that never settles redraws the island every frame (17.11.2026: 12-15 % CPU for hours, cause unknown)
+            _warned = true;
+            Core.Log.Info($"Springs still moving after {StuckAfter} s ({Describe(Updated, _springs)})");
+        }
+    }
+
+    /// <summary>Who listens and which springs are unsettled: "IslandWindow.ApplyShape: #1 3.2 -> NaN v 0.4".</summary>
+    internal static string Describe(Action? updated, IReadOnlyList<Spring> springs)
+    {
+        var who = updated?.GetInvocationList().Select(d => $"{d.Method.DeclaringType?.Name}.{d.Method.Name}") ?? [];
+        var moving = springs.Select((s, i) => (s, i)).Where(x => !x.s.IsSettled)
+            .Select(x => FormattableString.Invariant($"#{x.i} {x.s.Value:0.###} -> {x.s.Target:0.###} v {x.s.Velocity:0.###}"));
+        return $"{string.Join(", ", who)}: {string.Join("; ", moving)}";
     }
 }

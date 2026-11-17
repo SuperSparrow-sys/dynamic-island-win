@@ -62,6 +62,16 @@ public class SpringTests
         for (int i = 0; i < 1000; i++) { s.Step(1 / 480.0); Assert.True(s.Value <= 1.0005); }
     }
 
+    [Fact]
+    public void Stuck_springs_are_named_with_their_listener_and_values()
+    {
+        var settled = new Spring(1);
+        var stuck = new Spring(3.25) { Target = double.NaN, Velocity = 0.5 };
+        Action updated = Spring_settles_on_target;
+        var text = SpringGroup.Describe(updated, [settled, stuck]);
+        Assert.Equal("SpringTests.Spring_settles_on_target: #1 3.25 -> NaN v 0.5", text);
+    }
+
     [Theory]
     [InlineData(0.0)]
     [InlineData(0.35)]

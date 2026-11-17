@@ -137,6 +137,19 @@ der Sitzung eine COMException. Das Vorspulen schreibt jetzt `Media: seek to … 
 **Zu tun:** Erst wenn es am betroffenen Rechner zu sehen ist: Log lesen. Nimmt Apple Music das Vorspulen nicht an,
 die Zeitleiste dort nur anzeigen (`Controls.IsPlaybackPositionEnabled` bzw. Ergebnis des Vorspulens).
 
+## 18. Doppelte Grundlast nach dem Aufwachen
+
+**Gemeldet:** 17.11.2026, Messung am Laptop, 1.1.20. Nach dem Aufwachen um 12:20 lag die CPU drei Stunden bei 12–15 %
+eines Kerns, auch bei pausierter Musik, sonst 3–7 % (nachts 1,2 %). Sie fiel erst, als um 15:00 der zweite Bildschirm
+dazukam und die Insel neu platziert wurde (`SnapShapeToTargets`).
+
+**Geprüft:** Ein Profil um 16:50 zeigte nur die atmende Claude-Animation (eine Dauer-Animation, siehe Entscheidungen).
+Ebenen, Waveform und `c:Loop` stoppen verborgen richtig. Verdacht: eine `SpringGroup`, die nicht zur Ruhe kommt
+(z. B. Ziel NaN), unbewiesen.
+
+**Zu tun:** Beim nächsten Mal das Log lesen: die CPU-Zeile nennt jetzt `animating: springs/loops/waveforms`, und eine
+Feder, die nach 30 s noch läuft, schreibt `Springs still moving` mit Empfänger und Werten. Dann die Ursache beheben.
+
 # Zurückgestellt
 
 ## 4. Übrige Abfragen statt Ereignisse
