@@ -78,9 +78,20 @@ Leiste heraus; nach jedem Platzieren wird sie wieder über die Leiste gehoben. B
 (`EVENT_SYSTEM_FOREGROUND`, Dateibeschreibung der EXE) mit Fenstermenü; rechts das laufende Lied (`MediaService`),
 Netz (`NetworkInformation`), die übrigen aus den vorhandenen Diensten; jedes per `MenuBar*`-Schalter abschaltbar.
 An der Leiste öffnet die Insel erst nach 300 ms Verweilen (`MenuBarMath.HoverDelayMs`) und zeichnet keinen Schatten.
-Die linke Seite endet vor der Notch (`MenuBarMath.LeftRoom`, der App-Name kürzt sich). Ein Klick auf eine angeheftete
-App holt ein offenes Fenster nach vorn oder minimiert es (`AppWindows`: App-ID des Fensters, Prozesspfad, Ziel der
-Verknüpfung oder des Startmenü-Eintrags), sonst startet sie. Vollbild: Jede Sekunde und auf `ABN_FULLSCREENAPP` prüft `MenuBarManager.FullscreenOn`
+**Offene Apps in der Kopfleiste.** Hinter den angehefteten Apps stehen alle offenen, die nicht angeheftet sind
+(`MenuBarRunning`, gehört dem PC). `MenuBarManager` meldet ein verstecktes Fenster per `RegisterShellHookWindow` an,
+solange eine Leiste Apps zeigt, und liest auf Erzeugen, Zerstören, Aktivieren und Blinken (`HSHELL_*`, 120 ms
+gebündelt) die Fenster neu: wie Alt+Tab (`AppWindows.IsSwitchable`), ohne eigene, ohne andere virtuelle Desktops.
+`HSHELL_REDRAW` (auch jede Titeländerung) zählt nur für ein noch unbekanntes Fenster. App-ID und Programm liest es
+einmal je Fenster. `RunningApps` (Logik, getestet) ordnet die Fenster den angehefteten Einträgen zu (`AppWindows.Matches`),
+gruppiert den Rest je App-ID oder Programm (`OpenWindow.Key`), hält die Reihenfolge stabil (neue hinten), entscheidet
+den Klick (`RunningApps.Click`) und den Strich darunter (`RunningApps.Indicator`: Punkt läuft, Strich vorn, orange
+nach `HSHELL_FLASH`, bis die App vorn war). Eigene Fenster vorn behalten die App davor. Das Modell (`MenuBarModel.Apps`,
+`BarApp`) ist eines für alle Leisten; jede `MenuBarWindow` passt es mit `RunningApps.Fit` in ihren Platz vor der Notch
+und vor der rechten Seite ein (App-Name behält 90 DIP, der Rest hinter „Mehr“). Fenstertitel liest erst das Menü.
+Symbole 48 px über `ShellThumbnail` (Startmenü-Eintrag zur App-ID, sonst das Programm) auf einem eigenen STA-Thread.
+Rechtsklick heftet an (Startmenü-Eintrag, sonst Programm) oder löst, beides in der Schnellstart-Liste.
+Die linke Seite endet vor der Notch (`MenuBarMath.LeftRoom`, der App-Name kürzt sich zuerst). Vollbild: Jede Sekunde und auf `ABN_FULLSCREENAPP` prüft `MenuBarManager.FullscreenOn`
 das oberste große Fenster je Bildschirm (nicht nur das aktive), die Leiste dort blendet sich aus. Beim Messen der Farben
 fallen auch Fenster heraus, die immer oben liegen (Bild im Bild). `AppBar` merkt sich die angemeldeten Fenster in
 `appbars.txt`; nach einem harten Beenden meldet der nächste Start die verwaisten Streifen ab (`AppBar.RemoveStale`). Hintergrund: `Tone()` liest eine

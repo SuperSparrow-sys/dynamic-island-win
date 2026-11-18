@@ -64,7 +64,7 @@ public sealed partial class ShortcutsService
         {
             var found = await IconReader.Run(() => paths
                 .Where(p => p.StartsWith("shell:", StringComparison.OrdinalIgnoreCase) || File.Exists(p) || Directory.Exists(p))
-                .Select(p => (Path: p, Icon: ShellThumbnail.Get(p, 64, iconOnly: true))).ToList());
+                .Select(p => (Path: p, Icon: ShellThumbnail.Get(p, 48, iconOnly: true))).ToList());
             if (build != _build) return; // changed meanwhile: the newer build fills the list
             Items.Clear();
             foreach (var (p, icon) in found) Items.Add(Create(p, style, icon));
@@ -72,7 +72,7 @@ public sealed partial class ShortcutsService
         catch (Exception ex) { Log.Error("Shortcuts", ex); }
     }
 
-    public static ShortcutItem Create(string path, AppIconStyle style) => Create(path, style, ShellThumbnail.Get(path, 64, iconOnly: true));
+    public static ShortcutItem Create(string path, AppIconStyle style) => Create(path, style, ShellThumbnail.Get(path, 48, iconOnly: true));
 
     internal static ShortcutItem Create(string path, AppIconStyle style, ImageSource? icon)
     {

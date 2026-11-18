@@ -4,6 +4,13 @@ Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit d
 
 ## Noch nicht veröffentlicht
 
+- Kopfleiste zeigt offene Programme wie die Taskleiste: hinter den angehefteten Apps alle laufenden, ein Symbol je App.
+  Ein Punkt darunter zeigt, was läuft, ein Strich die App vorn; will eine App Aufmerksamkeit (etwa ein Anruf), wird
+  ihr Punkt orange. Bei mehreren Fenstern holt ein Klick das zuletzt benutzte nach vorn, ein zweiter listet alle.
+  Rechtsklick: Fenster, „Neues Fenster“, „Alle schließen“, „Anheften“ oder „Lösen“; Mittelklick öffnet ein neues
+  Fenster. Reicht der Platz bis zur Insel nicht, wandern die hintersten Symbole in „Mehr“. Abschaltbar unter
+  Darstellung → Kopfleiste → „Offene Apps zeigen“.
+- App-Symbole in Kopfleiste und Schnellstart kommen ohne helle Kachel mit Rahmen.
 - Suche wie Spotlight: Die Lupe rechts in der Kopfleiste öffnet ein Suchfeld über einem weichgezeichneten Hintergrund.
   Es findet Apps, Einstellungsseiten, Systemwerkzeuge und Dateien (Windows-Index, dazu Everything, wenn es läuft),
   auch mit Tippfehlern, Anfangsbuchstaben („vsc“) oder einer Aufgabe („bild bearbeiten“, „fernwartung“). Oft

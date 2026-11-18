@@ -45,27 +45,21 @@ public static class AppWindows
         catch { return false; }
     }
 
-    /// <summary>The topmost open window of the app (as in Alt+Tab), or zero.</summary>
-    public static IntPtr Find(string launchPath)
-    {
-        string? target = launchPath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) ? ShortcutTarget(launchPath)
-            : launchPath.StartsWith(@"shell:AppsFolder\", StringComparison.OrdinalIgnoreCase) ? AppsFolderTarget(launchPath) : null;
-        IntPtr found = IntPtr.Zero;
-        EnumWindows((hwnd, _) =>
-        {
-            if (!IsSwitchable(hwnd)) return true;
-            Native.GetWindowThreadProcessId(hwnd, out uint pid);
-            if (pid == Environment.ProcessId) return true;
-            if (Matches(launchPath, TaskbarIdentity.Read(hwnd), ProcessPath(pid), target, KnownFolder)) { found = hwnd; return false; }
-            return true;
-        }, IntPtr.Zero);
-        return found;
-    }
+    /// <summary>The program a pinned entry starts (shortcut target or Start menu entry), for <see cref="Matches"/>.</summary>
+    public static string? Target(string launchPath) =>
+        launchPath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) ? ShortcutTarget(launchPath)
+        : launchPath.StartsWith(@"shell:AppsFolder\", StringComparison.OrdinalIgnoreCase) ? AppsFolderTarget(launchPath) : null;
 
     /// <summary>Like a taskbar button: in front and not minimized → minimize; otherwise restore and bring to the front.</summary>
     public static void Toggle(IntPtr hwnd)
     {
         if (Native.GetForegroundWindow() == hwnd && !IsIconic(hwnd)) { ShowWindowAsync(hwnd, SwMinimize); return; }
+        Activate(hwnd);
+    }
+
+    /// <summary>Restores the window if minimized and brings it to the front.</summary>
+    public static void Activate(IntPtr hwnd)
+    {
         if (IsIconic(hwnd)) ShowWindowAsync(hwnd, SwRestore);
         if (SetForegroundWindow(hwnd)) return;
         // Windows may refuse the foreground to a process without focus: a tapped Alt key lifts the lock (as the taskbar does).
@@ -83,7 +77,7 @@ public static class AppWindows
         return GetWindowTextLength(hwnd) > 0;
     }
 
-    private static string? ProcessPath(uint pid)
+    internal static string? ProcessPath(uint pid)
     {
         IntPtr h = OpenProcess(0x1000 /* QUERY_LIMITED_INFORMATION */, false, pid);
         if (h == IntPtr.Zero) return null;
@@ -96,7 +90,7 @@ public static class AppWindows
         finally { CloseHandle(h); }
     }
 
-    private static string? KnownFolder(Guid id)
+    internal static string? KnownFolder(Guid id)
     {
         try
         {
@@ -147,8 +141,6 @@ public static class AppWindows
     private const byte VkMenu = 0x12;
     private const uint KeyUp = 0x0002;
 
-    private delegate bool EnumProc(IntPtr hwnd, IntPtr lParam);
-    [DllImport("user32.dll")] private static extern bool EnumWindows(EnumProc proc, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hwnd);
     [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hwnd);
     [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hwnd, int cmd);

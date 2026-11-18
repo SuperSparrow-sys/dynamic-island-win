@@ -165,10 +165,12 @@ public class SettingsTransferTests : IDisposable
         s.MenuBar = MenuBarScreens.Secondary; // the desk PC with a second display
         s.MenuBarDisplays = new() { @"\\.\DISPLAY2:3840x2160" };
         s.MenuBarHideTaskbar = true;
+        s.MenuBarRunning = false;
         var bundle = SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k));
         Assert.DoesNotContain("\"MenuBar\"", bundle.Settings);
         Assert.DoesNotContain("MenuBarDisplays", bundle.Settings);
         Assert.DoesNotContain("MenuBarHideTaskbar", bundle.Settings); // the laptop keeps its taskbar
+        Assert.DoesNotContain("MenuBarRunning", bundle.Settings);
 
         // The laptop has it off and keeps it off after the import
         string target = Path.Combine(_dir, "laptop");

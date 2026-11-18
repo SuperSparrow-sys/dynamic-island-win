@@ -166,6 +166,18 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
   Platz je Anordnung merkt. Verworfen: Monitornamen aus den EDID-Daten (mehr Code, gleicher Nutzen am festen
   Schreibtisch); ein anderer Monitor am selben Anschluss mit anderer Auflösung gilt als neuer Bildschirm.
 - **Angeheftete Apps wie in der Taskleiste**: offenes Fenster nach vorn, im Vordergrund minimieren, sonst starten.
+- **Offene Apps hinter den angehefteten, ein Symbol je App** (18.11.2026, Besitzer: die Kopfleiste soll die Taskleiste
+  ganz ersetzen). Gruppiert nach App-ID, sonst Programm, wie die Taskleiste; mehrere Fenster (drei Chrome, zwei Claude)
+  holen das zuletzt benutzte nach vorn, ist die App schon vorn, listet der Klick alle Fenster. Verworfen: ein Symbol je
+  Fenster (sprengt die Leiste schon bei drei Browserfenstern) und die Liste per Timer abfragen (kostet ständig; die
+  Shell-Meldungen der Taskleiste reichen). Angeheftet wird in die Schnellstart-Liste, keine zweite Liste.
+- **Überlauf: erst kürzt der App-Name, dann wandern die hintersten Symbole in „Mehr“** (18.11.2026). Die App vorn und
+  die angehefteten bleiben am längsten sichtbar. Verworfen: kleinere Symbole (schlecht zu treffen) und eine zweite Zeile
+  (die Leiste bleibt 24 DIP).
+- **„Vorn“ für Klick und Menü aus dem zuletzt gelesenen Stand, nicht neu abgefragt.** Der Klick entscheidet nach dem,
+  was der Strich zeigt; ein Fokuswechsel zur Leiste selbst (UI Automation, eigene Menüs) würde sonst „nicht vorn“ melden.
+- **App-Symbole mit 48 px abfragen** (Leiste, Schnellstart, Suche): bei 64 px liefern Programme, die nur 32 oder 48 px
+  mitbringen, eine helle Kachel mit Rahmen.
 - **Gehört dem PC** (Besitzer): Ein Einstellungs-Export nimmt die Kopfleiste nicht mit, am Schreibtisch an, am Laptop
   aus.
 - **Taskleiste nur auf Bildschirmen mit Kopfleiste ausblenden** (18.11.2026, Besitzer: die Kopfleiste ersetzt dort die

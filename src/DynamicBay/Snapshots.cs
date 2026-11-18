@@ -362,8 +362,20 @@ public static class Snapshots
             foreach (var want in new[] { "Google Chrome", "Microsoft Teams", "Spotify", "Obsidian", "Visual Studio Code", "Rechner", "Calculator" })
                 if (installed.FirstOrDefault(a => a.Name.Equals(want, StringComparison.OrdinalIgnoreCase)) is { } pin) settings.Shortcuts.Add(pin.LaunchPath);
             await Task.Delay(1500); // icons load on their own thread
-            await ShotMenuBar(vm, Path.Combine(dir, "menubar-1-wallpaper.png"), Color.FromRgb(0x1D, 0x4E, 0x89), Color.FromRgb(0xE0, 0x7A, 0x5F), "Finder", 96, charging: true, volume: 60, muted: false, wlan: true);
-            await ShotMenuBar(vm, Path.Combine(dir, "menubar-2-light-window.png"), Color.FromRgb(0xDE, 0xE1, 0xE6), Color.FromRgb(0xF1, 0xF3, 0xF4), "Google Chrome", 41, charging: false, volume: 0, muted: true, wlan: false);
+            var apps = await DemoBarApps(vm);
+            await ShotMenuBar(vm, Path.Combine(dir, "menubar-1-wallpaper.png"), Color.FromRgb(0x1D, 0x4E, 0x89), Color.FromRgb(0xE0, 0x7A, 0x5F), "Finder", 96, charging: true, volume: 60, muted: false, wlan: true, apps);
+            await ShotMenuBar(vm, Path.Combine(dir, "menubar-2-light-window.png"), Color.FromRgb(0xDE, 0xE1, 0xE6), Color.FromRgb(0xF1, 0xF3, 0xF4), "Google Chrome", 41, charging: false, volume: 0, muted: true, wlan: false, apps);
+            // Chrome in front with three windows: the click lists them, the one in front marked.
+            await ShotMenuBar(vm, Path.Combine(dir, "menubar-3-chrome-windows.png"), Color.FromRgb(0x1D, 0x4E, 0x89), Color.FromRgb(0xE0, 0x7A, 0x5F), "Google Chrome", 96, charging: false, volume: 60, muted: false, wlan: true, apps,
+                open: bar =>
+                {
+                    var chrome = apps.FirstOrDefault(a => a.Windows.Count == 3);
+                    if (chrome is not null && bar.AppList.ItemContainerGenerator.ContainerFromItem(chrome) is UIElement target)
+                        bar.WindowMenu(chrome, target, full: true).IsOpen = true;
+                });
+            // Too many apps for the room before the notch: the name shortens, the last symbols move behind "more".
+            await ShotMenuBar(vm, Path.Combine(dir, "menubar-4-overflow.png"), Color.FromRgb(0x1D, 0x4E, 0x89), Color.FromRgb(0xE0, 0x7A, 0x5F), "Windows-Explorer", 96, charging: false, volume: 60, muted: false, wlan: true, apps,
+                room: 420, open: bar => bar.MoreButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent)));
             return;
         }
 
@@ -861,7 +873,8 @@ public static class Snapshots
     }
 
     /// <summary>The real menu bar window on the main display over a stand-in for what is below it, captured from the screen.</summary>
-    private static async Task ShotMenuBar(IslandViewModel vm, string file, Color below1, Color below2, string app, int battery, bool charging, int volume, bool muted, bool wlan)
+    private static async Task ShotMenuBar(IslandViewModel vm, string file, Color below1, Color below2, string app, int battery, bool charging, int volume, bool muted, bool wlan,
+                                          IReadOnlyList<BarApp> apps, double? room = null, Action<MenuBarWindow>? open = null)
     {
         Geometry? Icon(string key) => Application.Current.TryFindResource(key) as Geometry;
         var model = new MenuBarModel
@@ -880,8 +893,9 @@ public static class Snapshots
             DateText = MenuBarMath.DateText(new DateTime(2026, 11, 18, 13, 57, 0), Loc.German),
             TimeText = "13:57",
         };
+        foreach (var a in apps) model.Apps.Add(a);
         var main = Monitors.All().First(m => m.IsPrimary);
-        var bar = new MenuBarWindow(main.Device, model, reserve: false);
+        var bar = new MenuBarWindow(main.Device, model, reserve: false) { RoomOverride = room };
         var wallpaper = new Window
         {
             WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, ShowActivated = false, Topmost = true,
@@ -891,18 +905,65 @@ public static class Snapshots
         {
             wallpaper.Show();
             var b = main.Bounds;
-            Native.SetWindowPos(new WindowInteropHelper(wallpaper).Handle, Native.HWND_TOPMOST, b.Left, b.Top, b.Width, 120, Native.SWP_NOACTIVATE);
+            Native.SetWindowPos(new WindowInteropHelper(wallpaper).Handle, Native.HWND_TOPMOST, b.Left, b.Top, b.Width, open is null ? 120 : 400, Native.SWP_NOACTIVATE);
             bar.Show();
             await Task.Delay(500);
             bar.Tone(Application.Current.Windows.OfType<IslandWindow>().Where(w => w.IsVisible).Select(w => w.ShapeOnScreen()).ToList(), Array.Empty<Native.RECT>());
+            model.RaiseAppsChanged();
+            await Task.Delay(300);
+            open?.Invoke(bar);
             await Task.Delay(800); // DWM composes the blur a moment after the first frame
-            Capture(bar, file, below: 40);
+            Capture(bar, file, below: open is null ? 40 : 300);
         }
         finally
         {
             bar.Close();
             wallpaper.Close();
         }
+    }
+
+    /// <summary>
+    /// The pinned apps plus open ones as the manager would list them: Chrome in front with three windows, Teams wanting
+    /// attention, Spotify running, then programs from Windows that are not pinned. The windows are stand-ins.
+    /// </summary>
+    private static async Task<List<BarApp>> DemoBarApps(IslandViewModel vm)
+    {
+        int hwnd = 1;
+        List<OpenWindow> Windows(params string[] titles) => titles.Select(t => new OpenWindow(hwnd++, null, null, t)).ToList();
+        var list = new List<BarApp>();
+        foreach (var pin in vm.Shortcuts.Items)
+        {
+            var app = new BarApp { Key = "pin:" + pin.Path, Name = pin.Name, Pin = pin, Icon = pin.Original, Glyph = pin.Original is null ? pin.Glyph : null, GlyphFilled = pin.GlyphFilled };
+            if (pin.Name.Contains("Chrome", StringComparison.OrdinalIgnoreCase))
+            {
+                app.Windows = Windows("Pull requests - GitHub - Google Chrome", "Wetter Pirna - Google Chrome", "DynamicBay - Google Chrome");
+                app.Indicator = AppIndicator.Front;
+            }
+            else if (pin.Name.Contains("Teams", StringComparison.OrdinalIgnoreCase))
+            {
+                app.Windows = Windows("Anruf | Microsoft Teams");
+                app.Indicator = AppIndicator.Attention;
+            }
+            else if (pin.Name.Contains("Spotify", StringComparison.OrdinalIgnoreCase))
+            {
+                app.Windows = Windows("Spotify Premium");
+                app.Indicator = AppIndicator.Running;
+            }
+            list.Add(app);
+        }
+        string sys = Environment.GetFolderPath(Environment.SpecialFolder.System), win = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        foreach (var (exe, name) in new[] { (Path.Combine(win, "explorer.exe"), "Windows-Explorer"), (Path.Combine(sys, "notepad.exe"), "Editor"),
+                     (Path.Combine(sys, "Taskmgr.exe"), "Task-Manager"), (Path.Combine(win, "regedit.exe"), "Registrierungs-Editor"),
+                     (Path.Combine(sys, "mstsc.exe"), "Remotedesktopverbindung"), (Path.Combine(sys, "WindowsPowerShell", "v1.0", "powershell.exe"), "Windows PowerShell"),
+                     (Path.Combine(sys, "charmap.exe"), "Zeichentabelle"), (Path.Combine(sys, "mmc.exe"), "Computerverwaltung") })
+        {
+            if (!File.Exists(exe)) continue;
+            var app = new BarApp { Key = exe, Name = name, LaunchPath = exe, Glyph = Application.Current.TryFindResource("Icon.AppWindow") as Geometry,
+                                   Windows = Windows(name), Indicator = AppIndicator.Running };
+            await MenuBarManager.LoadIcon(app, null, exe);
+            list.Add(app);
+        }
+        return list;
     }
 
     private static async Task ShotSearch(string dir)

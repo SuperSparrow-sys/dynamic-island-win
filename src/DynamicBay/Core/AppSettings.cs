@@ -557,6 +557,8 @@ public sealed partial class AppSettings : ObservableObject
     // What the menu bar shows (Darstellung → Kopfleiste), like "Show in menu bar" on the Mac.
     [ObservableProperty] private bool _menuBarStart = true;
     [ObservableProperty] private bool _menuBarApps = true;
+    /// <summary>Open apps that are not pinned, behind the pinned ones, like the taskbar. Belongs to this PC.</summary>
+    [ObservableProperty] private bool _menuBarRunning = true;
     [ObservableProperty] private bool _menuBarMedia = true;
     [ObservableProperty] private bool _menuBarBluetooth = true;
     [ObservableProperty] private bool _menuBarBattery = true;

@@ -254,6 +254,10 @@
                                             ToolTip="{core:L De='Die Apps aus Schnellstart, wie in der Taskleiste.', En='The apps from Launcher, like on the taskbar.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarApps}" />
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Offene Apps zeigen', En='Show open apps'}"
+                                            ToolTip="{core:L De='Alle laufenden Programme hinter den angehefteten, wie in der Taskleiste.', En='All running programs after the pinned ones, like on the taskbar.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarRunning}" />
+                            </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Laufendes Lied', En='Now playing'}"
                                             ToolTip="{core:L De='Ein Klick öffnet den Player.', En='A click opens the player.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarMedia}" />

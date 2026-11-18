@@ -1,7 +1,10 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -19,7 +22,6 @@ public sealed partial class MenuBarModel : ObservableObject
     [ObservableProperty] private bool _showAppName;
     partial void OnAppNameChanged(string value) => ShowAppName = value.Length > 0;
     [ObservableProperty] private bool _showStart = true;
-    [ObservableProperty] private bool _showApps = true;
     [ObservableProperty] private bool _showMedia;
     [ObservableProperty] private string _mediaText = "";
     [ObservableProperty] private bool _showBattery;
@@ -44,6 +46,34 @@ public sealed partial class MenuBarModel : ObservableObject
     public MediaService? Media { get; init; }
     /// <summary>The magnifier: opens the search on the display of that bar.</summary>
     public Action<string>? Search { get; init; }
+
+    /// <summary>Pinned apps first, then the open ones that are not pinned (each bar fits them into its own room).</summary>
+    public ObservableCollection<BarApp> Apps { get; } = new();
+    /// <summary>The apps, their windows or their lines changed: the bars fit them in again.</summary>
+    public event Action? AppsChanged;
+    public void RaiseAppsChanged() => AppsChanged?.Invoke();
+}
+
+/// <summary>One symbol on the left of the bar: a pinned app (<see cref="Pin"/>) or an open one that is not pinned.</summary>
+public sealed partial class BarApp : ObservableObject
+{
+    public string Key { get; init; } = "";
+    public string Name { get; init; } = "";
+    public ShortcutItem? Pin { get; init; }
+    /// <summary>What "new window" starts when the app is not pinned: its program or shell:AppsFolder\{id}.</summary>
+    public string LaunchPath { get; init; } = "";
+    /// <summary>What "pin" adds to the launcher list: the Start menu entry if there is one (name, icon, its own app id), else <see cref="LaunchPath"/>.</summary>
+    public string PinPath { get; init; } = "";
+    /// <summary>The app's own icon in its colours; until it is loaded (or without one) <see cref="Glyph"/>.</summary>
+    [ObservableProperty] private ImageSource? _icon;
+    [ObservableProperty] private Geometry? _glyph;
+    public bool GlyphFilled { get; init; }
+    /// <summary>Open windows, the one used last first.</summary>
+    [ObservableProperty] private IReadOnlyList<OpenWindow> _windows = Array.Empty<OpenWindow>();
+    [ObservableProperty] private AppIndicator _indicator;
+    public bool HasIcon => Icon is not null;
+    public bool NoIcon => Icon is null;
+    partial void OnIconChanged(ImageSource? value) { OnPropertyChanged(nameof(HasIcon)); OnPropertyChanged(nameof(NoIcon)); }
 }
 
 /// <summary>
@@ -88,12 +118,14 @@ public sealed class MenuBarManager
         _toneSoon.Tick += (_, _) => { _toneSoon.Stop(); CheckFullscreen(); ToneAll(); };
         _tone.Tick += (_, _) => { if (!ActivityState.Current.Away) ToneAll(); };
         _fullscreenCheck.Tick += (_, _) => { if (!ActivityState.Current.Away) CheckFullscreen(); };
+        _appsSoon.Tick += (_, _) => RefreshApps();
     }
 
     public void Start()
     {
         _settings.PropertyChanged += (_, e) =>
         {
+            if (e.PropertyName is nameof(AppSettings.MenuBarApps) or nameof(AppSettings.MenuBarRunning) && _shell is not null) RefreshApps();
             if (e.PropertyName is nameof(AppSettings.MenuBar) or nameof(AppSettings.MenuBarDisplays) or nameof(AppSettings.MenuBarHideTaskbar) or nameof(AppSettings.Monitor) or nameof(AppSettings.Displays)) Sync();
             else if (e.PropertyName?.StartsWith("MenuBar", StringComparison.Ordinal) == true && _watching) UpdateAll();
         };
@@ -180,6 +212,7 @@ public sealed class MenuBarManager
             _tone.Stop();
             _toneSoon.Stop();
             _fullscreenCheck.Stop();
+            TrackApps(false);
         }
     }
 
@@ -273,7 +306,7 @@ public sealed class MenuBarManager
         _model.DateText = MenuBarMath.DateText(DateTime.Now, Loc.German, s.MenuBarWeekday, s.MenuBarDate);
         _model.ShowDate = _model.DateText.Length > 0;
         _model.ShowStart = s.MenuBarStart;
-        _model.ShowApps = s.MenuBarApps;
+        TrackApps(s.MenuBarApps || s.MenuBarRunning);
         _model.ShowVolume = s.MenuBarVolume;
         _model.ShowNetwork = s.MenuBarNetwork;
         _model.ShowSearch = s.MenuBarSearch && _model.Search is not null;
@@ -366,16 +399,227 @@ public sealed class MenuBarManager
             try { path = p.MainModule?.FileName; } catch { } // elevated or protected process: name only
             // Store apps run inside ApplicationFrameHost: their window title is the app name.
             if (string.Equals(p.ProcessName, "ApplicationFrameHost", StringComparison.OrdinalIgnoreCase)) return WindowText(hwnd);
-            if (path is null) return p.ProcessName;
-            if (_names.TryGetValue(path, out var cached)) return cached;
-            var info = FileVersionInfo.GetVersionInfo(path);
-            string name = !string.IsNullOrWhiteSpace(info.FileDescription) ? info.FileDescription.Trim()
-                : !string.IsNullOrWhiteSpace(info.ProductName) ? info.ProductName.Trim() : p.ProcessName;
-            _names[path] = name;
-            return name;
+            return path is null ? p.ProcessName : ProgramName(path);
         }
         catch { return null; } // the process ended in between
     }
+
+    /// <summary>A program by its product name ("Google Chrome"), cached per path.</summary>
+    private string ProgramName(string path)
+    {
+        if (_names.TryGetValue(path, out var cached)) return cached;
+        string name = Path.GetFileNameWithoutExtension(path);
+        try
+        {
+            var info = FileVersionInfo.GetVersionInfo(path);
+            name = !string.IsNullOrWhiteSpace(info.FileDescription) ? info.FileDescription.Trim()
+                : !string.IsNullOrWhiteSpace(info.ProductName) ? info.ProductName.Trim() : name;
+        }
+        catch { } // not readable: the file name
+        return _names[path] = name;
+    }
+
+    // ---------- open apps ----------
+
+    // A hidden window that receives Windows' shell messages like the taskbar does: windows created, destroyed,
+    // activated, redrawn, blinking. Exists only while a bar shows apps.
+    private HwndSource? _shell;
+    private int _shellMsg;
+    // Messages come in bursts (a window opens, gets its title, comes to the front): one look afterwards.
+    private readonly DispatcherTimer _appsSoon = new() { Interval = TimeSpan.FromMilliseconds(120) };
+    private readonly Dictionary<IntPtr, OpenWindow> _windowInfo = new(); // app id and program per window, read once
+    private readonly HashSet<IntPtr> _flashing = new();
+    private IntPtr _front;
+    private readonly Dictionary<string, BarApp> _apps = new();
+    private readonly Dictionary<string, string?> _pinTargets = new(StringComparer.OrdinalIgnoreCase);
+    private List<string> _order = new();
+    private static readonly StaWorker IconReader = new("Menu bar icons");
+
+    private void TrackApps(bool on)
+    {
+        on &= _watching;
+        if (on == (_shell is not null)) return;
+        if (on)
+        {
+            _shell = new HwndSource(new HwndSourceParameters("DynamicBay shell hook")
+            {
+                WindowStyle = unchecked((int)0x80000000), // WS_POPUP, never shown
+                ExtendedWindowStyle = (int)Native.WS_EX_TOOLWINDOW,
+                Width = 0, Height = 0,
+            });
+            _shell.AddHook(ShellProc);
+            _shellMsg = RegisterWindowMessage("SHELLHOOK");
+            if (!RegisterShellHookWindow(_shell.Handle)) Log.Info("Menu bar: shell hook not registered, open apps do not update");
+            _vm.Shortcuts.Items.CollectionChanged += OnPinsChanged;
+            RefreshApps();
+            Log.Info($"Menu bar: watching open apps ({_model.Apps.Count} symbols)");
+        }
+        else
+        {
+            DeregisterShellHookWindow(_shell!.Handle);
+            _shell.RemoveHook(ShellProc);
+            _shell.Dispose();
+            _shell = null;
+            _vm.Shortcuts.Items.CollectionChanged -= OnPinsChanged;
+            _appsSoon.Stop();
+            _windowInfo.Clear();
+            _flashing.Clear();
+            _apps.Clear();
+            _model.Apps.Clear();
+            _model.RaiseAppsChanged();
+        }
+    }
+
+    private void OnPinsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        foreach (var key in _apps.Keys.Where(k => k.StartsWith("pin:", StringComparison.Ordinal)).ToList()) _apps.Remove(key);
+        SoonApps();
+    }
+
+    private void SoonApps()
+    {
+        _appsSoon.Stop();
+        _appsSoon.Start();
+    }
+
+    private const int HshellCreated = 1, HshellDestroyed = 2, HshellActivated = 4, HshellRedraw = 6, HshellReplaced = 13,
+                      HshellRudeActivated = 0x8004, HshellFlash = 0x8006;
+
+    private IntPtr ShellProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg != _shellMsg || msg == 0) return IntPtr.Zero;
+        switch ((int)wParam.ToInt64())
+        {
+            case HshellCreated or HshellDestroyed or HshellReplaced or HshellActivated or HshellRudeActivated:
+                SoonApps();
+                break;
+            // Also every title change: only a window not listed yet matters (some get their title after they open).
+            case HshellRedraw:
+                if (!_windowInfo.ContainsKey(lParam) && AppWindows.IsSwitchable(lParam)) SoonApps();
+                break;
+            // Sent again and again while a window blinks: only the first time counts, and not for the app in front.
+            case HshellFlash:
+                if (_windowInfo.ContainsKey(lParam) && !_flashing.Contains(lParam) && Root(Native.GetForegroundWindow()) != lParam)
+                {
+                    _flashing.Add(lParam);
+                    SoonApps();
+                }
+                break;
+        }
+        return IntPtr.Zero;
+    }
+
+    private static IntPtr Root(IntPtr hwnd) => hwnd == IntPtr.Zero ? hwnd : GetAncestor(hwnd, 3 /* GA_ROOTOWNER */);
+
+    /// <summary>
+    /// Reads the open windows (as Alt+Tab: <see cref="AppWindows.IsSwitchable"/>, no own ones, none on other virtual
+    /// desktops), groups them per app and updates the symbols and their lines.
+    /// </summary>
+    private void RefreshApps()
+    {
+        _appsSoon.Stop();
+        if (_shell is null) return;
+        var windows = new List<OpenWindow>();
+        var alive = new HashSet<IntPtr>();
+        EnumWindows((hwnd, _) =>
+        {
+            if (!AppWindows.IsSwitchable(hwnd)) return true;
+            Native.GetWindowThreadProcessId(hwnd, out uint pid);
+            if (pid == Environment.ProcessId) return true;
+            alive.Add(hwnd);
+            if (!_windowInfo.TryGetValue(hwnd, out var w))
+                _windowInfo[hwnd] = w = new OpenWindow(hwnd, TaskbarIdentity.Read(hwnd), AppWindows.ProcessPath(pid));
+            windows.Add(w);
+            return true;
+        }, IntPtr.Zero);
+        foreach (var gone in _windowInfo.Keys.Where(h => !alive.Contains(h)).ToList()) _windowInfo.Remove(gone);
+        _flashing.IntersectWith(alive);
+
+        var pins = _settings.MenuBarApps ? _vm.Shortcuts.Items.ToList() : new List<ShortcutItem>();
+        var (pinned, others) = RunningApps.Group(windows, pins.Count,
+            (i, w) => AppWindows.Matches(pins[i].Path, w.AppId, w.ExePath, PinTarget(pins[i].Path), AppWindows.KnownFolder));
+        // Own windows in front (a menu of the bar, the island, the settings) keep the app that was in front before.
+        IntPtr front = Root(Native.GetForegroundWindow());
+        Native.GetWindowThreadProcessId(front, out uint frontPid);
+        if (front == IntPtr.Zero || frontPid == Environment.ProcessId) front = _front; else _front = front;
+        var list = new List<BarApp>();
+        for (int i = 0; i < pins.Count; i++)
+        {
+            var pin = pins[i];
+            string key = "pin:" + pin.Path.ToLowerInvariant();
+            if (!_apps.TryGetValue(key, out var app))
+                _apps[key] = app = new BarApp { Key = key, Name = pin.Name, Pin = pin, Icon = pin.Original, Glyph = pin.Original is null ? pin.Glyph : null, GlyphFilled = pin.GlyphFilled };
+            list.Add(Update(app, pinned[i], front));
+        }
+        if (_settings.MenuBarRunning)
+        {
+            _order = RunningApps.Order(_order, others.Select(o => o.Key).ToList());
+            foreach (var key in _order)
+            {
+                var group = others.First(o => o.Key == key).Windows;
+                if (!_apps.TryGetValue(key, out var app)) _apps[key] = app = Running(key, group[0]);
+                list.Add(Update(app, group, front));
+            }
+        }
+        foreach (var gone in _apps.Keys.Except(list.Select(a => a.Key)).ToList()) _apps.Remove(gone);
+        CollectionSync.Apply(_model.Apps, list, a => a.Key, ReferenceEquals);
+        _model.RaiseAppsChanged();
+    }
+
+    private BarApp Update(BarApp app, List<OpenWindow> windows, IntPtr front)
+    {
+        bool inFront = windows.Any(w => w.Hwnd == front);
+        if (inFront) foreach (var w in windows) _flashing.Remove(w.Hwnd); // seen: the colour goes
+        app.Windows = windows;
+        app.Indicator = RunningApps.Indicator(windows.Count > 0, inFront, windows.Any(w => _flashing.Contains(w.Hwnd)));
+        return app;
+    }
+
+    private string? PinTarget(string path)
+    {
+        if (!_pinTargets.TryGetValue(path, out var target)) _pinTargets[path] = target = AppWindows.Target(path);
+        return target;
+    }
+
+    /// <summary>An open app that is not pinned: named after its Start menu entry or its program, icon loaded aside.</summary>
+    private BarApp Running(string key, OpenWindow w)
+    {
+        string? appsFolder = string.IsNullOrEmpty(w.AppId) ? null : @"shell:AppsFolder\" + w.AppId;
+        // Store apps run inside ApplicationFrameHost: their program would start nothing, their title is their name.
+        bool frame = w.ExePath is not null && Path.GetFileName(w.ExePath).Equals("ApplicationFrameHost.exe", StringComparison.OrdinalIgnoreCase);
+        string? entry = appsFolder is null ? null
+            : InstalledApps.Cached?.FirstOrDefault(a => string.Equals(a.LaunchPath, appsFolder, StringComparison.OrdinalIgnoreCase))?.Name;
+        string name = entry ?? (frame || w.ExePath is null ? WindowText(w.Hwnd) : ProgramName(w.ExePath));
+        var app = new BarApp
+        {
+            Key = key,
+            Name = name.Length > 0 ? name : Path.GetFileNameWithoutExtension(w.ExePath ?? "?"),
+            LaunchPath = w.ExePath is not null && !frame ? w.ExePath : appsFolder ?? "",
+            PinPath = entry is not null ? appsFolder! : w.ExePath is not null && !frame ? w.ExePath : appsFolder ?? "",
+            Glyph = Application.Current?.TryFindResource("Icon.AppWindow") as Geometry,
+        };
+        _ = LoadIcon(app, appsFolder, w.ExePath);
+        return app;
+    }
+
+    /// <summary>
+    /// 48 px like the search: icons that only come in 32 or 48 px arrive inside a light framed tile when asked for more.
+    /// The Start menu entry first (the right icon for Chrome profiles and Store apps), then the program.
+    /// </summary>
+    internal static async Task LoadIcon(BarApp app, string? appsFolder, string? exe)
+    {
+        try
+        {
+            var icon = await IconReader.Run(() => (appsFolder is null ? null : ShellThumbnail.Get(appsFolder, 48, iconOnly: true))
+                                                  ?? (exe is null ? null : ShellThumbnail.Get(exe, 48, iconOnly: true)));
+            if (icon is not null) app.Icon = icon;
+        }
+        catch (Exception ex) { Log.Info($"Menu bar: no icon for {app.Name} ({ex.Message})"); }
+    }
+
+    [DllImport("user32.dll")] private static extern bool RegisterShellHookWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern bool DeregisterShellHookWindow(IntPtr hwnd);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int RegisterWindowMessage(string name);
 
     [DllImport("user32.dll")] private static extern IntPtr SetWinEventHook(uint min, uint max, IntPtr module, WinEventProc proc, uint pid, uint thread, uint flags);
     [DllImport("user32.dll")] private static extern bool UnhookWinEvent(IntPtr hook);
