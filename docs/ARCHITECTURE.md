@@ -76,7 +76,7 @@ Netz (`NetworkInformation`), die übrigen aus den vorhandenen Diensten; jedes pe
 An der Leiste öffnet die Insel erst nach 300 ms Verweilen (`MenuBarMath.HoverDelayMs`) und zeichnet keinen Schatten.
 Die linke Seite endet vor der Notch (`MenuBarMath.LeftRoom`, der App-Name kürzt sich). Ein Klick auf eine angeheftete
 App holt ein offenes Fenster nach vorn oder minimiert es (`AppWindows`: App-ID des Fensters, Prozesspfad, Ziel der
-Verknüpfung), sonst startet sie. Vollbild: Jede Sekunde und auf `ABN_FULLSCREENAPP` prüft `MenuBarManager.FullscreenOn`
+Verknüpfung oder des Startmenü-Eintrags), sonst startet sie. Vollbild: Jede Sekunde und auf `ABN_FULLSCREENAPP` prüft `MenuBarManager.FullscreenOn`
 das oberste große Fenster je Bildschirm (nicht nur das aktive), die Leiste dort blendet sich aus. Beim Messen der Farben
 fallen auch Fenster heraus, die immer oben liegen (Bild im Bild). `AppBar` merkt sich die angemeldeten Fenster in
 `appbars.txt`; nach einem harten Beenden meldet der nächste Start die verwaisten Streifen ab (`AppBar.RemoveStale`). Hintergrund: `Tone()` liest eine

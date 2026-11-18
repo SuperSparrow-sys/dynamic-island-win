@@ -14,7 +14,8 @@
             <Setter Property="Foreground" Value="{DynamicResource Bar.Fore}" />
         </Style>
         <Style x:Key="Bar.Text" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{StaticResource Font.UI}" />
+            <!-- The Windows 11 system font like the taskbar; Inter looked foreign at this size. -->
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="{DynamicResource Bar.Fore}" />
             <Setter Property="VerticalAlignment" Value="Center" />
@@ -60,20 +61,19 @@
                         <Button Style="{StaticResource Bar.Item}" Click="App_Click" ToolTip="{Binding Name}">
                             <Grid Width="16" Height="16">
                                 <!-- Inside a template the window's implicit style does not apply: the colour is set here.
-                                     App icons without a glyph are drawn as a mask in the bar's text colour. -->
+                                     App icons keep their own colours, as in the taskbar: recoloured, Teams and others were
+                                     not recognisable. -->
                                 <c:Icon Data="{Binding Glyph}" Filled="{Binding GlyphFilled}" Foreground="{DynamicResource Bar.Fore}"
-                                        Visibility="{Binding ShowGlyph, Converter={StaticResource Vis}}" />
-                                <Rectangle Fill="{DynamicResource Bar.Fore}" Visibility="{Binding ShowIcon, Converter={StaticResource Vis}}">
-                                    <Rectangle.OpacityMask>
-                                        <ImageBrush ImageSource="{Binding Icon}" Stretch="Uniform" />
-                                    </Rectangle.OpacityMask>
-                                </Rectangle>
+                                        Visibility="{Binding NoOriginal, Converter={StaticResource Vis}}" />
+                                <Image Source="{Binding Original}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"
+                                       Visibility="{Binding HasOriginal, Converter={StaticResource Vis}}" />
                             </Grid>
                         </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button Grid.Column="2" Style="{StaticResource Bar.Item}" Click="AppName_Click" HorizontalAlignment="Left">
+            <Button Grid.Column="2" Style="{StaticResource Bar.Item}" Click="AppName_Click" HorizontalAlignment="Left"
+                    Visibility="{Binding ShowAppName, Converter={StaticResource Vis}}">
                 <TextBlock Style="{StaticResource Bar.Text}" FontWeight="SemiBold" Text="{Binding AppName}" TextTrimming="CharacterEllipsis" MaxWidth="260" />
             </Button>
         </Grid>
@@ -87,7 +87,7 @@
             </Button>
             <Button Style="{StaticResource Bar.Item}" Click="QuickSettings_Click" ToolTip="Bluetooth"
                     Visibility="{Binding ShowBluetooth, Converter={StaticResource Vis}}">
-                <c:Icon Data="{StaticResource Fluent.Bluetooth}" Filled="True" Width="16" Height="16" />
+                <c:Icon Data="{Binding BluetoothIcon}" Filled="True" Width="16" Height="16" />
             </Button>
             <Button Style="{StaticResource Bar.Item}" Click="QuickSettings_Click" Visibility="{Binding ShowBattery, Converter={StaticResource Vis}}">
                 <StackPanel Orientation="Horizontal">

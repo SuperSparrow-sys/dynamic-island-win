@@ -16,6 +16,8 @@ namespace DynamicBay.Island;
 public sealed partial class MenuBarModel : ObservableObject
 {
     [ObservableProperty] private string _appName = "";
+    [ObservableProperty] private bool _showAppName;
+    partial void OnAppNameChanged(string value) => ShowAppName = value.Length > 0;
     [ObservableProperty] private bool _showStart = true;
     [ObservableProperty] private bool _showApps = true;
     [ObservableProperty] private bool _showMedia;
@@ -30,6 +32,7 @@ public sealed partial class MenuBarModel : ObservableObject
     [ObservableProperty] private bool _hasBattery;
     [ObservableProperty] private string _batteryText = "";
     [ObservableProperty] private bool _showBluetooth;
+    [ObservableProperty] private Geometry? _bluetoothIcon;
     [ObservableProperty] private string _dateText = "";
     [ObservableProperty] private string _timeText = "";
 
@@ -88,7 +91,7 @@ public sealed class MenuBarManager
     {
         _settings.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(AppSettings.MenuBar) or nameof(AppSettings.Monitor) or nameof(AppSettings.Displays)) Sync();
+            if (e.PropertyName is nameof(AppSettings.MenuBar) or nameof(AppSettings.MenuBarDisplays) or nameof(AppSettings.Monitor) or nameof(AppSettings.Displays)) Sync();
             else if (e.PropertyName?.StartsWith("MenuBar", StringComparison.Ordinal) == true && _watching) UpdateAll();
         };
         SystemEvents.DisplaySettingsChanged += (_, _) => Application.Current.Dispatcher.BeginInvoke(Sync);
@@ -104,7 +107,9 @@ public sealed class MenuBarManager
     private void Sync()
     {
         var monitors = Monitors.All();
-        var wanted = MenuBarMath.Screens(_settings.MenuBar, monitors.Select(m => (m.Device, m.IsPrimary)), _islands.Main.TargetMonitor().Device);
+        var chosen = _settings.MenuBarDisplays;
+        var wanted = MenuBarMath.Screens(_settings.MenuBar, monitors.Select(m => (m.Device, m.IsPrimary)), _islands.Main.TargetMonitor().Device,
+            d => monitors.FirstOrDefault(m => m.Device == d) is { } m && chosen.Contains(MenuBarMath.DisplayKey(m.Device, m.Bounds.Width, m.Bounds.Height), StringComparer.OrdinalIgnoreCase));
         foreach (var bar in _bars.Where(b => !wanted.Contains(b.Device, StringComparer.OrdinalIgnoreCase)).ToList())
         {
             _bars.Remove(bar);
@@ -187,8 +192,7 @@ public sealed class MenuBarManager
         var m = Monitors.FindDevice(device);
         if (m is null) return false;
         var fg = Native.GetForegroundWindow();
-        // QUNS_BUSY (2), QUNS_RUNNING_D3D_FULL_SCREEN (3), QUNS_PRESENTATION_MODE (4): exclusive games, slide shows
-        if (Native.SHQueryUserNotificationState(out int state) == 0 && state is 2 or 3 or 4 && fg != IntPtr.Zero
+        if (Native.SHQueryUserNotificationState(out int state) == 0 && MenuBarMath.IsFullscreenState(state) && fg != IntPtr.Zero
             && string.Equals(Monitors.Describe(Native.MonitorFromWindow(fg, Native.MONITOR_DEFAULTTONEAREST)).Device, device, StringComparison.OrdinalIgnoreCase))
             return true;
         bool full = false;
@@ -196,7 +200,7 @@ public sealed class MenuBarManager
         {
             if (!Native.IsWindowVisible(hwnd)) return true;
             long ex = Native.GetWindowLongPtr(hwnd, Native.GWL_EXSTYLE).ToInt64();
-            if ((ex & (Native.WS_EX_TOOLWINDOW | WsExLayered)) != 0) return true; // overlays, the island, display tools
+            if (MenuBarMath.IgnoredForFullscreen(ex)) return true;
             if (DwmGetWindowAttribute(hwnd, 14 /* CLOAKED */, out int cloaked, sizeof(int)) == 0 && cloaked != 0) return true;
             Native.GetWindowThreadProcessId(hwnd, out uint pid);
             if (pid == Environment.ProcessId) return true;
@@ -251,6 +255,7 @@ public sealed class MenuBarManager
     private delegate bool EnumProc(IntPtr hwnd, IntPtr lParam);
     [DllImport("user32.dll")] private static extern bool EnumWindows(EnumProc proc, IntPtr lParam);
     [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hwnd, int cmd);
+    [DllImport("user32.dll")] private static extern IntPtr GetAncestor(IntPtr hwnd, int flags);
     [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out int value, int size);
 
     private void OnSource(object? sender, PropertyChangedEventArgs e) => UpdateAll();
@@ -272,7 +277,9 @@ public sealed class MenuBarManager
         _model.ShowBattery = b.HasBattery && s.MenuBarBattery;
         _model.BatteryText = b.HasBattery && s.MenuBarBatteryPercent ? $"{b.Percent} %" : "";
         _model.BatteryIcon = b.HasBattery ? Icon(MenuBarMath.BatteryIcon(b.Percent, b.IsCharging || b.IsPluggedIn)) : null;
-        _model.ShowBluetooth = s.MenuBarBluetooth && _vm.Bluetooth?.HasDevices == true;
+        // Like the Mac: always there while switched on, with dots when a device is connected.
+        _model.ShowBluetooth = s.MenuBarBluetooth && _vm.Bluetooth is not null;
+        _model.BluetoothIcon = Icon(_vm.Bluetooth?.HasDevices == true ? "Fluent.BluetoothConnected" : "Fluent.Bluetooth");
         UpdateMedia();
     }
 
@@ -329,8 +336,15 @@ public sealed class MenuBarManager
         if (hwnd == IntPtr.Zero) return;
         Native.GetWindowThreadProcessId(hwnd, out uint pid);
         if (pid == 0 || pid == Environment.ProcessId) return;
-        // Desktop and taskbar: keep the last app (its window menu would otherwise close the desktop: the shutdown dialog).
-        if (ClassName(hwnd) is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd") return;
+        // Never the desktop's own window: its window menu would close the desktop (the shutdown dialog).
+        var owner = GetAncestor(hwnd, 3 /* GA_ROOTOWNER */);
+        switch (MenuBarMath.ForegroundAppFor(ClassName(hwnd), AppWindows.IsSwitchable(hwnd), owner != hwnd && AppWindows.IsSwitchable(owner)))
+        {
+            case ForegroundApp.Keep: return;
+            case ForegroundApp.None: _model.AppName = ""; _model.AppWindow = IntPtr.Zero; return;
+            case ForegroundApp.Owner: hwnd = owner; Native.GetWindowThreadProcessId(hwnd, out pid); break;
+        }
+        if (pid == Environment.ProcessId) return;
         string? name = AppName(pid, hwnd);
         if (string.IsNullOrWhiteSpace(name)) return;
         _model.AppName = name;

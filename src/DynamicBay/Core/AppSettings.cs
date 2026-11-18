@@ -51,7 +51,7 @@ public static class Widgets
 public enum SettingsPage { General, Appearance, Position, Behavior, Quiet, Content, Media, Audio, Notifications, Shelf, Calendar, Apps, Accounts, Devices, Advanced, About }
 public enum DisplayMode { Single, Mirror }
 /// <summary>Where the menu bar (a top bar like on the Mac that reserves its space) appears.</summary>
-public enum MenuBarScreens { Off, Island, All, Secondary }
+public enum MenuBarScreens { Off, Island, All, Secondary, Chosen }
 public enum AppIconStyle { Mono, Dark, Color, Original }
 public enum CalendarKind { Ics, ICloud, Google, Microsoft }
 
@@ -549,6 +549,9 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private DisplayMode _displays = DisplayMode.Single;
     [ObservableProperty] private string _monitor = "";
     [ObservableProperty] private MenuBarScreens _menuBar = MenuBarScreens.Off;
+    /// <summary>Displays with a menu bar in the mode "Auswahl" (<see cref="MenuBarMath.DisplayKey"/>). Replaced as a whole
+    /// on every change, so the change is announced.</summary>
+    [ObservableProperty] private List<string> _menuBarDisplays = new();
     // What the menu bar shows (Darstellung → Kopfleiste), like "Show in menu bar" on the Mac.
     [ObservableProperty] private bool _menuBarStart = true;
     [ObservableProperty] private bool _menuBarApps = true;

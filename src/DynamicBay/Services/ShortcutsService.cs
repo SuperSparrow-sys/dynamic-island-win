@@ -21,6 +21,10 @@ public sealed class ShortcutItem
     public bool GlyphFilled => !GlyphStroked;
     public bool ShowGlyph => Glyph is not null;
     public bool ShowIcon => Glyph is null;
+    /// <summary>The app's own icon in its colours whatever the tile style (the menu bar shows it like the taskbar).</summary>
+    public ImageSource? Original { get; init; }
+    public bool HasOriginal => Original is not null;
+    public bool NoOriginal => Original is null;
 }
 
 /// <summary>Pinned apps, files and folders for the launcher widget (NotchNook's "Open Apps").</summary>
@@ -70,7 +74,7 @@ public sealed partial class ShortcutsService
 
     public static ShortcutItem Create(string path, AppIconStyle style) => Create(path, style, ShellThumbnail.Get(path, 64, iconOnly: true));
 
-    private static ShortcutItem Create(string path, AppIconStyle style, ImageSource? icon)
+    internal static ShortcutItem Create(string path, AppIconStyle style, ImageSource? icon)
     {
         string name = InstalledApps.DisplayName(path);
         var glyph = style == AppIconStyle.Original ? null : AppIcons.Find(name, path);
@@ -78,10 +82,10 @@ public sealed partial class ShortcutsService
         {
             return style switch
             {
-                AppIconStyle.Original => new ShortcutItem { Path = path, Name = name, Icon = icon, TileBackground = Brushes.Transparent },
+                AppIconStyle.Original => new ShortcutItem { Path = path, Name = name, Original = icon, Icon = icon, TileBackground = Brushes.Transparent },
                 // Unknown apps in the clean style: their own icon, but monochrome, on the same glass tile.
-                AppIconStyle.Mono => new ShortcutItem { Path = path, Name = name, Icon = icon is BitmapSource bs ? Monochrome(bs) : icon, TileBackground = MonoTile },
-                _ => new ShortcutItem { Path = path, Name = name, Icon = icon, TileBackground = NeutralTile },
+                AppIconStyle.Mono => new ShortcutItem { Path = path, Name = name, Original = icon, Icon = icon is BitmapSource bs ? Monochrome(bs) : icon, TileBackground = MonoTile },
+                _ => new ShortcutItem { Path = path, Name = name, Original = icon, Icon = icon, TileBackground = NeutralTile },
             };
         }
 
@@ -105,7 +109,7 @@ public sealed partial class ShortcutsService
             tile = NeutralTile;
             fg = Frozen(new SolidColorBrush(Readable(glyph.Brand)));
         }
-        return new ShortcutItem { Path = path, Name = name, Icon = icon, Glyph = glyph.Data, GlyphStroked = glyph.Stroked, TileBackground = tile, GlyphBrush = fg };
+        return new ShortcutItem { Path = path, Name = name, Original = icon, Icon = icon, Glyph = glyph.Data, GlyphStroked = glyph.Stroked, TileBackground = tile, GlyphBrush = fg };
     }
 
     private static Color Lighten(Color c, double f) =>

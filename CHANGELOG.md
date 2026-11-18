@@ -2,6 +2,16 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## 1.1.22 (18.11.2026)
+
+- Kopfleiste: Windows-Systemschrift statt Inter, angeheftete Apps in ihren eigenen Farben wie in der Taskleiste,
+  Bluetooth immer sichtbar (mit Punkten, wenn ein Gerät verbunden ist). Angeheftete Apps wie Obsidian oder VS Code
+  finden ihr offenes Fenster auch über das Programm hinter dem Startmenü-Eintrag. Auf dem Desktop steht kein App-Name
+  mehr (vorher etwa „Dell Display and Peripheral Manager“). Die Leiste verschwindet nur noch bei Filmen, Spielen und
+  Präsentationen im Vollbild, nicht mehr, wenn die Maus über CursorHop auf einen anderen PC wechselt.
+- Kopfleiste → „Auswahl“: je Bildschirm ein Schalter, gemerkt auf diesem PC. Beim ersten Wählen ist der Bildschirm
+  der Einstellungen eingeschaltet.
+
 ## 1.1.21 (18.11.2026)
 
 - Ton an das andere Gerät: Im lokalen Netz kommt der Ton etwa 40 ms früher (Puffer 60 statt 100 ms). Wird die

@@ -159,6 +159,11 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
   Vollbild verdecken die Leiste). So bleibt ein Film auf dem einen Bildschirm frei, während auf dem anderen gearbeitet
   wird. Verworfen: nur `ABN_FULLSCREENAPP` (kommt bei Videos im Browser nicht zuverlässig) und das aktive Fenster wie bei
   der Insel (die Leiste käme über den Film zurück, sobald der andere Bildschirm den Fokus hat).
+- **Kopfleiste in Segoe UI Variable und mit farbigen App-Symbolen** (18.11.2026, Besitzer: Inter gefiel nicht, einfarbige
+  Symbole waren nicht zu erkennen, etwa Teams). Verworfen: die einfarbigen Glyphen des Kachelstils der Insel.
+- **Kopfleiste je Bildschirm wählbar, gemerkt an Gerätename und Auflösung** (18.11.2026, Besitzer), wie die Insel ihren
+  Platz je Anordnung merkt. Verworfen: Monitornamen aus den EDID-Daten (mehr Code, gleicher Nutzen am festen
+  Schreibtisch); ein anderer Monitor am selben Anschluss mit anderer Auflösung gilt als neuer Bildschirm.
 - **Angeheftete Apps wie in der Taskleiste**: offenes Fenster nach vorn, im Vordergrund minimieren, sonst starten.
 - **Gehört dem PC** (Besitzer): Ein Einstellungs-Export nimmt die Kopfleiste nicht mit, am Schreibtisch an, am Laptop
   aus.

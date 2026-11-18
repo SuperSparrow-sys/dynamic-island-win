@@ -316,6 +316,7 @@ public static class Snapshots
                 RenderWindow(pw, Path.Combine(dir, "pairing-code-done.png"));
                 pw.Close();
             }
+            settings.MenuBar = MenuBarScreens.Chosen; // Darstellung shows the switch per display
             var win = new Settings.SettingsWindow(settings, vm);
             win.ShowFocus("Unterwegs");
             win.Show();
@@ -358,7 +359,7 @@ public static class Snapshots
             // Pinned apps as on the launcher page (only those installed here), and a song playing in the first shot.
             settings.Shortcuts.Clear();
             var installed = InstalledApps.All();
-            foreach (var want in new[] { "Google Chrome", "Spotify", "Obsidian", "Rechner", "Calculator" })
+            foreach (var want in new[] { "Google Chrome", "Microsoft Teams", "Spotify", "Obsidian", "Visual Studio Code", "Rechner", "Calculator" })
                 if (installed.FirstOrDefault(a => a.Name.Equals(want, StringComparison.OrdinalIgnoreCase)) is { } pin) settings.Shortcuts.Add(pin.LaunchPath);
             await Task.Delay(1500); // icons load on their own thread
             await ShotMenuBar(vm, Path.Combine(dir, "menubar-1-wallpaper.png"), Color.FromRgb(0x1D, 0x4E, 0x89), Color.FromRgb(0xE0, 0x7A, 0x5F), "Finder", 96, charging: true, volume: 60, muted: false, wlan: true);
@@ -867,7 +868,7 @@ public static class Snapshots
             BatteryIcon = Icon(MenuBarMath.BatteryIcon(battery, charging)),
             VolumeIcon = Icon(MenuBarMath.VolumeIcon(volume, muted)),
             NetworkIcon = Icon(MenuBarMath.NetworkIcon(true, wlan, 3)),
-            ShowBluetooth = true,
+            ShowBluetooth = true, BluetoothIcon = Icon("Fluent.BluetoothConnected"),
             DateText = MenuBarMath.DateText(new DateTime(2026, 11, 18, 13, 57, 0), Loc.German),
             TimeText = "13:57",
         };

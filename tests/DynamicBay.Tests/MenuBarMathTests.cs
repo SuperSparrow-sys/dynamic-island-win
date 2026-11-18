@@ -159,6 +159,8 @@ public class MenuBarMathTests
     [InlineData(@"C:\Tools\notepad++.exe", null, @"c:\tools\NOTEPAD++.EXE", null, true)]
     [InlineData(@"C:\Users\me\Desktop\Zotero.lnk", null, @"C:\Program Files\Zotero\zotero.exe", @"C:\Program Files\Zotero\zotero.exe", true)]
     [InlineData(@"C:\Users\me\Documents", null, @"C:\Windows\explorer.exe", null, false)]
+    [InlineData(@"shell:AppsFolder\md.obsidian", "SomethingElse", @"C:\Program Files\Obsidian\Obsidian.exe", @"C:\Program Files\Obsidian\Obsidian.exe", true)] // Electron window without the entry's id
+    [InlineData(@"shell:AppsFolder\com.cursorhop.app", null, @"C:\Program Files\CursorHop\resources\cursorhop.exe", @"C:\Program Files\CursorHop\CursorHop-App.exe", false)]
     public void Pinned_app_finds_its_open_window(string launch, string? appId, string? exe, string? lnkTarget, bool expected)
     {
         string? Folder(Guid g) => g == new Guid("6D809377-6AF0-444B-8957-A3773F02200E") ? @"C:\Program Files" : null;
@@ -184,6 +186,55 @@ public class MenuBarMathTests
         Assert.Equal(new long[] { 1001 }, removed);
         Assert.False(File.Exists(file));
         Assert.Equal(0, AppBar.RemoveStale(file, _ => false, _ => throw new InvalidOperationException())); // no file: nothing
+    }
+
+    [Theory]
+    [InlineData(AppIconStyle.Mono)]
+    [InlineData(AppIconStyle.Dark)]
+    [InlineData(AppIconStyle.Color)]
+    [InlineData(AppIconStyle.Original)]
+    public void Bar_gets_the_coloured_app_icon_whatever_the_tile_style(AppIconStyle style)
+    {
+        var px = new byte[4 * 4 * 4];
+        for (int i = 0; i < px.Length; i += 4) { px[i] = 0xC0; px[i + 1] = 0x40; px[i + 2] = 0x50; px[i + 3] = 0xFF; } // Teams violet
+        var icon = System.Windows.Media.Imaging.BitmapSource.Create(4, 4, 96, 96, System.Windows.Media.PixelFormats.Bgra32, null, px, 16);
+        icon.Freeze();
+        foreach (var path in new[] { @"C:\Program Files\Google\Chrome\Application\chrome.exe", @"C:\Tools\SomethingUnknown.exe" })
+            Assert.Same(icon, DynamicBay.Services.ShortcutsService.Create(path, style, icon).Original);
+    }
+
+    [Theory]
+    [InlineData("Progman", false, false, ForegroundApp.None)]          // desktop: no app name
+    [InlineData("WorkerW", false, false, ForegroundApp.None)]
+    [InlineData("Shell_TrayWnd", false, false, ForegroundApp.Keep)]    // taskbar: the last app stays
+    [InlineData("HwndWrapper[DDPM]", false, false, ForegroundApp.None)] // display tool's overlay over the desktop
+    [InlineData("#32770", false, true, ForegroundApp.Owner)]           // a dialog counts for its app
+    [InlineData("Chrome_WidgetWin_1", true, false, ForegroundApp.Window)]
+    public void Bar_names_the_app_in_front_and_nothing_on_the_desktop(string cls, bool switchable, bool ownerSwitchable, ForegroundApp expected) =>
+        Assert.Equal(expected, MenuBarMath.ForegroundAppFor(cls, switchable, ownerSwitchable));
+
+    [Fact]
+    public void Only_games_slide_shows_and_plain_windows_count_as_fullscreen()
+    {
+        Assert.False(MenuBarMath.IsFullscreenState(2)); // busy: any covering window in front, e.g. while the mouse is on the other PC
+        Assert.True(MenuBarMath.IsFullscreenState(3));
+        Assert.True(MenuBarMath.IsFullscreenState(4));
+        Assert.False(MenuBarMath.IgnoredForFullscreen(0x00000100));  // browser in fullscreen (WS_EX_WINDOWEDGE)
+        Assert.True(MenuBarMath.IgnoredForFullscreen(0x08080088));   // CursorHop strip: topmost, layered, no-activate, tool
+        Assert.True(MenuBarMath.IgnoredForFullscreen(0x00000020));   // click-through
+        Assert.True(MenuBarMath.IgnoredForFullscreen(0x08000000));   // never active
+    }
+
+    [Fact]
+    public void Chosen_displays_get_a_bar_others_not()
+    {
+        var chosen = new[] { MenuBarMath.DisplayKey(@"\.\DISPLAY2", 3840, 2160) };
+        var monitors = new[] { (@"\.\DISPLAY1", true, 1920, 1080), (@"\.\DISPLAY2", false, 3840, 2160), (@"\.\DISPLAY3", false, 2560, 1440) };
+        bool Chosen(string d) => monitors.Any(m => m.Item1 == d && chosen.Contains(MenuBarMath.DisplayKey(m.Item1, m.Item3, m.Item4)));
+        Assert.Equal(new[] { @"\.\DISPLAY2" }, MenuBarMath.Screens(MenuBarScreens.Chosen, monitors.Select(m => (m.Item1, m.Item2)), @"\.\DISPLAY1", Chosen));
+        Assert.Empty(MenuBarMath.Screens(MenuBarScreens.Chosen, monitors.Select(m => (m.Item1, m.Item2)), @"\.\DISPLAY1")); // nothing chosen
+        // Another monitor on the same port (other resolution) is not the chosen one.
+        Assert.False(chosen.Contains(MenuBarMath.DisplayKey(@"\.\DISPLAY2", 1920, 1080)));
     }
 
     [Fact]

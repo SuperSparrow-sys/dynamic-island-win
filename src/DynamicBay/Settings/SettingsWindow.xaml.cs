@@ -52,6 +52,13 @@ public partial class SettingsWindow : Window
         {
             if (e.PropertyName is nameof(AppSettings.Edge) or nameof(AppSettings.Align) or nameof(AppSettings.Along)) UpdatePreview();
             if (e.PropertyName is nameof(AppSettings.WindowTheme)) Dispatcher.BeginInvoke(ApplyTheme);
+            // "Auswahl" picked with nothing chosen yet: start with the display this window is on.
+            if (e.PropertyName is nameof(AppSettings.MenuBar) && settings.MenuBar == MenuBarScreens.Chosen && settings.MenuBarDisplays.Count == 0
+                && ThisDisplay() is { } m)
+            {
+                settings.MenuBarDisplays = new() { MenuBarMath.DisplayKey(m.Device, m.Bounds.Width, m.Bounds.Height) };
+                BuildMenuBarDisplayRows();
+            }
         };
         settings.PropertyChanged += placementChanged;
         UpdatePreview();
@@ -62,6 +69,10 @@ public partial class SettingsWindow : Window
         vm.Scripts.Updated += scriptsUpdated;
         Closed += (_, _) => vm.Scripts.Updated -= scriptsUpdated;
         BuildCompactRows();
+        BuildMenuBarDisplayRows();
+        EventHandler displaysChanged = (_, _) => Dispatcher.BeginInvoke(BuildMenuBarDisplayRows);
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += displaysChanged;
+        Closed += (_, _) => Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= displaysChanged;
         BuildCalendarRows();
         BuildBannerRows();
         BuildPhoneFocusRows();
@@ -1087,6 +1098,44 @@ public partial class SettingsWindow : Window
     private void RemoveShortcut_Click(object sender, RoutedEventArgs e)
     {
         if (((FrameworkElement)sender).Tag is ShortcutItem item) _ctx.I.Shortcuts.Remove(item);
+    }
+
+    /// <summary>
+    /// Kopfleiste → Auswahl: a switch for every connected display, numbered as in Windows. The display this window is on
+    /// is named "Dieser Bildschirm" and switched on when the choice is still empty.
+    /// </summary>
+    private void BuildMenuBarDisplayRows()
+    {
+        var s = _ctx.S;
+        MenuBarDisplayRows.Children.Clear();
+        string here = ThisDisplay()?.Device ?? "";
+        foreach (var m in Monitors.All().OrderBy(m => m.Bounds.Left).ThenBy(m => m.Bounds.Top))
+        {
+            string key = MenuBarMath.DisplayKey(m.Device, m.Bounds.Width, m.Bounds.Height);
+            string number = new string(m.Device.Reverse().TakeWhile(char.IsDigit).Reverse().ToArray());
+            bool isHere = string.Equals(m.Device, here, StringComparison.OrdinalIgnoreCase);
+            string desc = $"{m.Bounds.Width} × {m.Bounds.Height}"
+                          + (m.IsPrimary ? (Loc.German ? ", Hauptbildschirm" : ", main display") : "")
+                          + (isHere ? (Loc.German ? ", dieser Bildschirm" : ", this display") : "");
+            var box = new CheckBox { Style = (Style)FindResource("S.Switch"), IsChecked = s.MenuBarDisplays.Contains(key, StringComparer.OrdinalIgnoreCase) };
+            box.Click += (_, _) =>
+            {
+                var list = s.MenuBarDisplays.Where(k => !string.Equals(k, key, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (box.IsChecked == true) list.Add(key);
+                s.MenuBarDisplays = list;
+            };
+            MenuBarDisplayRows.Children.Add(new ContentControl
+            {
+                Style = (Style)FindResource("S.Row"), BorderThickness = new Thickness(0, 1, 0, 0), Content = box, ToolTip = desc,
+                Tag = (Loc.German ? "Bildschirm " : "Display ") + (number.Length > 0 ? number : "?"),
+            });
+        }
+    }
+
+    private MonitorInfo? ThisDisplay()
+    {
+        try { return Monitors.Describe(Native.MonitorFromWindow(new WindowInteropHelper(this).EnsureHandle(), Native.MONITOR_DEFAULTTONEAREST)); }
+        catch { return null; }
     }
 
     private void BuildCompactRows()

@@ -51,7 +51,7 @@ public static class SettingsTransfer
     /// </summary>
     internal static readonly string[] DeviceOnly = { nameof(AppSettings.PairedDevices), nameof(AppSettings.LinkDeviceName),
         nameof(AppSettings.ServerAddress), nameof(AppSettings.ServerDeviceId), nameof(AppSettings.SharedChanged), nameof(AppSettings.OverriddenKeys),
-        nameof(AppSettings.MenuBar) };
+        nameof(AppSettings.MenuBar), nameof(AppSettings.MenuBarDisplays) };
 
     public static bool IsTransferableSecret(string key) => key.StartsWith("cal:", StringComparison.Ordinal) && key.EndsWith(":secret", StringComparison.Ordinal);
 

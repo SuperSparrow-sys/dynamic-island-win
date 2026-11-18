@@ -14,6 +14,8 @@ public static class AppWindows
     /// Whether a window belongs to the pinned entry. <paramref name="launchPath"/> is "shell:AppsFolder\{AppUserModelId}"
     /// (Store apps, apps with their own id, or a program path that starts with a known-folder GUID) or a file (.exe, .lnk
     /// already resolved to <paramref name="shortcutTarget"/>). <paramref name="knownFolder"/> turns "{GUID}" into a path.
+    /// For a Start menu entry <paramref name="shortcutTarget"/> is the program its shortcut starts: Electron apps (Obsidian,
+    /// VS Code) do not always give their windows the entry's id.
     /// </summary>
     public static bool Matches(string launchPath, string? windowAppId, string? exePath, string? shortcutTarget, Func<Guid, string?> knownFolder)
     {
@@ -22,6 +24,7 @@ public static class AppWindows
         {
             string id = launchPath[apps.Length..];
             if (windowAppId is not null && string.Equals(id, windowAppId, StringComparison.OrdinalIgnoreCase)) return true;
+            if (exePath is not null && shortcutTarget is not null && SamePath(shortcutTarget, exePath)) return true;
             // A classic program without its own id: the Start menu lists it by its path, the folder as a GUID.
             if (exePath is null || !id.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return false;
             string path = id;
@@ -45,7 +48,8 @@ public static class AppWindows
     /// <summary>The topmost open window of the app (as in Alt+Tab), or zero.</summary>
     public static IntPtr Find(string launchPath)
     {
-        string? target = launchPath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) ? ShortcutTarget(launchPath) : null;
+        string? target = launchPath.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) ? ShortcutTarget(launchPath)
+            : launchPath.StartsWith(@"shell:AppsFolder\", StringComparison.OrdinalIgnoreCase) ? AppsFolderTarget(launchPath) : null;
         IntPtr found = IntPtr.Zero;
         EnumWindows((hwnd, _) =>
         {
@@ -71,7 +75,7 @@ public static class AppWindows
     }
 
     /// <summary>A window Alt+Tab would show: visible, not cloaked, no owner, not a tool window, with a title.</summary>
-    private static bool IsSwitchable(IntPtr hwnd)
+    public static bool IsSwitchable(IntPtr hwnd)
     {
         if (!IsWindowVisible(hwnd) || GetWindow(hwnd, GwOwner) != IntPtr.Zero) return false;
         if ((Native.GetWindowLongPtr(hwnd, Native.GWL_EXSTYLE).ToInt64() & Native.WS_EX_TOOLWINDOW) != 0) return false;
@@ -99,6 +103,25 @@ public static class AppWindows
             if (SHGetKnownFolderPath(ref id, 0, IntPtr.Zero, out var p) != 0) return null;
             try { return Marshal.PtrToStringUni(p); }
             finally { Marshal.FreeCoTaskMem(p); }
+        }
+        catch { return null; }
+    }
+
+    /// <summary>The program behind a Start menu entry (empty for Store apps, which are found by their id).</summary>
+    private static string? AppsFolderTarget(string launchPath)
+    {
+        try
+        {
+            var type = Type.GetTypeFromProgID("Shell.Application");
+            if (type is null) return null;
+            dynamic shell = Activator.CreateInstance(type)!;
+            try
+            {
+                var item = shell.NameSpace(@"shell:AppsFolder")?.ParseName(launchPath[@"shell:AppsFolder\".Length..]);
+                string? target = item?.ExtendedProperty("System.Link.TargetParsingPath") as string;
+                return string.IsNullOrEmpty(target) ? null : target;
+            }
+            finally { Marshal.FinalReleaseComObject(shell); }
         }
         catch { return null; }
     }

@@ -226,9 +226,12 @@
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Bei der Insel', En='With the island'}" IsChecked="{Binding S.MenuBar, Converter={StaticResource EqBool}, ConverterParameter=Island}" />
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Zweitbildschirme', En='Second displays'}" IsChecked="{Binding S.MenuBar, Converter={StaticResource EqBool}, ConverterParameter=Secondary}" />
                                         <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Alle', En='All'}" IsChecked="{Binding S.MenuBar, Converter={StaticResource EqBool}, ConverterParameter=All}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Auswahl', En='Choose'}" IsChecked="{Binding S.MenuBar, Converter={StaticResource EqBool}, ConverterParameter=Chosen}" />
                                     </StackPanel>
                                 </Border>
                             </ContentControl>
+                            <!-- One switch per connected display (built in code), remembered on this PC. -->
+                            <StackPanel x:Name="MenuBarDisplayRows" Visibility="{Binding S.MenuBar, Converter={StaticResource EqVis}, ConverterParameter=Chosen}" />
                         </StackPanel>
                     </Border>
 
@@ -250,7 +253,8 @@
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Bluetooth', En='Bluetooth'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarBluetooth}" />
                             </ContentControl>
-                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Akku', En='Battery'}">
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Akku', En='Battery'}"
+                                            ToolTip="{core:L De='Nur an Geräten mit Akku.', En='Only on devices with a battery.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarBattery}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Akku in Prozent', En='Battery percentage'}">
