@@ -107,12 +107,16 @@ gehört dem PC) versteckt `TaskbarHider` auf jedem Bildschirm mit Kopfleiste die
 (`Shell_TrayWnd` bzw. `Shell_SecondaryTrayWnd`, zugeordnet über ihre Mitte, `TaskbarMath.DisplayOf`) mit
 `ShowWindowAsync(SW_HIDE)` und setzt den Arbeitsbereich dieses Bildschirms per `SPI_SETWORKAREA` bis an den unteren Rand,
 ohne Broadcast. Bereits maximierte Fenster zieht er selbst mit `SetWindowPos` nach (`TaskbarMath.MaximizedHeight`),
-das tun weder Windows noch der Explorer. Ein Timer (50 ms, nicht bei Sperre) läuft nur, solange etwas versteckt ist:
-Berührt die Maus den unteren Rand (`AtBottomEdge`) und läuft dort kein Vollbild (`MenuBarManager.FullscreenOn`),
-kommt die Taskleiste mit `SW_SHOWNA` über die Fenster; 400 ms nachdem nichts sie mehr hält (Maus darauf, Start, Suche,
-Sprungliste, Vorschau, Infobereich, Menü eines Infobereich-Symbols auf diesem Bildschirm, `TaskbarMath.IsShellPopup`),
-verschwindet sie wieder. Legt der Explorer neu aus (Einstellungsänderung, eine andere App-Leiste), setzt derselbe Timer
-Fenster und Arbeitsbereich zurück; nach `TaskbarCreated` wird neu angewendet. Zurück gibt `TaskbarHider` die Taskleiste
+das tun weder Windows noch der Explorer; ein Fenster, das genau den ganzen Bildschirm bedeckt (Spiel im Vollbild), bleibt
+unangetastet. Ein Timer (50 ms, nicht bei Sperre) läuft nur, solange etwas versteckt ist, und liest dabei nur die
+Mausposition gegen die gemerkten Bildschirmgrenzen (`TaskbarMath.NeedsCheck`). Berührt die Maus den unteren Rand
+(`AtBottomEdge`) und läuft dort kein Vollbild (`MenuBarManager.FullscreenOn`), kommt die Taskleiste mit `SW_SHOWNA` über
+die Fenster (gemessen 30 bis 80 ms); 400 ms nachdem nichts sie mehr hält (Maus darauf, Start, Suche, Sprungliste,
+Vorschau, Uhr-Flyout, Menü eines Infobereich-Symbols auf diesem Bildschirm, `TaskbarMath.IsShellPopup`, der Prozess wird
+jedes Mal über sein Abbild bestimmt, nie aus einem Cache nach Prozess-ID), verschwindet sie wieder. Fenster, Bildschirm
+und Arbeitsbereich prüft der Timer einmal pro Sekunde und nach `WM_SETTINGCHANGE` oder `TaskbarCreated` bei jedem Tick
+für 500 ms (`TaskbarMath.FullCheckDue`): Legt der Explorer neu aus (Einstellungsänderung, eine andere App-Leiste),
+setzt er Fenster und Arbeitsbereich zurück. Zurück gibt `TaskbarHider` die Taskleiste
 beim Abschalten, wenn die Kopfleiste auf dem Bildschirm wegfällt, in `SaveAndRestore` (Beenden, Absturz) und in
 `ProcessExit`. Nach einem harten Beenden bleibt `taskbars.txt` liegen, der nächste Start zeigt versteckte Taskleisten
 wieder (`TaskbarHider.RestoreStale`). Ist das automatische Ausblenden von Windows an, bleibt alles unangetastet.

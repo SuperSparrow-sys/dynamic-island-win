@@ -1131,6 +1131,7 @@ public partial class App : Application
             return true;
         }
         if (msg == TaskbarHider.TaskbarCreated) TaskbarHider.Reapply();
+        if (msg == Native.WM_SETTINGCHANGE) TaskbarHider.CheckSoon();
         if ((uint)msg == ShowSettingsMessage)
         {
             if (_settings.Hidden) _islands?.ToggleHidden();

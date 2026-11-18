@@ -22,6 +22,7 @@ public static class TaskbarHider
     {
         public IntPtr Hwnd;
         public string Device = "";
+        public Native.RECT Display; // refreshed by the full check, not on every tick
         public bool Shown;
         public long HeldAt;
     }
@@ -29,9 +30,12 @@ public static class TaskbarHider
     private static readonly object Gate = new();
     private static readonly List<Tray> Hidden = new();
     private static readonly HashSet<string> Wanted = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly Dictionary<uint, string> ProcessNames = new();
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
     private static DispatcherTimer? _timer;
+    private static long _lastFull, _fullUntil;
+
+    /// <summary>A settings change: Explorer may lay out again, so the next ticks check everything.</summary>
+    public static void CheckSoon() => _fullUntil = Clock.ElapsedMilliseconds + TaskbarMath.CheckSoonMs;
 
     /// <summary>Taskbars hidden on exactly these displays; all others are given back.</summary>
     public static void Apply(IEnumerable<string> devices)
@@ -56,21 +60,24 @@ public static class TaskbarHider
                 Restore(t.Hwnd);
             }
             // Windows' own auto-hide already hides it everywhere.
+            var monitors = Monitors.All();
+            foreach (var t in Hidden)
+                if (monitors.FirstOrDefault(m => m.Device == t.Device) is { } now) t.Display = now.Bounds;
             if (Wanted.Count > 0 && !AppBar.TaskbarAutoHides())
             {
-                var monitors = Monitors.All();
                 foreach (var hwnd in Trays().Where(h => Hidden.All(t => t.Hwnd != h)))
                 {
                     Native.GetWindowRect(hwnd, out var r);
                     var m = monitors.FirstOrDefault(m => m.Device == TaskbarMath.DisplayOf(r, monitors.Select(x => (x.Device, x.Bounds))));
                     if (m is null || !Wanted.Contains(m.Device) || !TaskbarMath.AtBottom(r, m.Bounds)) continue;
-                    Hidden.Add(new Tray { Hwnd = hwnd, Device = m.Device });
+                    Hidden.Add(new Tray { Hwnd = hwnd, Device = m.Device, Display = m.Bounds });
                     ShowWindowAsync(hwnd, SwHide);
                     if (m.Work.Bottom != m.Bounds.Bottom) SetWorkBottom(m, m.Bounds.Bottom);
                     Log.Info($"Taskbar: hidden on {m.Device}");
                 }
             }
             Save();
+            CheckSoon(); // taskbars hidden before (Explorer showed them again) are checked on the next ticks
             if (Hidden.Count > 0)
             {
                 _timer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(50), DispatcherPriority.Background, (_, _) => Tick(), Dispatcher.CurrentDispatcher);
@@ -127,31 +134,45 @@ public static class TaskbarHider
         Log.Info($"Taskbar: back on {m?.Device}");
     }
 
+    /// <summary>
+    /// Every 50 ms only the cursor position, so the taskbar still comes at once. The rest (window and work area checks,
+    /// popups) runs while the taskbar is out, when the mouse touches the edge, once a second and after a settings change.
+    /// </summary>
     private static void Tick()
     {
         if (ActivityState.Current.Away) return;
         lock (Gate)
         {
-            if (Hidden.Any(t => !Native.IsWindow(t.Hwnd))) { Reapply(); return; }
             Native.GetCursorPos(out var p);
             long now = Clock.ElapsedMilliseconds;
+            bool full = TaskbarMath.FullCheckDue(now, _lastFull, _fullUntil);
+            if (full)
+            {
+                _lastFull = now;
+                if (Hidden.Any(t => !Native.IsWindow(t.Hwnd))) { Reapply(); return; }
+            }
             foreach (var t in Hidden)
             {
-                var m = Monitors.FindDevice(t.Device);
-                if (m is null) continue;
+                bool atEdge = !t.Shown && TaskbarMath.AtBottomEdge(p.X, p.Y, t.Display);
+                if (!TaskbarMath.NeedsCheck(t.Shown, atEdge, full)) continue;
+                var m = full ? Monitors.FindDevice(t.Device) : null;
+                if (full)
+                {
+                    if (m is null) continue;
+                    t.Display = m.Bounds;
+                }
                 Native.GetWindowRect(t.Hwnd, out var r);
                 bool visible = Native.IsWindowVisible(t.Hwnd);
                 // Shown by us, or by Explorer itself for Start: held while the mouse is on it or a popup of it is open.
                 bool held = (t.Shown || visible) && (TaskbarMath.Inside(p.X, p.Y, r)
-                    || ShellPopupOn(GetAncestor(WindowFromPoint(p), GaRoot), m.Device) || ShellPopupOn(Native.GetForegroundWindow(), m.Device));
+                    || ShellPopupOn(GetAncestor(WindowFromPoint(p), GaRoot), t.Device) || ShellPopupOn(Native.GetForegroundWindow(), t.Device));
                 if (held) t.HeldAt = now;
-                bool atEdge = !t.Shown && TaskbarMath.AtBottomEdge(p.X, p.Y, m.Bounds);
                 bool shown = TaskbarMath.NextShown(t.Shown || held, atEdge, atEdge && MenuBarManager.FullscreenOn(t.Device), held, now - t.HeldAt);
                 if (shown && !t.Shown) t.HeldAt = now;
                 if (shown != visible) ShowWindowAsync(t.Hwnd, shown ? SwShowNa : SwHide);
                 t.Shown = shown;
                 // Explorer laid out again (a settings change, another app bar): the strip is reserved again.
-                if (m.Work.Bottom != m.Bounds.Bottom) SetWorkBottom(m, m.Bounds.Bottom);
+                if (m is not null && m.Work.Bottom != m.Bounds.Bottom) SetWorkBottom(m, m.Bounds.Bottom);
             }
         }
     }
@@ -159,13 +180,9 @@ public static class TaskbarHider
     private static bool ShellPopupOn(IntPtr hwnd, string device)
     {
         if (hwnd == IntPtr.Zero) return false;
+        // Asked each time, never cached by process id: Windows hands ids out again.
         Native.GetWindowThreadProcessId(hwnd, out uint pid);
-        if (!ProcessNames.TryGetValue(pid, out var name))
-        {
-            try { using var proc = Process.GetProcessById((int)pid); name = proc.ProcessName; } catch { name = ""; }
-            ProcessNames[pid] = name;
-        }
-        return TaskbarMath.IsShellPopup(Native.ClassName(hwnd), name, AppWindows.IsSwitchable(hwnd))
+        return TaskbarMath.IsShellPopup(Native.ClassName(hwnd), AppWindows.ProcessPath(pid) ?? "", AppWindows.IsSwitchable(hwnd))
                && string.Equals(Monitors.Describe(Native.MonitorFromWindow(hwnd, Native.MONITOR_DEFAULTTONEAREST)).Device, device, StringComparison.OrdinalIgnoreCase);
     }
 

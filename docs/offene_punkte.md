@@ -3,7 +3,7 @@
 Aufgaben, die noch zu erledigen sind. Was erledigt ist, wird entfernt; Messwerte gehören nach
 [performance/](performance/README.md), Entscheidungen nach [ENTSCHEIDUNGEN.md](ENTSCHEIDUNGEN.md).
 
-Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **21**.
+Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **23**.
 
 ## Ein neuer Punkt
 
@@ -166,6 +166,35 @@ Abfragemodus); AirPods über Bluetooth.
 **Zu tun:** Ab dem nächsten Update startet der Puffer im LAN bei 60 ms und wächst bei Lücken. Im echten Betrieb prüfen:
 `target` in den Statistikzeilen bleibt per Kabel bei 60, Aussetzer selten. Danach, nur mit Hörtest des Besitzers:
 Loopback ereignisgesteuert oder mit 20-ms-Puffer (`LoopbackAudioSource`), Ausgabe 20 statt 40 ms (`WasapiAudioSink`).
+
+## 21. Explorer-Neustart mit Kopfleiste und ausgeblendeter Taskleiste
+
+**Gemeldet:** 18.11.2026, Prüfung vor 1.1.23.
+
+**Beobachtet:** Live nicht geprüft: Den Explorer zu beenden hat die Rechteprüfung der Claude-Session abgelehnt.
+Nachgestellt (Taskleiste sichtbar, Streifen reserviert, dann `TaskbarCreated` an die Testinstanz): `TaskbarHider`
+versteckt sie wieder und setzt den Arbeitsbereich zurück.
+
+**Ursache:** Vermutet, nicht nachgewiesen: Die Kopfleiste meldet ihre App-Leiste nach `TaskbarCreated` nicht neu an
+(`MenuBarWindow`, `AppBar.Register` kehrt bei schon gemerktem Fenster sofort zurück). Ein neuer Explorer kennt sie
+dann nicht, maximierte Fenster würden unter die Leiste reichen. Das beträfe auch die installierte 1.1.22.
+
+**Zu tun:** Mit einer Testinstanz den Explorer neu starten (Besitzer oder freigegebene Session). Danach prüfen: Taskleiste
+auf dem Kopfleisten-Bildschirm versteckt, Arbeitsbereich oben um die Leiste kleiner, unten bis zum Rand. Fehlt der
+Streifen oben, auf `TaskbarCreated` die App-Leiste neu anmelden (`ABM_REMOVE`, `ABM_NEW`, `Place`).
+
+## 22. Klick auf die Uhr der Kopfleiste öffnet die Mitteilungszentrale auf dem Laptop
+
+**Gemeldet:** 18.11.2026, Prüfung vor 1.1.23 (Kopfleiste auf DISPLAY2, Laptop Hauptbildschirm).
+
+**Beobachtet:** `ms-actioncenter:` öffnete die Mitteilungszentrale auf DISPLAY1 statt auf dem Bildschirm der Leiste.
+Vorne lag dabei ein Fenster auf dem Laptop.
+
+**Ursache:** noch offen. Windows wählt den Bildschirm selbst, vermutlich nach dem Vordergrundfenster. Ob die
+ausgeblendete Taskleiste mitspielt, ist nicht geprüft.
+
+**Zu tun:** Mit ein- und ausgeschalteter Taskleiste vergleichen; öffnet sie auf dem falschen Bildschirm, vorher ein
+Fenster der Leiste auf ihrem Bildschirm in den Vordergrund holen oder die Mitteilungszentrale anders öffnen.
 
 # Zurückgestellt
 

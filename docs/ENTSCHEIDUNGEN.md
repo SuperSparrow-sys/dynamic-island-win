@@ -187,7 +187,9 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
   und zeigt die Taskleiste wieder; Zeigen per `SW_SHOWNA` lässt den Arbeitsbereich in Ruhe. Verworfen: das automatische
   Ausblenden von Windows (gilt nur für alle Bildschirme zusammen), die Taskleiste nur verschieben oder per Region
   unsichtbar machen (der Streifen bliebe reserviert) und eine Low-Level-Maus-Hook (`WH_MOUSE_LL` im UI-Thread bremst bei
-  jedem Hänger die Maus im ganzen System; ein 50-ms-Timer nur bei versteckter Taskleiste reicht).
+  jedem Hänger die Maus im ganzen System; ein 50-ms-Timer nur bei versteckter Taskleiste reicht). Der Timer liest pro
+  Tick nur die Mausposition (0,3 statt 5 µs gemessen), alles Weitere einmal pro Sekunde, am Rand und nach
+  Einstellungsänderungen. Verworfen: alles bei jedem Tick prüfen (Bildschirme aufzählen 20-mal pro Sekunde, den ganzen Tag).
 - **Fluent UI System Icons** (Besitzer): passen zu Windows 11, MIT-Lizenz. Verworfen: die Lucide-Symbole der Insel,
   denen Akkustufen und WLAN-Balken fehlen.
 - **Klick auf ein Symbol öffnet die Schnelleinstellungen von Windows, auf die Uhr das Benachrichtigungscenter.**

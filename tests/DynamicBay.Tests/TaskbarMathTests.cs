@@ -45,7 +45,27 @@ public class TaskbarMathTests
         Assert.Equal(expected, TaskbarMath.NextShown(shown, atEdge, fullscreen, held, sinceHeld));
 
     [Theory]
+    [InlineData(false, false, false, false)] // mouse elsewhere: only the cursor position
+    [InlineData(false, true, false, true)]   // edge touched: at once, not after the next full check
+    [InlineData(true, false, false, true)]   // out: popups and the mouse decide
+    [InlineData(false, false, true, true)]
+    public void Only_the_cursor_is_read_while_nothing_happens(bool shown, bool atEdge, bool full, bool expected) =>
+        Assert.Equal(expected, TaskbarMath.NeedsCheck(shown, atEdge, full));
+
+    [Fact]
+    public void Full_check_once_a_second_and_right_after_a_settings_change()
+    {
+        Assert.False(TaskbarMath.FullCheckDue(now: 10_500, lastFull: 10_000, checkSoonUntil: 0));
+        Assert.True(TaskbarMath.FullCheckDue(now: 11_000, lastFull: 10_000, checkSoonUntil: 0));
+        Assert.True(TaskbarMath.FullCheckDue(now: 10_050, lastFull: 10_000, checkSoonUntil: 10_400)); // WM_SETTINGCHANGE
+    }
+
+    [Theory]
     [InlineData("Windows.UI.Core.CoreWindow", "StartMenuExperienceHost", true, true)] // seen: Start passes as an app window
+    [InlineData("Windows.UI.Core.CoreWindow", @"C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe", true, true)]
+    [InlineData("TaskListThumbnailWnd", @"C:\Windows\explorer.exe", false, true)]
+    [InlineData("Chrome_WidgetWin_1", @"C:\Program Files\Google\Chrome\Application\chrome.exe", false, false)] // the image is asked each time: a reused process id cannot pass as the shell
+    [InlineData("Chrome_WidgetWin_1", "", false, false)] // process gone or not readable
     [InlineData("Windows.UI.Core.CoreWindow", "SearchHost", false, true)]
     [InlineData("TaskListThumbnailWnd", "explorer", false, true)]
     [InlineData("#32768", "Teams", false, true)]                 // a tray icon's menu
@@ -65,5 +85,7 @@ public class TaskbarMathTests
         Assert.Equal(2099 - 25, TaskbarMath.MaximizedHeight(R(1909, 25, 5771, 2171), Monitor, from: 2160, to: 2088));
         Assert.Null(TaskbarMath.MaximizedHeight(R(-9, -9, 1929, 1149), Monitor, 2088, 2160)); // on the laptop
         Assert.Null(TaskbarMath.MaximizedHeight(R(1920, 0, 5760, 2160), Monitor, 2088, 2160)); // fullscreen, not maximized to the work area
+        // A game in fullscreen that keeps the maximized style: the taskbar coming back must not shrink it.
+        Assert.Null(TaskbarMath.MaximizedHeight(R(1920, 0, 5760, 2160), Monitor, from: 2160, to: 2088));
     }
 }

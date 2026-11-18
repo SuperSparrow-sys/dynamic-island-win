@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace DynamicBay.Core;
 
 /// <summary>Pure rules for hiding the Windows taskbar on displays with a menu bar, testable without a window.</summary>
@@ -5,6 +7,12 @@ public static class TaskbarMath
 {
     /// <summary>How long the taskbar stays after the mouse left it, like Windows' own auto-hide.</summary>
     public const int HideDelayMs = 400;
+
+    /// <summary>Window, work area and Explorer state are checked this often while the taskbar is away (the cursor every tick).</summary>
+    public const int FullCheckMs = 1000;
+
+    /// <summary>After a settings change everything is checked on every tick for this long: Explorer lays out a moment later.</summary>
+    public const int CheckSoonMs = 500;
 
     /// <summary>Maximized windows end this far beyond the work area (their invisible frame, larger at high DPI).</summary>
     public const int FrameSlackPx = 32;
@@ -28,6 +36,12 @@ public static class TaskbarMath
 
     public static bool Inside(int x, int y, Native.RECT r) => x >= r.Left && x < r.Right && y >= r.Top && y < r.Bottom;
 
+    /// <summary>Time for the full check: once a second, and on every tick shortly after a settings change.</summary>
+    public static bool FullCheckDue(long now, long lastFull, long checkSoonUntil) => now - lastFull >= FullCheckMs || now < checkSoonUntil;
+
+    /// <summary>A hidden taskbar needs more than the cursor position only when it is out, touched or due for the full check.</summary>
+    public static bool NeedsCheck(bool shown, bool atEdge, bool full) => shown || atEdge || full;
+
     /// <summary>
     /// Whether a hidden taskbar is shown next. It comes at the bottom edge (not over a film or game) and goes once
     /// nothing has held it (mouse over it, Start, a jump list or flyout of it) for <see cref="HideDelayMs"/>.
@@ -40,10 +54,11 @@ public static class TaskbarMath
     /// app windows (File Explorer runs in explorer.exe too, but is one; Start has a title and looks like one, but is
     /// not). Menus count for any app (a tray icon's menu). The taskbar itself and the desktop do not hold it.
     /// </summary>
+    /// <param name="process">The process image (full path or name).</param>
     public static bool IsShellPopup(string className, string process, bool appWindow) =>
         className == "#32768"
         || (className is not ("Shell_TrayWnd" or "Shell_SecondaryTrayWnd" or "Progman" or "WorkerW")
-            && process.ToLowerInvariant() switch
+            && Path.GetFileNameWithoutExtension(process).ToLowerInvariant() switch
             {
                 "explorer" => !appWindow,
                 "startmenuexperiencehost" or "searchhost" or "searchapp" or "shellexperiencehost" or "shellhost" => true,
@@ -52,12 +67,14 @@ public static class TaskbarMath
 
     /// <summary>
     /// New height of a maximized window when the work area's bottom moves from <paramref name="from"/> to
-    /// <paramref name="to"/>, or null if it is not one that ended there (another display, a fullscreen window).
+    /// <paramref name="to"/>, or null if it is not one that ended there (another display, a fullscreen window: a game
+    /// that keeps the maximized style covers the display exactly and would otherwise shrink when the taskbar comes back).
     /// </summary>
     public static int? MaximizedHeight(Native.RECT window, Native.RECT display, int from, int to)
     {
         int x = window.Left + window.Width / 2, y = window.Top + window.Height / 2;
         if (!Inside(x, y, display) || window.Bottom < from || window.Bottom > from + FrameSlackPx) return null;
+        if (window.Left == display.Left && window.Top == display.Top && window.Right == display.Right && window.Bottom == display.Bottom) return null;
         return window.Height + to - from;
     }
 }
