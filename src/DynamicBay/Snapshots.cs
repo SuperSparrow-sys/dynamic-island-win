@@ -350,6 +350,22 @@ public static class Snapshots
             return;
         }
 
+        // Menu bar: DYNAMICBAY_SNAPSHOT_MENUBAR=1 - the real bar window at the top of the main display, dark and light,
+        // with demo values; captured from the screen so the blurred background shows. It reserves no space.
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_MENUBAR") == "1")
+        {
+            // Below the bar: a colourful wallpaper, then a light window like Chrome's tab strip (the text turns dark).
+            // Pinned apps as on the launcher page (only those installed here), and a song playing in the first shot.
+            settings.Shortcuts.Clear();
+            var installed = InstalledApps.All();
+            foreach (var want in new[] { "Google Chrome", "Spotify", "Obsidian", "Rechner", "Calculator" })
+                if (installed.FirstOrDefault(a => a.Name.Equals(want, StringComparison.OrdinalIgnoreCase)) is { } pin) settings.Shortcuts.Add(pin.LaunchPath);
+            await Task.Delay(1500); // icons load on their own thread
+            await ShotMenuBar(vm, Path.Combine(dir, "menubar-1-wallpaper.png"), Color.FromRgb(0x1D, 0x4E, 0x89), Color.FromRgb(0xE0, 0x7A, 0x5F), "Finder", 96, charging: true, volume: 60, muted: false, wlan: true);
+            await ShotMenuBar(vm, Path.Combine(dir, "menubar-2-light-window.png"), Color.FromRgb(0xDE, 0xE1, 0xE6), Color.FromRgb(0xF1, 0xF3, 0xF4), "Google Chrome", 41, charging: false, volume: 0, muted: true, wlan: false);
+            return;
+        }
+
         // Notch style: DYNAMICBAY_SNAPSHOT_NOTCH=1 - idle, compact, peek and open at the top edge.
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_NOTCH") == "1")
         {
@@ -835,6 +851,51 @@ public static class Snapshots
         public object Claude { get; } = new { WorkingText = Services.ClaudeService.CompactText(false, working) };
     }
 
+    /// <summary>The real menu bar window on the main display over a stand-in for what is below it, captured from the screen.</summary>
+    private static async Task ShotMenuBar(IslandViewModel vm, string file, Color below1, Color below2, string app, int battery, bool charging, int volume, bool muted, bool wlan)
+    {
+        Geometry? Icon(string key) => Application.Current.TryFindResource(key) as Geometry;
+        var model = new MenuBarModel
+        {
+            Shortcuts = vm.Shortcuts,
+            AppName = app,
+            ShowMedia = charging,
+            MediaText = MenuBarMath.MediaText("Midnight City", "M83"),
+            HasBattery = true,
+            ShowBattery = true,
+            BatteryText = $"{battery} %",
+            BatteryIcon = Icon(MenuBarMath.BatteryIcon(battery, charging)),
+            VolumeIcon = Icon(MenuBarMath.VolumeIcon(volume, muted)),
+            NetworkIcon = Icon(MenuBarMath.NetworkIcon(true, wlan, 3)),
+            ShowBluetooth = true,
+            DateText = MenuBarMath.DateText(new DateTime(2026, 11, 18, 13, 57, 0), Loc.German),
+            TimeText = "13:57",
+        };
+        var main = Monitors.All().First(m => m.IsPrimary);
+        var bar = new MenuBarWindow(main.Device, model, reserve: false);
+        var wallpaper = new Window
+        {
+            WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, ShowActivated = false, Topmost = true,
+            Background = new LinearGradientBrush(below1, below2, 0),
+        };
+        try
+        {
+            wallpaper.Show();
+            var b = main.Bounds;
+            Native.SetWindowPos(new WindowInteropHelper(wallpaper).Handle, Native.HWND_TOPMOST, b.Left, b.Top, b.Width, 120, Native.SWP_NOACTIVATE);
+            bar.Show();
+            await Task.Delay(500);
+            bar.Tone(Application.Current.Windows.OfType<IslandWindow>().Where(w => w.IsVisible).Select(w => w.ShapeOnScreen()).ToList(), Array.Empty<Native.RECT>());
+            await Task.Delay(800); // DWM composes the blur a moment after the first frame
+            Capture(bar, file, below: 40);
+        }
+        finally
+        {
+            bar.Close();
+            wallpaper.Close();
+        }
+    }
+
     private static async Task Shot(IslandWindow island, IslandViewModel vm, IslandMode mode, string file, bool compact)
     {
         vm.Timer.IsActive = compact;
@@ -894,10 +955,11 @@ public static class Snapshots
         enc.Save(fs);
     }
 
-    private static void Capture(Window w, string file)
+    private static void Capture(Window w, string file, int below = 0)
     {
         var hwnd = new WindowInteropHelper(w).Handle;
         Native.GetWindowRect(hwnd, out var r);
+        r.Bottom += below;
         using var bmp = new System.Drawing.Bitmap(r.Width, r.Height);
         using (var g = System.Drawing.Graphics.FromImage(bmp))
         {

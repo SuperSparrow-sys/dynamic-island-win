@@ -22,6 +22,7 @@ public partial class App : Application
     private MessageWindow? _msg;
     private TrayIcon? _tray;
     private IslandManager? _islands;
+    private MenuBarManager? _menuBars;
     private IslandViewModel? _vm;
     private AppSettings _settings = new();
     private Settings.SettingsWindow? _settingsWindow;
@@ -217,6 +218,9 @@ public partial class App : Application
         _tray = new TrayIcon(_settings, ShowSettings, _islands.ToggleHidden, _islands.ResetPosition, Quit);
 
         _islands.Show();
+        AppBar.RemoveStale();
+        _menuBars = new MenuBarManager(_vm, _islands);
+        _menuBars.Start();
         var clock = Stopwatch.StartNew();
 
         // Heavy lookups warm up in the background (app list on an STA thread, icon palette on the thread pool).
@@ -1181,6 +1185,7 @@ public partial class App : Application
     {
         FlushAll();
         _settings.Save();
+        _menuBars?.CloseAll(); // the reserved strips go back to the windows
         _taildrop?.Dispose(); // ends the Tailscale event stream
         _fullscreenGames?.Dispose(); // the game gets its own size back
         _vm?.CursorHop.Dispose();
@@ -1218,6 +1223,7 @@ public partial class App : Application
         try { _settings.Save(); } catch (Exception ex) { Log.Error("Exit save", ex); }
         try { BannerSuppressor.RestoreAll(); } catch (Exception ex) { Log.Error("Exit banners", ex); }
         try { Services.Link.LinkHub.AudioMute.Release(); } catch (Exception ex) { Log.Error("Exit audio mute", ex); } // the sound plays here again
+        try { AppBar.RemoveAll(); } catch (Exception ex) { Log.Error("Exit menu bar", ex); } // a crash must not keep the strip reserved
     }
 
     /// <summary>Pending writes (notes, clipboard history) to disk now and Teams back to the status from before focus.</summary>

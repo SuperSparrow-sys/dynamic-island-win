@@ -3,7 +3,7 @@
 Aufgaben, die noch zu erledigen sind. Was erledigt ist, wird entfernt; Messwerte gehören nach
 [performance/](performance/README.md), Entscheidungen nach [ENTSCHEIDUNGEN.md](ENTSCHEIDUNGEN.md).
 
-Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **20**.
+Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **21**.
 
 ## Ein neuer Punkt
 

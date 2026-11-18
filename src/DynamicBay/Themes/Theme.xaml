@@ -6,6 +6,7 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Icons.Lucide.xaml" />
         <ResourceDictionary Source="Icons.Custom.xaml" />
+        <ResourceDictionary Source="Icons.Fluent.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
     <FontFamily x:Key="Font.UI">pack://application:,,,/Assets/Fonts/#Inter</FontFamily>

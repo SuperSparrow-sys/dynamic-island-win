@@ -141,7 +141,7 @@ public partial class IslandWindow : Window
         SourceInitialized += OnSourceInitialized;
         Loaded += (_, _) =>
         {
-            SoftShadow.Visibility = _settings.Shadow ? Visibility.Visible : Visibility.Collapsed;
+            SoftShadow.Visibility = ShowShadow ? Visibility.Visible : Visibility.Collapsed;
             ApplyUserScale();
             Place(animate: false);
             Refresh();
@@ -310,7 +310,31 @@ public partial class IslandWindow : Window
     private (Native.RECT work, Native.RECT bounds, double scale) Target()
     {
         var m = TargetMonitor();
-        return (m.Work, m.Bounds, m.Scale);
+        return (IslandWork(m), m.Bounds, m.Scale);
+    }
+
+    /// <summary>
+    /// The work area as the island sees it: the menu bar reserves the top strip for windows, not for the island, which
+    /// docks into the bar like the notch on a Mac.
+    /// </summary>
+    private static Native.RECT IslandWork(MonitorInfo m)
+    {
+        var work = m.Work;
+        work.Top = Math.Max(m.Bounds.Top, work.Top - MenuBarManager.ReservedPx(m.Device));
+        return work;
+    }
+
+    /// <summary>Docked at the top of a display with a menu bar: the island hangs out of the bar like the Mac notch.</summary>
+    private bool AtMenuBar => _settings.Edge == IslandEdge.Top && MenuBarManager.ReservedPx(TargetMonitor().Device) > 0;
+
+    /// <summary>No shadow on the bar: it would lie on the bar as a grey haze (the notch style never has one).</summary>
+    private bool ShowShadow => _settings.Shadow && !AtMenuBar;
+
+    /// <summary>Back on top of other topmost windows (a menu bar that was just placed or removed).</summary>
+    public void RaiseAbove()
+    {
+        ApplyLayer();
+        if (NotchBg.Visibility != Visibility.Visible) SoftShadow.Visibility = ShowShadow ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>
@@ -497,7 +521,7 @@ public partial class IslandWindow : Window
                 // Jumping between monitors (possibly with different DPI) is done without the glide.
                 if (!Dragging) Place(animate: false);
                 break;
-            case nameof(AppSettings.Shadow): SoftShadow.Visibility = _settings.Shadow ? Visibility.Visible : Visibility.Collapsed; ApplyShape(); break;
+            case nameof(AppSettings.Shadow): SoftShadow.Visibility = ShowShadow ? Visibility.Visible : Visibility.Collapsed; ApplyShape(); break;
             case nameof(AppSettings.GpuRendering): ApplyRenderMode(); break;
             case nameof(AppSettings.Hidden): SetHidden(_settings.Hidden); break;
             case nameof(AppSettings.ShapeStyle):
@@ -677,7 +701,7 @@ public partial class IslandWindow : Window
             NotchBg.Visibility = Visibility.Collapsed;
             ShapeBg.Background = (Brush)FindResource("B.Island");
             Rim.Visibility = Visibility.Visible;
-            SoftShadow.Visibility = _settings.Shadow ? Visibility.Visible : Visibility.Collapsed;
+            SoftShadow.Visibility = ShowShadow ? Visibility.Visible : Visibility.Collapsed;
         }
         ShapeBg.CornerRadius = new CornerRadius(r);
         Rim.CornerRadius = new CornerRadius(r);
@@ -770,7 +794,7 @@ public partial class IslandWindow : Window
         // "Nicht stören" keeps the island small: it only opens on a click.
         if (_settings.ExpandOnHover && !_settings.Quiet && !_expanded && !Dragging && !ShowsQuestion && !ShowsClickablePeek && !_hoverBlocked && Mouse.LeftButton != MouseButtonState.Pressed)
         {
-            _hoverTimer.Interval = TimeSpan.FromMilliseconds(Math.Max(0, _settings.HoverDelayMs));
+            _hoverTimer.Interval = TimeSpan.FromMilliseconds(MenuBarMath.HoverDelayMs(_settings.HoverDelayMs, AtMenuBar));
             _hoverTimer.Start();
         }
     }
@@ -1006,7 +1030,7 @@ public partial class IslandWindow : Window
         // Single mode: the island may travel to any monitor (the one under the cursor).
         // Mirror mode: each island stays on its own monitor.
         var mon = CanChangeMonitor ? Monitors.FromPoint(c.X, c.Y) : TargetMonitor();
-        var wa = mon.Work;
+        var wa = IslandWork(mon);
         // Take the side-edge (vertical) or top/bottom (horizontal) shape already while dragging.
         bool wantVertical = PlacementMath.LiveVertical(c.X, c.Y, ToPx(wa), _vertical, mon.Scale);
         if (wantVertical != _vertical) ReshapeWhileDragging(wantVertical);
@@ -1073,8 +1097,8 @@ public partial class IslandWindow : Window
         _settings.PropertyChanged -= OnSettingChanged;
         try
         {
-            _settings.Edge = vertical ? (cursor.X < (TargetMonitor().Work.Left + TargetMonitor().Work.Right) / 2 ? IslandEdge.Left : IslandEdge.Right)
-                                      : (cursor.Y < (TargetMonitor().Work.Top + TargetMonitor().Work.Bottom) / 2 ? IslandEdge.Top : IslandEdge.Bottom);
+            _settings.Edge = vertical ? (cursor.X < (IslandWork(TargetMonitor()).Left + IslandWork(TargetMonitor()).Right) / 2 ? IslandEdge.Left : IslandEdge.Right)
+                                      : (cursor.Y < (IslandWork(TargetMonitor()).Top + IslandWork(TargetMonitor()).Bottom) / 2 ? IslandEdge.Top : IslandEdge.Bottom);
         }
         finally { _settings.PropertyChanged += OnSettingChanged; }
         // Only the small shape morphs, in place: the window keeps following the cursor and the shape keeps its anchor
@@ -1118,6 +1142,9 @@ public partial class IslandWindow : Window
     /// <summary>DPI scale the window currently renders at (changes when it crosses monitors).</summary>
     private double WindowScale => VisualTreeHelper.GetDpi(this).DpiScaleX;
 
+    /// <summary>Where the black shape is on screen now (physical pixels).</summary>
+    public Native.RECT ShapeOnScreen() => ShapeScreenRect((int)_x.Value, (int)_y.Value);
+
     private Native.RECT ShapeScreenRect(int wx, int wy)
     {
         double s = WindowScale;
@@ -1140,7 +1167,7 @@ public partial class IslandWindow : Window
         var r = ShapeScreenRect((int)_x.Value, (int)_y.Value);
         var oldShapePos = (r.Left, r.Top);
         var monitor = CanChangeMonitor ? Monitors.FromPoint((r.Left + r.Right) / 2, (r.Top + r.Bottom) / 2) : TargetMonitor();
-        var wa = monitor.Work;
+        var wa = IslandWork(monitor);
         double s = monitor.Scale;
         bool monitorChanged = CanChangeMonitor && !string.Equals(monitor.Device, TargetMonitor().Device, StringComparison.OrdinalIgnoreCase);
 

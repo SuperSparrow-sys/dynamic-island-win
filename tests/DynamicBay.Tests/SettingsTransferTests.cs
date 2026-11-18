@@ -159,6 +159,29 @@ public class SettingsTransferTests : IDisposable
     }
 
     [Fact]
+    public void Menu_bar_stays_on_each_pc()
+    {
+        var (s, secrets, scripts) = Source();
+        s.MenuBar = MenuBarScreens.Secondary; // the desk PC with a second display
+        var bundle = SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k));
+        Assert.DoesNotContain("\"MenuBar\"", bundle.Settings);
+
+        // The laptop has it off and keeps it off after the import
+        string target = Path.Combine(_dir, "laptop");
+        Directory.CreateDirectory(target);
+        File.WriteAllText(Path.Combine(target, "settings.json"), new AppSettings { MenuBar = MenuBarScreens.Off }.ToJson());
+        SettingsTransfer.Apply(SettingsTransfer.Decrypt(SettingsTransfer.Encrypt(bundle, "4829137705", FastIterations), "4829137705"), target, (_, _) => { });
+        Assert.Equal(MenuBarScreens.Off, AppSettings.FromJson(File.ReadAllText(Path.Combine(target, "settings.json"))).MenuBar);
+
+        // And the other way round: a PC that has it on keeps it on
+        File.WriteAllText(Path.Combine(target, "settings.json"), new AppSettings { MenuBar = MenuBarScreens.All }.ToJson());
+        s.MenuBar = MenuBarScreens.Off;
+        bundle = SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k));
+        SettingsTransfer.Apply(SettingsTransfer.Decrypt(SettingsTransfer.Encrypt(bundle, "4829137705", FastIterations), "4829137705"), target, (_, _) => { });
+        Assert.Equal(MenuBarScreens.All, AppSettings.FromJson(File.ReadAllText(Path.Combine(target, "settings.json"))).MenuBar);
+    }
+
+    [Fact]
     public void Huge_round_counts_are_refused()
     {
         var (s, secrets, scripts) = Source();

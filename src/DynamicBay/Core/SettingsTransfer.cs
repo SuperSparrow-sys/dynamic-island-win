@@ -45,11 +45,13 @@ public static class SettingsTransfer
     /// <summary>Which secrets travel along: the Google client secret (needed to sign in), never passwords or tokens.</summary>
     /// <summary>
     /// Settings that belong to this PC, not to the user: its paired devices (ids, fingerprints, IP addresses; the key
-    /// stays here anyway) and its own device name. Every other pairing setting (the switch, what is shared, which
+    /// stays here anyway), its own device name and whether it shows the menu bar (that depends on its displays: on at
+    /// the desk, off on the laptop). Every other pairing setting (the switch, what is shared, which
     /// device is the main one) is a normal preference and travels with the export.
     /// </summary>
     internal static readonly string[] DeviceOnly = { nameof(AppSettings.PairedDevices), nameof(AppSettings.LinkDeviceName),
-        nameof(AppSettings.ServerAddress), nameof(AppSettings.ServerDeviceId), nameof(AppSettings.SharedChanged), nameof(AppSettings.OverriddenKeys) };
+        nameof(AppSettings.ServerAddress), nameof(AppSettings.ServerDeviceId), nameof(AppSettings.SharedChanged), nameof(AppSettings.OverriddenKeys),
+        nameof(AppSettings.MenuBar) };
 
     public static bool IsTransferableSecret(string key) => key.StartsWith("cal:", StringComparison.Ordinal) && key.EndsWith(":secret", StringComparison.Ordinal);
 

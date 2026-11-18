@@ -2,11 +2,20 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## Unveröffentlicht
+## 1.1.21 (18.11.2026)
 
 - Ton an das andere Gerät: Im lokalen Netz kommt der Ton etwa 40 ms früher (Puffer 60 statt 100 ms). Wird die
   Verbindung unruhig, etwa im WLAN neben Bluetooth-Kopfhörern, wächst der Puffer von selbst, statt immer wieder
   auszusetzen.
+- Neue Kopfleiste wie am Mac (Einstellungen → Darstellung → Kopfleiste): links ein Windows-Menü (Einstellungen,
+  Task-Manager, Energie sparen, Neustart, Sperren), die Apps aus Schnellstart als Taskleistenersatz und die aktive App
+  mit Fenstermenü; rechts das laufende Lied (Klick öffnet den Player), Bluetooth, Akku, Netz, Lautstärke, Datum und
+  Uhrzeit, jedes einzeln abschaltbar. Windows hält den Streifen frei wie für die Taskleiste, maximierte Fenster enden
+  darunter. Die Leiste nimmt als weichen Verlauf die Farben des Fensters oder Hintergrunds darunter auf, die Schrift
+  wird hell oder dunkel passend dazu. Wahlweise bei der Insel, auf den Zweitbildschirmen oder überall; jeder PC merkt
+  sich das selbst, ein Export nimmt es nicht mit. An der Leiste öffnet die Insel erst nach kurzem Verweilen und zeichnet
+  keinen Schatten. Angeheftete Apps holen ein offenes Fenster nach vorn wie in der Taskleiste. Bei Filmen und Spielen im
+  Vollbild verschwindet die Leiste auf diesem Bildschirm.
 
 ## 1.1.20 (25.10.2026)
 

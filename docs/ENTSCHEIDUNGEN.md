@@ -135,6 +135,38 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
   Quelle. Verworfen: die Nutzungsdaten unter `C:\ProgramData\Microsoft\Windows\CapabilityAccessManager\`, die nur mit
   Adminrechten lesbar sind. Kamera an nach 3 s, aus nach 5 s; Mikrofon-Apps zählen 5 s über die letzte Sitzung hinaus.
 
+## Kopfleiste
+
+- **Echte App-Leiste (`SHAppBarMessage`) statt nur eines Fensters oben** (18.11.2026, Besitzer). Nur so enden
+  maximierte Fenster wie Chrome unter der Leiste und öffnen die Insel nicht mehr beim Griff nach den Tabs. Verworfen:
+  den Arbeitsbereich mit `SPI_SETWORKAREA` selbst verkleinern (gilt nur für den Hauptbildschirm und bleibt nach einem
+  Absturz stehen).
+- **24 DIP, Insel ragt heraus.** Niedriger als die Notch (32 DIP) wie am Mac.
+- **Verlauf aus den Farben direkt unter der Leiste, deckend** (18.11.2026, Besitzer: abhängig vom angrenzenden
+  Fenster bzw. Hintergrund, nicht von dem, was darüber liegt). Eine 2-Pixel-Zeile vom Bildschirm, 12 Farben, alle 2 s
+  und nach Fensterwechseln; die Spalten unter der Insel bleiben außen vor, die Schrift folgt der Helligkeit. Ohne
+  Messung gilt das Systemdesign der Taskleiste. Die Ecken bleiben eckig (Besitzer). Verworfen: Acrylic-Unschärfe über
+  `SetWindowCompositionAttribute` (zeigt nur, was hinter der Leiste liegt, also das Hintergrundbild, nie das Fenster
+  darunter; neben dem Verlauf kein sichtbarer Gewinn), Mica (wird bei inaktiven Fenstern deckend) und das
+  Hintergrundbild aus der Registry lesen (passt nicht zu Fenstern, Diashows und gestreckten Bildern).
+- **Angeheftete Apps = die Liste aus Schnellstart** (18.11.2026, Besitzer wollte einen Taskleistenersatz oben links).
+  Eine Liste für Insel und Leiste, gepflegt unter Apps und Skripte. Verworfen: eine zweite Liste nur für die Leiste
+  (doppelte Pflege, eigene Einstellungsseite).
+- **Links Startmenü und Fenstermenü statt der App-Menüs.** Die Menüs der aktiven App (Datei, Bearbeiten …) lassen sich
+  unter Windows nicht allgemein auslesen; das Startmenü steht dort, wo am Mac das Apple-Menü sitzt (Glyphe aus vier
+  Feldern, kein Windows-Logo).
+- **Vollbild je Bildschirm am obersten großen Fenster, nicht am aktiven** (18.11.2026, Besitzer: Filme und Spiele im
+  Vollbild verdecken die Leiste). So bleibt ein Film auf dem einen Bildschirm frei, während auf dem anderen gearbeitet
+  wird. Verworfen: nur `ABN_FULLSCREENAPP` (kommt bei Videos im Browser nicht zuverlässig) und das aktive Fenster wie bei
+  der Insel (die Leiste käme über den Film zurück, sobald der andere Bildschirm den Fokus hat).
+- **Angeheftete Apps wie in der Taskleiste**: offenes Fenster nach vorn, im Vordergrund minimieren, sonst starten.
+- **Gehört dem PC** (Besitzer): Ein Einstellungs-Export nimmt die Kopfleiste nicht mit, am Schreibtisch an, am Laptop
+  aus.
+- **Fluent UI System Icons** (Besitzer): passen zu Windows 11, MIT-Lizenz. Verworfen: die Lucide-Symbole der Insel,
+  denen Akkustufen und WLAN-Balken fehlen.
+- **Klick auf ein Symbol öffnet die Schnelleinstellungen von Windows, auf die Uhr das Benachrichtigungscenter.**
+  Eigene Menüs wären doppelte Arbeit.
+
 ## Wetter
 
 - **Ort eintippen statt Windows-Standort** (25.10.2026, Besitzer). Der Ort wird über die Ortssuche von Open-Meteo

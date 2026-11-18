@@ -214,6 +214,62 @@
                             </ContentControl>
                         </StackPanel>
                     </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='Kopfleiste', En='Menu bar'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Kopfleiste zeigen', En='Show menu bar'}"
+                                            ToolTip="{core:L De='Maximierte Fenster enden unter der Leiste.', En='Maximized windows end below the bar.'}">
+                                <Border Style="{StaticResource S.Segments}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Aus', En='Off'}" IsChecked="{Binding S.MenuBar, Converter={StaticResource EqBool}, ConverterParameter=Off}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Bei der Insel', En='With the island'}" IsChecked="{Binding S.MenuBar, Converter={StaticResource EqBool}, ConverterParameter=Island}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Zweitbildschirme', En='Second displays'}" IsChecked="{Binding S.MenuBar, Converter={StaticResource EqBool}, ConverterParameter=Secondary}" />
+                                        <RadioButton Style="{StaticResource S.Segment}" Content="{core:L De='Alle', En='All'}" IsChecked="{Binding S.MenuBar, Converter={StaticResource EqBool}, ConverterParameter=All}" />
+                                    </StackPanel>
+                                </Border>
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource ST.Group}" Text="{core:L De='In der Kopfleiste', En='In the menu bar'}" />
+                    <Border Style="{StaticResource S.Card}">
+                        <StackPanel>
+                            <ContentControl Style="{StaticResource S.Row}" Tag="{core:L De='Windows-Menü', En='Windows menu'}"
+                                            ToolTip="{core:L De='Links: Einstellungen, Task-Manager, Sperren, Neustart.', En='Left: settings, Task Manager, lock, restart.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarStart}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Angeheftete Apps', En='Pinned apps'}"
+                                            ToolTip="{core:L De='Die Apps aus Schnellstart, wie in der Taskleiste.', En='The apps from Launcher, like on the taskbar.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarApps}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Laufendes Lied', En='Now playing'}"
+                                            ToolTip="{core:L De='Ein Klick öffnet den Player.', En='A click opens the player.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarMedia}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Bluetooth', En='Bluetooth'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarBluetooth}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Akku', En='Battery'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarBattery}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Akku in Prozent', En='Battery percentage'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarBatteryPercent}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='WLAN und Netz', En='Wi-Fi and network'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarNetwork}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Lautstärke', En='Volume'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarVolume}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Wochentag', En='Day of the week'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarWeekday}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Datum', En='Date'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarDate}" />
+                            </ContentControl>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <!-- 2 Position -->

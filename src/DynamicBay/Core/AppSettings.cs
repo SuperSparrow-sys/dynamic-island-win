@@ -50,6 +50,8 @@ public static class Widgets
 /// <summary>Pages of the settings window, in the order of the sidebar.</summary>
 public enum SettingsPage { General, Appearance, Position, Behavior, Quiet, Content, Media, Audio, Notifications, Shelf, Calendar, Apps, Accounts, Devices, Advanced, About }
 public enum DisplayMode { Single, Mirror }
+/// <summary>Where the menu bar (a top bar like on the Mac that reserves its space) appears.</summary>
+public enum MenuBarScreens { Off, Island, All, Secondary }
 public enum AppIconStyle { Mono, Dark, Color, Original }
 public enum CalendarKind { Ics, ICloud, Google, Microsoft }
 
@@ -546,6 +548,18 @@ public sealed partial class AppSettings : ObservableObject
     // Placement. Monitor = device name ("" = primary); used in Single mode only.
     [ObservableProperty] private DisplayMode _displays = DisplayMode.Single;
     [ObservableProperty] private string _monitor = "";
+    [ObservableProperty] private MenuBarScreens _menuBar = MenuBarScreens.Off;
+    // What the menu bar shows (Darstellung → Kopfleiste), like "Show in menu bar" on the Mac.
+    [ObservableProperty] private bool _menuBarStart = true;
+    [ObservableProperty] private bool _menuBarApps = true;
+    [ObservableProperty] private bool _menuBarMedia = true;
+    [ObservableProperty] private bool _menuBarBluetooth = true;
+    [ObservableProperty] private bool _menuBarBattery = true;
+    [ObservableProperty] private bool _menuBarBatteryPercent = true;
+    [ObservableProperty] private bool _menuBarNetwork = true;
+    [ObservableProperty] private bool _menuBarVolume = true;
+    [ObservableProperty] private bool _menuBarDate = true;
+    [ObservableProperty] private bool _menuBarWeekday = true;
     /// <summary>Remember the placement per arrangement of displays (laptop alone, docked at the office, ...).</summary>
     [ObservableProperty] private bool _dockProfiles = true;
     public Dictionary<string, DockProfile> DockProfileMap { get; set; } = new();

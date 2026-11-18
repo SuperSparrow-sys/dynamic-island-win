@@ -65,6 +65,28 @@ und Bildschirm. `PlacementMath.FromDrop` bestimmt das beim Loslassen (nächste K
 Einrasten), `WindowOrigin` berechnet die Fensterposition. Das Fenster wird anschließend auf seinen Bildschirm begrenzt
 (`ClampToMonitor`), die Form behält ihre Position über eine Gegen-Verschiebung.
 
+**Kopfleiste.** `MenuBarManager` öffnet je gewähltem Bildschirm ein `MenuBarWindow` (24 DIP, Darstellung → Kopfleiste;
+gehört dem PC und reist nicht im Export mit, `SettingsTransfer.DeviceOnly`). Es meldet sich über `SHAppBarMessage` als App-Leiste oben an (`AppBar`), Windows zieht den Streifen vom
+Arbeitsbereich ab. Die Insel rechnet ihn wieder dazu (`IslandWork`) und hängt als 32 DIP hohe Notch 8 DIP unter der
+Leiste heraus; nach jedem Platzieren wird sie wieder über die Leiste gehoben. Bei einer Vollbild-App
+(`ABN_FULLSCREENAPP`) tritt nur die Leiste dieses Bildschirms zur Seite. Beim Beenden und im Absturzpfad gibt
+`AppBar.RemoveAll` den Streifen zurück. Inhalte links: Startmenü, die Apps aus Schnellstart (`ShortcutsService`), die aktive App
+(`EVENT_SYSTEM_FOREGROUND`, Dateibeschreibung der EXE) mit Fenstermenü; rechts das laufende Lied (`MediaService`),
+Netz (`NetworkInformation`), die übrigen aus den vorhandenen Diensten; jedes per `MenuBar*`-Schalter abschaltbar.
+An der Leiste öffnet die Insel erst nach 300 ms Verweilen (`MenuBarMath.HoverDelayMs`) und zeichnet keinen Schatten.
+Die linke Seite endet vor der Notch (`MenuBarMath.LeftRoom`, der App-Name kürzt sich). Ein Klick auf eine angeheftete
+App holt ein offenes Fenster nach vorn oder minimiert es (`AppWindows`: App-ID des Fensters, Prozesspfad, Ziel der
+Verknüpfung), sonst startet sie. Vollbild: Jede Sekunde und auf `ABN_FULLSCREENAPP` prüft `MenuBarManager.FullscreenOn`
+das oberste große Fenster je Bildschirm (nicht nur das aktive), die Leiste dort blendet sich aus. Beim Messen der Farben
+fallen auch Fenster heraus, die immer oben liegen (Bild im Bild). `AppBar` merkt sich die angemeldeten Fenster in
+`appbars.txt`; nach einem harten Beenden meldet der nächste Start die verwaisten Streifen ab (`AppBar.RemoveStale`). Hintergrund: `Tone()` liest eine
+2 Pixel hohe Zeile direkt unter der Leiste vom Bildschirm (BitBlt), lässt die Spalten unter den Inselformen aus
+(`IslandWindow.ShapeOnScreen`, die Insel hängt über diese Zeile und käme sonst mit) und mittelt den Rest zu 12 Farben;
+ausgelassene überbrückt sie aus den Nachbarn. Das ergibt einen deckenden waagerechten Verlauf. Die Schrift wird nach
+der Helligkeit dieser Farben hell oder dunkel; vor der ersten Messung gilt das Systemdesign (`SystemUsesLightTheme`).
+Gemessen wird 200 ms nach einem Fensterwechsel oder Verschieben und alle 2 s, nicht bei Sperre. Symbole: Fluent UI System Icons
+(`Themes/Icons.Fluent.xaml`, erzeugt mit `tools/icons/build-fluent.mjs`); die Regeln stehen in `MenuBarMath`.
+
 **Niemand schaut hin.** `ActivityState` merkt sich Sperre (`SessionSwitch`) und Bildschirm aus
 (`GUID_CONSOLE_DISPLAY_STATE` an das Meldungsfenster). Dann halten Dauer-Animationen (`Waveform`, `c:Loop`) an, und
 Abfragen, deren Ergebnis nur angezeigt wird (Stummschaltung, Claude-Liste), lassen ihre Arbeit aus. Was andere Teile
