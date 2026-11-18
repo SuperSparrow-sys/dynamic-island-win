@@ -217,6 +217,13 @@ public class SearchTests
         Assert.False(gate.Held);
     }
 
+    [Theory]
+    [InlineData(1000, 1050, true)]   // the magnifier click itself took the focus 50 ms earlier: it closes
+    [InlineData(1000, 1600, false)]  // closed by another click a while ago: the magnifier opens it again
+    [InlineData(long.MinValue / 2, 1000, false)] // never lost the focus
+    public void A_second_click_on_the_magnifier_closes_the_search(long lostFocusAt, long now, bool closedByClick) =>
+        Assert.Equal(closedByClick, DynamicBay.Island.SearchWindow.ClickClosedIt(lostFocusAt, now));
+
     // ---------- service ----------
 
     [Fact]

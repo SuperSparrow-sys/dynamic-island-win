@@ -3,7 +3,7 @@
 Aufgaben, die noch zu erledigen sind. Was erledigt ist, wird entfernt; Messwerte gehören nach
 [performance/](performance/README.md), Entscheidungen nach [ENTSCHEIDUNGEN.md](ENTSCHEIDUNGEN.md).
 
-Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **21**.
+Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **22**.
 
 ## Ein neuer Punkt
 
@@ -179,6 +179,18 @@ Loopback ereignisgesteuert oder mit 20-ms-Puffer (`LoopbackAudioSource`), Ausgab
 **Zu tun:** Wieder aufnehmen, wenn die Grundlast sonst unter 1 % liegt. Dann `IAudioEndpointVolumeCallback`,
 `RegNotifyChangeKeyValue` für die Freigaben und einen FileSystemWatcher für das CursorHop-Log. Warum jetzt nicht:
 siehe Entscheidungen.
+
+## 21. Suche: was live noch nicht geprüft ist
+
+**Gemeldet:** 18.11.2026, Live-Prüfung der Suche vor 1.1.23.
+
+**Beobachtet:** Geprüft sind Lupe, Windows-Taste, Enter und Strg+Enter, zwei Bildschirme (125 % und 180 %), versteckte
+Taskleiste und der Windows-Index. Offen: Everything (nicht installiert; das IPC ist nur gegen ein nachgebautes Fenster
+getestet), 100 % Skalierung (an diesem PC nicht eingestellt) und die Windows-Taste, während ein erhöhtes Fenster vorn
+liegt (künstliche Tastendrücke kommen dort nicht an).
+
+**Zu tun:** Mit installiertem Everything nach einer Datei suchen, die nicht im Index liegt; an einem Bildschirm mit
+100 % öffnen; vor einem Fenster als Administrator die Windows-Taste von Hand drücken.
 
 ## Nicht gemessen
 

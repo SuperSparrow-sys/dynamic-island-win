@@ -212,6 +212,10 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
 - **Dateien aus dem Windows-Index ohne NuGet-Paket**: ADO über spätes COM (`Search.CollatorDSO`), `System.ItemUrl`
   statt des übersetzten Anzeigepfads („C:\Benutzer“). Everything wird nur über sein IPC-Protokoll gefragt, wenn es
   läuft. Verworfen: `System.Data.OleDb` (neue Abhängigkeit).
+- **Maus-Hook nur bei gehaltener Windows-Taste** (18.11.2026, Review). Klick oder Mausrad bei gehaltener Taste ist kein
+  Antippen. Verworfen: ein dauernder `WH_MOUSE_LL` (jede Mausbewegung liefe durch diesen Prozess, eine GC-Pause ließe
+  den Zeiger ruckeln) und die Abfrage der Maustasten beim Loslassen (sieht weder einen schon beendeten Klick noch das
+  Rad). Windows selbst öffnet nach Win+Mausrad das Startmenü wie ohne DynamicBay.
 - **Index in zwei Durchgängen** (18.11.2026, live gefunden). Der Index trennt Dateinamen nicht an Bindestrich und
   Unterstrich, „lupe“ fand „Suchtest-Lupe-4711.txt“ nicht. Erst `CONTAINS` mit Wortanfängen (etwa 40 ms), bei zu wenig
   Treffern `LIKE '%wort%'` (etwa 0,5 s), den eine neuere Eingabe überspringt. Verworfen: immer `LIKE` (jede Eingabe
