@@ -25,6 +25,7 @@ $env:DYNAMICBAY_SNAPSHOT_CURSORHOP="1"; powershell -File tools/snapshot.ps1   # 
 $env:DYNAMICBAY_SNAPSHOT_LINK="1"; powershell -File tools/snapshot.ps1        # Karte „Gekoppelt“, Musik des Laptops, Koppel-Code (Demo)
 $env:DYNAMICBAY_SNAPSHOT_DEVICES="1"; powershell -File tools/snapshot.ps1     # Karten „Geräte“ und „AirPods“ mit den echten Bluetooth-Geräten (nur lesen)
 $env:DYNAMICBAY_SNAPSHOT_RUBUS="1"; powershell -File tools/snapshot.ps1       # Rubus-Sessions in der Claude-Karte, Freigabe-Frage, kompakte Anzeige (Demo)
+$env:DYNAMICBAY_SNAPSHOT_SEARCH="1"; powershell -File tools/snapshot.ps1      # Suche: leer, Kürzel, Aufgabe, Tippfehler, Dateien (echte Apps und Index)
 ```
 
 Der Snapshot-Modus (`DynamicBay.exe --snapshot <dir>`) lädt Demo-Daten, durchläuft Idle, Compact, Peek, Panel,
@@ -93,6 +94,8 @@ aus `%AppData%\DynamicBay-dev-<n>\dev-commands.txt` aus (eine Zeile pro Befehl, 
 `ask [Sekunden]`, `answer yes|no`, `lock`, `set Link… on|off`, `state` (schreibt Timer, Ruhe und Hauptgerät ins Log),
 `media <Anzahl> [ms]` (erfundene Musik mit Cover an das andere Gerät, es spielt nichts).
 `DYNAMICBAY_DEV_SETTINGS=Devices` öffnet beim Start die Einstellungen auf dieser Seite (Namen aus `SettingsPage`).
+`DYNAMICBAY_DEV_WINKEY=1` erlaubt einer Testinstanz den Hook für die Windows-Taste (sonst setzt ihn nur die installierte
+App, damit zwei Instanzen nicht beide die Taste nehmen).
 
 Hänger: `UI stall 878 ms` im Log kommt mit `Slow UI operation 870 ms: Background timer …` oder `await in …`, also
 dem, was den UI-Thread so lange hielt (ab 150 ms; Testinstanzen mit `DYNAMICBAY_DEV_SLOWOPS=<ms>` schon früher).

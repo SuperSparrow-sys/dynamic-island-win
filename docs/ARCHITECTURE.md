@@ -23,12 +23,16 @@ src/DynamicBay/
 │  ├─ ErrorText.cs        Fehler → kurzer Satz für Nutzer (Deutsch/Englisch), Details nur ins Log
 │  ├─ PointerGesture.cs   Drücken/Ziehen mit genau einem Ende (Loslassen, Capture verloren, Insel versteckt)
 │  ├─ WindowTools.cs      offenes Fenster zurückholen (auch minimiert)
+│  ├─ SearchMath.cs       Suche: Normalisieren, Bewertung, Tippfehler, Aufgabentabelle, Rangfolge – getestet
+│  ├─ WinKeyHook.cs       Windows-Taste allein öffnet die Suche (Tastatur-Hook, WinKeyGate getestet)
 │  └─ Log.cs, Hotkey.cs, Autostart.cs, ShellThumbnail.cs, ImageTools.cs, MessageWindow.cs
 ├─ Motion/                Spring (SwiftUI-artig: response + damping), SpringGroup (Render-Loop), SpringEase (für XAML)
 ├─ Island/
 │  ├─ IslandWindow        transparentes Topmost-Fenster: Morph, Verschieben/Andocken, Hover, Peeks, Verstecken
 │  ├─ IslandManager       Haupt-Insel + Spiegel-Inseln pro Bildschirm, verteilt Peeks
 │  ├─ IslandViewModel     Daten für alle Ansichten, entscheidet welche Live Activities sichtbar sind
+│  ├─ MenuBarWindow       Kopfleiste je Bildschirm (MenuBarManager)
+│  ├─ SearchWindow        Suchfeld mit Ergebnisliste
 │  └─ Views/              CompactView, PeekView, DropView, ExpandedView (Widgets, Ablage, Mitteilungen)
 ├─ Services/              je ein Dienst pro Funktion (siehe unten)
 ├─ Settings/              Einstellungsfenster (Mica), App-Auswahl, Theme hell/dunkel/wie Windows
@@ -87,6 +91,20 @@ der Helligkeit dieser Farben hell oder dunkel; vor der ersten Messung gilt das S
 Gemessen wird 200 ms nach einem Fensterwechsel oder Verschieben und alle 2 s, nicht bei Sperre. Symbole: Fluent UI System Icons
 (`Themes/Icons.Fluent.xaml`, erzeugt mit `tools/icons/build-fluent.mjs`); die Regeln stehen in `MenuBarMath`.
 
+**Suche.** Die Lupe der Kopfleiste (`MenuBarSearch`) öffnet `SearchWindow` mittig auf ihrem Bildschirm, die
+Windows-Taste allein (`SearchWinKey`, Standard aus) auf dem Bildschirm mit der Maus. `WinKeyHook` läuft als
+`WH_KEYBOARD_LL` auf einem eigenen Thread; `WinKeyGate` erkennt das Antippen ohne andere Taste, dann wird das Loslassen
+durch 0xE8 maskiert und kein Startmenü öffnet sich (Eingaben mit der Markierung `DYNB` überspringt der Hook). Ausschalten
+oder Beenden entfernt den Hook (`WM_QUIT` an den Thread, `UnhookWindowsHookEx` im `finally`); Testinstanzen setzen ihn
+nur mit `DYNAMICBAY_DEV_WINKEY=1`. Das Fenster ist ein transparentes Topmost-Fenster; hinter dem Feld liegt eine beim
+Öffnen aufgenommene und weichgezeichnete Bildschirmaufnahme (`ImageTools.Frost`) unter einer Tönung. Höhe und
+Einblenden sind Federn. `SearchService` sammelt Apps (`InstalledApps` ohne Hilfe- und Doku-Einträge,
+`SearchMath.IsNoise`), Einstellungsseiten (`ms-settings:`) und Systemwerkzeuge; `SearchMath.Rank` bewertet Namensanfang,
+Wortanfänge, Initialen, Tippfehler (OSA-Abstand) und die Aufgabentabelle `Assets/SearchSynonyms.txt`, oft gestartete
+Treffer steigen (`search-usage.json`). Dateien kommen 140 ms nach der letzten Taste aus dem Windows-Index
+(`FileSearch`, ADO über spätes COM) und aus Everything, wenn es läuft (`WM_COPYDATA`, `QUERY2`); eine neuere Eingabe
+verwirft ältere Ergebnisse. Enter öffnet, Strg+Enter zeigt die Datei im Ordner.
+
 **Niemand schaut hin.** `ActivityState` merkt sich Sperre (`SessionSwitch`) und Bildschirm aus
 (`GUID_CONSOLE_DISPLAY_STATE` an das Meldungsfenster). Dann halten Dauer-Animationen (`Waveform`, `c:Loop`) an, und
 Abfragen, deren Ergebnis nur angezeigt wird (Stummschaltung, Claude-Liste), lassen ihre Arbeit aus. Was andere Teile
@@ -116,6 +134,7 @@ steuert (Mikrofon-Nutzung für den Anrufmodus, Timer, Zeiterfassung), läuft wei
 | `Link/LinkService` | DynamicBay mit DynamicBay: finden, koppeln, verschlüsselte Verbindung, Nachrichten und Dateien (siehe unten) |
 | `Link/LinkHub` | Startet den Link mit „Geräte koppeln“, hält die Funktionen und die Listen für Einstellungen und Insel |
 | `ShortcutsService`, `AppIcons`, `InstalledApps` | Schnellstart, Simple-Icons-Palette (gzip, bei Bedarf geladen), Startmenü-Apps |
+| `SearchService`, `FileSearch` | Suche: Apps, Einstellungen, Werkzeuge, Dateien aus Windows-Index und Everything (siehe „Suche“) |
 | `Battery/Bluetooth/Timer/Clock/SystemService` | Akku, Geräte, Timer/Pomodoro, Uhr, CPU/RAM |
 | `PhoneFocusService` | iPhone-Fokus: HTTP auf TCP 43825 (eigener kleiner Server auf `TcpListener`, `PhoneFocusProtocol`: lesen, Regeln, Reihenfolge von An und Aus), Schlüssel in `secrets\`, Profile in `AppSettings.FocusProfiles`; siehe [INTEGRATIONS.md](INTEGRATIONS.md#iphone-fokus) |
 | `Server/ServerService` | Optionaler DynamicBay-Server: Kopplung per Code, WebSocket, gemeinsame Einstellungen (`SharedSettings`, die neuere gewinnt, Überschreibung je Gerät), Fokus vom Server (`AppSettings.PhoneFocusServer`), „Nicht stören“, Panel über den Server; siehe [INTEGRATIONS.md](INTEGRATIONS.md#dynamicbay-server) |

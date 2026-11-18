@@ -1,0 +1,262 @@
+# Start menu names of a real Windows 11 PC (Get-StartApps, 18.11.2026): the search's ranking is tested against them.
+Access
+Advanced IP Scanner
+Affinity
+Anaconda Navigator
+Anaconda PowerShell Prompt
+Anaconda Prompt
+Anwenderhandbuch für Advanced IP Scanner
+Any DVD
+Aposs
+Apple Music
+Application Verifier (WOW)
+Application Verifier (X64)
+Application Verifier Help
+Audacity 4.0
+Audiorekorder
+Auf Updates prüfen
+Aufgabenplanung
+Ausführen
+Autodesk Access User Interface
+balenaEtcher
+Benutzerhandbuch für die Konsolenversion von RAR
+Besuchen Sie Java.com
+Bildschirmlupe
+Bildschirmtastatur
+BitBoxApp
+Bitnami for XAMPP
+CADCraft
+Calendar
+Claude
+Computerverwaltung
+Copilot
+CursorHop
+Datenträgerbereinigung
+DB Browser (SQLite)
+Debuggable Package Manager
+Debugging Help
+Deinstallieren Foxit PDF Reader
+Dell Display and Peripheral Manager
+Dev Home
+Developer Command Prompt for VS 2022
+Developer PowerShell for VS 2022
+Dia
+Dia Manual (CHM)
+Dia Manual (PDF)
+Dienste
+Discord
+Documentation for Desktop Apps
+Documentation for UWP Apps
+Dokumentation
+Dolby Access
+DVD Play
+DWG TrueView 2027 - English
+DynamicBay
+Editor
+Eingabeaufforderung
+Einstellungen
+Ereignisanzeige
+Erste Schritte
+Etikett
+Excel
+Explorer
+Family
+FAQ
+Feedback-Hub
+Files
+Filius
+Filius Einfuehrung
+Filius Info
+Filius Introduction
+Firefox
+Firefox Privater Modus
+Fotos
+Foxit PDF Reader
+Game Bar
+GeoGebra Calculator Suite
+Git Bash
+Git CMD
+Git FAQs (Frequently Asked Questions)
+Git GUI
+Git Release Notes
+Global Flags (ARM64)
+Global Flags (X64)
+Global Flags (X86)
+Google Chrome
+Google Gemini
+GPUView
+Hashcore Toolkit
+Help
+Hilfe anfordern
+Hilfe aufrufen
+Hilfe zu WinRAR
+iCloud
+iCloud-Passwörter
+IDLE (Python 3.13)
+Info zu Java
+Inno Setup Compiler
+Inno Setup Documentation
+Inno Setup Documentation (Dark)
+Inno Setup Example Scripts
+Inno Setup FAQ
+Inno Setup Revision History
+Install Additional Tools for Node.js
+iSCSI-Initiator
+Java konfigurieren
+Journal
+Jupyter Notebook
+Kamera
+Klick-und-Los
+Komponentendienste
+Kurznotizen
+Laufwerke defragmentieren und optimieren
+LayOut
+Lazarus
+Lazarus (debug)
+Lazarus Forums
+Lazarus im Internet
+Lazarus Wiki Help
+Leistungsüberwachung
+Lenovo Hotkeys
+Lenovo Now
+Lenovo Smart Meeting
+Lenovo Vantage
+Live-Untertitel
+Logi Download Assistant
+Logi Options+
+LogiTune
+Lokale Sicherheitsrichtlinie
+MCT 10 English
+MCT 10 ReadMe
+MCT 10 Set-up Software
+Medienwiedergabe
+Microsoft Store
+Microsoft Teams
+Microsoft To Do
+Microsoft Whiteboard
+Minecraft Launcher
+Mobile VPN with SSL client
+ModbusMaster
+ModbusSlave
+MuseHub
+MuseScore Studio 4
+Nachrichten
+Natter
+Natter entfernen
+Node.js
+Node.js command prompt
+Node.js documentation
+Node.js website
+Obsidian
+ODBC-Datenquellen (32-Bit)
+ODBC-Datenquellen (64-Bit)
+Office-Spracheinstellungen
+OneDrive
+OneNote
+OpenCode
+Opera-Browser
+Outlook
+Outlook (classic)
+Paint
+People
+Power Automate
+Power Automate Troubleshooter
+PowerPoint
+Prime Video
+Publisher
+Python 3.13
+Radmin Viewer 3
+Raspberry Pi Imager
+Realtek Audio Console
+RealVNC Viewer
+Rechner
+Registrierungs-Editor
+Remotedesktop
+Remotedesktopverbindung
+Remotehilfe
+Ressourcenmonitor
+Rubus
+Sample Desktop Apps
+Sample UWP Apps
+Schrittaufzeichnung
+SketchUp
+Skype for Business
+Skype for Business-Aufzeichnungs-Manager
+Smartphone-Link
+Snipping Tool
+Spotify
+Sprachausgabe
+Sprachzugriff
+Spreadsheet Compare
+Spyder
+SQL Server 2022 Configuration Manager
+SQL Server 2022 Error and Usage Reporting
+SQL Server 2022 Import and Export Data (64-bit)
+SQL Server 2022 Installation Center (64-bit)
+SQLiteStudio
+Sticky Notes (new)
+Structorizer
+Style Builder
+Systemanforderungen
+Systeminformationen
+Systemkonfiguration
+Systemsteuerung
+Tailscale
+Task-Manager
+TC Engineer
+TC History
+TC LAN Manager
+TC Operator
+Telemetrieprotokoll für Office
+Terminal
+Tools for Desktop Apps
+Tools for UWP Apps
+Über iCloud geteilte Alben
+Uhr
+Uninstall
+Uninstall Audacity 4.0
+Uninstall Lenovo Smart Meeting
+Uninstall Node.js
+Visual Studio Code
+Visual Studio Installer
+VPN Access Manager
+VPN Documentation
+VPN Trace Utility
+Was ist neu in dieser Version
+WhatsApp
+Wiederherstellungslaufwerk
+Win32DiskImager
+Win32DiskImager on the Web
+WinDbg
+WinDbg (ARM64)
+WinDbg (X64)
+WinDbg (X86)
+Windows App Cert Kit
+Windows Defender Firewall mit erweiterter Sicherheit
+Windows HDR-Kalibrierung
+Windows Media Player Legacy
+Windows Performance Analyzer
+Windows Performance Recorder
+Windows PowerShell
+Windows PowerShell (x86)
+Windows PowerShell ISE 5.1
+Windows PowerShell ISE 5.1 (x86)
+Windows Software Development Kit
+Windows-Fotoanzeige
+Windows-Sicherheit
+Windows-Sicherung
+Windows-Speicherdiagnose
+Windows-Tools
+WinRAR
+WinSCP
+Word
+www.lernsoftware-filius.de
+x64 Native Tools Command Prompt for VS 2022
+x64_x86 Cross Tools Command Prompt for VS 2022
+x86 Native Tools Command Prompt for VS 2022
+x86_x64 Cross Tools Command Prompt for VS 2022
+XAMPP Control Panel
+XAMPP htdocs folder
+XBOX
+Zeichentabelle
+Zotero

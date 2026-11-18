@@ -172,6 +172,26 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
 - **Klick auf ein Symbol öffnet die Schnelleinstellungen von Windows, auf die Uhr das Benachrichtigungscenter.**
   Eigene Menüs wären doppelte Arbeit.
 
+## Suche
+
+- **Eigene Aufgabentabelle statt OpenThesaurus** (18.11.2026). `Assets/SearchSynonyms.txt` ordnet Aufgaben wie „bild
+  bearbeiten“ oder „fernwartung“ Apps zu, auf Deutsch und Englisch, abgestimmt auf die installierten Apps des Besitzers
+  (Fixture `Fixtures/Search/start-apps.txt`). Verworfen: OpenThesaurus (LGPL, mehrere MB allgemeiner Synonyme, kennt
+  keine Programme; „Fernwartung“ führt dort nicht zu RealVNC). Lizenz und Größe nach eigenem Wissen geprüft, nicht online.
+- **Milchglas aus einer Bildschirmaufnahme** (18.11.2026). Beim Öffnen wird der Bereich hinter dem Fenster einmal
+  aufgenommen und auf der CPU weichgezeichnet (`ImageTools.Frost`). Verworfen: DWM-Acryl (nur 8-px-Systemecken, kein
+  Einblenden, gezackte Fensterregion) und WPF-`BlurEffect` (rechnet unter Software-Rendering jedes Bild neu). Bewegt sich
+  etwas hinter dem offenen Feld, bleibt der Hintergrund stehen.
+- **Windows-Taste über eine Maskentaste** (18.11.2026). Der Hook schluckt das Loslassen der allein gedrückten Taste und
+  schickt 0xE8 (unbelegt) vor dem Loslassen, Windows sieht eine Kombination und öffnet kein Startmenü. Verworfen: das
+  Loslassen nur schlucken (Windows hält die Taste dann für gedrückt, die nächste Eingabe wird zur Win-Kombination).
+  Standard aus; das Startmenü bleibt über Strg+Esc und den Eintrag „Startmenü“ der Kopfleiste erreichbar.
+- **Symbole in 48 px** (18.11.2026). Bei 64 px zeichnet die Shell Symbole, die es nur bis 48 px gibt (Advanced IP
+  Scanner, Radmin), klein in eine helle Kachel mit Rahmen. 48 px reicht für 28 DIP bis 150 % Skalierung.
+- **Dateien aus dem Windows-Index ohne NuGet-Paket**: ADO über spätes COM (`Search.CollatorDSO`), `System.ItemUrl`
+  statt des übersetzten Anzeigepfads („C:\Benutzer“). Everything wird nur über sein IPC-Protokoll gefragt, wenn es
+  läuft. Verworfen: `System.Data.OleDb` (neue Abhängigkeit).
+
 ## Wetter
 
 - **Ort eintippen statt Windows-Standort** (25.10.2026, Besitzer). Der Ort wird über die Ortssuche von Open-Meteo

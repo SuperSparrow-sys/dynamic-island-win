@@ -26,6 +26,7 @@ public sealed partial class MenuBarModel : ObservableObject
     [ObservableProperty] private bool _showNetwork = true;
     [ObservableProperty] private bool _showVolume = true;
     [ObservableProperty] private bool _showDate = true;
+    [ObservableProperty] private bool _showSearch = true;
     [ObservableProperty] private Geometry? _volumeIcon;
     [ObservableProperty] private Geometry? _networkIcon;
     [ObservableProperty] private Geometry? _batteryIcon;
@@ -41,6 +42,8 @@ public sealed partial class MenuBarModel : ObservableObject
     /// <summary>Pinned apps (the launcher list); null in snapshots without them.</summary>
     public ShortcutsService? Shortcuts { get; init; }
     public MediaService? Media { get; init; }
+    /// <summary>The magnifier: opens the search on the display of that bar.</summary>
+    public Action<string>? Search { get; init; }
 }
 
 /// <summary>
@@ -75,12 +78,12 @@ public sealed class MenuBarManager
     private IntPtr _hook;
     private WinEventProc? _proc;
 
-    public MenuBarManager(IslandViewModel vm, IslandManager islands)
+    public MenuBarManager(IslandViewModel vm, IslandManager islands, Action<string>? search = null)
     {
         _vm = vm;
         _settings = vm.Settings;
         _islands = islands;
-        _model = new MenuBarModel { Shortcuts = vm.Shortcuts, Media = vm.Media };
+        _model = new MenuBarModel { Shortcuts = vm.Shortcuts, Media = vm.Media, Search = search };
         _signal.Tick += (_, _) => { if (!ActivityState.Current.Away) ReadNetwork(); };
         _toneSoon.Tick += (_, _) => { _toneSoon.Stop(); CheckFullscreen(); ToneAll(); };
         _tone.Tick += (_, _) => { if (!ActivityState.Current.Away) ToneAll(); };
@@ -271,6 +274,7 @@ public sealed class MenuBarManager
         _model.ShowApps = s.MenuBarApps;
         _model.ShowVolume = s.MenuBarVolume;
         _model.ShowNetwork = s.MenuBarNetwork;
+        _model.ShowSearch = s.MenuBarSearch && _model.Search is not null;
         _model.VolumeIcon = Icon(MenuBarMath.VolumeIcon(_vm.Audio.Volume, _vm.Audio.SpeakerMuted));
         var b = _vm.Battery;
         _model.HasBattery = b.HasBattery;

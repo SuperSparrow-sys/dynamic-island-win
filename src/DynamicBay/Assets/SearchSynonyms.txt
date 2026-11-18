@@ -1,0 +1,121 @@
+# Aufgaben und Synonyme für die Suche (Deutsch und Englisch).
+# Eine Zeile je Aufgabe: Begriffe mit Komma getrennt, dann "=", dann Apps mit Semikolon getrennt.
+# Eine App wird über den Anfang ihres Namens gefunden, ganze Wörter: "Python" trifft "Python 3.13".
+# Apps, die nicht installiert sind, stören nicht. Die vordere App steht weiter oben.
+
+# Bilder und Grafik
+bild bearbeiten, bilder bearbeiten, foto bearbeiten, fotos bearbeiten, bildbearbeitung, fotobearbeitung, grafik, malen, zeichnen, edit image, edit photo, photo editor, image editor, draw, paint = Paint; Affinity; Affinity Photo; Affinity Designer; Fotos; Photoshop; GIMP; Paint.NET; Krita; Inkscape; Lightroom; Canva; Clip Studio Paint
+bilder ansehen, fotos ansehen, bildbetrachter, galerie, view photos, image viewer, photos, pictures = Fotos; Windows-Fotoanzeige; Photos; IrfanView; XnView
+vektorgrafik, logo, illustration, vector = Affinity Designer; Affinity; Inkscape; Illustrator; CorelDRAW
+diagramm, flussdiagramm, ablaufdiagramm, uml, flowchart, diagram = Dia; draw.io; Visio; Structorizer; yEd
+struktogramm, nassi shneiderman = Structorizer
+screenshot, bildschirmfoto, bildschirmaufnahme, ausschnitt, screen capture, snip = Snipping Tool; Snip & Sketch; ShareX; Greenshot; Lightshot
+bildschirm aufnehmen, video aufnehmen, screen recording, record screen = Snipping Tool; Game Bar; OBS Studio; Xbox Game Bar
+bildschirmlupe, vergrossern, zoom, magnifier = Bildschirmlupe; Magnifier
+
+# Dokumente und Büro
+pdf, pdf lesen, pdf ansehen, pdf bearbeiten, pdf reader, pdf viewer = Foxit PDF Reader; Foxit PDF Editor; Adobe Acrobat; Acrobat Reader; PDF24; SumatraPDF; PDF-XChange Editor
+textverarbeitung, brief, brief schreiben, dokument, word processor, letter = Word; LibreOffice Writer; Writer; WordPad; Google Docs
+tabelle, tabellenkalkulation, rechnen tabelle, spreadsheet, excel = Excel; LibreOffice Calc; Calc; Spreadsheet Compare
+praesentation, folien, vortrag, presentation, slides = PowerPoint; LibreOffice Impress; Impress
+text, textdatei, texteditor, notepad, text editor = Editor; Notepad; Notepad++; Visual Studio Code; Sublime Text
+notizen, notiz, notizbuch, notes, note taking, notebook = Obsidian; OneNote; Kurznotizen; Sticky Notes; Journal; Notion; Evernote; Microsoft Whiteboard
+klebezettel, haftnotiz, sticky notes = Kurznotizen; Sticky Notes
+whiteboard, tafel, skizze, sketch = Microsoft Whiteboard; Journal; OneNote
+mail, email, e mail, post, nachricht schreiben = Outlook; Outlook (classic); Thunderbird; Mail
+kalender, termine, termin, calendar, appointment = Outlook; Outlook (classic); Calendar; Kalender
+aufgaben, todo, to do, erledigen, tasks = Microsoft To Do; To Do; Todoist; Obsidian
+literatur, quellen, zitieren, literaturverwaltung, bibliografie, citation, references = Zotero; Citavi; Mendeley; JabRef
+etikett, etiketten, label, beschriften, label printer = Etikett; P-touch Editor; DYMO Connect
+desktop publishing, flyer, broschuere, layout = Publisher; Affinity Publisher; Scribus; LayOut
+uebersetzen, translate, translator = DeepL; Google Translate; Translator
+
+# Mathematik und Lernen
+mathe, mathematik, rechnen, geometrie, funktion zeichnen, graph, math, geometry, plot = GeoGebra; Rechner; Calculator; Maxima; MATLAB
+rechner, taschenrechner, calculator = Rechner; Calculator; GeoGebra Calculator Suite
+netzwerk simulieren, netzwerksimulation, rechnernetze, network simulation = Filius; Cisco Packet Tracer
+programmieren lernen, algorithmus, algorithm = Structorizer; Lazarus; Visual Studio Code
+pascal, delphi = Lazarus
+
+# Musik, Ton und Video
+noten, notensatz, partitur, sheet music, score, notation = MuseScore; MuseScore Studio; MuseHub; Sibelius; Finale
+audio schneiden, audio bearbeiten, ton schneiden, ton bearbeiten, aufnahme bearbeiten, audio editor, edit audio = Audacity; Ocenaudio; Adobe Audition; Reaper
+aufnehmen, sprachaufnahme, diktieren, voice recorder, record audio = Audiorekorder; Sound Recorder; Audacity
+musik, musik hoeren, music, songs = Spotify; Apple Music; Medienwiedergabe; Media Player; iTunes
+video, film, filme, video abspielen, movie, video player = Medienwiedergabe; Media Player; VLC; Prime Video; Netflix; DVD Play
+video schneiden, video bearbeiten, videoschnitt, video editor = Clipchamp; DaVinci Resolve; Shotcut; Premiere Pro; Kdenlive
+dvd, bluray, blu ray = Any DVD; DVD Play; VLC
+ton einstellen, lautsprecher, audio einstellungen, equalizer = Realtek Audio Console; Dolby Access
+
+# Programmieren und Technik
+code, programmieren, entwickeln, ide, coding, programming, editor code = Visual Studio Code; Visual Studio; Lazarus; PyCharm; IntelliJ IDEA; Spyder; Sublime Text
+python, python programmieren = Python; Spyder; Jupyter Notebook; IDLE; Anaconda Navigator; Anaconda Prompt; PyCharm
+jupyter, notebook python, data science, datenanalyse = Jupyter Notebook; Anaconda Navigator; Spyder
+javascript, node, npm = Node.js; Node.js command prompt; Visual Studio Code
+terminal, konsole, kommandozeile, shell, eingabeaufforderung, command line, cmd, powershell = Terminal; Windows PowerShell; Eingabeaufforderung; Command Prompt; Git Bash
+git, versionsverwaltung, version control = Git Bash; Git GUI; GitHub Desktop; Visual Studio Code
+webserver, php, apache, mysql lokal, localhost = XAMPP Control Panel; XAMPP; Bitnami for XAMPP
+installer bauen, setup erstellen, installer = Inno Setup Compiler; Visual Studio Installer
+datenbank, sql, sqlite, database = DB Browser (SQLite); SQLiteStudio; Access; SQL Server Management Studio; DBeaver; HeidiSQL; MySQL Workbench; SQL Server 2022 Configuration Manager
+modbus, sps, plc, feldbus, fieldbus = ModbusMaster; ModbusSlave; Modbus Poll; Modbus Slave; TC Engineer; TC Operator
+anlage, gebaeudeleittechnik, regelung, steuerung = TC Engineer; TC Operator; TC LAN Manager; TC History
+debugger, debuggen, dump, absturz analysieren, debug = WinDbg; Visual Studio
+leistung analysieren, performance trace, profiler = Windows Performance Analyzer; Windows Performance Recorder; Leistungsüberwachung
+
+# CAD und Konstruktion
+cad, konstruktion, konstruieren, zeichnung, bauplan, 3d modell, 3d, modellieren, dwg, dxf, drawing, 3d model = SketchUp; DWG TrueView; CADCraft; LayOut; AutoCAD; FreeCAD; Fusion 360; Blender; Autodesk Access User Interface
+3d druck, slicer, 3d printing = Cura; PrusaSlicer; Bambu Studio
+
+# Netzwerk und Fernwartung
+fernwartung, fernzugriff, fernsteuerung, remote, remote desktop, rdp, vnc, remote access, remote control = RealVNC Viewer; Radmin Viewer; Remotedesktopverbindung; Remotedesktop; Remote Desktop Connection; TeamViewer; AnyDesk; WinSCP; Remotehilfe; Quick Assist
+dateien uebertragen, sftp, ftp, scp, ssh, file transfer = WinSCP; FileZilla; PuTTY; Terminal
+netzwerk scannen, ip scanner, ip suchen, geraete im netz, port scan, network scan, ip scan = Advanced IP Scanner; Angry IP Scanner; Nmap; Fing
+vpn, tunnel, firmennetz, secure connection = Tailscale; Mobile VPN with SSL client; WireGuard; OpenVPN; FortiClient; Cisco Secure Client; VPN Access Manager
+firewall = Windows Defender Firewall mit erweiterter Sicherheit; Windows Defender Firewall; Windows-Sicherheit
+sicherheit, virenschutz, antivirus, viren, security = Windows-Sicherheit; Windows Security; Malwarebytes
+iscsi, netzlaufwerk, nas = iSCSI-Initiator; Explorer
+
+# Dateien und Speicher
+entpacken, zip, rar, 7z, archiv, packen, komprimieren, unzip, archive, extract, compress = WinRAR; 7-Zip; PeaZip; Bandizip; Explorer
+dateien, dateimanager, ordner, explorer, files, file manager = Explorer; Files; Datei-Explorer; File Explorer; Total Commander
+sd karte flashen, sd karte, image schreiben, iso brennen, usb stick bootfaehig, raspberry, flashen, flash sd card, write image, bootable usb = Raspberry Pi Imager; balenaEtcher; Win32DiskImager; Rufus
+cloud, onedrive, icloud, synchronisieren, sync = OneDrive; iCloud; Google Drive; Dropbox
+speicher freigeben, aufraeumen, festplatte aufraeumen, disk cleanup, free space = Datenträgerbereinigung; Disk Cleanup
+defragmentieren, optimieren laufwerk, defrag = Laufwerke defragmentieren und optimieren
+sicherung, backup, wiederherstellen, restore = Windows-Sicherung; Windows Backup; Wiederherstellungslaufwerk; Veeam
+passwort, passwoerter, kennwort, password manager = iCloud-Passwörter; Bitwarden; KeePass; 1Password
+krypto, bitcoin, wallet, hardware wallet = BitBoxApp
+
+# Kommunikation
+chat, nachrichten, messenger, chatten, messages = WhatsApp; Microsoft Teams; Discord; Signal; Telegram; Nachrichten; Slack
+videokonferenz, besprechung, meeting, videoanruf, telefonieren, anruf, video call, call = Microsoft Teams; Zoom; Skype for Business; Skype; WhatsApp; Discord; Webex
+handy, smartphone, telefon, iphone, android, phone = Smartphone-Link; Phone Link; iCloud
+browser, internet, surfen, web, webseite, website = Google Chrome; Firefox; Microsoft Edge; Opera-Browser; Brave
+ki, kuenstliche intelligenz, chatbot, assistent, ai, assistant, llm = Claude; Copilot; Google Gemini; ChatGPT
+
+# System und Windows
+einstellungen, settings, optionen, konfiguration = Einstellungen; Settings; Systemsteuerung
+systemsteuerung, control panel = Systemsteuerung; Control Panel
+prozesse, task manager, programm beenden, haengt, prozess beenden, kill = Task-Manager; Ressourcenmonitor; Resource Monitor
+registry, registrierung, regedit = Registrierungs-Editor; Registry Editor
+dienste, services = Dienste; Services; Komponentendienste
+ereignisse, ereignisprotokoll, logs, fehlerprotokoll, event log, events = Ereignisanzeige; Event Viewer
+aufgaben planen, zeitplan, geplant, scheduler, cron = Aufgabenplanung; Task Scheduler
+autostart, systemstart, msconfig, startup = Systemkonfiguration; System Configuration; Task-Manager
+computerverwaltung, verwaltung, admin, benutzer verwalten, computer management = Computerverwaltung; Computer Management; Windows-Tools
+systeminfo, hardware, pc info, system info = Systeminformationen; System Information
+speicher testen, arbeitsspeicher, ram test, memory test = Windows-Speicherdiagnose; Windows Memory Diagnostic
+datenquelle, odbc = ODBC-Datenquellen (64-Bit); ODBC-Datenquellen (32-Bit)
+zeichen, sonderzeichen, symbol einfuegen, emoji, character map, special character = Zeichentabelle; Character Map
+untertitel, transkript, captions = Live-Untertitel; Live Captions
+vorlesen, sprachausgabe, barrierefreiheit, screen reader, narrator = Sprachausgabe; Narrator; Sprachzugriff
+tastatur am bildschirm, bildschirmtastatur, on screen keyboard = Bildschirmtastatur; On-Screen Keyboard
+uhr, wecker, timer, stoppuhr, alarm, stopwatch, clock = Uhr; Clock; Alarms & Clock
+kamera, webcam, camera = Kamera; Camera; Logi Tune; LogiTune
+maus, tastatur einstellen, logitech, mouse = Logi Options+; LogiTune; Logi Options
+monitor, bildschirm einstellen, display = Dell Display and Peripheral Manager; Windows HDR-Kalibrierung
+lenovo, treiber, updates, firmware, bios = Lenovo Vantage; Lenovo Now; Dell Command Update
+spiele, spielen, game, games, gaming = XBOX; Xbox; Minecraft Launcher; Steam; Epic Games Launcher; Game Bar
+store, apps installieren, app installieren, app store = Microsoft Store; Store
+schritte aufzeichnen, problem aufzeichnen, steps recorder = Schrittaufzeichnung; Steps Recorder; Snipping Tool
+mehrere pcs, eine maus, maus teilen, share mouse = CursorHop; Mouse without Borders

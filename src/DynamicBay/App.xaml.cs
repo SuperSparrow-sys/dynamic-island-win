@@ -23,6 +23,9 @@ public partial class App : Application
     private TrayIcon? _tray;
     private IslandManager? _islands;
     private MenuBarManager? _menuBars;
+    private SearchService? _search;
+    private SearchWindow? _searchWindow;
+    private WinKeyHook? _winKey;
     private IslandViewModel? _vm;
     private AppSettings _settings = new();
     private Settings.SettingsWindow? _settingsWindow;
@@ -207,6 +210,7 @@ public partial class App : Application
             if (ev.PropertyName == nameof(AppSettings.AudioEnabled)) { if (_settings.AudioEnabled) _vm?.Audio.Start(); else _vm?.Audio.Stop(); }
             if (ev.PropertyName == nameof(AppSettings.StartWithWindows)) Autostart.Apply(_settings.StartWithWindows);
             if (ev.PropertyName == nameof(AppSettings.FrameRate)) Motion.FrameRate.Limit = _settings.FrameRate;
+            if (ev.PropertyName == nameof(AppSettings.SearchWinKey)) ApplyWinKey();
             if (ev.PropertyName is nameof(AppSettings.SuppressBanners) or nameof(AppSettings.BannerExceptions) or nameof(AppSettings.Hidden) or nameof(AppSettings.NotificationsEnabled))
                 BannerSuppressor.Apply(_settings, notifications.Access == NotificationAccess.Allowed);
         };
@@ -219,8 +223,10 @@ public partial class App : Application
 
         _islands.Show();
         AppBar.RemoveStale();
-        _menuBars = new MenuBarManager(_vm, _islands);
+        _search = new SearchService();
+        _menuBars = new MenuBarManager(_vm, _islands, device => ShowSearch(Monitors.ByDevice(device)));
         _menuBars.Start();
+        ApplyWinKey();
         var clock = Stopwatch.StartNew();
 
         // Heavy lookups warm up in the background (app list on an STA thread, icon palette on the thread pool).
@@ -1082,6 +1088,31 @@ public partial class App : Application
 
     private const int MicHotkeyId = 0xB002;
 
+    // ---------------- search ----------------
+
+    private void ShowSearch(MonitorInfo monitor)
+    {
+        if (_search is null) return;
+        _searchWindow ??= new SearchWindow(_search);
+        _searchWindow.Toggle(monitor);
+    }
+
+    /// <summary>
+    /// The Windows key alone opens the search on the display with the mouse (Darstellung → Kopfleiste). Test instances
+    /// only with DYNAMICBAY_DEV_WINKEY=1: the installed DynamicBay may have the key already.
+    /// </summary>
+    private void ApplyWinKey()
+    {
+        bool on = _settings.SearchWinKey && (!DevMode.On || Environment.GetEnvironmentVariable("DYNAMICBAY_DEV_WINKEY") == "1");
+        if (on == (_winKey is not null)) return;
+        if (!on) { _winKey?.Dispose(); _winKey = null; return; }
+        _winKey = new WinKeyHook(() => Dispatcher.BeginInvoke(() =>
+        {
+            Native.GetCursorPos(out var p);
+            ShowSearch(Monitors.FromPoint(p.X, p.Y));
+        }));
+    }
+
     private static readonly uint ShowSettingsMessage = Native.RegisterWindowMessage("DynamicBay.ShowSettings");
 
     private bool OnMessage(int msg, IntPtr wParam, IntPtr lParam)
@@ -1186,6 +1217,9 @@ public partial class App : Application
         FlushAll();
         _settings.Save();
         _menuBars?.CloseAll(); // the reserved strips go back to the windows
+        _winKey?.Dispose(); // the Windows key opens the Start menu again
+        _winKey = null;
+        _search?.Dispose();
         _taildrop?.Dispose(); // ends the Tailscale event stream
         _fullscreenGames?.Dispose(); // the game gets its own size back
         _vm?.CursorHop.Dispose();
@@ -1211,6 +1245,7 @@ public partial class App : Application
             _taildrop?.Dispose();
             StopLink();
         }
+        _winKey?.Dispose();
         _tray?.Dispose();
         base.OnExit(e);
     }

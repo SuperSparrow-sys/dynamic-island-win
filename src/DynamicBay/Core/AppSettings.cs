@@ -563,6 +563,9 @@ public sealed partial class AppSettings : ObservableObject
     [ObservableProperty] private bool _menuBarVolume = true;
     [ObservableProperty] private bool _menuBarDate = true;
     [ObservableProperty] private bool _menuBarWeekday = true;
+    [ObservableProperty] private bool _menuBarSearch = true;
+    /// <summary>The Windows key alone opens the search instead of the Start menu (Ctrl+Esc still opens it).</summary>
+    [ObservableProperty] private bool _searchWinKey;
     /// <summary>Remember the placement per arrangement of displays (laptop alone, docked at the office, ...).</summary>
     [ObservableProperty] private bool _dockProfiles = true;
     public Dictionary<string, DockProfile> DockProfileMap { get; set; } = new();

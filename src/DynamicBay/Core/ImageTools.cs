@@ -119,6 +119,59 @@ internal static class ImageTools
         r += m; g += m; b += m;
     }
 
+    /// <summary>
+    /// Frosted glass from a screen capture (BGRA, 32 bit): shrunk by <paramref name="factor"/> (averaged), then three box
+    /// blurs of <paramref name="radius"/>, edges repeated so the border stays as bright as the middle. On the CPU once
+    /// per opening: a WPF BlurEffect would run on every frame under software rendering.
+    /// </summary>
+    public static (byte[] Pixels, int Width, int Height) Frost(byte[] bgra, int width, int height, int factor, int radius)
+    {
+        int w = Math.Max(1, width / factor), h = Math.Max(1, height / factor);
+        var px = new float[w * h * 4];
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                for (int c = 0; c < 4; c++)
+                {
+                    float sum = 0;
+                    for (int dy = 0; dy < factor; dy++)
+                        for (int dx = 0; dx < factor; dx++)
+                            sum += bgra[(((y * factor + dy) * width) + x * factor + dx) * 4 + c];
+                    px[(y * w + x) * 4 + c] = sum / (factor * factor);
+                }
+            }
+        var tmp = new float[px.Length];
+        for (int pass = 0; pass < 3; pass++)
+        {
+            BoxBlur(px, tmp, w, h, radius, horizontal: true);
+            BoxBlur(tmp, px, w, h, radius, horizontal: false);
+        }
+        var result = new byte[px.Length];
+        for (int i = 0; i < px.Length; i++) result[i] = (byte)Math.Clamp(px[i] + 0.5f, 0, 255);
+        for (int i = 3; i < result.Length; i += 4) result[i] = 255; // the screen is opaque
+        return (result, w, h);
+    }
+
+    private static void BoxBlur(float[] src, float[] dst, int w, int h, int r, bool horizontal)
+    {
+        int lines = horizontal ? h : w, len = horizontal ? w : h;
+        float k = 1f / (2 * r + 1);
+        for (int line = 0; line < lines; line++)
+        {
+            int At(int i) => (horizontal ? line * w + Math.Clamp(i, 0, len - 1) : Math.Clamp(i, 0, len - 1) * w + line) * 4;
+            for (int c = 0; c < 4; c++)
+            {
+                float sum = 0;
+                for (int i = -r; i <= r; i++) sum += src[At(i) + c];
+                for (int i = 0; i < len; i++)
+                {
+                    dst[At(i) + c] = sum * k;
+                    sum += src[At(i + r + 1) + c] - src[At(i - r) + c];
+                }
+            }
+        }
+    }
+
     public static void SavePng(BitmapSource src, string path)
     {
         var enc = new PngBitmapEncoder();

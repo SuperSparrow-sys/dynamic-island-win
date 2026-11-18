@@ -101,6 +101,9 @@
             <Button Style="{StaticResource Bar.Item}" Click="QuickSettings_Click" Visibility="{Binding ShowVolume, Converter={StaticResource Vis}}">
                 <c:Icon Data="{Binding VolumeIcon}" Filled="True" Width="16" Height="16" />
             </Button>
+            <Button Style="{StaticResource Bar.Item}" Click="Search_Click" Visibility="{Binding ShowSearch, Converter={StaticResource Vis}}">
+                <c:Icon Data="{StaticResource Icon.Search}" Width="15" Height="15" />
+            </Button>
             <Button Style="{StaticResource Bar.Item}" Click="Clock_Click">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Style="{StaticResource Bar.Text}" Margin="0,0,8,0" Text="{Binding DateText}" Visibility="{Binding ShowDate, Converter={StaticResource Vis}}" />
