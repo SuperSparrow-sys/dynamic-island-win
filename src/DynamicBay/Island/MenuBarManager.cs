@@ -165,6 +165,12 @@ public sealed class MenuBarManager
         Log.Info($"Menu bar: {_settings.MenuBar}, on {_bars.Count} display(s)");
     }
 
+    /// <summary>Explorer restarted (TaskbarCreated): every bar registers its strip again.</summary>
+    public void Renew()
+    {
+        foreach (var bar in _bars) bar.Renew();
+    }
+
     public void CloseAll()
     {
         Watch(false);

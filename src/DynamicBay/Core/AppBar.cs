@@ -46,6 +46,13 @@ public sealed class AppBar
         return d.rc;
     }
 
+    /// <summary>Explorer restarted (TaskbarCreated): the new one does not know the bar, it registers again.</summary>
+    public void Renew()
+    {
+        if (Registered.Remove(_hwnd)) RemoveHandle(_hwnd);
+        Register();
+    }
+
     public void Remove()
     {
         if (!Registered.Remove(_hwnd)) return;

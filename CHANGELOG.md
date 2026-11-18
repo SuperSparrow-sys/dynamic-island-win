@@ -2,7 +2,7 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## Noch nicht veröffentlicht
+## 1.2.0 (18.11.2026)
 
 - Kopfleiste zeigt offene Programme wie die Taskleiste: hinter den angehefteten Apps alle laufenden, ein Symbol je App.
   Ein Punkt darunter zeigt, was läuft, ein Strich die App vorn; will eine App Aufmerksamkeit (etwa ein Anruf), wird
@@ -20,6 +20,8 @@ Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit d
 - Kopfleiste → „Taskleiste ausblenden“: Auf Bildschirmen mit Kopfleiste verschwindet die Windows-Taskleiste und kommt
   wie beim automatischen Ausblenden, sobald die Maus den unteren Rand berührt. Maximierte Fenster reichen bis unten.
   Bildschirme ohne Kopfleiste behalten ihre feste Taskleiste. Standard aus, gehört dem PC.
+- Kopfleiste nach einem Neustart des Explorers: Sie meldet ihren Streifen neu an, maximierte Fenster enden wieder unter
+  ihr.
 
 ## 1.1.22 (18.11.2026)
 

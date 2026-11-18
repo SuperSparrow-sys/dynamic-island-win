@@ -126,7 +126,8 @@ wieder (`TaskbarHider.RestoreStale`). Ist das automatische Ausblenden von Window
 
 **Suche.** Die Lupe der Kopfleiste (`MenuBarSearch`) öffnet `SearchWindow` mittig auf ihrem Bildschirm, die
 Windows-Taste allein (`SearchWinKey`, Standard aus) auf dem Bildschirm mit der Maus. `WinKeyHook` läuft als
-`WH_KEYBOARD_LL` auf einem eigenen Thread; `WinKeyGate` erkennt das Antippen ohne andere Taste, dann wird das Loslassen
+`WH_KEYBOARD_LL` auf einem eigenen Thread; `WinKeyGate` erkennt das Antippen ohne andere Taste und ohne Klick oder
+Mausrad (dafür hängt ein `WH_MOUSE_LL` am selben Thread, nur solange die Taste gehalten ist), dann wird das Loslassen
 durch 0xE8 maskiert und kein Startmenü öffnet sich (Eingaben mit der Markierung `DYNB` überspringt der Hook). Ausschalten
 oder Beenden entfernt den Hook (`WM_QUIT` an den Thread, `UnhookWindowsHookEx` im `finally`); Testinstanzen setzen ihn
 nur mit `DYNAMICBAY_DEV_WINKEY=1`. Das Fenster ist ein transparentes Topmost-Fenster; hinter dem Feld liegt eine beim
@@ -134,9 +135,11 @@ nur mit `DYNAMICBAY_DEV_WINKEY=1`. Das Fenster ist ein transparentes Topmost-Fen
 Einblenden sind Federn. `SearchService` sammelt Apps (`InstalledApps` ohne Hilfe- und Doku-Einträge,
 `SearchMath.IsNoise`), Einstellungsseiten (`ms-settings:`) und Systemwerkzeuge; `SearchMath.Rank` bewertet Namensanfang,
 Wortanfänge, Initialen, Tippfehler (OSA-Abstand) und die Aufgabentabelle `Assets/SearchSynonyms.txt`, oft gestartete
-Treffer steigen (`search-usage.json`). Dateien kommen 140 ms nach der letzten Taste aus dem Windows-Index
-(`FileSearch`, ADO über spätes COM) und aus Everything, wenn es läuft (`WM_COPYDATA`, `QUERY2`); eine neuere Eingabe
-verwirft ältere Ergebnisse. Enter öffnet, Strg+Enter zeigt die Datei im Ordner.
+Treffer steigen (`search-usage.json`, ein `BackgroundWriter`). Dateien kommen 140 ms nach der letzten Taste aus dem
+Windows-Index (`FileSearch`, ADO über spätes COM; erst Wortanfänge, bei zu wenig Treffern `LIKE`) und aus Everything,
+wenn es läuft (`WM_COPYDATA`, `QUERY2`); eine neuere Eingabe verwirft ältere Ergebnisse. Symbole von Dateien gibt das
+Schließen frei, die von Apps und Einstellungen bleiben. Enter öffnet, Strg+Enter zeigt die Datei im Ordner.
+`SearchWinKey` gehört dem PC (`SettingsTransfer.DeviceOnly`).
 
 **Niemand schaut hin.** `ActivityState` merkt sich Sperre (`SessionSwitch`) und Bildschirm aus
 (`GUID_CONSOLE_DISPLAY_STATE` an das Meldungsfenster). Dann halten Dauer-Animationen (`Waveform`, `c:Loop`) an, und

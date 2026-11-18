@@ -3,7 +3,7 @@
 Aufgaben, die noch zu erledigen sind. Was erledigt ist, wird entfernt; Messwerte gehören nach
 [performance/](performance/README.md), Entscheidungen nach [ENTSCHEIDUNGEN.md](ENTSCHEIDUNGEN.md).
 
-Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **23**.
+Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **24**.
 
 ## Ein neuer Punkt
 
@@ -175,13 +175,13 @@ Loopback ereignisgesteuert oder mit 20-ms-Puffer (`LoopbackAudioSource`), Ausgab
 Nachgestellt (Taskleiste sichtbar, Streifen reserviert, dann `TaskbarCreated` an die Testinstanz): `TaskbarHider`
 versteckt sie wieder und setzt den Arbeitsbereich zurück.
 
-**Ursache:** Vermutet, nicht nachgewiesen: Die Kopfleiste meldet ihre App-Leiste nach `TaskbarCreated` nicht neu an
-(`MenuBarWindow`, `AppBar.Register` kehrt bei schon gemerktem Fenster sofort zurück). Ein neuer Explorer kennt sie
-dann nicht, maximierte Fenster würden unter die Leiste reichen. Das beträfe auch die installierte 1.1.22.
+**Ursache:** Die Kopfleiste meldete ihre App-Leiste nach `TaskbarCreated` nicht neu an (`AppBar.Register` kehrte bei
+schon gemerktem Fenster sofort zurück). Seit 1.2.0 meldet `MenuBarManager.Renew` jede Leiste neu an (`AppBar.Renew`),
+danach versteckt `TaskbarHider` die Taskleisten wieder.
 
-**Zu tun:** Mit einer Testinstanz den Explorer neu starten (Besitzer oder freigegebene Session). Danach prüfen: Taskleiste
-auf dem Kopfleisten-Bildschirm versteckt, Arbeitsbereich oben um die Leiste kleiner, unten bis zum Rand. Fehlt der
-Streifen oben, auf `TaskbarCreated` die App-Leiste neu anmelden (`ABM_REMOVE`, `ABM_NEW`, `Place`).
+**Zu tun:** Live prüfen: Mit einer Testinstanz den Explorer neu starten (der Besitzer selbst). Erledigt, wenn danach die
+Taskleiste auf dem Kopfleisten-Bildschirm versteckt ist und maximierte Fenster oben unter der Leiste und unten am Rand
+enden.
 
 ## 22. Klick auf die Uhr der Kopfleiste öffnet die Mitteilungszentrale auf dem Laptop
 
@@ -208,6 +208,18 @@ Fenster der Leiste auf ihrem Bildschirm in den Vordergrund holen oder die Mittei
 **Zu tun:** Wieder aufnehmen, wenn die Grundlast sonst unter 1 % liegt. Dann `IAudioEndpointVolumeCallback`,
 `RegNotifyChangeKeyValue` für die Freigaben und einen FileSystemWatcher für das CursorHop-Log. Warum jetzt nicht:
 siehe Entscheidungen.
+
+## 23. Suche: was live noch nicht geprüft ist
+
+**Gemeldet:** 18.11.2026, Live-Prüfung der Suche vor 1.1.23.
+
+**Beobachtet:** Geprüft sind Lupe, Windows-Taste, Enter und Strg+Enter, zwei Bildschirme (125 % und 180 %), versteckte
+Taskleiste und der Windows-Index. Offen: Everything (nicht installiert; das IPC ist nur gegen ein nachgebautes Fenster
+getestet), 100 % Skalierung (an diesem PC nicht eingestellt) und die Windows-Taste, während ein erhöhtes Fenster vorn
+liegt (künstliche Tastendrücke kommen dort nicht an).
+
+**Zu tun:** Mit installiertem Everything nach einer Datei suchen, die nicht im Index liegt; an einem Bildschirm mit
+100 % öffnen; vor einem Fenster als Administrator die Windows-Taste von Hand drücken.
 
 ## Nicht gemessen
 

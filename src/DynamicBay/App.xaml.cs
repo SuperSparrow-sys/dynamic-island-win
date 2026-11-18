@@ -1130,7 +1130,11 @@ public partial class App : Application
             _vm?.Audio.ToggleMicMute();
             return true;
         }
-        if (msg == TaskbarHider.TaskbarCreated) TaskbarHider.Reapply();
+        if (msg == TaskbarHider.TaskbarCreated)
+        {
+            _menuBars?.Renew(); // first the strips at the top, then the taskbars hidden again below
+            TaskbarHider.Reapply();
+        }
         if (msg == Native.WM_SETTINGCHANGE) TaskbarHider.CheckSoon();
         if ((uint)msg == ShowSettingsMessage)
         {

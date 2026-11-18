@@ -97,6 +97,9 @@ regulär: Kopfleisten-Streifen und versteckte Taskleisten kommen zurück, anders
 `DYNAMICBAY_DEV_SETTINGS=Devices` öffnet beim Start die Einstellungen auf dieser Seite (Namen aus `SettingsPage`).
 `DYNAMICBAY_DEV_WINKEY=1` erlaubt einer Testinstanz den Hook für die Windows-Taste (sonst setzt ihn nur die installierte
 App, damit zwei Instanzen nicht beide die Taste nehmen).
+Vorbereitete Einstellungen für eine Testinstanz aus einer Agenten-Shell der Claude-App: `DYNAMICBAY_DATA_DIR=<Ordner>`
+setzen, etwa `artifacts\dev-…`. Die Shell läuft mit der Paket-Identität der Claude-App, ihre Schreibzugriffe auf
+`%AppData%` landen in `%LocalAppData%\Packages\Claude_…\LocalCache\Roaming`, die Testinstanz liest dort nie.
 
 Hänger: `UI stall 878 ms` im Log kommt mit `Slow UI operation 870 ms: Background timer …` oder `await in …`, also
 dem, was den UI-Thread so lange hielt (ab 150 ms; Testinstanzen mit `DYNAMICBAY_DEV_SLOWOPS=<ms>` schon früher).

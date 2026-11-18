@@ -34,7 +34,7 @@ public partial class SearchWindow : Window
     private int _selected = -1;
     private bool _closing;
     private MonitorInfo? _monitor;
-    private Point _mouse;
+    private Native.POINT _mouse;
 
     /// <summary>Opened or closed (snapshots wait for it).</summary>
     public bool IsOpen => IsVisible && !_closing;
@@ -49,18 +49,26 @@ public partial class SearchWindow : Window
         _motion.Updated += Apply;
         _fileDelay.Tick += (_, _) => { _fileDelay.Stop(); _ = FindFilesAsync(); };
         SourceInitialized += (_, _) => Native.AddExStyle(new WindowInteropHelper(this).Handle, Native.WS_EX_TOOLWINDOW);
-        Deactivated += (_, _) => Dismiss();
+        Deactivated += (_, _) => { if (IsOpen) _lostFocusAt = Environment.TickCount64; Dismiss(); };
         PreviewKeyDown += OnKey;
         DpiChanged += (_, _) => Place();
         Inner.SizeChanged += (_, _) => ClipToShape();
     }
 
-    /// <summary>Opens on <paramref name="monitor"/>, or closes when already open (the Windows key twice).</summary>
+    private long _lostFocusAt = long.MinValue / 2;
+
+    /// <summary>Opens on <paramref name="monitor"/>, or closes when already open (the Windows key or the magnifier twice).</summary>
     public void Toggle(MonitorInfo monitor)
     {
         if (IsOpen) Dismiss();
-        else Open(monitor);
+        else if (!ClickClosedIt(_lostFocusAt, Environment.TickCount64)) Open(monitor);
     }
+
+    /// <summary>
+    /// The click on the magnifier itself took the focus away and closed the search a moment before it arrives: that
+    /// click meant "close", not "open again".
+    /// </summary>
+    internal static bool ClickClosedIt(long lostFocusAt, long now) => now - lostFocusAt is >= 0 and < 400;
 
     public void Open(MonitorInfo monitor)
     {
@@ -82,7 +90,9 @@ public partial class SearchWindow : Window
             Apply();
             Show();
         }
-        _mouse = Mouse.GetPosition(this); // a mouse resting over the field selects nothing until it moves
+        // A mouse resting where the list appears selects nothing until it moves. The screen position, not WPF's: right
+        // after Show WPF still reports a stale one, and the rows growing under the pointer raise MouseMove.
+        Native.GetCursorPos(out _mouse);
         Activate();
         ForceForeground();
         Query.Focus();
@@ -115,6 +125,7 @@ public partial class SearchWindow : Window
         IsHitTestVisible = true;
         Backdrop.Source = null; // the capture is several MB
         _items.Clear();
+        _service.ForgetFileIcons();
         _apps.Clear();
     }
 
@@ -277,7 +288,7 @@ public partial class SearchWindow : Window
                 _ => "Icon.AppWindow",
             }) as Geometry;
             _items.Add(item);
-            _service.LoadIcon(item);
+            _ = _service.LoadIcon(item);
         }
         int index = selected is null ? 0 : Math.Max(0, items.FindIndex(i => i.Id == selected));
         Select(items.Count == 0 ? -1 : index);
@@ -332,8 +343,8 @@ public partial class SearchWindow : Window
     // A list changing under a still mouse must not move the selection: only a real move selects.
     private void Row_MouseMove(object sender, MouseEventArgs e)
     {
-        var p = e.GetPosition(this);
-        if (p == _mouse) return;
+        Native.GetCursorPos(out var p);
+        if (p.X == _mouse.X && p.Y == _mouse.Y) return;
         _mouse = p;
         if (((FrameworkElement)sender).DataContext is SearchItem item) Select(_items.IndexOf(item));
     }

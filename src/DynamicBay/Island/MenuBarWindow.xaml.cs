@@ -262,6 +262,14 @@ public partial class MenuBarWindow : Window
         return IntPtr.Zero;
     }
 
+    /// <summary>Explorer restarted: the strip is registered and claimed again (the new Explorer knew nothing of it).</summary>
+    public void Renew()
+    {
+        if (_bar is null) return;
+        _bar.Renew();
+        Place();
+    }
+
     /// <summary>
     /// A fullscreen film or game on this display: the bar steps aside (the space stays reserved, the fullscreen window
     /// covers it anyway) and comes back afterwards. Checked by the manager every second and on Windows' own message.

@@ -25,7 +25,8 @@ public sealed class FileSearch : IDisposable
     {
         var terms = Terms(query);
         if (terms.Count == 0) return new();
-        var index = _index.Run(() => FromIndex(terms, max * 4)); // room for what IsClutter drops
+        int id = Interlocked.Increment(ref _latest);
+        var index = _index.Run(() => FromIndex(terms, max * 4, id)); // room for what IsClutter drops
         var everything = FromEverythingAsync(string.Join(' ', terms), max);
         var found = new List<FileHit>();
         try { found.AddRange(await everything); } catch (Exception ex) { Log.Info($"Search: Everything failed ({ex.Message})"); }
@@ -52,13 +53,20 @@ public sealed class FileSearch : IDisposable
     internal static string? PathFromUrl(string? url) =>
         url is not null && url.StartsWith("file:", StringComparison.OrdinalIgnoreCase) && url.Length > 7 ? url[5..].Replace('/', '\\') : null;
 
-    /// <summary>Every word starts a word of the file name; links (the Start menu's own) are left out, newest first.</summary>
-    internal static string IndexQuery(IReadOnlyList<string> terms, int max) =>
-        $"SELECT TOP {max} System.ItemUrl, System.ItemType FROM SystemIndex WHERE SCOPE='file:' " +
-        $"AND CONTAINS(System.FileName, '{string.Join(" AND ", terms.Select(t => $"\"{t}*\""))}') " +
-        "AND System.FileExtension <> '.lnk' ORDER BY System.DateModified DESC";
+    /// <summary>
+    /// Every word starts a word of the file name (full-text, about 40 ms), or with <paramref name="anywhere"/> is
+    /// contained in it (LIKE, about 0.5 s): the index does not split names at hyphens or underscores, so "lupe" does not
+    /// start a word of "Suchtest-Lupe.txt". Links (the Start menu's own) are left out, newest first.
+    /// </summary>
+    internal static string IndexQuery(IReadOnlyList<string> terms, int max, bool anywhere = false) =>
+        $"SELECT TOP {max} System.ItemUrl, System.ItemType FROM SystemIndex WHERE SCOPE='file:' AND " +
+        (anywhere ? string.Join(" AND ", terms.Select(t => $"System.FileName LIKE '%{t}%'"))
+                  : $"CONTAINS(System.FileName, '{string.Join(" AND ", terms.Select(t => $"\"{t}*\""))}')") +
+        " AND System.FileExtension <> '.lnk' ORDER BY System.DateModified DESC";
 
-    private List<FileHit> FromIndex(List<string> terms, int max)
+    private int _latest; // the newest query; older ones skip the slow second pass
+
+    private List<FileHit> FromIndex(List<string> terms, int max, int id)
     {
         var list = new List<FileHit>();
         try
@@ -71,18 +79,9 @@ public sealed class FileSearch : IDisposable
                 c.Open("Provider=Search.CollatorDSO;Extended Properties='Application=Windows';");
                 _connection = c;
             }
-            dynamic rs = _connection.Execute(IndexQuery(terms, max));
-            try
-            {
-                while (!(bool)rs.EOF)
-                {
-                    string? path = PathFromUrl(rs.Fields.Item(0).Value as string);
-                    string? kind = rs.Fields.Item(1).Value as string;
-                    if (!string.IsNullOrEmpty(path)) list.Add(new FileHit(path, string.Equals(kind, "Directory", StringComparison.OrdinalIgnoreCase)));
-                    rs.MoveNext();
-                }
-            }
-            finally { rs.Close(); }
+            if (id != Volatile.Read(ref _latest)) return list;
+            Read(IndexQuery(terms, max), list);
+            if (list.Count < max && id == Volatile.Read(ref _latest)) Read(IndexQuery(terms, max, anywhere: true), list);
         }
         catch (Exception ex)
         {
@@ -90,6 +89,22 @@ public sealed class FileSearch : IDisposable
             Log.Info($"Search: Windows index not readable ({ex.Message})");
         }
         return list;
+    }
+
+    private void Read(string sql, List<FileHit> list)
+    {
+        dynamic rs = _connection!.Execute(sql);
+        try
+        {
+            while (!(bool)rs.EOF)
+            {
+                string? path = PathFromUrl(rs.Fields.Item(0).Value as string);
+                string? kind = rs.Fields.Item(1).Value as string;
+                if (!string.IsNullOrEmpty(path)) list.Add(new FileHit(path, string.Equals(kind, "Directory", StringComparison.OrdinalIgnoreCase)));
+                rs.MoveNext();
+            }
+        }
+        finally { rs.Close(); }
     }
 
     // ---------- Everything ----------
@@ -104,12 +119,16 @@ public sealed class FileSearch : IDisposable
         return hwnd != IntPtr.Zero ? hwnd : Native.FindWindow("EVERYTHING_TASKBAR_NOTIFICATION_(1.5a)", null);
     }
 
-    private async Task<List<FileHit>> FromEverythingAsync(string query, int max)
+    private Task<List<FileHit>> FromEverythingAsync(string query, int max)
     {
         var target = EverythingWindow();
-        if (target == IntPtr.Zero) return new();
         var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher is null) return new();
+        return target == IntPtr.Zero || dispatcher is null ? Task.FromResult(new List<FileHit>()) : AskEverythingAsync(target, query, max, dispatcher);
+    }
+
+    /// <summary>One QUERY2 to <paramref name="target"/>; the answer arrives at a window on <paramref name="dispatcher"/>'s thread.</summary>
+    internal async Task<List<FileHit>> AskEverythingAsync(IntPtr target, string query, int max, System.Windows.Threading.Dispatcher dispatcher)
+    {
         var (replyHwnd, id, done) = await dispatcher.InvokeAsync(() =>
         {
             if (_reply is null)

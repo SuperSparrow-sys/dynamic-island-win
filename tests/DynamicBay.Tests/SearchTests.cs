@@ -203,6 +203,59 @@ public class SearchTests
         Assert.True(gate.Up(WinKeyGate.LWin));
     }
 
+    [Fact]
+    public void A_click_or_wheel_while_the_windows_key_is_held_is_no_tap()
+    {
+        var gate = new WinKeyGate();
+        gate.Down(WinKeyGate.LWin, false);
+        gate.Mouse();
+        Assert.False(gate.Up(WinKeyGate.LWin));
+        gate.Mouse(); // the key is up: clicks change nothing
+        gate.Down(WinKeyGate.LWin, false);
+        Assert.True(gate.Held);
+        Assert.True(gate.Up(WinKeyGate.LWin));
+        Assert.False(gate.Held);
+    }
+
+    [Theory]
+    [InlineData(1000, 1050, true)]   // the magnifier click itself took the focus 50 ms earlier: it closes
+    [InlineData(1000, 1600, false)]  // closed by another click a while ago: the magnifier opens it again
+    [InlineData(long.MinValue / 2, 1000, false)] // never lost the focus
+    public void A_second_click_on_the_magnifier_closes_the_search(long lostFocusAt, long now, bool closedByClick) =>
+        Assert.Equal(closedByClick, DynamicBay.Island.SearchWindow.ClickClosedIt(lostFocusAt, now));
+
+    // ---------- service ----------
+
+    [Fact]
+    public async Task File_icons_go_when_the_search_closes_app_icons_stay()
+    {
+        string file = Path.Combine(Path.GetTempPath(), $"dynamicbay-icon-{Guid.NewGuid():N}.txt");
+        File.WriteAllText(file, "x");
+        using var service = new SearchService();
+        try
+        {
+            string exe = Path.Combine(Environment.SystemDirectory, "notepad.exe");
+            await service.LoadIcon(new SearchItem { Name = "a.txt", Subtitle = "", Path = file, IconPath = file, Kind = SearchKind.File });
+            await service.LoadIcon(new SearchItem { Name = "Editor", Subtitle = "", Path = exe, IconPath = exe, Kind = SearchKind.App });
+            Assert.Equal(1, service.FileIconCount);
+            Assert.Equal(1, service.AppIconCount);
+            service.ForgetFileIcons();
+            Assert.Equal(0, service.FileIconCount);
+            Assert.Equal(1, service.AppIconCount);
+        }
+        finally { File.Delete(file); }
+    }
+
+    [Fact]
+    public void Launches_in_quick_succession_all_land_on_disk()
+    {
+        File.Delete(Path.Combine(AppSettings.Folder, "search-usage.json"));
+        using var service = new SearchService();
+        for (int i = 0; i < 40; i++) service.Count(@"C:\Apps\Quick.exe");
+        service.FlushUsage();
+        Assert.Equal(40, SearchService.ReadUsage()[@"C:\Apps\Quick.exe"]);
+    }
+
     // ---------- files ----------
 
     [Fact]
@@ -261,6 +314,89 @@ public class SearchTests
         Assert.Equal(new FileHit(paths[1], true), hits[1]);
         Assert.Empty(FileSearch.ParseEverythingReply(new byte[] { 1, 2, 3 }));
     }
+
+    [Fact]
+    public void Index_query_finds_words_inside_names_on_the_second_pass()
+    {
+        string sql = FileSearch.IndexQuery(FileSearch.Terms("lupe 4711"), 16, anywhere: true);
+        Assert.Contains("System.FileName LIKE '%lupe%' AND System.FileName LIKE '%4711%'", sql);
+        Assert.Contains("System.FileExtension <> '.lnk'", sql);
+        Assert.DoesNotContain("CONTAINS", sql);
+    }
+
+    /// <summary>
+    /// The whole round trip through window messages against a stand-in for Everything's window: it reads the QUERY2 the
+    /// way everything_ipc.h lays it out and answers with a LIST2 to the reply window, as Everything does.
+    /// </summary>
+    [Fact]
+    public async Task Everything_round_trip_through_window_messages()
+    {
+        System.Windows.Threading.Dispatcher? ui = null;
+        using var ready = new ManualResetEventSlim();
+        var thread = new Thread(() => { ui = System.Windows.Threading.Dispatcher.CurrentDispatcher; ready.Set(); System.Windows.Threading.Dispatcher.Run(); }) { IsBackground = true };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        ready.Wait();
+        string? asked = null;
+        var fake = ui!.Invoke(() =>
+        {
+            var s = new System.Windows.Interop.HwndSource(new System.Windows.Interop.HwndSourceParameters("Everything stand-in") { Width = 0, Height = 0, WindowStyle = 0 });
+            s.AddHook((IntPtr hwnd, int msg, IntPtr w, IntPtr l, ref bool handled) =>
+            {
+                if (msg != 0x004A) return IntPtr.Zero;
+                var cds = System.Runtime.InteropServices.Marshal.PtrToStructure<CopyData>(l);
+                if (cds.Data != 18) return IntPtr.Zero;
+                var request = new byte[cds.Size];
+                System.Runtime.InteropServices.Marshal.Copy(cds.Pointer, request, 0, cds.Size);
+                var replyTo = (IntPtr)BitConverter.ToUInt32(request, 0);
+                uint id = BitConverter.ToUInt32(request, 4);
+                asked = Encoding.Unicode.GetString(request, 28, request.Length - 30);
+                byte[] reply = List2(@"C:\Docs\Suchtest-Lupe.txt");
+                var handle = System.Runtime.InteropServices.GCHandle.Alloc(reply, System.Runtime.InteropServices.GCHandleType.Pinned);
+                try
+                {
+                    var answer = new CopyData { Data = (IntPtr)id, Size = reply.Length, Pointer = handle.AddrOfPinnedObject() };
+                    SendMessage(replyTo, 0x004A, hwnd, ref answer);
+                }
+                finally { handle.Free(); }
+                handled = true;
+                return new IntPtr(1);
+            });
+            return s;
+        });
+        var search = new FileSearch();
+        try
+        {
+            var hits = await search.AskEverythingAsync(fake.Handle, "suchtest lupe", 4, ui);
+            Assert.Equal("suchtest lupe", asked);
+            Assert.Equal(new[] { new FileHit(@"C:\Docs\Suchtest-Lupe.txt", false) }, hits);
+            // Nobody answers: empty after the wait, not an exception.
+            ui.Invoke(() => fake.Dispose());
+            Assert.Empty(await search.AskEverythingAsync(IntPtr.Zero, "x", 4, ui));
+        }
+        finally
+        {
+            ui.Invoke(search.Dispose);
+            ui.InvokeShutdown();
+        }
+    }
+
+    private static byte[] List2(string path)
+    {
+        var data = new List<byte>();
+        void U(uint v) => data.AddRange(BitConverter.GetBytes(v));
+        U(1); U(1); U(0); U(4); U(14); // total, count, offset, request flags, sort
+        U(0); U(28);                     // the item: flags (file), offset of its data
+        U((uint)path.Length);
+        data.AddRange(Encoding.Unicode.GetBytes(path + "\0"));
+        return data.ToArray();
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct CopyData { public IntPtr Data; public int Size; public IntPtr Pointer; }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, ref CopyData lParam);
 
     // ---------- backdrop ----------
 
