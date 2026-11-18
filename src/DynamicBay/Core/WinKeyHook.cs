@@ -25,6 +25,14 @@ public sealed class WinKeyGate
         else if (_left || _right) _alone = false;
     }
 
+    public bool Held => _left || _right;
+
+    /// <summary>A click or wheel turn while the Windows key is held (Win+click, Win+wheel in other tools) is no tap.</summary>
+    public void Mouse()
+    {
+        if (Held) _alone = false;
+    }
+
     /// <summary>True when this release ends a tap of the Windows key alone.</summary>
     public bool Up(int vk)
     {
@@ -42,11 +50,13 @@ public sealed class WinKeyGate
 /// Low-level keyboard hook on its own thread (a busy UI thread would make Windows skip or drop the hook): a Windows key
 /// tapped alone raises <see cref="Tapped"/> and the Start menu stays closed. For that the release is held back and sent
 /// again behind an unassigned key (0xE8), so Windows sees a combination, like AutoHotkey's menu mask key. Everything
-/// else passes untouched. Dispose removes the hook; the process ending removes it too.
+/// else passes untouched. Only while a Windows key is held a mouse hook watches for clicks and the wheel (all the time
+/// it would put every mouse move through this process, and a pause here would make the pointer stutter). Dispose
+/// removes the hooks; the process ending removes them too.
 /// </summary>
 public sealed class WinKeyHook : IDisposable
 {
-    private const int WhKeyboardLl = 13, WmKeyDown = 0x100, WmKeyUp = 0x101, WmSysKeyDown = 0x104, WmSysKeyUp = 0x105, WmQuit = 0x12;
+    private const int WhKeyboardLl = 13, WhMouseLl = 14, WmKeyDown = 0x100, WmKeyUp = 0x101, WmSysKeyDown = 0x104, WmSysKeyUp = 0x105, WmQuit = 0x12;
     private const int MaskKey = 0xE8;
     private static readonly IntPtr Marker = new(0x44594E42); // "DYNB": our own key events pass the hook unseen
 
@@ -54,7 +64,8 @@ public sealed class WinKeyHook : IDisposable
     private readonly Action _tapped;
     private readonly Thread _thread;
     private uint _threadId;
-    private HookProc? _proc;
+    private HookProc? _proc, _mouseProc;
+    private IntPtr _mouseHook;
 
     /// <param name="tapped">Called on the hook thread: hand it on quickly (Dispatcher.BeginInvoke).</param>
     public WinKeyHook(Action tapped)
@@ -70,6 +81,7 @@ public sealed class WinKeyHook : IDisposable
     {
         _threadId = GetCurrentThreadId();
         _proc = OnKey;
+        _mouseProc = OnMouse;
         IntPtr hook = SetWindowsHookEx(WhKeyboardLl, _proc, GetModuleHandle(null), 0);
         started.Set();
         if (hook == IntPtr.Zero) { Log.Info($"Windows key: hook not installed ({Marshal.GetLastWin32Error()})"); return; }
@@ -80,6 +92,7 @@ public sealed class WinKeyHook : IDisposable
         }
         finally
         {
+            WatchMouse(false);
             UnhookWindowsHookEx(hook);
             Log.Info("Windows key: hook removed");
         }
@@ -93,8 +106,11 @@ public sealed class WinKeyHook : IDisposable
             int msg = wParam.ToInt32();
             if (k.ExtraInfo != Marker)
             {
+                bool tap = false;
                 if (msg is WmKeyDown or WmSysKeyDown) _gate.Down((int)k.VkCode, ModifiersHeld());
-                else if (msg is WmKeyUp or WmSysKeyUp && _gate.Up((int)k.VkCode))
+                else if (msg is WmKeyUp or WmSysKeyUp) tap = _gate.Up((int)k.VkCode);
+                WatchMouse(_gate.Held);
+                if (tap)
                 {
                     SendMaskedRelease((ushort)k.VkCode);
                     try { _tapped(); } catch (Exception ex) { Log.Error("Windows key", ex); }
@@ -102,6 +118,20 @@ public sealed class WinKeyHook : IDisposable
                 }
             }
         }
+        return CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
+    }
+
+    /// <summary>The mouse hook exists only while a Windows key is held (runs on the hook thread, like the callbacks).</summary>
+    private void WatchMouse(bool on)
+    {
+        if (on && _mouseHook == IntPtr.Zero) _mouseHook = SetWindowsHookEx(WhMouseLl, _mouseProc!, GetModuleHandle(null), 0);
+        else if (!on && _mouseHook != IntPtr.Zero) { UnhookWindowsHookEx(_mouseHook); _mouseHook = IntPtr.Zero; }
+    }
+
+    private IntPtr OnMouse(int code, IntPtr wParam, IntPtr lParam)
+    {
+        // Button down (left, right, middle, X) and both wheels; moving the mouse keeps the tap.
+        if (code >= 0 && wParam.ToInt32() is 0x201 or 0x204 or 0x207 or 0x20A or 0x20B or 0x20E) _gate.Mouse();
         return CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
     }
 

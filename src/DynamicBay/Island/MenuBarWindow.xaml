@@ -129,7 +129,7 @@
             <Button Style="{StaticResource Bar.Item}" Click="QuickSettings_Click" Visibility="{Binding ShowVolume, Converter={StaticResource Vis}}">
                 <c:Icon Data="{Binding VolumeIcon}" Filled="True" Width="16" Height="16" />
             </Button>
-            <Button Style="{StaticResource Bar.Item}" Click="Search_Click" Visibility="{Binding ShowSearch, Converter={StaticResource Vis}}">
+            <Button Style="{StaticResource Bar.Item}" Click="Search_Click" AutomationProperties.Name="{core:L De=Suchen, En=Search}" Visibility="{Binding ShowSearch, Converter={StaticResource Vis}}">
                 <c:Icon Data="{StaticResource Icon.Search}" Width="15" Height="15" />
             </Button>
             <Button Style="{StaticResource Bar.Item}" Click="Clock_Click">

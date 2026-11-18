@@ -166,7 +166,9 @@ public class SettingsTransferTests : IDisposable
         s.MenuBarDisplays = new() { @"\\.\DISPLAY2:3840x2160" };
         s.MenuBarHideTaskbar = true;
         s.MenuBarRunning = false;
+        s.SearchWinKey = true;
         var bundle = SettingsTransfer.Collect(s, "1.0.19", scripts, k => secrets.GetValueOrDefault(k));
+        Assert.DoesNotContain("SearchWinKey", bundle.Settings); // an import never takes over another PC's Windows key
         Assert.DoesNotContain("\"MenuBar\"", bundle.Settings);
         Assert.DoesNotContain("MenuBarDisplays", bundle.Settings);
         Assert.DoesNotContain("MenuBarHideTaskbar", bundle.Settings); // the laptop keeps its taskbar

@@ -37,8 +37,10 @@ public sealed class SearchService : IDisposable
 
     private readonly FileSearch _files = new();
     private readonly StaWorker _icons = new("Search icons");
-    private readonly Dictionary<string, ImageSource?> _iconCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ImageSource?> _iconCache = new(StringComparer.OrdinalIgnoreCase); // apps, settings, tools: a fixed set
+    private readonly Dictionary<string, ImageSource?> _fileIcons = new(StringComparer.OrdinalIgnoreCase); // until the search closes
     private readonly Dictionary<string, int> _usage;
+    private readonly BackgroundWriter _usageWriter = new(text => AtomicFile.WriteAllText(UsageFile, text, backup: false), "Search launches");
     private List<(SearchCandidate Candidate, SearchItem Template)> _catalog = new();
 
     public IReadOnlyList<SynonymRule> Rules { get; } = LoadRules();
@@ -110,20 +112,27 @@ public sealed class SearchService : IDisposable
     // ---------- icons ----------
 
     /// <summary>Fills the item's icon from the cache or the shell (own thread: shell icons can take a while).</summary>
-    public async void LoadIcon(SearchItem item)
+    public async Task LoadIcon(SearchItem item)
     {
-        if (_iconCache.TryGetValue(item.IconPath, out var cached)) { item.Icon = cached; return; }
+        var cache = item.Kind is SearchKind.File or SearchKind.Folder ? _fileIcons : _iconCache;
+        if (cache.TryGetValue(item.IconPath, out var cached)) { item.Icon = cached; return; }
         try
         {
             string path = item.IconPath;
             // 48 px, not 64: icons that only come in 32 or 48 px (Advanced IP Scanner, Radmin) arrive larger than that
             // inside a light framed tile, as in Explorer's large icon view. 48 covers 28 DIP up to 150 % scale.
             var icon = await _icons.Run(() => ShellThumbnail.Get(path, 48, iconOnly: true));
-            _iconCache[path] = icon;
+            cache[path] = icon;
             item.Icon = icon;
         }
         catch (Exception ex) { Log.Info($"Search: no icon for {item.Name} ({ex.Message})"); }
     }
+
+    /// <summary>The search closed: icons of files and folders go (every file ever shown would pile up over weeks).</summary>
+    public void ForgetFileIcons() => _fileIcons.Clear();
+
+    internal int FileIconCount => _fileIcons.Count;
+    internal int AppIconCount => _iconCache.Count;
 
     // ---------- open ----------
 
@@ -153,16 +162,16 @@ public sealed class SearchService : IDisposable
 
     private int Boost(string id) => SearchMath.Boost(Launches(id));
 
-    private void Count(string id)
+    /// <summary>One writer, one write at a time: parallel writes collided on the same temporary file.</summary>
+    internal void Count(string id)
     {
         _usage[id] = Launches(id) + 1;
-        string json = JsonSerializer.Serialize(_usage);
-        _ = Task.Run(() =>
-        {
-            try { AtomicFile.WriteAllText(UsageFile, json, backup: false); }
-            catch (Exception ex) { Log.Info($"Search: launches not saved ({ex.Message})"); }
-        });
+        _usageWriter.Queue(JsonSerializer.Serialize(_usage));
     }
+
+    internal void FlushUsage() => _usageWriter.Drain();
+
+    internal static Dictionary<string, int> ReadUsage() => LoadUsage();
 
     private static Dictionary<string, int> LoadUsage()
     {
@@ -178,6 +187,7 @@ public sealed class SearchService : IDisposable
     public void Dispose()
     {
         InstalledApps.Ready -= Rebuild;
+        _usageWriter.Drain();
         _files.Dispose();
         _icons.Dispose();
     }

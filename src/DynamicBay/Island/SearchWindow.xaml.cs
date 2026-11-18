@@ -115,6 +115,7 @@ public partial class SearchWindow : Window
         IsHitTestVisible = true;
         Backdrop.Source = null; // the capture is several MB
         _items.Clear();
+        _service.ForgetFileIcons();
         _apps.Clear();
     }
 
@@ -277,7 +278,7 @@ public partial class SearchWindow : Window
                 _ => "Icon.AppWindow",
             }) as Geometry;
             _items.Add(item);
-            _service.LoadIcon(item);
+            _ = _service.LoadIcon(item);
         }
         int index = selected is null ? 0 : Math.Max(0, items.FindIndex(i => i.Id == selected));
         Select(items.Count == 0 ? -1 : index);
