@@ -188,8 +188,9 @@ Mitteilungen innerhalb 10 s erscheinen einmal. Ausblenden läuft über dieselbe 
 **Ton an anderes Gerät** (`LinkAudioFeature`, `Services/Link/Audio/`). Sender: WASAPI-Loopback der
 Standard-Ausgabe (NAudio, `LoopbackAudioSource`), `AudioConvert` auf 48 kHz Stereo, 20-ms-Blöcke mit Opus (Concentus,
 reines C#, 160 kbit/s VBR, Komplexität 5), höchstens 200 ms in der Sende-Warteschlange (älteste fliegen raus).
-Empfänger: Opus → `AudioJitterBuffer` → `WasapiAudioSink` (geteilter Modus, 40 ms). Der Puffer startet bei 100 ms (über
-Tailscale 150 ms), regelt die Uhrabweichung beider Soundkarten über die Lesegeschwindigkeit (höchstens ±0,5 %,
+Empfänger: Opus → `AudioJitterBuffer` → `WasapiAudioSink` (geteilter Modus, 40 ms). Der Puffer startet bei 60 ms (über
+Tailscale 150 ms; der Sender liest den Loopback in 50-ms-Blöcken), läuft er leer und kommt binnen 0,5 s wieder Ton,
+steigt das Ziel um 20 ms (höchstens auf die Hälfte der Obergrenze von 400 ms), regelt die Uhrabweichung beider Soundkarten über die Lesegeschwindigkeit (höchstens ±0,5 %,
 lineare Interpolation), wirft nur bei mehr als dem Vierfachen ab und blendet beim Leerlaufen aus und beim Neustart
 ein (keine Klicks). Rahmen im Strom (`LinkAudioProtocol`): 1 Kopf (JSON: Angebot, Antwort `ok`/`reason`, Ende
 `end: off|output|stopped`, Lautstärke `vol` 0..1 in beide Richtungen, auch gleich nach dem Start, höchstens alle 100 ms der neueste Wert; der Empfänger

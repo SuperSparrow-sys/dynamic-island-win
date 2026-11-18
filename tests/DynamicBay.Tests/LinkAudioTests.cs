@@ -137,6 +137,61 @@ public class LinkAudioPureTests
         Assert.InRange(jb.Rate, 0.995, 1.005);
     }
 
+    [Fact]
+    public void Lan_target_covers_the_senders_capture_blocks()
+    {
+        // The sender reads its loopback every 50 to 63 ms (NAudio sleeps half of its 100 ms buffer, the Windows timer
+        // rounds up to 15.6 ms): 2 to 3 Opus frames at once, read here in 10 ms like a sound card. 60 s.
+        var jb = new AudioJitterBuffer(Rate, 2, targetMs: 60, maxMs: 400);
+        var block = new float[480 * 2];
+        var rnd = new Random(7);
+        int next = 0, pushed = 0;
+        double owed = 0;
+        for (int ms = 0; ms < 60_000; ms += 1)
+        {
+            if (ms == next)
+            {
+                int gap = rnd.Next(2) == 0 ? 50 : 63;
+                owed += gap / 20.0;
+                for (; owed >= 1; owed--) { jb.Push(Sine(960, 440, offset: pushed)); pushed += 960; }
+                next += gap;
+            }
+            if (ms % 10 == 0) jb.Read(block);
+        }
+        Assert.Equal(0, jb.Underruns);
+        Assert.Equal(60, jb.TargetMs);
+    }
+
+    [Fact]
+    public void Gaps_raise_the_target_until_they_fit()
+    {
+        var jb = new AudioJitterBuffer(Rate, 2, targetMs: 60, maxMs: 400);
+        var block = new float[480 * 2];
+        int pushed = 0;
+        // Wi-Fi next to Bluetooth: every 2 s nothing for 150 ms, then all of it at once. 60 s.
+        for (int ms = 0; ms < 60_000; ms += 10)
+        {
+            int inCycle = ms % 2000;
+            if (inCycle == 150) for (int k = 0; k < 8; k++) { jb.Push(Sine(960, 440, offset: pushed)); pushed += 960; }
+            else if (inCycle > 150 && ms % 20 == 0) { jb.Push(Sine(960, 440, offset: pushed)); pushed += 960; }
+            jb.Read(block);
+        }
+        Assert.InRange(jb.Underruns, 1, 6);   // a few, then the target fits the gaps (not one every 2 s: 30)
+        Assert.InRange(jb.TargetMs, 120, 200);
+    }
+
+    [Fact]
+    public void Sound_that_stopped_does_not_raise_the_target()
+    {
+        var jb = new AudioJitterBuffer(Rate, 2, targetMs: 60, maxMs: 400);
+        var block = new float[480 * 2];
+        jb.Push(Sine(Rate / 5, 440)); // 200 ms, then a pause in the music
+        for (int i = 0; i < 100; i++) jb.Read(block); // 1 s
+        Assert.Equal(1, jb.Underruns);
+        jb.Push(Sine(Rate / 5, 440));
+        Assert.Equal(60, jb.TargetMs);
+    }
+
     // ---------- codec and conversion ----------
 
     [Fact]

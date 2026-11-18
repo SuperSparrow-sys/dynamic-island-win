@@ -2,6 +2,12 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## Unveröffentlicht
+
+- Ton an das andere Gerät: Im lokalen Netz kommt der Ton etwa 40 ms früher (Puffer 60 statt 100 ms). Wird die
+  Verbindung unruhig, etwa im WLAN neben Bluetooth-Kopfhörern, wächst der Puffer von selbst, statt immer wieder
+  auszusetzen.
+
 ## 1.1.20 (25.10.2026)
 
 1.1.19 wurde nicht veröffentlicht (der Release-Lauf fand den Fehler beim Ton unten).

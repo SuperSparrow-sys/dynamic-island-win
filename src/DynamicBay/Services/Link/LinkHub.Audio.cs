@@ -46,8 +46,9 @@ public sealed partial class LinkHub
             Source = DevMode.On ? () => new ToneAudioSource() : () => new LoopbackAudioSource(),
             Sink = DevMode.On ? () => new NullAudioSink() : () => new WasapiAudioSink(),
             Mute = AudioMute,
-            // A Tailscale relay jitters more than the LAN.
-            TargetMs = id => Service?.ConnectionInfo(id)?.Remote is { } r && LinkDiscovery.IsTailscale(r.Address.IsIPv4MappedToIPv6 ? r.Address.MapToIPv4() : r.Address) ? 150 : 100,
+            // A Tailscale relay jitters more than the LAN. 60 ms covers the sender's 50 ms capture blocks; a burstier
+            // network (Wi-Fi next to Bluetooth) raises it by itself (AudioJitterBuffer).
+            TargetMs = id => Service?.ConnectionInfo(id)?.Remote is { } r && LinkDiscovery.IsTailscale(r.Address.IsIPv4MappedToIPv6 ? r.Address.MapToIPv4() : r.Address) ? 150 : 60,
             SamePc = DevMode.On,
         });
         audio.SendingStarted += (id, name) => { SyncAudio(); AudioMoved?.Invoke(NameOf(id, name), null); };

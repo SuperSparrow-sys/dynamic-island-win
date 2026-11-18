@@ -5,6 +5,9 @@ namespace DynamicBay.Services.Link.Audio;
 /// run on slightly different clocks, so the buffer:
 /// <list type="bullet">
 /// <item>waits until <see cref="TargetMs"/> is buffered before it plays (and again after running dry),</item>
+/// <item>raises the target by one Opus frame (20 ms, up to half of <see cref="MaxMs"/>) when it ran dry and sound came
+/// again within half a second: the network or the sender is burstier than the target allows (not raised when the
+/// sound simply stopped),</item>
 /// <item>steers towards the target by reading a little faster or slower (at most ±0.5 %, linear interpolation, not
 /// audible) instead of dropping samples,</item>
 /// <item>drops what is too much only when it is far over <see cref="MaxMs"/> (a stall that ended), with a short fade,</item>
@@ -16,7 +19,9 @@ public sealed class AudioJitterBuffer
 {
     private readonly object _gate = new();
     private readonly float[] _ring;
-    private readonly int _channels, _capacity, _target, _max, _fade;
+    private readonly int _channels, _capacity, _max, _fade, _step;
+    private int _target;
+    private long _sinceDry = -1;    // frames read since it ran dry while playing (-1: not waiting after a dry run)
     private int _start, _count;     // in frames
     private double _frac;           // read position between frame _start and _start + 1
     private bool _playing;
@@ -35,12 +40,13 @@ public sealed class AudioJitterBuffer
         _ring = new float[_capacity * channels];
         _fade = Math.Max(1, (int)(sampleRate * fadeMs / 1000));
         _last = new float[channels];
-        TargetMs = targetMs;
+        _step = sampleRate / 50;
         MaxMs = maxMs;
     }
 
     public int SampleRate { get; }
-    public int TargetMs { get; }
+    /// <summary>Current target in ms: the one given, plus what gaps added.</summary>
+    public int TargetMs { get { lock (_gate) return _target * 1000 / SampleRate; } }
     public int MaxMs { get; }
 
     /// <summary>Buffered sound in milliseconds.</summary>
@@ -59,6 +65,11 @@ public sealed class AudioJitterBuffer
         int frames = samples.Length / _channels;
         lock (_gate)
         {
+            if (_sinceDry >= 0)
+            {
+                if (_sinceDry < SampleRate / 2) _target = Math.Min(_max / 2, _target + _step);
+                _sinceDry = -1;
+            }
             // A burst far over the limit: keep the newest part (the ring never overflows).
             if (frames > _capacity - _count)
             {
@@ -99,6 +110,7 @@ public sealed class AudioJitterBuffer
                     // Dry: fade from the last frame played, then wait for the target again.
                     _playing = false;
                     Underruns++;
+                    _sinceDry = 0;
                     _frac = 0;
                     FadeTail(o);
                     continue;
@@ -124,6 +136,7 @@ public sealed class AudioJitterBuffer
                 _frac += Rate;
                 while (_frac >= 1 && _count > 1) { _frac -= 1; _start = (_start + 1) % _capacity; _count--; }
             }
+            if (!_playing && _sinceDry >= 0) _sinceDry += frames;
             Steer(frames);
         }
     }
@@ -167,6 +180,7 @@ public sealed class AudioJitterBuffer
             _start = _count = 0;
             _frac = 0;
             _playing = _fadingOut = false;
+            _sinceDry = -1;
             _gain = 0;
             Array.Clear(_last);
         }

@@ -3,7 +3,7 @@
 Aufgaben, die noch zu erledigen sind. Was erledigt ist, wird entfernt; Messwerte gehören nach
 [performance/](performance/README.md), Entscheidungen nach [ENTSCHEIDUNGEN.md](ENTSCHEIDUNGEN.md).
 
-Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **16**.
+Die Nummern laufen durch und werden nicht neu vergeben. Der nächste Punkt bekommt die **20**.
 
 ## Ein neuer Punkt
 
@@ -149,6 +149,23 @@ Ebenen, Waveform und `c:Loop` stoppen verborgen richtig. Verdacht: eine `SpringG
 
 **Zu tun:** Beim nächsten Mal das Log lesen: die CPU-Zeile nennt jetzt `animating: springs/loops/waveforms`, und eine
 Feder, die nach 30 s noch läuft, schreibt `Springs still moving` mit Empfänger und Werten. Dann die Ursache beheben.
+
+## 19. Ton an anderes Gerät: Latenz
+
+**Gemeldet:** 18.11.2026, Besitzer: Ton vom PC am Laptop spürbar verzögert, beide per Kabel im LAN.
+
+**Beobachtet:** Alle Ton-Sitzungen am 17./18.11. liefen über die LAN-Adresse 192.168.10.25 (Ziel 100 ms), nicht über
+Tailscale. Die 193 Aussetzer vom 17.11. fielen in die Zeit ohne Kabel (Ethernet-Link getrennt 15:00 bis 22:04, Laptop
+im WLAN der Fritz!Box, Ausgabe AirPods über Bluetooth), gehäuft 15:45 bis 15:54 zwischen zwei WLAN-Wechseln.
+Geschätzt (Laptop, AirPods): Loopback ~25 ms, Opus ~10 ms Rest plus 6,5 ms Vorlauf, LAN unter 1 ms, Puffer 100 ms,
+Ausgabe 40 ms, Bluetooth 150 bis 250 ms (nicht gemessen).
+
+**Ursache:** Feste 100 ms Puffer im LAN; der Sender liest den Loopback nur alle 50 ms (NAudio, 100-ms-Puffer im
+Abfragemodus); AirPods über Bluetooth.
+
+**Zu tun:** Ab dem nächsten Update startet der Puffer im LAN bei 60 ms und wächst bei Lücken. Im echten Betrieb prüfen:
+`target` in den Statistikzeilen bleibt per Kabel bei 60, Aussetzer selten. Danach, nur mit Hörtest des Besitzers:
+Loopback ereignisgesteuert oder mit 20-ms-Puffer (`LoopbackAudioSource`), Ausgabe 20 statt 40 ms (`WasapiAudioSink`).
 
 # Zurückgestellt
 

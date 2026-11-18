@@ -28,7 +28,7 @@ public sealed class LinkAudioOptions
     public required Func<IAudioSource> Source { get; init; }
     public required Func<IAudioSink> Sink { get; init; }
     public required LocalMuteGuard Mute { get; init; }
-    /// <summary>Jitter buffer target per device (ms): about 100 on the LAN, more over a Tailscale relay.</summary>
+    /// <summary>Jitter buffer start target per device (ms): 60 on the LAN, more over a Tailscale relay; gaps raise it.</summary>
     public Func<string, int> TargetMs { get; init; } = _ => 100;
     public TimeSpan KeepAlive { get; init; } = TimeSpan.FromSeconds(1);
     /// <summary>A stream without any frame for this long is dead.</summary>
@@ -462,7 +462,9 @@ public sealed class LinkAudioFeature : LinkFeature
         {
             _f = f;
             _stream = stream;
-            Buffer = new AudioJitterBuffer(OpusFrameEncoder.SampleRate, OpusFrameEncoder.Channels, Math.Clamp(targetMs, 40, 300), Math.Clamp(targetMs, 40, 300) * 4);
+            int target = Math.Clamp(targetMs, 40, 300);
+            // At least 400 ms: room for a stall, and the target can grow to 200 ms when the network is burstier than expected.
+            Buffer = new AudioJitterBuffer(OpusFrameEncoder.SampleRate, OpusFrameEncoder.Channels, target, Math.Max(400, target * 4));
         }
 
         public AudioJitterBuffer Buffer { get; }
