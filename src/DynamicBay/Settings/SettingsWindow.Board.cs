@@ -153,9 +153,9 @@ public partial class SettingsWindow
             e.Handled = true;
         };
         grip.MouseMove += (_, e) => { if (_drag is { Landing: false }) MoveDrag(e.GetPosition(_boardOverlay)); };
-        grip.MouseLeftButtonUp += (_, e) => { if (_drag is { Landing: false }) Drop(); e.Handled = true; };
+        grip.MouseLeftButtonUp += (_, e) => { if (_drag is { Landing: false }) DropDragged(); e.Handled = true; };
         // Capture taken away (Alt+Tab, a dialog): it lands where it is now.
-        grip.LostMouseCapture += (_, _) => { if (_drag is { Landing: false }) Drop(); };
+        grip.LostMouseCapture += (_, _) => { if (_drag is { Landing: false }) DropDragged(); };
         return slot;
     }
 
@@ -264,7 +264,7 @@ public partial class SettingsWindow
     }
 
     /// <summary>Lands the copy in the gap, then saves the new order (the board is rebuilt in that order).</summary>
-    private void Drop()
+    private void DropDragged()
     {
         if (_drag is not { } d || _boardOverlay is null) return;
         d.Landing = true;

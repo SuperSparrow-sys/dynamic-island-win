@@ -1,0 +1,86 @@
+<Window x:Class="DynamicBay.Island.SearchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="clr-namespace:DynamicBay.Controls"
+        xmlns:core="clr-namespace:DynamicBay.Core"
+        Title="DynamicBay Search" WindowStyle="None" AllowsTransparency="True" Background="Transparent" ResizeMode="NoResize"
+        ShowInTaskbar="False" Topmost="True" Width="736" Height="560" UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display" FontFamily="Segoe UI Variable Text, Segoe UI">
+    <Window.Resources>
+        <!-- Dark by default; ApplyTheme swaps them for the light Windows theme -->
+        <SolidColorBrush x:Key="S.Fore" Color="#F2FFFFFF" />
+        <SolidColorBrush x:Key="S.Dim" Color="#8CFFFFFF" />
+        <SolidColorBrush x:Key="S.Tint" Color="#6B1E1E20" />
+        <SolidColorBrush x:Key="S.Select" Color="#26FFFFFF" />
+        <SolidColorBrush x:Key="S.Line" Color="#1AFFFFFF" />
+        <SolidColorBrush x:Key="S.Edge" Color="#33FFFFFF" />
+    </Window.Resources>
+
+    <!-- 28 DIP around the field stay transparent (clicks there land in the window behind and close the search) -->
+    <Grid x:Name="Root" Margin="28" VerticalAlignment="Top" HorizontalAlignment="Center" RenderTransformOrigin="0.5,0">
+        <Grid.RenderTransform>
+            <ScaleTransform x:Name="Zoom" />
+        </Grid.RenderTransform>
+        <!-- Outer radius 22 → rows 14 (list inset 8): concentric -->
+        <Border x:Name="Panel" Width="680" Height="52" CornerRadius="22" BorderThickness="1" BorderBrush="{DynamicResource S.Edge}">
+            <Grid x:Name="Inner">
+                <!-- The screen behind, frosted once at opening; placed at the window's origin -->
+                <Canvas>
+                    <Image x:Name="Backdrop" Canvas.Left="-29" Canvas.Top="-29" Width="736" Height="560" Stretch="Fill"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Canvas>
+                <Border Background="{DynamicResource S.Tint}" />
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Height="50">
+                        <c:Icon Data="{StaticResource Icon.Search}" Width="20" Height="20" Margin="18,0,0,0" HorizontalAlignment="Left"
+                                Foreground="{DynamicResource S.Dim}" />
+                        <TextBlock x:Name="Placeholder" Text="{core:L De='Suchen', En='Search'}" Margin="50,0,18,1" VerticalAlignment="Center"
+                                   FontSize="20" FontFamily="Segoe UI Variable Display, Segoe UI" Foreground="{DynamicResource S.Dim}" IsHitTestVisible="False" />
+                        <TextBox x:Name="Query" Margin="47,0,18,0" VerticalAlignment="Center" Background="Transparent" BorderThickness="0"
+                                 FontSize="20" FontFamily="Segoe UI Variable Display, Segoe UI" Foreground="{DynamicResource S.Fore}"
+                                 CaretBrush="{DynamicResource S.Fore}" SelectionBrush="#5A8AB4F8" TextChanged="Query_TextChanged">
+                            <TextBox.Template>
+                                <ControlTemplate TargetType="TextBox">
+                                    <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                                </ControlTemplate>
+                            </TextBox.Template>
+                        </TextBox>
+                    </Grid>
+                    <Border x:Name="Line" DockPanel.Dock="Top" Height="1" Margin="16,0" Background="{DynamicResource S.Line}" />
+                    <ItemsControl x:Name="List" Margin="8" Focusable="False">
+                        <ItemsControl.ItemContainerStyle>
+                            <Style TargetType="ContentPresenter">
+                                <EventSetter Event="MouseMove" Handler="Row_MouseMove" />
+                                <EventSetter Event="MouseLeftButtonUp" Handler="Row_Click" />
+                            </Style>
+                        </ItemsControl.ItemContainerStyle>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border x:Name="Row" Height="44" CornerRadius="14" Background="Transparent">
+                                    <DockPanel Margin="10,0">
+                                        <Grid Width="28" Height="28" Margin="0,0,12,0">
+                                            <c:Icon x:Name="Glyph" Data="{Binding Glyph}" Width="20" Height="20" Foreground="{DynamicResource S.Dim}" Visibility="Collapsed" />
+                                            <Image Source="{Binding Icon}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" />
+                                        </Grid>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontSize="14" Foreground="{DynamicResource S.Fore}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Subtitle}" FontSize="11.5" Margin="0,1,0,0" Foreground="{DynamicResource S.Dim}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Selected}" Value="True">
+                                        <Setter TargetName="Row" Property="Background" Value="{DynamicResource S.Select}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
+                                        <Setter TargetName="Glyph" Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

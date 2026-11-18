@@ -236,6 +236,10 @@
                                             ToolTip="{core:L De='Nur auf Bildschirmen mit Kopfleiste, sie kommt am unteren Rand.', En='Only on displays with the menu bar, it slides in at the bottom edge.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarHideTaskbar}" />
                             </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Windows-Taste öffnet die Suche', En='Windows key opens search'}"
+                                            ToolTip="{core:L De='Das Startmenü öffnet dann Strg+Esc.', En='Ctrl+Esc then opens the Start menu.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.SearchWinKey}" AutomationProperties.Name="{core:L De='Windows-Taste öffnet die Suche', En='Windows key opens search'}" />
+                            </ContentControl>
                         </StackPanel>
                     </Border>
 
@@ -253,6 +257,10 @@
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Laufendes Lied', En='Now playing'}"
                                             ToolTip="{core:L De='Ein Klick öffnet den Player.', En='A click opens the player.'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarMedia}" />
+                            </ContentControl>
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Suche', En='Search'}"
+                                            ToolTip="{core:L De='Die Lupe sucht Apps, Einstellungen und Dateien.', En='The magnifier finds apps, settings and files.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarSearch}" AutomationProperties.Name="{core:L De='Suche', En='Search'}" />
                             </ContentControl>
                             <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Bluetooth', En='Bluetooth'}">
                                 <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarBluetooth}" />

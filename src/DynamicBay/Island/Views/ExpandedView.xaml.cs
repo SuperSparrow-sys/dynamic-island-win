@@ -355,7 +355,7 @@ public partial class ExpandedView : UserControl
         }
         // Several players: the media card is a stack, the wheel over it turns the page instead of scrolling the row.
         if (e.OriginalSource is DependencyObject o && IsInside(o, MediaCard) && Vm is { Media.HasPages: true } vm
-            && vm.Link.MediaShowsLocal && DevicesOverlay.Visibility != Visibility.Visible)
+            && vm.Link?.MediaShowsLocal == true && DevicesOverlay.Visibility != Visibility.Visible)
         {
             TurnMediaPage(e.Delta);
             e.Handled = true;

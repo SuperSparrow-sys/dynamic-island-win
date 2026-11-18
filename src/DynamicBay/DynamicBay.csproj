@@ -41,6 +41,7 @@
     <Resource Include="Assets\DynamicBay.ico" />
     <Resource Include="Assets\DynamicBay.png" />
     <EmbeddedResource Include="Assets\AppIcons.json.gz" LogicalName="DynamicBay.Assets.AppIcons.json.gz" />
+    <EmbeddedResource Include="Assets\SearchSynonyms.txt" LogicalName="DynamicBay.Assets.SearchSynonyms.txt" />
     <EmbeddedResource Include="Services\Scripting\ScriptPrelude.js" LogicalName="DynamicBay.Scripting.Prelude.js" />
     <Content Include="Assets\Fonts\Inter-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
     <!-- License texts of bundled third-party components (required for redistribution). -->

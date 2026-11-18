@@ -226,6 +226,8 @@ public partial class MenuBarWindow : Window
     private void Start_Click(object sender, RoutedEventArgs e)
     {
         var menu = Menu((UIElement)sender);
+        // The Windows key may open the search instead: Windows' own Start menu stays one click away (Ctrl+Esc).
+        menu.Items.Add(Item("Startmenü", "Start menu", () => { keybd_event(0x11, 0, 0, UIntPtr.Zero); keybd_event(0x1B, 0, 0, UIntPtr.Zero); keybd_event(0x1B, 0, 2, UIntPtr.Zero); keybd_event(0x11, 0, 2, UIntPtr.Zero); }));
         menu.Items.Add(Item("Über diesen PC", "About this PC", () => Open("ms-settings:about")));
         menu.Items.Add(Separator());
         menu.Items.Add(Item("Einstellungen", "Settings", () => Open("ms-settings:")));
@@ -300,6 +302,10 @@ public partial class MenuBarWindow : Window
     private void QuickSettings_Click(object sender, RoutedEventArgs e) => Open("ms-actioncenter:controlcenter/&showFooter=true");
 
     private void Clock_Click(object sender, RoutedEventArgs e) => Open("ms-actioncenter:");
+
+    private void Search_Click(object sender, RoutedEventArgs e) => (DataContext as MenuBarModel)?.Search?.Invoke(Device);
+
+    [DllImport("user32.dll")] private static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
 
     private static void Open(string uri)
     {

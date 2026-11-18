@@ -2,8 +2,14 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
-## Nächste Version
+## Noch nicht veröffentlicht
 
+- Suche wie Spotlight: Die Lupe rechts in der Kopfleiste öffnet ein Suchfeld über einem weichgezeichneten Hintergrund.
+  Es findet Apps, Einstellungsseiten, Systemwerkzeuge und Dateien (Windows-Index, dazu Everything, wenn es läuft),
+  auch mit Tippfehlern, Anfangsbuchstaben („vsc“) oder einer Aufgabe („bild bearbeiten“, „fernwartung“). Oft
+  gestartete Treffer stehen weiter oben. Pfeiltasten wählen, Enter öffnet, Strg+Enter zeigt die Datei im Ordner, Esc
+  schließt. Wahlweise öffnet die Windows-Taste allein die Suche statt des Startmenüs (Darstellung → Kopfleiste,
+  Standard aus); das Startmenü bleibt über Strg+Esc und den neuen Eintrag „Startmenü“ im Windows-Menü erreichbar.
 - Kopfleiste → „Taskleiste ausblenden“: Auf Bildschirmen mit Kopfleiste verschwindet die Windows-Taskleiste und kommt
   wie beim automatischen Ausblenden, sobald die Maus den unteren Rand berührt. Maximierte Fenster reichen bis unten.
   Bildschirme ohne Kopfleiste behalten ihre feste Taskleiste. Standard aus, gehört dem PC.

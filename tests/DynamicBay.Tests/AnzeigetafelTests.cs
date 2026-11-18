@@ -114,13 +114,11 @@ public class AnzeigetafelTests
         public readonly List<(HttpMethod Method, string? Auth, JsonObject? Body)> Calls = new();
         public HttpStatusCode Status = HttpStatusCode.OK;
         public string Answer = Fixture("panel_plan.json");
-        public bool Offline;
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             string? body = request.Content is null ? null : await request.Content.ReadAsStringAsync(ct);
             lock (Calls) Calls.Add((request.Method, request.Headers.Authorization?.ToString(), body is null ? null : JsonNode.Parse(body) as JsonObject));
-            if (Offline) throw new HttpRequestException("offline");
             return new HttpResponseMessage(Status) { Content = new StringContent(Status == HttpStatusCode.OK ? Answer : Fixture("fehler_401.json"), Encoding.UTF8, "application/json") };
         }
     }

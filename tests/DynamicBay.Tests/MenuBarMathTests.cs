@@ -234,7 +234,7 @@ public class MenuBarMathTests
         Assert.Equal(new[] { @"\.\DISPLAY2" }, MenuBarMath.Screens(MenuBarScreens.Chosen, monitors.Select(m => (m.Item1, m.Item2)), @"\.\DISPLAY1", Chosen));
         Assert.Empty(MenuBarMath.Screens(MenuBarScreens.Chosen, monitors.Select(m => (m.Item1, m.Item2)), @"\.\DISPLAY1")); // nothing chosen
         // Another monitor on the same port (other resolution) is not the chosen one.
-        Assert.False(chosen.Contains(MenuBarMath.DisplayKey(@"\.\DISPLAY2", 1920, 1080)));
+        Assert.DoesNotContain(MenuBarMath.DisplayKey(@"\.\DISPLAY2", 1920, 1080), chosen);
     }
 
     [Fact]

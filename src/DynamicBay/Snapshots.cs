@@ -367,6 +367,14 @@ public static class Snapshots
             return;
         }
 
+        // Search: DYNAMICBAY_SNAPSHOT_SEARCH=1 - the real search window over a colourful stand-in for the screen, empty,
+        // with app hits, a task from the table and files from the Windows index; captured from the screen.
+        if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_SEARCH") == "1")
+        {
+            await ShotSearch(dir);
+            return;
+        }
+
         // Notch style: DYNAMICBAY_SNAPSHOT_NOTCH=1 - idle, compact, peek and open at the top edge.
         if (Environment.GetEnvironmentVariable("DYNAMICBAY_SNAPSHOT_NOTCH") == "1")
         {
@@ -894,6 +902,45 @@ public static class Snapshots
         {
             bar.Close();
             wallpaper.Close();
+        }
+    }
+
+    private static async Task ShotSearch(string dir)
+    {
+        await Task.Run(() => InstalledApps.All());
+        using var service = new SearchService();
+        var main = Monitors.All().First(m => m.IsPrimary);
+        var behind = new Window
+        {
+            WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, ShowActivated = false, Topmost = true,
+            Background = new LinearGradientBrush(Color.FromRgb(0x1D, 0x4E, 0x89), Color.FromRgb(0xE0, 0x7A, 0x5F), 30),
+            Content = new System.Windows.Controls.TextBlock
+            {
+                Text = "Midnight Drive  Neon Harbor  Kunde Mueller", FontSize = 64, FontWeight = FontWeights.Bold, Foreground = Brushes.White,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, main.Bounds.Height / main.Scale * 0.2, 0, 0), HorizontalAlignment = HorizontalAlignment.Center,
+            },
+        };
+        var search = new SearchWindow(service);
+        try
+        {
+            behind.Show();
+            var b = main.Bounds;
+            Native.SetWindowPos(new WindowInteropHelper(behind).Handle, Native.HWND_TOPMOST, b.Left, b.Top, b.Width, b.Height, Native.SWP_NOACTIVATE);
+            await Task.Delay(600);
+            foreach (var (name, query) in new[] { ("1-empty", ""), ("2-vsc", "vsc"), ("3-task", "bild bearbeiten"), ("4-typo", "fernwarung"), ("5-files", "dynamicbay") })
+            {
+                search.Open(main);
+                search.Type(query);
+                await Task.Delay(query.Length > 0 ? 1600 : 700); // files arrive after 140 ms and the index
+                Capture(search, Path.Combine(dir, $"search-{name}.png"));
+                search.Dismiss();
+                await Task.Delay(900);
+            }
+        }
+        finally
+        {
+            search.Close();
+            behind.Close();
         }
     }
 
