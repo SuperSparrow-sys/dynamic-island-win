@@ -176,6 +176,12 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
   (die Leiste bleibt 24 DIP).
 - **„Vorn“ für Klick und Menü aus dem zuletzt gelesenen Stand, nicht neu abgefragt.** Der Klick entscheidet nach dem,
   was der Strich zeigt; ein Fokuswechsel zur Leiste selbst (UI Automation, eigene Menüs) würde sonst „nicht vorn“ melden.
+- **App-ID junger Fenster 10 s lang jede Sekunde neu lesen** (18.11.2026, live gemessen: ein Fenster, das seine ID
+  nach 2 s setzt, blieb sonst für immer unter seinem Programm). Verworfen: die ID bei jedem `HSHELL_REDRAW` neu lesen
+  (kommt bei jeder Titeländerung, auch bei alten Fenstern).
+- **Eine App-ID mit eigenem Startmenü-Eintrag ist eine eigene App**, auch wenn ihr Programm angeheftet ist (18.11.2026,
+  live: die Spotify-PWA landete unter dem angehefteten Chrome). Ohne eigenen Eintrag entscheidet weiter das Programm,
+  weil Electron-Apps ihren Fenstern nicht immer die ID des Eintrags geben.
 - **App-Symbole mit 48 px abfragen** (Leiste, Schnellstart, Suche): bei 64 px liefern Programme, die nur 32 oder 48 px
   mitbringen, eine helle Kachel mit Rahmen.
 - **Gehört dem PC** (Besitzer): Ein Einstellungs-Export nimmt die Kopfleiste nicht mit, am Schreibtisch an, am Laptop

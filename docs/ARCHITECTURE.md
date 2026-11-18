@@ -82,8 +82,11 @@ An der Leiste öffnet die Insel erst nach 300 ms Verweilen (`MenuBarMath.HoverDe
 (`MenuBarRunning`, gehört dem PC). `MenuBarManager` meldet ein verstecktes Fenster per `RegisterShellHookWindow` an,
 solange eine Leiste Apps zeigt, und liest auf Erzeugen, Zerstören, Aktivieren und Blinken (`HSHELL_*`, 120 ms
 gebündelt) die Fenster neu: wie Alt+Tab (`AppWindows.IsSwitchable`), ohne eigene, ohne andere virtuelle Desktops.
-`HSHELL_REDRAW` (auch jede Titeländerung) zählt nur für ein noch unbekanntes Fenster. App-ID und Programm liest es
-einmal je Fenster. `RunningApps` (Logik, getestet) ordnet die Fenster den angehefteten Einträgen zu (`AppWindows.Matches`),
+`HSHELL_REDRAW` (auch jede Titeländerung) zählt nur für ein unbekanntes oder junges Fenster. Das Programm liest es
+einmal je Fenster, die App-ID in den ersten 10 s jede Sekunde neu (`RunningApps.IsYoung`/`Reread`): Chrome-Apps,
+Electron und Teams setzen sie erst nach dem Öffnen. `RunningApps` (Logik, getestet) ordnet die Fenster den angehefteten
+Einträgen zu (`AppWindows.Matches`), außer eine App-ID hat einen eigenen Startmenü-Eintrag (`RunningApps.IsOwnApp`:
+die Spotify-PWA gehört nicht zum angehefteten Chrome),
 gruppiert den Rest je App-ID oder Programm (`OpenWindow.Key`), hält die Reihenfolge stabil (neue hinten), entscheidet
 den Klick (`RunningApps.Click`) und den Strich darunter (`RunningApps.Indicator`: Punkt läuft, Strich vorn, orange
 nach `HSHELL_FLASH`, bis die App vorn war). Eigene Fenster vorn behalten die App davor. Das Modell (`MenuBarModel.Apps`,

@@ -75,6 +75,28 @@ public static class RunningApps
     public static AppClick Click(int windows, bool appInFront) =>
         windows == 0 ? AppClick.Launch : windows == 1 ? AppClick.Toggle : appInFront ? AppClick.Menu : AppClick.Activate;
 
+    /// <summary>
+    /// How long a new window's app id is read again (ms): Chrome apps, Electron apps and Teams set theirs after the
+    /// window opens. Until then they would sit under their program (chrome.exe) and miss their pinned entry.
+    /// </summary>
+    public const long YoungMs = 10_000;
+
+    public static bool IsYoung(long seenMs, long nowMs) => nowMs - seenMs < YoungMs;
+
+    /// <summary>The window with its app id read again; the same instance when it did not change (nothing to regroup).</summary>
+    public static OpenWindow Reread(OpenWindow window, string? appId) =>
+        string.Equals(window.AppId ?? "", appId ?? "", StringComparison.Ordinal) ? window : window with { AppId = appId };
+
+    /// <summary>
+    /// A window whose app id has its own Start menu entry is that app (a Chrome app such as Spotify or Gemini), even
+    /// though it runs in the program of a pinned entry (chrome.exe): it must not join the pinned browser. Without an
+    /// own entry the program still decides (Electron apps do not always give their windows the entry's id).
+    /// </summary>
+    public static bool IsOwnApp(string? windowAppId, string pinPath, Func<string, bool> hasEntry) =>
+        !string.IsNullOrEmpty(windowAppId)
+        && !pinPath.Equals(@"shell:AppsFolder\" + windowAppId, StringComparison.OrdinalIgnoreCase)
+        && hasEntry(@"shell:AppsFolder\" + windowAppId);
+
     /// <summary>In front: a longer line. Wants attention (a blinking window, a call): coloured. Running: a dot.</summary>
     public static AppIndicator Indicator(bool running, bool front, bool flashing) =>
         !running ? AppIndicator.None : front ? AppIndicator.Front : flashing ? AppIndicator.Attention : AppIndicator.Running;
