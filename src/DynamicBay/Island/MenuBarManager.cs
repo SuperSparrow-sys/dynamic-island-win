@@ -119,6 +119,7 @@ public sealed class MenuBarManager
         _tone.Tick += (_, _) => { if (!ActivityState.Current.Away) ToneAll(); };
         _fullscreenCheck.Tick += (_, _) => { if (!ActivityState.Current.Away) CheckFullscreen(); };
         _appsSoon.Tick += (_, _) => RefreshApps();
+        _youngCheck.Tick += (_, _) => RefreshApps();
     }
 
     public void Start()
@@ -427,7 +428,10 @@ public sealed class MenuBarManager
     private int _shellMsg;
     // Messages come in bursts (a window opens, gets its title, comes to the front): one look afterwards.
     private readonly DispatcherTimer _appsSoon = new() { Interval = TimeSpan.FromMilliseconds(120) };
-    private readonly Dictionary<IntPtr, OpenWindow> _windowInfo = new(); // app id and program per window, read once
+    // App id and program per window with the time it was first seen: a young window's id is read again.
+    private readonly Dictionary<IntPtr, (OpenWindow Window, long Seen)> _windowInfo = new();
+    // Chrome apps, Electron apps and Teams set their app id after the window opens, often without a shell message.
+    private readonly DispatcherTimer _youngCheck = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly HashSet<IntPtr> _flashing = new();
     private IntPtr _front;
     private readonly Dictionary<string, BarApp> _apps = new();
@@ -462,6 +466,7 @@ public sealed class MenuBarManager
             _shell = null;
             _vm.Shortcuts.Items.CollectionChanged -= OnPinsChanged;
             _appsSoon.Stop();
+            _youngCheck.Stop();
             _windowInfo.Clear();
             _flashing.Clear();
             _apps.Clear();
@@ -495,7 +500,8 @@ public sealed class MenuBarManager
                 break;
             // Also every title change: only a window not listed yet matters (some get their title after they open).
             case HshellRedraw:
-                if (!_windowInfo.ContainsKey(lParam) && AppWindows.IsSwitchable(lParam)) SoonApps();
+                if (_windowInfo.TryGetValue(lParam, out var known) ? RunningApps.IsYoung(known.Seen, Environment.TickCount64)
+                                                                     : AppWindows.IsSwitchable(lParam)) SoonApps();
                 break;
             // Sent again and again while a window blinks: only the first time counts, and not for the app in front.
             case HshellFlash:
@@ -521,19 +527,32 @@ public sealed class MenuBarManager
         if (_shell is null) return;
         var windows = new List<OpenWindow>();
         var alive = new HashSet<IntPtr>();
+        long now = Environment.TickCount64;
+        bool young = false;
         EnumWindows((hwnd, _) =>
         {
             if (!AppWindows.IsSwitchable(hwnd)) return true;
             Native.GetWindowThreadProcessId(hwnd, out uint pid);
             if (pid == Environment.ProcessId) return true;
             alive.Add(hwnd);
-            if (!_windowInfo.TryGetValue(hwnd, out var w))
-                _windowInfo[hwnd] = w = new OpenWindow(hwnd, TaskbarIdentity.Read(hwnd), AppWindows.ProcessPath(pid));
+            if (!_windowInfo.TryGetValue(hwnd, out var info))
+            {
+                young = true;
+                _windowInfo[hwnd] = info = (new OpenWindow(hwnd, TaskbarIdentity.Read(hwnd), AppWindows.ProcessPath(pid)), now);
+            }
+            else if (RunningApps.IsYoung(info.Seen, now))
+            {
+                young = true;
+                _windowInfo[hwnd] = info = (RunningApps.Reread(info.Window, TaskbarIdentity.Read(hwnd)), info.Seen);
+            }
+            var w = info.Window;
             windows.Add(w);
             return true;
         }, IntPtr.Zero);
         foreach (var gone in _windowInfo.Keys.Where(h => !alive.Contains(h)).ToList()) _windowInfo.Remove(gone);
         _flashing.IntersectWith(alive);
+        // Once a second while a window is young, then quiet again.
+        if (young) _youngCheck.Start(); else _youngCheck.Stop();
 
         var pins = _settings.MenuBarApps ? _vm.Shortcuts.Items.ToList() : new List<ShortcutItem>();
         var (pinned, others) = RunningApps.Group(windows, pins.Count,

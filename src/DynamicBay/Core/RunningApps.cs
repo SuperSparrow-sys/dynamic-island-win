@@ -75,6 +75,18 @@ public static class RunningApps
     public static AppClick Click(int windows, bool appInFront) =>
         windows == 0 ? AppClick.Launch : windows == 1 ? AppClick.Toggle : appInFront ? AppClick.Menu : AppClick.Activate;
 
+    /// <summary>
+    /// How long a new window's app id is read again (ms): Chrome apps, Electron apps and Teams set theirs after the
+    /// window opens. Until then they would sit under their program (chrome.exe) and miss their pinned entry.
+    /// </summary>
+    public const long YoungMs = 10_000;
+
+    public static bool IsYoung(long seenMs, long nowMs) => nowMs - seenMs < YoungMs;
+
+    /// <summary>The window with its app id read again; the same instance when it did not change (nothing to regroup).</summary>
+    public static OpenWindow Reread(OpenWindow window, string? appId) =>
+        string.Equals(window.AppId ?? "", appId ?? "", StringComparison.Ordinal) ? window : window with { AppId = appId };
+
     /// <summary>In front: a longer line. Wants attention (a blinking window, a call): coloured. Running: a dot.</summary>
     public static AppIndicator Indicator(bool running, bool front, bool flashing) =>
         !running ? AppIndicator.None : front ? AppIndicator.Front : flashing ? AppIndicator.Attention : AppIndicator.Running;

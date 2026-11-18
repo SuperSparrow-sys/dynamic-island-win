@@ -141,6 +141,8 @@ public partial class App
                     case "main": link.MainChoice = w.Length > 1 ? w[1] switch { "this" => 1, "other" => 2, "auto" => 3, _ => 0 } : 0; break;
                     case "battery": if (link.BatteryShare is { } b && w.Length > 2) _ = b.PublishAsync(w[1], int.Parse(w[2], System.Globalization.CultureInfo.InvariantCulture)); break;
                     case "lock": if (link.Lock is { } l) _ = l.LockedHereAsync(); break;
+                    // Ends the test instance the normal way: menu bar strips and hidden taskbars go back (a kill leaves them).
+                    case "quit": Quit(); return;
                     case "peek":
                         // "peek <title>": an ordinary peek (not local): on the quiet device it goes to the main one
                         island.ShowPeek(new PeekItem { Title = w.Length > 1 ? string.Join(' ', w.Skip(1)) : "Dev peek", Subtitle = "Live check", Seconds = 3 });

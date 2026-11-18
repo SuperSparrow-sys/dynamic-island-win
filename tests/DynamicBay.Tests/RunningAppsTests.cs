@@ -41,6 +41,21 @@ public class RunningAppsTests
     }
 
     [Fact]
+    public void A_late_app_id_moves_the_window_to_its_own_app()
+    {
+        // A Chrome app (PWA) opens as chrome.exe and sets its own id a moment later.
+        var first = W(1, Chrome);
+        Assert.True(RunningApps.IsYoung(seenMs: 1000, nowMs: 1000 + RunningApps.YoungMs - 1));
+        Assert.False(RunningApps.IsYoung(seenMs: 1000, nowMs: 1000 + RunningApps.YoungMs));
+        var later = RunningApps.Reread(first, "Chrome._crx_teams");
+        Assert.Equal("chrome._crx_teams", later.Key);
+        var (_, others) = RunningApps.Group(new[] { later, W(2, Chrome, null) }, 0, (_, _) => false);
+        Assert.Equal(2, others.Count); // the app and the browser are two symbols
+        Assert.Same(later, RunningApps.Reread(later, "Chrome._crx_teams")); // unchanged: nothing to regroup
+        Assert.Same(first, RunningApps.Reread(first, null));
+    }
+
+    [Fact]
     public void Order_keeps_places_and_puts_new_apps_last()
     {
         var order = RunningApps.Order(new[] { "a", "b", "c" }, new[] { "c", "d", "a" }); // b closed, d new, c came to the front

@@ -92,7 +92,8 @@ iPhone-Fokus (43825 gehört der installierten App).
 aus `%AppData%\DynamicBay-dev-<n>\dev-commands.txt` aus (eine Zeile pro Befehl, die Datei wird danach gelöscht):
 `timer <min>`, `focus`, `pause`, `stop`, `handover`, `dnd on|off`, `main none|this|other|auto`, `battery low <Prozent>`,
 `ask [Sekunden]`, `answer yes|no`, `lock`, `set Link… on|off`, `state` (schreibt Timer, Ruhe und Hauptgerät ins Log),
-`media <Anzahl> [ms]` (erfundene Musik mit Cover an das andere Gerät, es spielt nichts).
+`media <Anzahl> [ms]` (erfundene Musik mit Cover an das andere Gerät, es spielt nichts), `quit` (beendet die Testinstanz
+regulär: Kopfleisten-Streifen und versteckte Taskleisten kommen zurück, anders als beim harten Beenden).
 `DYNAMICBAY_DEV_SETTINGS=Devices` öffnet beim Start die Einstellungen auf dieser Seite (Namen aus `SettingsPage`).
 `DYNAMICBAY_DEV_WINKEY=1` erlaubt einer Testinstanz den Hook für die Windows-Taste (sonst setzt ihn nur die installierte
 App, damit zwei Instanzen nicht beide die Taste nehmen).

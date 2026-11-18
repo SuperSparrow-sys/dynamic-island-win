@@ -208,6 +208,7 @@ public partial class MenuBarWindow : Window
     private void Launch(BarApp app)
     {
         if (DataContext is not MenuBarModel { Shortcuts: { } shortcuts }) return;
+        Log.Info($"Menu bar: starting {app.Name}");
         if (app.Pin is { } pin) shortcuts.Launch(pin);
         else if (app.LaunchPath.Length > 0) shortcuts.Launch(new ShortcutItem { Path = app.LaunchPath });
     }
