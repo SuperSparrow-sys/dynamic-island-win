@@ -56,6 +56,25 @@ public class RunningAppsTests
     }
 
     [Fact]
+    public void A_chrome_app_with_its_own_entry_does_not_join_pinned_chrome()
+    {
+        const string spotify = "Chrome._crx_pjibgcllelbfgfagdaldikeohf"; // Spotify as a Chrome app on the owner's PC
+        var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { @"shell:AppsFolder\Chrome", @"shell:AppsFolder\" + spotify };
+        Assert.True(RunningApps.IsOwnApp(spotify, @"shell:AppsFolder\Chrome", entries.Contains));
+        Assert.False(RunningApps.IsOwnApp("Chrome", @"shell:AppsFolder\Chrome", entries.Contains));       // the browser itself
+        Assert.False(RunningApps.IsOwnApp(null, @"shell:AppsFolder\Chrome", entries.Contains));           // no id: the program decides
+        Assert.False(RunningApps.IsOwnApp("md.obsidian", @"shell:AppsFolder\Obsidian", entries.Contains)); // Electron id without entry
+        Assert.False(RunningApps.IsOwnApp(spotify, @"shell:AppsFolder\" + spotify, entries.Contains));    // Spotify pinned itself
+
+        // Grouped with Chrome pinned: the browser window joins it, Spotify stays its own symbol.
+        var windows = new[] { W(1, Chrome, "Chrome"), W(2, Chrome, spotify) };
+        var (pinned, others) = RunningApps.Group(windows, 1,
+            (_, w) => w.ExePath == Chrome && !RunningApps.IsOwnApp(w.AppId, @"shell:AppsFolder\Chrome", entries.Contains));
+        Assert.Equal(new IntPtr[] { 1 }, pinned[0].Select(w => w.Hwnd));
+        Assert.Equal(spotify.ToLowerInvariant(), Assert.Single(others).Key);
+    }
+
+    [Fact]
     public void Order_keeps_places_and_puts_new_apps_last()
     {
         var order = RunningApps.Order(new[] { "a", "b", "c" }, new[] { "c", "d", "a" }); // b closed, d new, c came to the front

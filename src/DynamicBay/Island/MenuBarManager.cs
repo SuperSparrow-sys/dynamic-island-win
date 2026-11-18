@@ -555,8 +555,10 @@ public sealed class MenuBarManager
         if (young) _youngCheck.Start(); else _youngCheck.Stop();
 
         var pins = _settings.MenuBarApps ? _vm.Shortcuts.Items.ToList() : new List<ShortcutItem>();
+        var entries = new HashSet<string>((InstalledApps.Cached ?? new()).Select(a => a.LaunchPath), StringComparer.OrdinalIgnoreCase);
         var (pinned, others) = RunningApps.Group(windows, pins.Count,
-            (i, w) => AppWindows.Matches(pins[i].Path, w.AppId, w.ExePath, PinTarget(pins[i].Path), AppWindows.KnownFolder));
+            (i, w) => AppWindows.Matches(pins[i].Path, w.AppId, w.ExePath, PinTarget(pins[i].Path), AppWindows.KnownFolder)
+                      && !RunningApps.IsOwnApp(w.AppId, pins[i].Path, entries.Contains));
         // Own windows in front (a menu of the bar, the island, the settings) keep the app that was in front before.
         IntPtr front = Root(Native.GetForegroundWindow());
         Native.GetWindowThreadProcessId(front, out uint frontPid);
