@@ -139,8 +139,9 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
 
 - **Echte App-Leiste (`SHAppBarMessage`) statt nur eines Fensters oben** (18.11.2026, Besitzer). Nur so enden
   maximierte Fenster wie Chrome unter der Leiste und öffnen die Insel nicht mehr beim Griff nach den Tabs. Verworfen:
-  den Arbeitsbereich mit `SPI_SETWORKAREA` selbst verkleinern (gilt nur für den Hauptbildschirm und bleibt nach einem
-  Absturz stehen).
+  den Arbeitsbereich mit `SPI_SETWORKAREA` selbst verkleinern (bleibt nach einem Absturz stehen, maximierte Fenster
+  folgen nicht von selbst). Die frühere Annahme, `SPI_SETWORKAREA` gelte nur für den Hauptbildschirm, stimmt nicht: am
+  18.11.2026 gemessen, es setzt den Arbeitsbereich des Bildschirms, in dem das Rechteck liegt.
 - **24 DIP, Insel ragt heraus.** Niedriger als die Notch (32 DIP) wie am Mac.
 - **Verlauf aus den Farben direkt unter der Leiste, deckend** (18.11.2026, Besitzer: abhängig vom angrenzenden
   Fenster bzw. Hintergrund, nicht von dem, was darüber liegt). Eine 2-Pixel-Zeile vom Bildschirm, 12 Farben, alle 2 s
@@ -167,6 +168,14 @@ Neuordnung vom 11.10.2026; die Gliederung selbst steht im Einstellungsfenster.
 - **Angeheftete Apps wie in der Taskleiste**: offenes Fenster nach vorn, im Vordergrund minimieren, sonst starten.
 - **Gehört dem PC** (Besitzer): Ein Einstellungs-Export nimmt die Kopfleiste nicht mit, am Schreibtisch an, am Laptop
   aus.
+- **Taskleiste nur auf Bildschirmen mit Kopfleiste ausblenden** (18.11.2026, Besitzer: die Kopfleiste ersetzt dort die
+  Taskleiste, der Laptop behält seine feste). Weg: das Taskleistenfenster dieses Bildschirms verstecken, seinen
+  Arbeitsbereich per `SPI_SETWORKAREA` ohne Broadcast bis unten setzen, maximierte Fenster von Hand nachziehen und die
+  Taskleiste am unteren Rand wieder zeigen. Vorher gemessen: Mit Broadcast (`SPIF_SENDCHANGE`) legt der Explorer neu aus
+  und zeigt die Taskleiste wieder; Zeigen per `SW_SHOWNA` lässt den Arbeitsbereich in Ruhe. Verworfen: das automatische
+  Ausblenden von Windows (gilt nur für alle Bildschirme zusammen), die Taskleiste nur verschieben oder per Region
+  unsichtbar machen (der Streifen bliebe reserviert) und eine Low-Level-Maus-Hook (`WH_MOUSE_LL` im UI-Thread bremst bei
+  jedem Hänger die Maus im ganzen System; ein 50-ms-Timer nur bei versteckter Taskleiste reicht).
 - **Fluent UI System Icons** (Besitzer): passen zu Windows 11, MIT-Lizenz. Verworfen: die Lucide-Symbole der Insel,
   denen Akkustufen und WLAN-Balken fehlen.
 - **Klick auf ein Symbol öffnet die Schnelleinstellungen von Windows, auf die Uhr das Benachrichtigungscenter.**

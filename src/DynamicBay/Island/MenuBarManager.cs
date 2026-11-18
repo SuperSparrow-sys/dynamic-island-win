@@ -91,7 +91,7 @@ public sealed class MenuBarManager
     {
         _settings.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName is nameof(AppSettings.MenuBar) or nameof(AppSettings.MenuBarDisplays) or nameof(AppSettings.Monitor) or nameof(AppSettings.Displays)) Sync();
+            if (e.PropertyName is nameof(AppSettings.MenuBar) or nameof(AppSettings.MenuBarDisplays) or nameof(AppSettings.MenuBarHideTaskbar) or nameof(AppSettings.Monitor) or nameof(AppSettings.Displays)) Sync();
             else if (e.PropertyName?.StartsWith("MenuBar", StringComparison.Ordinal) == true && _watching) UpdateAll();
         };
         SystemEvents.DisplaySettingsChanged += (_, _) => Application.Current.Dispatcher.BeginInvoke(Sync);
@@ -125,12 +125,14 @@ public sealed class MenuBarManager
             bar.Tone(IslandShapes(), OnTopWindows());
         }
         Watch(_bars.Count > 0);
+        TaskbarHider.Apply(_settings.MenuBarHideTaskbar ? _bars.Select(b => b.Device) : Array.Empty<string>());
         Log.Info($"Menu bar: {_settings.MenuBar}, on {_bars.Count} display(s)");
     }
 
     public void CloseAll()
     {
         Watch(false);
+        TaskbarHider.RestoreAll();
         foreach (var bar in _bars.ToList()) bar.Close();
         _bars.Clear();
     }

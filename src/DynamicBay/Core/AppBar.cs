@@ -95,6 +95,13 @@ public sealed class AppBar
         foreach (var h in Registered.ToList()) new AppBar(h).Remove();
     }
 
+    /// <summary>Windows' own auto-hide for the taskbar (it then hides it on every display).</summary>
+    public static bool TaskbarAutoHides()
+    {
+        var d = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>() };
+        return (SHAppBarMessage(4 /* ABM_GETSTATE */, ref d).ToUInt32() & 1 /* ABS_AUTOHIDE */) != 0;
+    }
+
     private APPBARDATA Data() => new() { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = _hwnd };
 
     [StructLayout(LayoutKind.Sequential)]

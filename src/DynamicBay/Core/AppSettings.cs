@@ -552,6 +552,8 @@ public sealed partial class AppSettings : ObservableObject
     /// <summary>Displays with a menu bar in the mode "Auswahl" (<see cref="MenuBarMath.DisplayKey"/>). Replaced as a whole
     /// on every change, so the change is announced.</summary>
     [ObservableProperty] private List<string> _menuBarDisplays = new();
+    /// <summary>Windows' taskbar hidden on the displays with a menu bar; it slides in at the bottom edge.</summary>
+    [ObservableProperty] private bool _menuBarHideTaskbar;
     // What the menu bar shows (Darstellung → Kopfleiste), like "Show in menu bar" on the Mac.
     [ObservableProperty] private bool _menuBarStart = true;
     [ObservableProperty] private bool _menuBarApps = true;

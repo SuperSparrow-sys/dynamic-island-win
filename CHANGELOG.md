@@ -2,6 +2,12 @@
 
 Die Release-Notizen auf GitHub entstehen aus den Commits; hier steht, was seit dem letzten Release dazukam.
 
+## Nächste Version
+
+- Kopfleiste → „Taskleiste ausblenden“: Auf Bildschirmen mit Kopfleiste verschwindet die Windows-Taskleiste und kommt
+  wie beim automatischen Ausblenden, sobald die Maus den unteren Rand berührt. Maximierte Fenster reichen bis unten.
+  Bildschirme ohne Kopfleiste behalten ihre feste Taskleiste. Standard aus, gehört dem PC.
+
 ## 1.1.22 (18.11.2026)
 
 - Kopfleiste: Windows-Systemschrift statt Inter, angeheftete Apps in ihren eigenen Farben wie in der Taskleiste,

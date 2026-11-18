@@ -90,6 +90,8 @@ public partial class App : Application
             // The process is going down without OnExit: best effort, Windows banners back and settings kept.
             if (ex.IsTerminating) SaveAndRestore();
         };
+        // Last chance when the process ends without OnExit (Environment.Exit, a fatal error): the taskbar comes back.
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => { try { TaskbarHider.RestoreAll(); } catch { } };
         TaskScheduler.UnobservedTaskException += (_, ex) => { Log.Error("Task", ex.Exception); ex.SetObserved(); };
         // Signing out or shutting down: write everything right away, there may be no time for OnExit.
         SessionEnding += (_, _) => OnSessionEnding();
@@ -219,6 +221,7 @@ public partial class App : Application
 
         _islands.Show();
         AppBar.RemoveStale();
+        TaskbarHider.RestoreStale();
         _menuBars = new MenuBarManager(_vm, _islands);
         _menuBars.Start();
         var clock = Stopwatch.StartNew();
@@ -1096,6 +1099,7 @@ public partial class App : Application
             _vm?.Audio.ToggleMicMute();
             return true;
         }
+        if (msg == TaskbarHider.TaskbarCreated) TaskbarHider.Reapply();
         if ((uint)msg == ShowSettingsMessage)
         {
             if (_settings.Hidden) _islands?.ToggleHidden();
@@ -1224,6 +1228,7 @@ public partial class App : Application
         try { BannerSuppressor.RestoreAll(); } catch (Exception ex) { Log.Error("Exit banners", ex); }
         try { Services.Link.LinkHub.AudioMute.Release(); } catch (Exception ex) { Log.Error("Exit audio mute", ex); } // the sound plays here again
         try { AppBar.RemoveAll(); } catch (Exception ex) { Log.Error("Exit menu bar", ex); } // a crash must not keep the strip reserved
+        try { TaskbarHider.RestoreAll(); } catch (Exception ex) { Log.Error("Exit taskbar", ex); }
     }
 
     /// <summary>Pending writes (notes, clipboard history) to disk now and Teams back to the status from before focus.</summary>

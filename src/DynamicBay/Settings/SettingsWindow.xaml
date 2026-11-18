@@ -232,6 +232,10 @@
                             </ContentControl>
                             <!-- One switch per connected display (built in code), remembered on this PC. -->
                             <StackPanel x:Name="MenuBarDisplayRows" Visibility="{Binding S.MenuBar, Converter={StaticResource EqVis}, ConverterParameter=Chosen}" />
+                            <ContentControl Style="{StaticResource S.Row}" BorderThickness="0,1,0,0" Tag="{core:L De='Taskleiste ausblenden', En='Hide taskbar'}"
+                                            ToolTip="{core:L De='Nur auf Bildschirmen mit Kopfleiste, sie kommt am unteren Rand.', En='Only on displays with the menu bar, it slides in at the bottom edge.'}">
+                                <CheckBox Style="{StaticResource S.Switch}" IsChecked="{Binding S.MenuBarHideTaskbar}" />
+                            </ContentControl>
                         </StackPanel>
                     </Border>
 
